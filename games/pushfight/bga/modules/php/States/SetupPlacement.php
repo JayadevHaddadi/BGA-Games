@@ -121,12 +121,13 @@ class SetupPlacement extends GameState
         );
         $newPieceId = (int) Game::DbGetLastId();
 
-        $this->game->notifyAllPlayers('piecePlaced', clienttranslate('${player_name} places a ${piece_label} at (${r}, ${c})'), [
+        $this->game->notifyAllPlayers('piecePlaced', clienttranslate('${player_name} places a ${piece_label} at ${coord}'), [
             'player_id' => $activePlayerId,
             'player_name' => $this->game->getPlayerNameById($activePlayerId),
             'piece_id' => $newPieceId,
             'piece_type' => $piece_type,
             'piece_label' => ($piece_type === 'king') ? clienttranslate('Square King') : clienttranslate('Round Pawn'),
+            'coord' => "{$r}.{$c}",
             'r' => $r,
             'c' => $c,
         ]);
@@ -209,27 +210,58 @@ class SetupPlacement extends GameState
 
         if ($activePlayerId === $p1) {
             // White finished; advance to Brown
+            $placedP1 = $this->game->getObjectListFromDb(
+                "SELECT `piece_type`, `pos_x`, `pos_y` FROM `piece` WHERE `player_id` = $p1 AND `is_alive` = 1 ORDER BY `piece_type` DESC, `pos_y` ASC, `pos_x` ASC"
+            );
+            $kingsP1 = [];
+            $pawnsP1 = [];
+            foreach ($placedP1 as $p) {
+                if ($p['piece_type'] === 'king') {
+                    $kingsP1[] = "{$p['pos_y']}.{$p['pos_x']}";
+                } else {
+                    $pawnsP1[] = "{$p['pos_y']}.{$p['pos_x']}";
+                }
+            }
+
             $this->game->gamestate->changeActivePlayer($p2);
             $this->game->notifyAllPlayers(
                 'playerSetupCompleted',
-                clienttranslate('${player_name} (White) finished placing pieces. Now ${next_player} (Brown) positions their pieces.'),
+                clienttranslate('${player_name} (White) confirms initial setup: Kings at [${kings_pos}], Pawns at [${pawns_pos}]. Now ${next_player} (Brown) positions pieces.'),
                 [
                     'player_name' => $this->game->getPlayerNameById($p1),
                     'next_player' => $this->game->getPlayerNameById($p2),
+                    'kings_pos' => implode(', ', $kingsP1),
+                    'pawns_pos' => implode(', ', $pawnsP1),
                 ]
             );
             return SetupPlacement::class;
         }
 
         // Brown finished; start Turn 1 with White!
+        $placedP2 = $this->game->getObjectListFromDb(
+            "SELECT `piece_type`, `pos_x`, `pos_y` FROM `piece` WHERE `player_id` = $p2 AND `is_alive` = 1 ORDER BY `piece_type` DESC, `pos_y` ASC, `pos_x` ASC"
+        );
+        $kingsP2 = [];
+        $pawnsP2 = [];
+        foreach ($placedP2 as $p) {
+            if ($p['piece_type'] === 'king') {
+                $kingsP2[] = "{$p['pos_y']}.{$p['pos_x']}";
+            } else {
+                $pawnsP2[] = "{$p['pos_y']}.{$p['pos_x']}";
+            }
+        }
+
         $this->game->gamestate->changeActivePlayer($p1);
         $this->globals->set('turn_start_positions', json_encode($this->game->getPiecePositionsMap()));
 
         $this->game->notifyAllPlayers(
             'setupFinished',
-            clienttranslate('Setup complete! Both players have positioned their pieces. ${player_name} (White) begins Turn 1.'),
+            clienttranslate('${player_name} (Brown) confirms initial setup: Kings at [${kings_pos}], Pawns at [${pawns_pos}]. Setup complete! ${first_player} (White) begins Turn 1.'),
             [
-                'player_name' => $this->game->getPlayerNameById($p1),
+                'player_name' => $this->game->getPlayerNameById($p2),
+                'first_player' => $this->game->getPlayerNameById($p1),
+                'kings_pos' => implode(', ', $kingsP2),
+                'pawns_pos' => implode(', ', $pawnsP2),
             ]
         );
 
@@ -297,12 +329,24 @@ class SetupPlacement extends GameState
 
         $newPieces = $this->game->getObjectListFromDb(
             "SELECT `piece_id` AS `id`, `player_id`, `piece_type`, `pos_x`, `pos_y`, `is_alive` " .
-            "FROM `piece` WHERE `player_id` = $playerId AND `is_alive` = 1"
+            "FROM `piece` WHERE `player_id` = $playerId AND `is_alive` = 1 ORDER BY `piece_type` DESC, `pos_y` ASC, `pos_x` ASC"
         );
 
-        $this->game->notifyAllPlayers('presetPlaced', clienttranslate('${player_name} applied the Standard Opening setup'), [
+        $kings = [];
+        $pawns = [];
+        foreach ($newPieces as $p) {
+            if ($p['piece_type'] === 'king') {
+                $kings[] = "{$p['pos_y']}.{$p['pos_x']}";
+            } else {
+                $pawns[] = "{$p['pos_y']}.{$p['pos_x']}";
+            }
+        }
+
+        $this->game->notifyAllPlayers('presetPlaced', clienttranslate('${player_name} applied the Standard Opening setup: Kings at [${kings_pos}], Pawns at [${pawns_pos}]'), [
             'player_id' => $playerId,
             'player_name' => $this->game->getPlayerNameById($playerId),
+            'kings_pos' => implode(', ', $kings),
+            'pawns_pos' => implode(', ', $pawns),
             'pieces' => $newPieces,
         ]);
     }

@@ -150,7 +150,7 @@ class PlayerTurn {
             if (args?.can_skip_move !== false) {
                 this.bga.statusBar.addActionButton(_('Skip to Mandatory Push'), () => {
                     this.bga.actions.performAction('actSkipToPush');
-                }, { color: 'alert' });
+                }, { color: 'secondary' });
             }
         } else {
             this.bga.statusBar.setTitle(_('${you} must execute a mandatory push with a square King!'));
@@ -202,17 +202,13 @@ export class Game {
                 <div id="pft_board_scaler" class="pft-board-scaler">
                     <div id="pft_board_wrapper" class="pft-board-wrapper">
                         <!-- Top Side Rail (Row 1, Cols 3..7) -->
-                        <div class="pft-rail pft-rail-top" title="${_('Top Side Rail: Pieces cannot be pushed off here (Cols 3-7)')}">
-                            <span class="pft-rail-label">RAIL</span>
-                        </div>
+                        <div class="pft-rail pft-rail-top" title="${_('Top Side Rail: Pieces cannot be pushed off here (Cols 3-7)')}"></div>
 
                         <!-- 26-Square Board Grid -->
                         <div id="pft_board" class="pft-board"></div>
 
                         <!-- Bottom Side Rail (Row 4, Cols 2..6) -->
-                        <div class="pft-rail pft-rail-bottom" title="${_('Bottom Side Rail: Pieces cannot be pushed off here (Cols 2-6)')}">
-                            <span class="pft-rail-label">RAIL</span>
-                        </div>
+                        <div class="pft-rail pft-rail-bottom" title="${_('Bottom Side Rail: Pieces cannot be pushed off here (Cols 2-6)')}"></div>
                     </div>
                 </div>
             </div>
@@ -249,7 +245,7 @@ export class Game {
                 } else {
                     const coord = document.createElement('span');
                     coord.className = 'pft-cell-coord';
-                    coord.textContent = `${r},${c}`;
+                    coord.textContent = `${r}.${c}`;
                     cell.appendChild(coord);
 
                     cell.addEventListener('click', () => this.onCellClicked(r, c));

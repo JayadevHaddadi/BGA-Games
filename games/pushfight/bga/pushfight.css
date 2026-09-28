@@ -97,7 +97,7 @@
     width: 336px;
 }
 
-/* 26-Square Board Grid (4 rows x 8 cols) — lighter warm wood surface */
+/* 26-Square Board Grid (4 rows x 8 cols) — clipped to exact 26-square stepped perimeter */
 .pft-board {
     display: grid;
     grid-template-columns: repeat(8, 64px);
@@ -109,6 +109,21 @@
     box-shadow: 0 8px 24px rgba(60, 35, 10, 0.15), inset 0 1px 2px rgba(255, 255, 255, 0.6);
     border: 2px solid #c4ab84;
     position: relative;
+    /* Polygon exactly traces the 26-square outline, cutting out 1.1, 1.2, 1.8, 4.1, 4.7, 4.8 */
+    clip-path: polygon(
+        140px 0px,
+        480px 0px,
+        480px 72px,
+        552px 72px,
+        552px 208px,
+        412px 208px,
+        412px 280px,
+        72px 280px,
+        72px 208px,
+        0px 208px,
+        0px 72px,
+        140px 72px
+    );
 }
 
 /* Center Dividing Line */
@@ -138,12 +153,10 @@
     transition: all 0.2s ease;
 }
 
-/* Cutout empty grid cells */
+/* Cutout empty grid cells — completely hidden so table shows through */
 .pft-cell.pft-cutout {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    pointer-events: none;
+    visibility: hidden !important;
+    pointer-events: none !important;
 }
 
 .pft-cell-coord {
@@ -190,11 +203,17 @@
     z-index: 2;
 }
 
-/* White / Light Ivory Team */
+/* White / Light Ivory Team — pearlescent highlight with crisp rim */
 .pft-piece.team-white {
-    background: linear-gradient(135deg, #ffffff 0%, #e2d7c5 100%);
-    border: 2px solid #b8a68d;
-    color: #4a3828;
+    background: radial-gradient(circle at 35% 30%, #ffffff 0%, #ffffff 50%, #f6efe3 80%, #e6d7be 100%);
+    border: 2px solid #ecd8bf;
+    color: #3b2310;
+    box-shadow: 0 5px 12px rgba(60, 35, 10, 0.28), inset 0 2px 4px #ffffff, inset 0 -2px 3px rgba(180, 150, 110, 0.35);
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.pft-piece.team-white .pft-piece-icon {
+    filter: drop-shadow(0 1px 1px rgba(255, 255, 255, 0.8));
 }
 
 /* Brown / Dark Walnut Team */
@@ -243,7 +262,7 @@
     z-index: 10;
 }
 
-/* Anchor Badge (Authentic physical red collar ring, centered on locked piece) */
+/* Anchor Badge (Black fill with black border, centered on locked piece) */
 .pft-anchor-badge {
     position: absolute;
     top: 50%;
@@ -251,15 +270,15 @@
     transform: translate(-50%, -50%);
     width: 26px;
     height: 26px;
-    background: linear-gradient(135deg, #e53935 0%, #b71c1c 100%);
-    border: 2px solid #ffffff;
+    background: #181818;
+    border: 2px solid #000000;
     border-radius: 50%;
     color: #ffffff;
     font-size: 15px;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5), inset 0 1px 2px rgba(255, 255, 255, 0.5);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.65), inset 0 1px 1px rgba(255, 255, 255, 0.25);
     z-index: 6;
     pointer-events: none;
 }

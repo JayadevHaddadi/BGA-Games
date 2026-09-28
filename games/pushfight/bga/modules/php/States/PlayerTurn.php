@@ -140,13 +140,16 @@ class PlayerTurn extends GameState
         $playerName = $this->game->getPlayerNameById($activePlayerId);
         $pieceTypeName = ($piece['piece_type'] === 'king') ? clienttranslate('King') : clienttranslate('Pawn');
 
-        $turnArgs = $this->getArgs();
+        $fromCoord = "{$fromR}.{$fromC}";
+        $toCoord = "{$target_r}.{$target_c}";
 
-        $this->notify->all('pieceMoved', clienttranslate('${player_name} slides a ${piece_type} to (${target_r}, ${target_c})'), [
+        $this->notify->all('pieceMoved', clienttranslate('${player_name} slides ${piece_type} from ${from_coord} to ${to_coord}'), [
             'player_id' => $activePlayerId,
             'player_name' => $playerName,
             'piece_id' => $piece_id,
             'piece_type' => $pieceTypeName,
+            'from_coord' => $fromCoord,
+            'to_coord' => $toCoord,
             'from_r' => $fromR,
             'from_c' => $fromC,
             'to_r' => $target_r,
@@ -331,10 +334,13 @@ class PlayerTurn extends GameState
         ];
         $dirText = $dirLabels[$direction] ?? $direction;
 
-        $this->notify->all('pushExecuted', clienttranslate('${player_name} pushes ${direction} with King!'), [
+        $kingCoord = "{$king['pos_y']}.{$king['pos_x']}";
+
+        $this->notify->all('pushExecuted', clienttranslate('${player_name} pushes ${direction} with King at ${from_coord}!'), [
             'player_id' => $activePlayerId,
             'player_name' => $playerName,
             'king_id' => $king_id,
+            'from_coord' => $kingCoord,
             'direction' => $dirText,
             'shifted_pieces' => $shiftedPieces,
             'falls_off' => $fallsOff,
@@ -350,17 +356,18 @@ class PlayerTurn extends GameState
 
         if ($fallsOff) {
             $fallenOwnerId = (int) $fallenPiece['player_id'];
+            $fallenCoord = "{$fallenPiece['pos_y']}.{$fallenPiece['pos_x']}";
             if ($fallenOwnerId !== $activePlayerId) {
                 // Active player pushed opponent piece off board: Active player wins!
                 $winnerId = $activePlayerId;
                 $loserId = $fallenOwnerId;
-                $winMsg = clienttranslate('${winner_name} pushed an opponent piece off the board and WINS!');
+                $winMsg = clienttranslate('${winner_name} pushed an opponent piece at ${coord} off the board and WINS!');
             } else {
                 // Active player pushed own piece off board: Opponent wins!
                 $allPlayers = array_keys($this->game->loadPlayersBasicInfos());
                 $winnerId = ($allPlayers[0] === $activePlayerId) ? $allPlayers[1] : $allPlayers[0];
                 $loserId = $activePlayerId;
-                $winMsg = clienttranslate('${loser_name} pushed their own piece off the board. ${winner_name} WINS!');
+                $winMsg = clienttranslate('${loser_name} pushed their own piece at ${coord} off the board. ${winner_name} WINS!');
             }
 
             $this->bga->playerScore->set($winnerId, 1);
@@ -371,6 +378,7 @@ class PlayerTurn extends GameState
                 'winner_name' => $this->game->getPlayerNameById($winnerId),
                 'loser_id' => $loserId,
                 'loser_name' => $this->game->getPlayerNameById($loserId),
+                'coord' => $fallenCoord,
             ]);
 
             return EndScore::class;
