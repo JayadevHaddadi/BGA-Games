@@ -95,17 +95,49 @@ Every change should be committed and pushed to `main`. The GitHub Actions deploy
 ### ❌ Mistake 7: Schema Desync Across Restarts
 * **The Rule**: Always implement `ensureSchema()` and `upgradeTableDb($from_version)` in `Game.php`. BGA keeps the same MySQL database instance across table restarts; column additions must be handled defensively.
 
+### ❌ Mistake 8: Non-Standard Action Button Colors or Invalid Parameters
+* **What happens**: Public Alpha / Beta review rejection (e.g. *"Color buttons arent good ! Pass and Skip and Undo should be red :)"*), or buttons silently falling back to white because an invalid color name was provided.
+* **The Rule**: In modern BGA framework `this.bga.statusBar.addActionButton(label, callback, { color: ... })`:
+  * **Blue (`'primary'`)**: Forward-moving actions, confirmations, turn progression (*Confirm, Play Card, Submit Move*).
+  * **Red (`'alert'`)**: Negative, stopping, or reversing actions (*Pass, Skip, Undo, Clear, Cancel, Exit*). **NEVER** use `'danger'` or `'red'` in modern BGA — the parameter is `'alert'`.
+  * **White / Secondary (`'secondary'`)**: Optional, non-critical, or side choices (*Standard Preset, Piece Selectors, Mode Toggles*).
+  * **Grey**: Disabled actions (`disabled: true`).
+
 ---
 
-## 📱 4. User Experience & Adaptive Design Standards
+## 📱 4. User Experience & Adaptive Design Standards (Official BGA UX Guidelines: https://bga.li/mRdx)
 
-1. **Responsive Viewport Support**:
-   * Minimum interface width should be set to `320px` in `gameinfos.jsonc`:
-     ```json
+### A. Action Bar Button Conventions
+1. **Traffic Light Color Scheme**:
+   * Blue (`'primary'`) = Go / Advance.
+   * Red (`'alert'`) = Stop / Pass / Skip / Undo / Cancel / Clear.
+   * White (`'secondary'`) = Optional / Side action.
+   * Grey = Unavailable / Disabled.
+2. **Button Arrangement**:
+   * Primary awaited action centered in the Action Bar.
+   * Secondary or preset buttons adjacent to primary.
+   * Cancel, undo, pass, or clear buttons positioned on the **far right**.
+3. **Button Count**:
+   * Strictly $\le 4$ buttons on the Action Bar at all times to prevent mobile layout overflow.
+4. **Touch & Click Targets**:
+   * Interactive elements (buttons, cells, tokens, arrows) must be $\ge 32\text{px} \times 32\text{px}$ (ideal 40–44px).
+
+### B. Responsive Viewport & Board Scaling
+1. **Minimum Interface Width**:
+   * Set to `320` in `gameinfos.jsonc` (the lowest supported value, maximizing mobile viewport sizing):
+     ```jsonc
      "game_interface_width": { "min": 320 }
      ```
-   * The board container should implement dynamic auto-scaling via `transform: scale(...)` based on container width so mobile and tablet players never get horizontal scrollbars.
-2. **Audio & Tactile Feedback**:
-   * Use clean Web Audio API oscillators for stone clicks, placements, and win fanfares.
-3. **Status Bar Guidance**:
-   * Clear dynamic prompts in `this.bga.statusBar.setTitle(...)` instructing the player what action is required.
+2. **Dynamic Board Scaler Pattern**:
+   * Avoid hardcoded `@media (max-width: ...)` CSS rules that use `transform: scale(...)` on the board wrapper; these stack on top of BGA's viewport zoom and cause **double-scaling** (shrinking boards to < 40% screen width).
+   * Wrap the board in a dedicated scaler element (`.game-board-scaler`) that dynamically updates its width and height (`width * scale`, `height * scale`) via JS (`ResizeObserver` + window `resize`), applying `transform: scale(scale)` with `transform-origin: top left`.
+   * On mobile in portrait orientation, calculate `scale = availableWidth / baseWidth` so the board uses the **maximum available screen width** (~98%) with a minimal aesthetic padding.
+   * On mobile in landscape, constrain `scale` by available viewport height (`availableHeight / baseHeight`) so the board never gets clipped vertically.
+   * On desktop, cap `scale` at `1.0` (natural crisp board).
+
+### C. Audio & Feedback
+1. **Audio Levels**:
+   * Web Audio synthesizer volumes must stay lower than BGA default (e.g. gain $\le 0.18$) to remain subtle and non-intrusive.
+2. **Status Bar Guidance**:
+   * Always provide dynamic, informative titles in `this.bga.statusBar.setTitle(...)` guiding the active player.
+

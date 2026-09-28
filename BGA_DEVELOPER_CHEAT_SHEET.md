@@ -194,3 +194,35 @@ public function set(string $name, int|float|bool $value): void
 - **Important `img/` Directory Rule**:
   Every image placed in `img/` is automatically preloaded into the browser when loading a table. Do not put non-interface media in `img/` or it will slow down table initialization.
 
+---
+
+## 10. Official BGA UX/UI Guidelines & Button Color Standards (Public Alpha Checklist)
+
+Reference: [BGA Official UX/UI Guidelines](https://bga.li/mRdx)
+
+### A. Action Bar Button Colors (Section C 3)
+BGA strictly enforces a platform-wide "traffic light" button color convention:
+
+| Role | Meaning | BGA Parameter | Notes / Examples |
+| :--- | :--- | :--- | :--- |
+| **Blue** | Forward-moving action, confirmation, progression | `{ color: 'primary' }` | `Confirm Placement`, `Play Card`, `End Turn` |
+| **Red** | Stopping, negative, pass, skip, undo, cancel, clear | `{ color: 'alert' }` | `Pass`, `Skip to Push`, `Undo Moves`, `Clear All` |
+| **White** | Optional, side choices, non-critical actions | `{ color: 'secondary' }` | `Standard Preset`, inactive toggle options |
+| **Grey** | Disabled / unavailable in current context | `disabled: true` | Works for all 3 colors |
+
+> ⚠️ **Framework Gotcha**: The modern BGA framework parameter for red buttons is **`'alert'`**, NOT `'danger'` or `'red'`. Passing `'danger'` will silently fail to apply red styling and fall back to default white/secondary.
+
+### B. Button Ordering & Limits (Section A 2)
+1. **Center**: Primary / forward-moving awaited action.
+2. **Adjacent**: Secondary choices / presets / toggles.
+3. **Far Right**: Negative / undo / pass / cancel / clear actions.
+4. **Max 4 Buttons**: Never place more than 4 buttons on the Action Bar at any time to prevent wrapping / overflow on mobile screens.
+
+### C. Touch Targets & Minimum Sizes (Section E 3)
+- All interactive controls (buttons, tokens, clickable cells, directional arrows) must have a touch target of at least **`32px × 32px`** (ideal `40–44px` on mobile).
+
+### D. Mobile Responsive Board Scaling (Section C 4)
+1. **Interface Min Width**: In `gameinfos.jsonc`, configure `"game_interface_width": { "min": 320 }` so BGA doesn't force a zoomed-out 740px container on narrow mobile viewports.
+2. **Board Scaler Pattern**: Avoid static `@media (max-width: ...)` rules with `transform: scale(...)` on the board wrapper; they multiply on top of BGA's viewport zoom and cause **double-scaling** (shrinking boards to < 40% screen width). Instead, use a dynamic scaler container with JavaScript (`ResizeObserver` + window `resize`) to scale the board to fill ~98% of the available screen width on mobile portrait.
+
+
