@@ -194,6 +194,11 @@ export class Game {
         const gameArea = this.bga.gameArea.getElement();
         gameArea.innerHTML = `
             <div id="pft_container" class="pft-container">
+                <!-- Info Bar: Top Centered Turn Counter -->
+                <div id="pft_info_bar" class="pft-info-bar">
+                    <span id="pft_turn_pill" class="pft-pill">Turn ${gamedatas.turn_count || 1}</span>
+                </div>
+
                 <div id="pft_board_scaler" class="pft-board-scaler">
                     <div id="pft_board_wrapper" class="pft-board-wrapper">
                         <!-- Top Side Rail (Row 1, Cols 3..7) -->
@@ -209,13 +214,6 @@ export class Game {
                             <span class="pft-rail-label">RAIL</span>
                         </div>
                     </div>
-                </div>
-
-                <!-- Info Bar -->
-                <div id="pft_info_bar" class="pft-info-bar">
-                    <span id="pft_turn_pill" class="pft-pill">Turn ${gamedatas.turn_count || 1}</span>
-                    <span id="pft_phase_pill" class="pft-pill pft-pill-phase">Phase: ${gamedatas.turn_phase?.toUpperCase() || 'MOVE'}</span>
-                    <span id="pft_anchor_pill" class="pft-pill pft-pill-anchor">Anchor Locked: ${gamedatas.anchored_piece_id ? '#' + gamedatas.anchored_piece_id : 'None'}</span>
                 </div>
             </div>
         `;
@@ -778,11 +776,6 @@ export class Game {
             }
         }
 
-        const phasePill = document.getElementById('pft_phase_pill');
-        if (phasePill && this.currentArgs?.phase) {
-            phasePill.textContent = `Phase: ${this.currentArgs.phase.toUpperCase()}`;
-        }
-
         this.clearHighlights();
         this.selectedPieceId = null;
 
@@ -794,10 +787,6 @@ export class Game {
     async notif_phaseChanged(notif) {
         const args = this._getNotifArgs(notif);
         this.gamedatas.turn_phase = args.phase;
-        const phasePill = document.getElementById('pft_phase_pill');
-        if (phasePill) {
-            phasePill.textContent = `Phase: ${args.phase.toUpperCase()}`;
-        }
 
         if (args.turn_args) {
             this.currentArgs = args.turn_args;
@@ -846,11 +835,6 @@ export class Game {
             newAnchorEl.appendChild(b);
         }
 
-        const anchorPill = document.getElementById('pft_anchor_pill');
-        if (anchorPill) {
-            anchorPill.textContent = `Anchor Locked: #${args.anchored_piece_id}`;
-        }
-
         this.clearHighlights();
         this.clearActionButtons();
         this.selectedPieceId = null;
@@ -865,9 +849,6 @@ export class Game {
         const turnPill = document.getElementById('pft_turn_pill');
         if (turnPill) turnPill.textContent = `Turn ${args.turn_count}`;
 
-        const phasePill = document.getElementById('pft_phase_pill');
-        if (phasePill) phasePill.textContent = `Phase: ${args.turn_phase.toUpperCase()}`;
-
         this.clearHighlights();
         this.clearActionButtons();
         this.selectedPieceId = null;
@@ -878,11 +859,6 @@ export class Game {
         const args = this._getNotifArgs(notif);
         this.gamedatas.turn_phase = args.turn_phase || 'move';
         this.gamedatas.pieces = args.pieces;
-
-        const phasePill = document.getElementById('pft_phase_pill');
-        if (phasePill) {
-            phasePill.textContent = `Phase: ${(args.turn_phase || 'move').toUpperCase()}`;
-        }
 
         if (args.turn_args) {
             this.currentArgs = args.turn_args;
@@ -937,17 +913,9 @@ export class Game {
         document.querySelectorAll('.pft-rail-bottom').forEach(el => {
             this.addTooltip(el, _('Bottom Side Rail: Pieces cannot be pushed off the board across this rail.'));
         });
-        const anchorPill = document.getElementById('pft_anchor_pill');
-        if (anchorPill) {
-            this.addTooltip(anchorPill, _('Anchor Ring (Red): The piece that was pushed on the previous turn cannot be pushed on this turn.'));
-        }
         const turnPill = document.getElementById('pft_turn_pill');
         if (turnPill) {
             this.addTooltip(turnPill, _('Turn counter: Tracks current turn number.'));
-        }
-        const phasePill = document.getElementById('pft_phase_pill');
-        if (phasePill) {
-            this.addTooltip(phasePill, _('Turn phase: You may move up to 2 pieces, followed by 1 mandatory push with a square King.'));
         }
     }
 

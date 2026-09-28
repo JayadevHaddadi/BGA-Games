@@ -44,7 +44,7 @@
     max-width: 100%;
 }
 
-/* Board Wrapper with Rails */
+/* Board Wrapper with Rails (Frameless / Open Table Edges) */
 .pft-board-wrapper {
     position: absolute;
     top: 0;
@@ -52,23 +52,23 @@
     width: 552px;
     height: 280px;
     padding: 16px;
-    background: linear-gradient(135deg, #422a1d 0%, #2b170e 100%);
-    border-radius: 16px;
-    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45), inset 0 2px 4px rgba(255, 255, 255, 0.15);
-    border: 3px solid #5a3923;
+    background: transparent;
+    border-radius: 12px;
+    border: none;
+    box-shadow: none;
     transform-origin: top left;
     box-sizing: content-box;
     will-change: transform;
 }
 
-/* Side Rails */
+/* Side Rails — prominent 3D barriers preventing push-offs on designated spans */
 .pft-rail {
     position: absolute;
-    height: 14px;
-    background: linear-gradient(180deg, #824f2b 0%, #46250f 100%);
+    height: 18px;
+    background: linear-gradient(180deg, #6c3417 0%, #3a1a09 100%);
     border-radius: 6px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.4);
-    border: 1px solid #2e1709;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45), inset 0 1px 2px rgba(255, 220, 130, 0.6);
+    border: 1.5px solid #240f05;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -76,37 +76,38 @@
 }
 
 .pft-rail-label {
-    font-size: 8px;
-    font-weight: 800;
-    color: #e5b98f;
-    letter-spacing: 2px;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    font-size: 9px;
+    font-weight: 900;
+    color: #ffdf9e;
+    letter-spacing: 3px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
 }
 
 /* Top rail over Row 1, Cols 3..7: starts at Col 3 (158px) with width 336px */
 .pft-rail-top {
-    top: 4px;
+    top: 3px;
     left: 158px;
     width: 336px;
 }
 
 /* Bottom rail under Row 4, Cols 2..6: starts at Col 2 (90px) with width 336px */
 .pft-rail-bottom {
-    bottom: 4px;
+    bottom: 3px;
     left: 90px;
     width: 336px;
 }
 
-/* 26-Square Board Grid (4 rows x 8 cols) */
+/* 26-Square Board Grid (4 rows x 8 cols) — lighter warm wood surface */
 .pft-board {
     display: grid;
     grid-template-columns: repeat(8, 64px);
     grid-template-rows: repeat(4, 64px);
     gap: 4px;
-    background: #d8b783;
+    background: #eddab9;
     padding: 6px;
-    border-radius: 8px;
-    box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(60, 35, 10, 0.15), inset 0 1px 2px rgba(255, 255, 255, 0.6);
+    border: 2px solid #c4ab84;
     position: relative;
 }
 
@@ -118,18 +119,18 @@
     bottom: 0;
     left: calc(50% - 2px);
     width: 4px;
-    background: rgba(80, 45, 20, 0.5);
+    background: rgba(130, 85, 45, 0.4);
     pointer-events: none;
 }
 
-/* Cells */
+/* Cells — lighter ivory wood gradient for high contrast */
 .pft-cell {
     width: 64px;
     height: 64px;
-    background: linear-gradient(135deg, #f5eedc 0%, #e6d3b3 100%);
+    background: linear-gradient(135deg, #ffffff 0%, #f6ecd8 100%);
     border-radius: 6px;
-    box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.6), inset 0 -1px 3px rgba(0, 0, 0, 0.15);
-    border: 1px solid #c9a777;
+    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.9), inset 0 -1px 2px rgba(160, 130, 95, 0.12);
+    border: 1px solid #d8c29e;
     position: relative;
     display: flex;
     align-items: center;
@@ -150,8 +151,8 @@
     bottom: 2px;
     right: 4px;
     font-size: 9px;
-    color: rgba(90, 60, 30, 0.35);
-    font-weight: 600;
+    color: rgba(130, 95, 60, 0.35);
+    font-weight: 700;
     pointer-events: none;
 }
 
@@ -242,22 +243,25 @@
     z-index: 10;
 }
 
-/* Anchor Badge */
+/* Anchor Badge (Authentic physical red collar ring, centered on locked piece) */
 .pft-anchor-badge {
     position: absolute;
-    top: -6px;
-    right: -6px;
-    width: 20px;
-    height: 20px;
-    background: linear-gradient(135deg, #ffd700 0%, #ff8f00 100%);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 26px;
+    height: 26px;
+    background: linear-gradient(135deg, #e53935 0%, #b71c1c 100%);
     border: 2px solid #ffffff;
     border-radius: 50%;
-    font-size: 11px;
+    color: #ffffff;
+    font-size: 15px;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5), inset 0 1px 2px rgba(255, 255, 255, 0.5);
     z-index: 6;
+    pointer-events: none;
 }
 
 /* Push Directional Arrows (≥ 32px click target for mobile compliance) */
@@ -314,35 +318,24 @@
     100% { transform: scale(0.3) translateY(60px) rotate(180deg); opacity: 0; }
 }
 
-/* Info Bar */
+/* Info Bar (Top Centered) */
 .pft-info-bar {
     display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
     justify-content: center;
+    width: 100%;
+    margin-bottom: 2px;
 }
 
 .pft-pill {
-    background: linear-gradient(135deg, #f5eedc 0%, #e6d3b3 100%);
-    color: #4a3828;
-    border-radius: 16px;
-    padding: 6px 14px;
+    background: linear-gradient(135deg, #ffffff 0%, #f0e5cf 100%);
+    color: #432e1b;
+    border-radius: 20px;
+    padding: 5px 18px;
     font-size: 13px;
-    font-weight: 600;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
-    border: 1px solid #b8a68d;
-}
-
-.pft-pill-phase {
-    background: linear-gradient(135deg, #ffe082 0%, #ffd54f 100%);
-    color: #6d4c00;
-    border-color: #f0b429;
-}
-
-.pft-pill-anchor {
-    background: linear-gradient(135deg, #ffd700 0%, #ff8f00 100%);
-    color: #3e2723;
-    border-color: #e08600;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    border: 1px solid #d4c19f;
 }
 
 /* Victory Banner */
