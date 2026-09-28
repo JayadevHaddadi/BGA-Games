@@ -49,103 +49,80 @@
     position: absolute;
     top: 0;
     left: 0;
-    width: 552px;
-    height: 280px;
-    padding: 16px;
+    width: 558px;
+    height: 282px;
+    padding: 18px 16px;
     background: transparent;
-    border-radius: 12px;
     border: none;
     box-shadow: none;
     transform-origin: top left;
     box-sizing: content-box;
     will-change: transform;
-}
-
-/* Side Rails — prominent 3D barriers preventing push-offs on designated spans */
-.pft-rail {
-    position: absolute;
-    height: 18px;
-    background: linear-gradient(180deg, #6c3417 0%, #3a1a09 100%);
-    border-radius: 6px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45), inset 0 1px 2px rgba(255, 220, 130, 0.6);
-    border: 1.5px solid #240f05;
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+/* Side Rails — prominent 3D barriers with rounded ends preventing push-offs */
+.pft-rail {
+    position: absolute;
+    height: 16px;
+    background: linear-gradient(180deg, #6c3417 0%, #3a1a09 100%);
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45), inset 0 1px 2px rgba(255, 220, 130, 0.6);
+    border: 1.5px solid #240f05;
     z-index: 5;
 }
 
-.pft-rail-label {
-    font-size: 9px;
-    font-weight: 900;
-    color: #ffdf9e;
-    letter-spacing: 3px;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
-}
-
-/* Top rail over Row 1, Cols 3..7: starts at Col 3 (158px) with width 336px */
+/* Top rail over Row 1, Cols 3..7: width 336px */
 .pft-rail-top {
-    top: 3px;
-    left: 158px;
+    top: 8px;
+    left: 161px;
     width: 336px;
 }
 
-/* Bottom rail under Row 4, Cols 2..6: starts at Col 2 (90px) with width 336px */
+/* Bottom rail under Row 4, Cols 2..6: width 336px */
 .pft-rail-bottom {
-    bottom: 3px;
-    left: 90px;
+    bottom: 8px;
+    left: 93px;
     width: 336px;
 }
 
-/* 26-Square Board Grid (4 rows x 8 cols) — clipped to exact 26-square stepped perimeter */
+/* 26-Square Board Grid (4 rows x 8 cols) — clean transparent grid container */
 .pft-board {
     display: grid;
     grid-template-columns: repeat(8, 64px);
     grid-template-rows: repeat(4, 64px);
     gap: 4px;
-    background: #eddab9;
-    padding: 6px;
-    border-radius: 10px;
-    box-shadow: 0 8px 24px rgba(60, 35, 10, 0.15), inset 0 1px 2px rgba(255, 255, 255, 0.6);
-    border: 2px solid #c4ab84;
+    background: transparent;
+    padding: 0;
+    margin: 0 auto;
+    border: none;
+    box-shadow: none;
     position: relative;
-    /* Polygon exactly traces the 26-square outline, cutting out 1.1, 1.2, 1.8, 4.1, 4.7, 4.8 */
-    clip-path: polygon(
-        140px 0px,
-        480px 0px,
-        480px 72px,
-        552px 72px,
-        552px 208px,
-        412px 208px,
-        412px 280px,
-        72px 280px,
-        72px 208px,
-        0px 208px,
-        0px 72px,
-        140px 72px
-    );
 }
 
 /* Center Dividing Line */
 .pft-board::after {
     content: '';
     position: absolute;
-    top: 0;
-    bottom: 0;
-    left: calc(50% - 2px);
-    width: 4px;
-    background: rgba(130, 85, 45, 0.4);
+    top: 2px;
+    bottom: 2px;
+    left: calc(50% - 1.5px);
+    width: 3px;
+    background: rgba(140, 95, 55, 0.45);
+    border-radius: 2px;
     pointer-events: none;
 }
 
-/* Cells — lighter ivory wood gradient for high contrast */
+/* Cells — consistent rounded wooden tiles with 3D elevation */
 .pft-cell {
     width: 64px;
     height: 64px;
     background: linear-gradient(135deg, #ffffff 0%, #f6ecd8 100%);
-    border-radius: 6px;
-    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.9), inset 0 -1px 2px rgba(160, 130, 95, 0.12);
-    border: 1px solid #d8c29e;
+    border-radius: 8px;
+    box-shadow: 0 3px 6px rgba(60, 35, 10, 0.18), inset 0 1px 2px rgba(255, 255, 255, 0.95), inset 0 -1px 2px rgba(160, 130, 95, 0.15);
+    border: 2px solid #c8af88;
     position: relative;
     display: flex;
     align-items: center;
@@ -153,7 +130,7 @@
     transition: all 0.2s ease;
 }
 
-/* Cutout empty grid cells — completely hidden so table shows through */
+/* Cutout empty grid cells — completely hidden so table shows through with zero artifacts */
 .pft-cell.pft-cutout {
     visibility: hidden !important;
     pointer-events: none !important;
@@ -262,25 +239,27 @@
     z-index: 10;
 }
 
-/* Anchor Badge (Black fill with black border, centered on locked piece) */
+/* Anchor Badge (Red circle, black border, black anchor icon, 10% smaller) */
 .pft-anchor-badge {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 26px;
-    height: 26px;
-    background: #181818;
+    width: 23px;
+    height: 23px;
+    background: radial-gradient(circle at 40% 35%, #ff5252 0%, #e53935 60%, #c62828 100%);
     border: 2px solid #000000;
     border-radius: 50%;
-    color: #ffffff;
-    font-size: 15px;
+    color: #000000;
+    font-size: 13px;
+    font-weight: 900;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.65), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.35);
     z-index: 6;
     pointer-events: none;
+    line-height: 1;
 }
 
 /* Push Directional Arrows (≥ 32px click target for mobile compliance) */

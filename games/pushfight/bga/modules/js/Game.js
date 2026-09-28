@@ -287,7 +287,7 @@ export class Game {
         if (parseInt(p.id, 10) === parseInt(anchoredId, 10)) {
             const anchorBadge = document.createElement('div');
             anchorBadge.className = 'pft-anchor-badge';
-            anchorBadge.textContent = '⚓';
+            anchorBadge.textContent = '\u2693\uFE0E';
             this.addTooltip(anchorBadge, _('Anchor Ring (Red): Marks the piece pushed last turn. Cannot be pushed this turn.'));
             pieceEl.appendChild(anchorBadge);
         }
@@ -827,7 +827,7 @@ export class Game {
         if (newAnchorEl) {
             const b = document.createElement('div');
             b.className = 'pft-anchor-badge';
-            b.textContent = '⚓';
+            b.textContent = '\u2693\uFE0E';
             newAnchorEl.appendChild(b);
         }
 
