@@ -150,7 +150,7 @@ class PlayerTurn {
             if (args?.can_skip_move !== false) {
                 this.bga.statusBar.addActionButton(_('Skip to Mandatory Push'), () => {
                     this.bga.actions.performAction('actSkipToPush');
-                }, { color: 'secondary' });
+                }, { color: 'alert' });
             }
         } else {
             this.bga.statusBar.setTitle(_('${you} must execute a mandatory push with a square King!'));
@@ -159,7 +159,7 @@ class PlayerTurn {
         if (args?.can_undo) {
             this.bga.statusBar.addActionButton(_('↺ Undo Moves / Restart Turn'), () => {
                 this.bga.actions.performAction('actUndo');
-            }, { color: 'danger' });
+            }, { color: 'alert' });
         }
     }
 
@@ -405,14 +405,14 @@ export class Game {
                 );
             }
             this.bga.statusBar.addActionButton(
-                _('Clear All'),
-                () => this.bga.actions.performAction('actClearAll'),
-                { color: 'danger' }
-            );
-            this.bga.statusBar.addActionButton(
                 _('⚡ Standard Preset'),
                 () => this.bga.actions.performAction('actStandardPreset'),
                 { color: 'secondary' }
+            );
+            this.bga.statusBar.addActionButton(
+                _('Clear All'),
+                () => this.bga.actions.performAction('actClearAll'),
+                { color: 'alert' }
             );
         } else {
             // Pieces still remaining to place (at most 4 buttons)
@@ -444,7 +444,7 @@ export class Game {
                 this.bga.statusBar.addActionButton(
                     _('Clear All'),
                     () => this.bga.actions.performAction('actClearAll'),
-                    { color: 'danger' }
+                    { color: 'alert' }
                 );
             }
         }
