@@ -35,6 +35,10 @@ TARGET_MAP = {
     "kiln": ("games/KILN/bga", "kiln"),
     "sugargliders": ("games/sugargliders/bga", "sugargliders"),
     "sugargliderstest": ("games/sugargliders/bga", "sugargliders"),
+    "gardensofuranus": ("games/gardensofuranus/bga", "gardensofuranustest"),
+    "gardensofuranustest": ("games/gardensofuranus/bga", "gardensofuranustest"),
+    "nestorgamesgp": ("games/nestorgamesgp/bga", "nestorgamesgptest"),
+    "nestorgamesgptest": ("games/nestorgamesgp/bga", "nestorgamesgptest"),
 }
 
 def load_credentials():
@@ -108,7 +112,7 @@ def sync_directory(sftp, local_dir, remote_dir, dry_run=False, force=False):
             pass
 
     # Automatically prune obsolete or legacy template files from remote SFTP if not in local_dir
-    system_files = {"_ide_helper.php", "bga-framework.d.ts", ".", ".."}
+    system_files = {"_ide_helper.php", "bga-framework.d.ts", ".", "..", "misc", ".svn"}
     for rem_name in list(remote_attrs.keys()):
         if rem_name in system_files:
             continue
