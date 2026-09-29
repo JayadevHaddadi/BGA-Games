@@ -395,10 +395,67 @@ class StatePlayerTurnSell {
                 this.selectedIndices = [...this.completedRows];
             }
 
+            const wrap = document.getElementById('kiln_sell_arrows_wrap');
+            if (wrap) wrap.classList.add('kiln_sell_active');
+
             this.updateUI();
         } else {
             this.bga.statusBar.setTitle(_('${actplayer} may sell completed rows or columns'));
             this.game.clearSellHighlights();
+        }
+    }
+
+    onRowArrowClick(wy) {
+        if (!this.completedRows.includes(wy)) return;
+
+        if (this.selectedType !== 'rows') {
+            // Switch to rows and deselect cols!
+            this.selectedType = 'rows';
+            this.selectedIndices = [wy];
+        } else {
+            // Toggle this row
+            const idx = this.selectedIndices.indexOf(wy);
+            if (idx >= 0) {
+                this.selectedIndices.splice(idx, 1);
+            } else {
+                this.selectedIndices.push(wy);
+                this.selectedIndices.sort((a, b) => a - b);
+            }
+        }
+        sounds.playClick();
+        this.updateUI();
+    }
+
+    onColArrowClick(wx) {
+        if (!this.completedCols.includes(wx)) return;
+
+        if (this.selectedType !== 'cols') {
+            // Switch to cols and deselect rows!
+            this.selectedType = 'cols';
+            this.selectedIndices = [wx];
+        } else {
+            // Toggle this col
+            const idx = this.selectedIndices.indexOf(wx);
+            if (idx >= 0) {
+                this.selectedIndices.splice(idx, 1);
+            } else {
+                this.selectedIndices.push(wx);
+                this.selectedIndices.sort((a, b) => a - b);
+            }
+        }
+        sounds.playClick();
+        this.updateUI();
+    }
+
+    onCellClick(wx, wy) {
+        if (this.selectedType === 'rows' && this.completedRows.includes(wy)) {
+            this.onRowArrowClick(wy);
+        } else if (this.selectedType === 'cols' && this.completedCols.includes(wx)) {
+            this.onColArrowClick(wx);
+        } else if (this.completedRows.includes(wy) && !this.completedCols.includes(wx)) {
+            this.onRowArrowClick(wy);
+        } else if (this.completedCols.includes(wx) && !this.completedRows.includes(wy)) {
+            this.onColArrowClick(wx);
         }
     }
 
@@ -411,10 +468,8 @@ class StatePlayerTurnSell {
         const otherType = this.selectedType === 'rows' ? 'cols' : 'rows';
         const otherAvailable = otherType === 'rows' ? this.completedRows : this.completedCols;
 
-        this.bga.statusBar.setTitle(_('${you} may sell completed rows or columns (click lines on your warehouse to select which to sell, or pass)'));
-
-        // 1. Primary / Alert Sell action
         if (count > 0) {
+            this.bga.statusBar.setTitle(_('${you} may sell completed rows or columns (click arrows ▶ / ▲ to select lines, or pass)'));
             const isMax = count === 5;
             const lineWord = this.selectedType === 'rows' ? _('Row(s)') : _('Column(s)');
             this.game.addActionButton(
@@ -423,6 +478,8 @@ class StatePlayerTurnSell {
                 () => this.onConfirmSell(),
                 isMax ? 'primary' : 'alert'
             );
+        } else {
+            this.bga.statusBar.setTitle(_('${you}: click a row arrow (▶) or column arrow (▲) to choose what to sell, or pass'));
         }
 
         // 2. Secondary toggle / switch option (strictly keeping total buttons <= 4)
@@ -468,46 +525,8 @@ class StatePlayerTurnSell {
             'alert'
         );
 
-        // Update visual highlighting on warehouse & price table
+        // Update visual highlighting on warehouse & price table & selector arrows
         this.game.highlightSelectedSellLines(this.selectedType, this.selectedIndices, this.completedRows, this.completedCols);
-    }
-
-    onCellClick(wx, wy) {
-        if (this.completedRows.includes(wy) && (this.selectedType === 'rows' || !this.completedCols.includes(wx))) {
-            if (this.selectedType !== 'rows') {
-                this.selectedType = 'rows';
-                this.selectedIndices = [wy];
-            } else {
-                const idx = this.selectedIndices.indexOf(wy);
-                if (idx >= 0) {
-                    if (this.selectedIndices.length > 1) {
-                        this.selectedIndices.splice(idx, 1);
-                    }
-                } else {
-                    this.selectedIndices.push(wy);
-                    this.selectedIndices.sort((a, b) => a - b);
-                }
-            }
-            sounds.playClick();
-            this.updateUI();
-        } else if (this.completedCols.includes(wx)) {
-            if (this.selectedType !== 'cols') {
-                this.selectedType = 'cols';
-                this.selectedIndices = [wx];
-            } else {
-                const idx = this.selectedIndices.indexOf(wx);
-                if (idx >= 0) {
-                    if (this.selectedIndices.length > 1) {
-                        this.selectedIndices.splice(idx, 1);
-                    }
-                } else {
-                    this.selectedIndices.push(wx);
-                    this.selectedIndices.sort((a, b) => a - b);
-                }
-            }
-            sounds.playClick();
-            this.updateUI();
-        }
     }
 
     onPriceRowClick(targetLineCount) {
@@ -970,14 +989,41 @@ export class Game {
                 </div>
             ` : '';
 
+            const bodyHtml = isMe ? `
+                <div class="kiln_sell_arrows_wrap" id="kiln_sell_arrows_wrap">
+                    <div class="kiln_wh_grid_with_rows">
+                        <div class="kiln_row_arrows" id="kiln_row_arrows_${pId}">
+                            <div class="kiln_row_arrow_btn kiln_arrow_disabled" id="kiln_row_arrow_0" data-row="0">▶</div>
+                            <div class="kiln_row_arrow_btn kiln_arrow_disabled" id="kiln_row_arrow_1" data-row="1">▶</div>
+                            <div class="kiln_row_arrow_btn kiln_arrow_disabled" id="kiln_row_arrow_2" data-row="2">▶</div>
+                            <div class="kiln_row_arrow_btn kiln_arrow_disabled" id="kiln_row_arrow_3" data-row="3">▶</div>
+                            <div class="kiln_row_arrow_btn kiln_arrow_disabled" id="kiln_row_arrow_4" data-row="4">▶</div>
+                        </div>
+                        <div class="kiln_wh_grid ${rotClass}" id="kiln_wh_grid_${pId}"></div>
+                    </div>
+                    <div class="kiln_col_arrows" id="kiln_col_arrows_${pId}">
+                        <div class="kiln_arrow_spacer"></div>
+                        <div class="kiln_col_arrows_track" id="kiln_col_track_${pId}">
+                            <div class="kiln_col_arrow_btn kiln_arrow_disabled" id="kiln_col_arrow_0" data-col="0">▲</div>
+                            <div class="kiln_col_arrow_btn kiln_arrow_disabled" id="kiln_col_arrow_1" data-col="1">▲</div>
+                            <div class="kiln_col_arrow_btn kiln_arrow_disabled" id="kiln_col_arrow_2" data-col="2">▲</div>
+                            <div class="kiln_col_arrow_btn kiln_arrow_disabled" id="kiln_col_arrow_3" data-col="3">▲</div>
+                            <div class="kiln_col_arrow_btn kiln_arrow_disabled" id="kiln_col_arrow_4" data-col="4">▲</div>
+                        </div>
+                    </div>
+                </div>
+                ${priceTableHtml}
+            ` : `
+                <div class="kiln_wh_grid ${rotClass}" id="kiln_wh_grid_${pId}"></div>
+            `;
+
             card.innerHTML = `
                 <div class="kiln_wh_title">
                     <span class="kiln_player_color_dot kiln_dot_${pColor}"></span>
                     <strong>${pInfo.name}</strong> ${isMe ? `(${_('You')})` : ''}
                 </div>
                 <div class="kiln_wh_body">
-                    <div class="kiln_wh_grid ${rotClass}" id="kiln_wh_grid_${pId}"></div>
-                    ${priceTableHtml}
+                    ${bodyHtml}
                 </div>
             `;
 
@@ -1007,6 +1053,31 @@ export class Game {
             }
 
             if (isMe) {
+                // Attach click listeners to row arrows
+                for (let wy = 0; wy < 5; wy++) {
+                    const rowBtn = card.querySelector(`#kiln_row_arrow_${wy}`);
+                    if (rowBtn) {
+                        rowBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            if (this.isSellStateActive && this.isCurrentPlayerActive()) {
+                                this.playerTurnSell.onRowArrowClick(wy);
+                            }
+                        });
+                    }
+                }
+                // Attach click listeners to col arrows
+                for (let wx = 0; wx < 5; wx++) {
+                    const colBtn = card.querySelector(`#kiln_col_arrow_${wx}`);
+                    if (colBtn) {
+                        colBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            if (this.isSellStateActive && this.isCurrentPlayerActive()) {
+                                this.playerTurnSell.onColArrowClick(wx);
+                            }
+                        });
+                    }
+                }
+                // Price row click listeners
                 card.querySelectorAll('.kiln_price_row').forEach(r => {
                     r.style.cursor = 'default';
                     r.addEventListener('click', () => {
@@ -1245,28 +1316,72 @@ export class Game {
      * Highlight completed lines for selling with selection distinction
      */
     highlightSelectedSellLines(type, selectedIndices, allRows, allCols) {
-        this.clearSellHighlights();
+        this.clearSellHighlights(false);
         const myId = this.bga?.players?.getCurrentPlayerId?.();
 
-        // Completed rows
-        allRows.forEach(wy => {
-            const isSelected = type === 'rows' && selectedIndices.includes(wy);
-            const cls = isSelected ? 'kiln_line_sellable_selected' : 'kiln_line_sellable_unselected';
-            for (let wx = 0; wx < 5; wx++) {
-                const c = document.getElementById(`kiln_wh_${myId}_${wx}_${wy}`);
-                if (c) c.classList.add(cls);
-            }
-        });
+        const wrap = document.getElementById('kiln_sell_arrows_wrap');
+        if (wrap) wrap.classList.add('kiln_sell_active');
 
-        // Completed cols
-        allCols.forEach(wx => {
-            const isSelected = type === 'cols' && selectedIndices.includes(wx);
-            const cls = isSelected ? 'kiln_line_sellable_selected' : 'kiln_line_sellable_unselected';
-            for (let wy = 0; wy < 5; wy++) {
-                const c = document.getElementById(`kiln_wh_${myId}_${wx}_${wy}`);
-                if (c) c.classList.add(cls);
+        // Only highlight the cells of the currently selected orientation to prevent muddy/dim intersections!
+        if (type === 'rows') {
+            allRows.forEach(wy => {
+                const isSelected = selectedIndices.includes(wy);
+                const cls = isSelected ? 'kiln_line_sellable_selected' : 'kiln_line_sellable_unselected';
+                for (let wx = 0; wx < 5; wx++) {
+                    const c = document.getElementById(`kiln_wh_${myId}_${wx}_${wy}`);
+                    if (c) c.classList.add(cls);
+                }
+            });
+        } else if (type === 'cols') {
+            allCols.forEach(wx => {
+                const isSelected = selectedIndices.includes(wx);
+                const cls = isSelected ? 'kiln_line_sellable_selected' : 'kiln_line_sellable_unselected';
+                for (let wy = 0; wy < 5; wy++) {
+                    const c = document.getElementById(`kiln_wh_${myId}_${wx}_${wy}`);
+                    if (c) c.classList.add(cls);
+                }
+            });
+        }
+
+        // Update row selector arrows on the left
+        for (let wy = 0; wy < 5; wy++) {
+            const arrow = document.getElementById(`kiln_row_arrow_${wy}`);
+            if (arrow) {
+                arrow.classList.remove('kiln_arrow_selected', 'kiln_arrow_available', 'kiln_arrow_disabled');
+                if (allRows.includes(wy)) {
+                    if (type === 'rows' && selectedIndices.includes(wy)) {
+                        arrow.classList.add('kiln_arrow_selected');
+                        arrow.setAttribute('title', _('Row %s: Selected to sell (click to deselect)').replace('%s', wy + 1));
+                    } else {
+                        arrow.classList.add('kiln_arrow_available');
+                        arrow.setAttribute('title', _('Row %s: Complete! Click to sell this row').replace('%s', wy + 1));
+                    }
+                } else {
+                    arrow.classList.add('kiln_arrow_disabled');
+                    arrow.setAttribute('title', _('Row %s is incomplete (needs 5 tiles)').replace('%s', wy + 1));
+                }
             }
-        });
+        }
+
+        // Update col selector arrows at the bottom
+        for (let wx = 0; wx < 5; wx++) {
+            const arrow = document.getElementById(`kiln_col_arrow_${wx}`);
+            if (arrow) {
+                arrow.classList.remove('kiln_arrow_selected', 'kiln_arrow_available', 'kiln_arrow_disabled');
+                if (allCols.includes(wx)) {
+                    if (type === 'cols' && selectedIndices.includes(wx)) {
+                        arrow.classList.add('kiln_arrow_selected');
+                        arrow.setAttribute('title', _('Column %s: Selected to sell (click to deselect)').replace('%s', wx + 1));
+                    } else {
+                        arrow.classList.add('kiln_arrow_available');
+                        arrow.setAttribute('title', _('Column %s: Complete! Click to sell this column').replace('%s', wx + 1));
+                    }
+                } else {
+                    arrow.classList.add('kiln_arrow_disabled');
+                    arrow.setAttribute('title', _('Column %s is incomplete (needs 5 tiles)').replace('%s', wx + 1));
+                }
+            }
+        }
 
         // Highlight matching rows in side price table
         const priceTable = document.getElementById(`kiln_price_table_${myId}`);
@@ -1283,13 +1398,25 @@ export class Game {
         this.highlightSelectedSellLines('rows', rows, rows, cols);
     }
 
-    clearSellHighlights() {
+    clearSellHighlights(hideWrap = true) {
         document.querySelectorAll('.kiln_wh_cell').forEach(c => {
             c.classList.remove('kiln_line_sellable_row', 'kiln_line_sellable_col', 'kiln_line_sellable_selected', 'kiln_line_sellable_unselected');
         });
         document.querySelectorAll('.kiln_price_row').forEach(r => {
             r.classList.remove('kiln_price_highlight');
         });
+        if (hideWrap) {
+            const wrap = document.getElementById('kiln_sell_arrows_wrap');
+            if (wrap) wrap.classList.remove('kiln_sell_active');
+            for (let wy = 0; wy < 5; wy++) {
+                const arrow = document.getElementById(`kiln_row_arrow_${wy}`);
+                if (arrow) arrow.className = 'kiln_row_arrow_btn kiln_arrow_disabled';
+            }
+            for (let wx = 0; wx < 5; wx++) {
+                const arrow = document.getElementById(`kiln_col_arrow_${wx}`);
+                if (arrow) arrow.className = 'kiln_col_arrow_btn kiln_arrow_disabled';
+            }
+        }
     }
 
     /**
