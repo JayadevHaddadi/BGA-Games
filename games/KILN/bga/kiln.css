@@ -526,8 +526,21 @@
 }
 
 .kiln_line_sellable_row,
-.kiln_line_sellable_col {
+.kiln_line_sellable_col,
+.kiln_line_sellable_selected {
     animation: kiln_gold_shimmer 1.4s infinite alternate ease-in-out !important;
+    cursor: pointer !important;
+}
+
+.kiln_line_sellable_unselected {
+    opacity: 0.52;
+    border: 2px dashed #f59e0b !important;
+    cursor: pointer !important;
+    transition: opacity 0.15s ease;
+}
+
+.kiln_line_sellable_unselected:hover {
+    opacity: 0.85;
 }
 
 .kiln_wh_erasable {

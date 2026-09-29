@@ -317,60 +317,176 @@ class StatePlayerTurnSell {
     constructor(game, bga) {
         this.game = game;
         this.bga = bga;
+        this.completedRows = [];
+        this.completedCols = [];
+        this.selectedType = 'rows';
+        this.selectedIndices = [];
     }
 
     onEnteringState(args, isCurrentPlayerActive) {
         this.game.currentArgs = args || {};
-        const rowPts = args.row_points || 0;
-        const colPts = args.col_points || 0;
-        const rows = args.completed_rows || [];
-        const cols = args.completed_cols || [];
+        this.completedRows = args.completed_rows || [];
+        this.completedCols = args.completed_cols || [];
+        this.game.isSellStateActive = isCurrentPlayerActive;
 
         if (isCurrentPlayerActive) {
-            this.bga.statusBar.setTitle(_('${you} may sell completed rows or columns for points, or pass'));
-            this.game.highlightSellableLines(rows, cols);
-
-            // Rule 4: Selling should be RED ('alert'), unless we have 5 to sell which is BLUE ('primary').
-            // Passing should be BLUE ('primary')!
-            if (rowPts > 0) {
-                const isMax = rows.length === 5;
-                this.bga.statusBar.addActionButton(
-                    _('Sell ${count} Row(s) (+${pts} pts)').replace('${count}', rows.length).replace('${pts}', rowPts),
-                    () => this.onSell('rows'),
-                    { color: isMax ? 'primary' : 'alert' }
-                );
+            // Default selection: whichever has more points (rows by default, or cols if more cols)
+            if (this.completedCols.length > this.completedRows.length && this.completedRows.length === 0) {
+                this.selectedType = 'cols';
+                this.selectedIndices = [...this.completedCols];
+            } else {
+                this.selectedType = 'rows';
+                this.selectedIndices = [...this.completedRows];
             }
 
-            if (colPts > 0) {
-                const isMax = cols.length === 5;
-                this.bga.statusBar.addActionButton(
-                    _('Sell ${count} Column(s) (+${pts} pts)').replace('${count}', cols.length).replace('${pts}', colPts),
-                    () => this.onSell('cols'),
-                    { color: isMax ? 'primary' : 'alert' }
-                );
-            }
-
-            this.bga.statusBar.addActionButton(
-                _('Pass (Keep Tiles)'),
-                () => this.onPass(),
-                { color: 'primary' }
-            );
-
-            this.bga.statusBar.addActionButton(
-                _('Undo Move'),
-                () => this.game.onUndo(),
-                { color: 'secondary' }
-            );
+            this.updateUI();
         } else {
             this.bga.statusBar.setTitle(_('${actplayer} may sell completed rows or columns'));
             this.game.clearSellHighlights();
         }
     }
 
-    onSell(type) {
+    updateUI() {
+        this.game.clearActionButtons();
+
+        const count = this.selectedIndices.length;
+        const pts = (count * (count + 1)) / 2;
+        const available = this.selectedType === 'rows' ? this.completedRows : this.completedCols;
+        const otherType = this.selectedType === 'rows' ? 'cols' : 'rows';
+        const otherAvailable = otherType === 'rows' ? this.completedRows : this.completedCols;
+
+        this.bga.statusBar.setTitle(_('${you} may sell completed rows or columns (click lines on your warehouse to select which to sell, or pass)'));
+
+        // 1. Primary / Alert Sell action
+        if (count > 0) {
+            const isMax = count === 5;
+            const lineWord = this.selectedType === 'rows' ? _('Row(s)') : _('Column(s)');
+            this.bga.statusBar.addActionButton(
+                _('Sell ${count} ${lines} (+${pts} pts)').replace('${count}', count).replace('${lines}', lineWord).replace('${pts}', pts),
+                () => this.onConfirmSell(),
+                { color: isMax ? 'primary' : 'alert' }
+            );
+        }
+
+        // 2. Secondary toggle / switch option (strictly keeping total buttons <= 4)
+        if (otherAvailable.length > 0) {
+            const otherWord = otherType === 'rows' ? _('Rows') : _('Columns');
+            this.bga.statusBar.addActionButton(
+                _('Switch to ${type}').replace('${type}', otherWord),
+                () => this.toggleType(),
+                { color: 'secondary' }
+            );
+        } else if (available.length > 1) {
+            if (count < available.length) {
+                this.bga.statusBar.addActionButton(
+                    _('Select All (${total})').replace('${total}', available.length),
+                    () => this.selectAll(),
+                    { color: 'secondary' }
+                );
+            } else {
+                this.bga.statusBar.addActionButton(
+                    _('Select 1 Only'),
+                    () => this.selectOneOnly(),
+                    { color: 'secondary' }
+                );
+            }
+        }
+
+        // 3. Pass action
+        this.bga.statusBar.addActionButton(
+            _('Pass (Keep Tiles)'),
+            () => this.onPass(),
+            { color: 'primary' }
+        );
+
+        // 4. Undo action
+        this.bga.statusBar.addActionButton(
+            _('Undo Move'),
+            () => this.game.onUndo(),
+            { color: 'alert' }
+        );
+
+        // Update visual highlighting on warehouse & price table
+        this.game.highlightSelectedSellLines(this.selectedType, this.selectedIndices, this.completedRows, this.completedCols);
+    }
+
+    onCellClick(wx, wy) {
+        if (this.completedRows.includes(wy) && (this.selectedType === 'rows' || !this.completedCols.includes(wx))) {
+            if (this.selectedType !== 'rows') {
+                this.selectedType = 'rows';
+                this.selectedIndices = [wy];
+            } else {
+                const idx = this.selectedIndices.indexOf(wy);
+                if (idx >= 0) {
+                    if (this.selectedIndices.length > 1) {
+                        this.selectedIndices.splice(idx, 1);
+                    }
+                } else {
+                    this.selectedIndices.push(wy);
+                    this.selectedIndices.sort((a, b) => a - b);
+                }
+            }
+            sounds.playClick();
+            this.updateUI();
+        } else if (this.completedCols.includes(wx)) {
+            if (this.selectedType !== 'cols') {
+                this.selectedType = 'cols';
+                this.selectedIndices = [wx];
+            } else {
+                const idx = this.selectedIndices.indexOf(wx);
+                if (idx >= 0) {
+                    if (this.selectedIndices.length > 1) {
+                        this.selectedIndices.splice(idx, 1);
+                    }
+                } else {
+                    this.selectedIndices.push(wx);
+                    this.selectedIndices.sort((a, b) => a - b);
+                }
+            }
+            sounds.playClick();
+            this.updateUI();
+        }
+    }
+
+    onPriceRowClick(targetLineCount) {
+        const available = this.selectedType === 'rows' ? this.completedRows : this.completedCols;
+        if (targetLineCount > available.length) return;
+
+        this.selectedIndices = available.slice(0, targetLineCount);
+        sounds.playClick();
+        this.updateUI();
+    }
+
+    toggleType() {
+        sounds.playClick();
+        this.selectedType = this.selectedType === 'rows' ? 'cols' : 'rows';
+        const available = this.selectedType === 'rows' ? this.completedRows : this.completedCols;
+        this.selectedIndices = [...available];
+        this.updateUI();
+    }
+
+    selectAll() {
+        sounds.playClick();
+        const available = this.selectedType === 'rows' ? this.completedRows : this.completedCols;
+        this.selectedIndices = [...available];
+        this.updateUI();
+    }
+
+    selectOneOnly() {
+        sounds.playClick();
+        const available = this.selectedType === 'rows' ? this.completedRows : this.completedCols;
+        this.selectedIndices = available.slice(0, 1);
+        this.updateUI();
+    }
+
+    onConfirmSell() {
+        if (this.selectedIndices.length === 0) return;
         sounds.playScore();
         this.game.clearActionButtons();
-        this.bga.actions.performAction('actSellLines', { type });
+        this.bga.actions.performAction('actSellLines', {
+            type: this.selectedType,
+            indices: this.selectedIndices.join(','),
+        });
     }
 
     onPass() {
@@ -380,6 +496,7 @@ class StatePlayerTurnSell {
     }
 
     onLeavingState(args, isCurrentPlayerActive) {
+        this.game.isSellStateActive = false;
         this.game.clearSellHighlights();
         this.game.clearActionButtons();
     }
@@ -454,11 +571,13 @@ export class Game {
         this.variantFixingMess = gamedatas.variant_fixing_mess || 0;
         this.playerColors = gamedatas.player_colors || {};
         this.isFixMessActive = false;
+        this.isSellStateActive = false;
+        this.scores = Object.assign({}, gamedatas.scores || {});
 
         this.buildMainLayout();
         this.setupBoardScaler();
         this.setupNotifications();
-        this.updateScores(gamedatas.scores || {});
+        this.updateScores(this.scores);
     }
 
     buildMainLayout() {
@@ -708,6 +827,18 @@ export class Game {
                     grid.appendChild(cell);
                 }
             }
+
+            if (isMe) {
+                card.querySelectorAll('.kiln_price_row').forEach(r => {
+                    r.style.cursor = 'pointer';
+                    r.addEventListener('click', () => {
+                        if (this.isSellStateActive && this.isCurrentPlayerActive()) {
+                            const lines = parseInt(r.getAttribute('data-lines'), 10);
+                            this.playerTurnSell.onPriceRowClick(lines);
+                        }
+                    });
+                });
+            }
         });
     }
 
@@ -847,6 +978,11 @@ export class Game {
             return;
         }
 
+        if (this.isSellStateActive && this.isCurrentPlayerActive()) {
+            this.playerTurnSell.onCellClick(wx, wy);
+            return;
+        }
+
         if (!this.currentPlacementNorm || !this.isCurrentPlayerActive()) return;
         const isValid = this.currentPlacementAnchors.some(a => a.ox === wx && a.oy === wy);
         if (!isValid) return;
@@ -909,21 +1045,30 @@ export class Game {
     /**
      * Highlight completed lines for selling
      */
-    highlightSellableLines(rows, cols) {
+    /**
+     * Highlight completed lines for selling with selection distinction
+     */
+    highlightSelectedSellLines(type, selectedIndices, allRows, allCols) {
         this.clearSellHighlights();
         const myId = this.bga?.players?.getCurrentPlayerId?.();
 
-        rows.forEach(wy => {
+        // Completed rows
+        allRows.forEach(wy => {
+            const isSelected = type === 'rows' && selectedIndices.includes(wy);
+            const cls = isSelected ? 'kiln_line_sellable_selected' : 'kiln_line_sellable_unselected';
             for (let wx = 0; wx < 5; wx++) {
                 const c = document.getElementById(`kiln_wh_${myId}_${wx}_${wy}`);
-                if (c) c.classList.add('kiln_line_sellable_row');
+                if (c) c.classList.add(cls);
             }
         });
 
-        cols.forEach(wx => {
+        // Completed cols
+        allCols.forEach(wx => {
+            const isSelected = type === 'cols' && selectedIndices.includes(wx);
+            const cls = isSelected ? 'kiln_line_sellable_selected' : 'kiln_line_sellable_unselected';
             for (let wy = 0; wy < 5; wy++) {
                 const c = document.getElementById(`kiln_wh_${myId}_${wx}_${wy}`);
-                if (c) c.classList.add('kiln_line_sellable_col');
+                if (c) c.classList.add(cls);
             }
         });
 
@@ -931,20 +1076,20 @@ export class Game {
         const priceTable = document.getElementById(`kiln_price_table_${myId}`);
         if (priceTable) {
             priceTable.querySelectorAll('.kiln_price_row').forEach(r => r.classList.remove('kiln_price_highlight'));
-            if (rows.length > 0) {
-                const rEl = priceTable.querySelector(`.kiln_price_row[data-lines="${rows.length}"]`);
+            if (selectedIndices.length > 0) {
+                const rEl = priceTable.querySelector(`.kiln_price_row[data-lines="${selectedIndices.length}"]`);
                 if (rEl) rEl.classList.add('kiln_price_highlight');
-            }
-            if (cols.length > 0) {
-                const cEl = priceTable.querySelector(`.kiln_price_row[data-lines="${cols.length}"]`);
-                if (cEl) cEl.classList.add('kiln_price_highlight');
             }
         }
     }
 
+    highlightSellableLines(rows, cols) {
+        this.highlightSelectedSellLines('rows', rows, rows, cols);
+    }
+
     clearSellHighlights() {
         document.querySelectorAll('.kiln_wh_cell').forEach(c => {
-            c.classList.remove('kiln_line_sellable_row', 'kiln_line_sellable_col');
+            c.classList.remove('kiln_line_sellable_row', 'kiln_line_sellable_col', 'kiln_line_sellable_selected', 'kiln_line_sellable_unselected');
         });
         document.querySelectorAll('.kiln_price_row').forEach(r => {
             r.classList.remove('kiln_price_highlight');
@@ -952,12 +1097,16 @@ export class Game {
     }
 
     /**
-     * Update scores on track and player panels
+     * Update scores on track and player panels (preserving all players' markers)
      */
     updateScores(scores) {
+        if (scores) {
+            Object.assign(this.scores, scores);
+        }
+
         document.querySelectorAll('.kiln_track_tokens').forEach(el => el.innerHTML = '');
 
-        Object.entries(scores).forEach(([pId, score]) => {
+        Object.entries(this.scores).forEach(([pId, score]) => {
             // Update sidebar counter
             const counter = this.bga?.playerPanels?.getScoreCounter?.(pId);
             if (counter) {

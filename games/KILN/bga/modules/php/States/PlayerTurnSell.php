@@ -39,13 +39,19 @@ class PlayerTurnSell extends GameState
     }
 
     #[PossibleAction]
-    public function actSellLines(string $type, int $activePlayerId): string
+    public function actSellLines(string $type, string $indices = '', int $activePlayerId): string
     {
         if (!in_array($type, ['rows', 'cols'], true)) {
             throw new UserException(clienttranslate("Invalid sell type specified."));
         }
 
-        $res = $this->game->executeSellLines($activePlayerId, $type);
+        $selectedList = null;
+        if (trim($indices) !== '') {
+            $parts = explode(',', $indices);
+            $selectedList = array_map('intval', array_filter($parts, fn($p) => trim($p) !== ''));
+        }
+
+        $res = $this->game->executeSellLines($activePlayerId, $type, $selectedList);
 
         $this->notify->all('linesSold', clienttranslate('${player_name} sells ${count} ${line_type} for ${points} points (total: ${new_score} pts)'), [
             'player_id' => $activePlayerId,
@@ -110,9 +116,9 @@ class PlayerTurnSell extends GameState
     {
         $args = $this->getArgs();
         if ($args['row_points'] >= $args['col_points'] && $args['row_points'] > 0) {
-            return $this->actSellLines('rows', $playerId);
+            return $this->actSellLines('rows', '', $playerId);
         } elseif ($args['col_points'] > 0) {
-            return $this->actSellLines('cols', $playerId);
+            return $this->actSellLines('cols', '', $playerId);
         }
         return $this->actPassSell($playerId);
     }

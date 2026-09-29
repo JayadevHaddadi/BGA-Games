@@ -679,18 +679,34 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Sell either completed rows or completed columns
+     * Sell either completed rows or completed columns (all or subset)
      */
-    public function executeSellLines(int $playerId, string $type): array
+    public function executeSellLines(int $playerId, string $type, ?array $selectedIndices = null): array
     {
         $lines = $this->getCompletedLines($playerId);
-        $toSell = $type === 'rows' ? $lines['rows'] : $lines['cols'];
+        $available = $type === 'rows' ? $lines['rows'] : $lines['cols'];
 
-        if (empty($toSell)) {
+        if (empty($available)) {
             throw new UserException(clienttranslate("No completed lines available to sell."));
         }
 
+        if ($selectedIndices === null || empty($selectedIndices)) {
+            $toSell = $available;
+        } else {
+            $selected = array_values(array_unique(array_map('intval', $selectedIndices)));
+            foreach ($selected as $idx) {
+                if (!in_array($idx, $available, true)) {
+                    throw new UserException(clienttranslate("Selected line is not completely filled."));
+                }
+            }
+            $toSell = $selected;
+        }
+
         $count = count($toSell);
+        if ($count < 1 || $count > 5) {
+            throw new UserException(clienttranslate("Invalid number of lines to sell."));
+        }
+
         $points = self::getLineScore($count);
 
         if ($type === 'rows') {
