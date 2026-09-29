@@ -224,9 +224,6 @@ export class Game {
         if (this.bga?.actions && typeof this.bga.actions.performAction === 'function') {
             return this.bga.actions.performAction(actionName, args);
         }
-        if (typeof gameui !== 'undefined' && typeof gameui.ajaxcall === 'function') {
-            gameui.ajaxcall(`/sugargliders/sugargliders/${actionName}.html`, args, this, () => {});
-        }
     }
 
     setup(gamedatas) {
@@ -675,7 +672,10 @@ export class Game {
 
     updatePlayerPanels() {
         for (const pId in this.gamedatas.players) {
-            const panel = document.getElementById(`player_board_${pId}`);
+            let panel = null;
+            if (this.bga?.playerPanels && typeof this.bga.playerPanels.getElement === 'function') {
+                panel = this.bga.playerPanels.getElement(pId);
+            }
             if (!panel) continue;
 
             let inv = document.getElementById(`sg_panel_inv_${pId}`);
@@ -690,13 +690,14 @@ export class Game {
             const reserves = this.playerReserves[pId] || [];
             const score = this.scores[pId] || 0;
 
-            // Update standard BGA star VP score counter next to player name
-            const scoreEl = document.getElementById(`player_score_${pId}`);
-            if (scoreEl) {
-                scoreEl.textContent = `${score}`;
-            }
-            if (this.scoreCtrl && this.scoreCtrl[pId]) {
-                this.scoreCtrl[pId].setValue(score);
+            // Update standard BGA star VP score counter next to player name using official API
+            const counter = this.bga?.playerPanels?.getScoreCounter?.(pId);
+            if (counter) {
+                if (typeof counter.toValue === 'function') {
+                    counter.toValue(score);
+                } else if (typeof counter.setValue === 'function') {
+                    counter.setValue(score);
+                }
             }
 
             let jumpingText = jumping ? `Fruit: ${jumping.value} pt(s)` : 'Empty (needs reserve)';
