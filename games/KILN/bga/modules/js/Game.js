@@ -110,6 +110,25 @@ class KilnSoundController {
         } catch (e) {}
     }
 
+    playReset() {
+        if (this.muted) return;
+        try {
+            this.init();
+            if (!this.ctx) return;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(280, this.ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(140, this.ctx.currentTime + 0.14);
+            gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.14);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + 0.15);
+        } catch (e) {}
+    }
+
     playExtraTurn() {
         if (this.muted) return;
         try {
@@ -185,6 +204,12 @@ class StatePlayerTurnSelectGroup {
                     { color: 'secondary' }
                 );
             });
+
+            this.bga.statusBar.addActionButton(
+                _('Undo Push'),
+                () => this.game.onUndo(),
+                { color: 'alert' }
+            );
         } else {
             this.bga.statusBar.setTitle(_('${actplayer} is choosing which tied group to copy'));
             this.game.clearKilnHighlights();
@@ -193,13 +218,13 @@ class StatePlayerTurnSelectGroup {
 
     onSelectGroup(index) {
         sounds.playClick();
-        this.bga.statusBar.clearActionButtons();
+        this.game.clearActionButtons();
         this.bga.actions.performAction('actSelectGroup', { groupIndex: index });
     }
 
     onLeavingState(args, isCurrentPlayerActive) {
         this.game.clearKilnHighlights();
-        this.bga.statusBar.clearActionButtons();
+        this.game.clearActionButtons();
     }
 }
 
@@ -221,6 +246,12 @@ class StatePlayerTurnPlaceShape {
         if (isCurrentPlayerActive) {
             this.bga.statusBar.setTitle(_('${you} must place the tile shape into your warehouse (hover and click)'));
             this.game.setupWarehousePlacement(norm, validAnchors);
+
+            this.bga.statusBar.addActionButton(
+                _('Undo Push'),
+                () => this.game.onUndo(),
+                { color: 'alert' }
+            );
         } else {
             this.bga.statusBar.setTitle(_('${actplayer} is copying their shape into their warehouse'));
             this.game.clearWarehousePlacement();
@@ -229,6 +260,7 @@ class StatePlayerTurnPlaceShape {
 
     onLeavingState(args, isCurrentPlayerActive) {
         this.game.clearWarehousePlacement();
+        this.game.clearActionButtons();
     }
 }
 
@@ -252,27 +284,36 @@ class StatePlayerTurnSell {
             this.bga.statusBar.setTitle(_('${you} may sell completed rows or columns for points, or pass'));
             this.game.highlightSellableLines(rows, cols);
 
-            // Traffic light buttons: Blue ('primary') for advancing sales, Red ('alert') for pass
+            // Rule 4: Selling should be RED ('alert'), unless we have 5 to sell which is BLUE ('primary').
+            // Passing should be BLUE ('primary')!
             if (rowPts > 0) {
+                const isMax = rows.length === 5;
                 this.bga.statusBar.addActionButton(
                     _('Sell ${count} Row(s) (+${pts} pts)').replace('${count}', rows.length).replace('${pts}', rowPts),
                     () => this.onSell('rows'),
-                    { color: 'primary' }
+                    { color: isMax ? 'primary' : 'alert' }
                 );
             }
 
             if (colPts > 0) {
+                const isMax = cols.length === 5;
                 this.bga.statusBar.addActionButton(
                     _('Sell ${count} Column(s) (+${pts} pts)').replace('${count}', cols.length).replace('${pts}', colPts),
                     () => this.onSell('cols'),
-                    { color: 'primary' }
+                    { color: isMax ? 'primary' : 'alert' }
                 );
             }
 
             this.bga.statusBar.addActionButton(
                 _('Pass (Keep Tiles)'),
                 () => this.onPass(),
-                { color: 'alert' }
+                { color: 'primary' }
+            );
+
+            this.bga.statusBar.addActionButton(
+                _('Undo Move'),
+                () => this.game.onUndo(),
+                { color: 'secondary' }
             );
         } else {
             this.bga.statusBar.setTitle(_('${actplayer} may sell completed rows or columns'));
@@ -282,19 +323,19 @@ class StatePlayerTurnSell {
 
     onSell(type) {
         sounds.playScore();
-        this.bga.statusBar.clearActionButtons();
+        this.game.clearActionButtons();
         this.bga.actions.performAction('actSellLines', { type });
     }
 
     onPass() {
         sounds.playClick();
-        this.bga.statusBar.clearActionButtons();
+        this.game.clearActionButtons();
         this.bga.actions.performAction('actPassSell', {});
     }
 
     onLeavingState(args, isCurrentPlayerActive) {
         this.game.clearSellHighlights();
-        this.bga.statusBar.clearActionButtons();
+        this.game.clearActionButtons();
     }
 }
 
@@ -344,6 +385,16 @@ export class Game {
         return null;
     }
 
+    clearActionButtons() {
+        if (this.bga?.statusBar && typeof this.bga.statusBar.removeActionButtons === 'function') {
+            this.bga.statusBar.removeActionButtons();
+        } else if (this.bga?.statusBar && typeof this.bga.statusBar.clearActionButtons === 'function') {
+            this.bga.statusBar.clearActionButtons();
+        } else if (typeof gameui !== 'undefined' && typeof gameui.removeActionButtons === 'function') {
+            gameui.removeActionButtons();
+        }
+    }
+
     setup(gamedatas) {
         this.gamedatas = gamedatas;
         this.boardData = gamedatas.board || [];
@@ -375,6 +426,10 @@ export class Game {
                         <span class="kiln_goal_badge">${_('Goal')}: <strong>${this.targetScore}</strong></span>
                     </div>
                     <div id="kiln_score_track" class="kiln_score_track"></div>
+                    <div class="kiln_track_legend" title="${_('Spaces 5, 8, 14, 17, 19, 23, 26 award an extra turn in the Heating up the Kiln variant')}">
+                        <span class="kiln_legend_stripe"></span>
+                        <span>${_('Striped = Bonus Space')}</span>
+                    </div>
                 </div>
 
                 <!-- Center: The Kiln (6x6) with 24 Arrow Slots -->
@@ -409,7 +464,6 @@ export class Game {
                 <div class="kiln_warehouse_panel">
                     <div class="kiln_panel_header">
                         <span>📦 ${_('Warehouses')}</span>
-                        <span class="kiln_price_hint" title="${_('Triangular score: 1 line = 1pt, 2 = 3pt, 3 = 6pt, 4 = 10pt, 5 = 15pt')}">1→1, 2→3, 3→6, 4→10, 5→15</span>
                     </div>
                     <div id="kiln_warehouses_container" class="kiln_warehouses_container"></div>
                 </div>
@@ -426,7 +480,7 @@ export class Game {
     }
 
     /**
-     * Render the scoring track from 0 to 29
+     * Render the scoring track from 0 to 29 with hover tooltips
      */
     renderScoreTrack() {
         const track = document.getElementById('kiln_score_track');
@@ -436,14 +490,25 @@ export class Game {
         const bonusSpaces = [5, 8, 14, 17, 19, 23, 26];
 
         for (let i = 0; i <= 29; i++) {
+            const isBonus = bonusSpaces.includes(i);
+            const isGoal = i === this.targetScore;
+
             const cell = document.createElement('div');
-            cell.className = `kiln_track_cell ${bonusSpaces.includes(i) ? 'kiln_track_bonus' : ''} ${i === this.targetScore ? 'kiln_track_goal' : ''}`;
+            cell.className = `kiln_track_cell ${isBonus ? 'kiln_track_bonus' : ''} ${isGoal ? 'kiln_track_goal' : ''}`;
             cell.id = `kiln_track_cell_${i}`;
             cell.setAttribute('data-space', i);
 
+            let tooltip = `Space ${i}`;
+            if (i === 0) tooltip = _('Starting Space (0 pts)');
+            if (isGoal) tooltip += ` - ${_('Target Goal (%s pts) - First player here WINS!')}`.replace('%s', this.targetScore);
+            if (isBonus) {
+                tooltip += ` - ${_('Grey Striped Bonus Space: Landing here awards an EXTRA TURN (if "Heating up the Kiln" variant is active). Nestor selected 5, 8, 14, 17, 19, 23, 26 because they are neither triangular numbers nor the sum of two triangular numbers.')}`;
+            }
+            cell.setAttribute('title', tooltip);
+
             let label = `${i}`;
             if (i === 0) label = 'START';
-            if (i === this.targetScore) label += ' 🎯';
+            if (isGoal) label += ' 🎯';
 
             cell.innerHTML = `
                 <span class="kiln_track_num">${label}</span>
@@ -520,7 +585,7 @@ export class Game {
     }
 
     /**
-     * Render Warehouses for all players
+     * Render Warehouses with side pricing chart for all players
      */
     renderWarehouses() {
         const container = document.getElementById('kiln_warehouses_container');
@@ -550,7 +615,21 @@ export class Game {
                     <span class="kiln_player_color_dot kiln_dot_${pColor}"></span>
                     <strong>${pInfo.name}</strong> ${isMe ? `(${_('You')})` : ''}
                 </div>
-                <div class="kiln_wh_grid" id="kiln_wh_grid_${pId}"></div>
+                <div class="kiln_wh_body">
+                    <div class="kiln_wh_grid" id="kiln_wh_grid_${pId}"></div>
+                    <!-- Side Selling Table (Rule 2) -->
+                    <div class="kiln_price_table" id="kiln_price_table_${pId}" title="${_('Selling Price Table: completed rows or columns sell for these points')}">
+                        <div class="kiln_price_table_header">
+                            <span class="kiln_th_lines">📏 ${_('Lines')}</span>
+                            <span class="kiln_th_pts">⭐ ${_('Pts')}</span>
+                        </div>
+                        <div class="kiln_price_row" data-lines="1"><span class="kiln_pr_num">1</span><span class="kiln_pr_pts">1</span></div>
+                        <div class="kiln_price_row" data-lines="2"><span class="kiln_pr_num">2</span><span class="kiln_pr_pts">3</span></div>
+                        <div class="kiln_price_row" data-lines="3"><span class="kiln_pr_num">3</span><span class="kiln_pr_pts">6</span></div>
+                        <div class="kiln_price_row" data-lines="4"><span class="kiln_pr_num">4</span><span class="kiln_pr_pts">10</span></div>
+                        <div class="kiln_price_row kiln_price_max" data-lines="5"><span class="kiln_pr_num">5</span><span class="kiln_pr_pts">15</span></div>
+                    </div>
+                </div>
             `;
 
             container.appendChild(card);
@@ -717,9 +796,20 @@ export class Game {
 
         sounds.playPlace();
         this.clearWarehousePlacement();
+        this.clearActionButtons();
         this.bga.statusBar.setTitle(_('Placing shape in warehouse...'));
 
         this.bga.actions.performAction('actPlaceShape', { ox: wx, oy: wy });
+    }
+
+    /**
+     * Undo interaction
+     */
+    onUndo() {
+        sounds.playReset();
+        this.clearActionButtons();
+        this.bga.statusBar.setTitle(_('Undoing move...'));
+        this.bga.actions.performAction('actUndo', {});
     }
 
     /**
@@ -742,11 +832,28 @@ export class Game {
                 if (c) c.classList.add('kiln_line_sellable_col');
             }
         });
+
+        // Highlight matching rows in side price table
+        const priceTable = document.getElementById(`kiln_price_table_${myId}`);
+        if (priceTable) {
+            priceTable.querySelectorAll('.kiln_price_row').forEach(r => r.classList.remove('kiln_price_highlight'));
+            if (rows.length > 0) {
+                const rEl = priceTable.querySelector(`.kiln_price_row[data-lines="${rows.length}"]`);
+                if (rEl) rEl.classList.add('kiln_price_highlight');
+            }
+            if (cols.length > 0) {
+                const cEl = priceTable.querySelector(`.kiln_price_row[data-lines="${cols.length}"]`);
+                if (cEl) cEl.classList.add('kiln_price_highlight');
+            }
+        }
     }
 
     clearSellHighlights() {
         document.querySelectorAll('.kiln_wh_cell').forEach(c => {
             c.classList.remove('kiln_line_sellable_row', 'kiln_line_sellable_col');
+        });
+        document.querySelectorAll('.kiln_price_row').forEach(r => {
+            r.classList.remove('kiln_price_highlight');
         });
     }
 
@@ -786,7 +893,7 @@ export class Game {
         const boardEl = document.getElementById('kiln_main_layout');
         if (!scalerWrapper || !boardEl) return;
 
-        const baseWidth = 1040;
+        const baseWidth = 1060;
         const baseHeight = 680;
 
         const updateScale = () => {
@@ -824,6 +931,7 @@ export class Game {
             dojo.subscribe('tilePushed', this, 'notif_tilePushed');
             dojo.subscribe('shapePlaced', this, 'notif_shapePlaced');
             dojo.subscribe('linesSold', this, 'notif_linesSold');
+            dojo.subscribe('turnUndone', this, 'notif_turnUndone');
             dojo.subscribe('blackTileEjected', this, 'notif_blackTileEjected');
             dojo.subscribe('extraTurnStarted', this, 'notif_extraTurnStarted');
         }
@@ -879,6 +987,25 @@ export class Game {
         scores[player_id] = new_score;
         this.updateScores(scores);
         sounds.playScore();
+    }
+
+    async notif_turnUndone(notif) {
+        const args = this._getNotifArgs(notif);
+        const { board, outer_tile, warehouse, player_id } = args;
+
+        this.boardData = board;
+        this.outerTile = outer_tile;
+        if (this.warehouses && warehouse) {
+            this.warehouses[player_id] = warehouse;
+        }
+
+        this.renderKilnBoard();
+        this.updateOuterTileVisual();
+        this.renderWarehouses();
+        this.clearKilnHighlights();
+        this.clearWarehousePlacement();
+        this.clearSellHighlights();
+        sounds.playReset();
     }
 
     async notif_blackTileEjected(notif) {

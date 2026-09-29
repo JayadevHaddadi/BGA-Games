@@ -43,6 +43,7 @@ class PlayerTurn extends GameState
     #[PossibleAction]
     public function actPushTile(int $targetSlot, int $activePlayerId): string
     {
+        $this->game->saveTurnSnapshot($activePlayerId);
         $res = $this->game->executePush($targetSlot);
 
         $this->notify->all('tilePushed', clienttranslate('${player_name} moves the outer tile to slot ${slot} and pushes, ejecting a ${ejected_color} tile'), [

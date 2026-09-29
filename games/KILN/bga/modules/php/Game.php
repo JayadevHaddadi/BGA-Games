@@ -320,6 +320,47 @@ class Game extends \Bga\GameFramework\Table
         return $grid;
     }
 
+    public function saveTurnSnapshot(int $playerId): void
+    {
+        $snapshot = [
+            'board' => $this->getKilnBoard(),
+            'outer_tile' => $this->getOuterTile(),
+            'warehouse' => $this->getPlayerWarehouse($playerId),
+            'extra_turn_earned' => (bool) $this->globals->get('extra_turn_earned', false),
+            'last_ejected_color' => $this->globals->get('last_ejected_color', ''),
+        ];
+        $this->globals->set('turn_snapshot', $snapshot);
+    }
+
+    public function restoreTurnSnapshot(int $playerId): void
+    {
+        $snapshot = $this->globals->get('turn_snapshot', []);
+        if (empty($snapshot)) return;
+
+        // Restore board
+        foreach ($snapshot['board'] as $y => $row) {
+            foreach ($row as $x => $col) {
+                static::DbQuery("UPDATE `kiln_board` SET `color` = '{$col}' WHERE `x` = {$x} AND `y` = {$y}");
+            }
+        }
+        // Restore outer tile
+        $slot = (int) $snapshot['outer_tile']['border_slot'];
+        $col = $snapshot['outer_tile']['color'];
+        static::DbQuery("UPDATE `outer_tile` SET `border_slot` = {$slot}, `color` = '{$col}' WHERE `id` = 1");
+
+        // Restore warehouse
+        foreach ($snapshot['warehouse'] as $wy => $wrow) {
+            foreach ($wrow as $wx => $filled) {
+                static::DbQuery("UPDATE `player_warehouse` SET `filled` = {$filled} WHERE `player_id` = {$playerId} AND `wx` = {$wx} AND `wy` = {$wy}");
+            }
+        }
+
+        $this->globals->set('extra_turn_earned', $snapshot['extra_turn_earned']);
+        $this->globals->set('last_ejected_color', $snapshot['last_ejected_color']);
+        $this->globals->set('selected_group', []);
+        $this->globals->set('candidate_groups', []);
+    }
+
     /**
      * Compute opposite slot: (slot + 12) % 24
      */

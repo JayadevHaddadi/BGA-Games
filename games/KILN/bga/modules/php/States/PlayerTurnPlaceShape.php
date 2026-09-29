@@ -61,6 +61,22 @@ class PlayerTurnPlaceShape extends GameState
         return NextPlayer::class;
     }
 
+    #[PossibleAction]
+    public function actUndo(int $activePlayerId): string
+    {
+        $this->game->restoreTurnSnapshot($activePlayerId);
+
+        $this->notify->all('turnUndone', clienttranslate('${player_name} undid their push'), [
+            'player_id' => $activePlayerId,
+            'player_name' => $this->game->getPlayerNameById($activePlayerId),
+            'board' => $this->game->getKilnBoard(),
+            'outer_tile' => $this->game->getOuterTile(),
+            'warehouse' => $this->game->getPlayerWarehouse($activePlayerId),
+        ]);
+
+        return PlayerTurn::class;
+    }
+
     public function zombie(int $playerId): string
     {
         $shape = $this->game->globals->get('selected_group', []);
