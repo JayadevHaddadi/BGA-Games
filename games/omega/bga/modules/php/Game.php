@@ -157,6 +157,8 @@ class Game extends \Bga\GameFramework\Table
         $result['turn_count'] = (int) $this->globals->get('turn_count', 1);
         $result['max_turns'] = $turnInfo['max_turns'];
         $result['max_rounds'] = $turnInfo['max_rounds'];
+        $activePlayerId = (int) $this->getActivePlayerId();
+        $result['placement_order'] = $this->getPlacementOrderForPlayer($activePlayerId);
         return $result;
     }
 
@@ -199,6 +201,29 @@ class Game extends \Bga\GameFramework\Table
         if ($numPlayers >= 3) $colors[] = 'red';
         if ($numPlayers >= 4) $colors[] = 'blue';
         return $colors;
+    }
+
+    /**
+     * Placement order of stone colors for a specific player's turn:
+     * Player places their OWN color first, followed by the remaining colors in cyclic turn order.
+     */
+    public function getPlacementOrderForPlayer(int $playerId): array
+    {
+        $allColors = $this->getActiveColorsInGame();
+        $playerColors = $this->globals->get('player_colors', []);
+        $myColor = $playerColors[$playerId] ?? ($allColors[0] ?? 'white');
+
+        $myIndex = array_search($myColor, $allColors, true);
+        if ($myIndex === false) {
+            return $allColors;
+        }
+
+        $order = [];
+        $count = count($allColors);
+        for ($i = 0; $i < $count; $i++) {
+            $order[] = $allColors[($myIndex + $i) % $count];
+        }
+        return $order;
     }
 
     public function isValidCoord(int $q, int $r): bool

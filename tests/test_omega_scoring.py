@@ -143,6 +143,24 @@ def test_omega():
     # 4 players: 4 stones/turn. 61 cells -> 15 full turns = 60 stones placed. 1 cell left (< 4), game ends.
     assert 61 // 4 == 15 and 61 % 4 == 1
 
+    # Test 9: Player placement order (own color first, then cyclic turn order)
+    def get_placement_order(my_color, active_colors):
+        idx = active_colors.index(my_color)
+        return [active_colors[(idx + i) % len(active_colors)] for i in range(len(active_colors))]
+
+    # 2 players:
+    assert get_placement_order('white', ['white', 'black']) == ['white', 'black']
+    assert get_placement_order('black', ['white', 'black']) == ['black', 'white']
+
+    # 3 players:
+    assert get_placement_order('white', ['white', 'black', 'red']) == ['white', 'black', 'red']
+    assert get_placement_order('black', ['white', 'black', 'red']) == ['black', 'red', 'white']
+    assert get_placement_order('red', ['white', 'black', 'red']) == ['red', 'white', 'black']
+
+    # 4 players:
+    assert get_placement_order('white', ['white', 'black', 'red', 'blue']) == ['white', 'black', 'red', 'blue']
+    assert get_placement_order('blue', ['white', 'black', 'red', 'blue']) == ['blue', 'white', 'black', 'red']
+
     print("All Omega scoring and game rule verification tests passed successfully!")
 
 if __name__ == '__main__':

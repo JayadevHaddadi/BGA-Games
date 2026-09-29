@@ -28,7 +28,8 @@ class PlayerTurn extends GameState
         $activePlayerId = (int) $this->game->getActivePlayerId();
         $placedThisTurn = $this->globals->get('placed_this_turn', []);
         $allColors = $this->game->getActiveColorsInGame();
-        $remainingColors = array_values(array_diff($allColors, $placedThisTurn));
+        $placementOrder = $this->game->getPlacementOrderForPlayer($activePlayerId);
+        $remainingColors = array_values(array_diff($placementOrder, $placedThisTurn));
 
         $pieRuleAvailable = (bool) $this->globals->get('pie_rule_available', false) &&
                             empty($placedThisTurn) &&
@@ -40,6 +41,7 @@ class PlayerTurn extends GameState
             'empty_cells' => $this->game->getEmptyCells(),
             'placed_this_turn' => $placedThisTurn,
             'remaining_colors' => $remainingColors,
+            'placement_order' => $placementOrder,
             'all_colors' => $allColors,
             'last_placed_coords' => $this->globals->get('last_placed_coords', []),
             'pie_rule_available' => $pieRuleAvailable,

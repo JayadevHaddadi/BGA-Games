@@ -171,7 +171,12 @@
 .omega_stone {
     filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.38));
     pointer-events: none;
-    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), filter 0.2s ease;
+}
+
+/* Subtle, elegant halo indicator for player's own color stones */
+.omega_stone.omega_stone_own {
+    filter: drop-shadow(0 0 5px rgba(255, 205, 70, 0.95)) drop-shadow(0 3px 5px rgba(0, 0, 0, 0.42));
 }
 
 .omega_stone_white {

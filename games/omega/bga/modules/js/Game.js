@@ -170,14 +170,12 @@ class PlayerTurn {
 
         if (active) {
             const staged = this.game.stagedStones || [];
-            const allColors = this.game.activeColors || ['white', 'black'];
-            const stagedColors = staged.map(s => s.color);
-            const remaining = allColors.filter(c => !stagedColors.includes(c));
+            const remaining = this.game.getRemainingColorsForCurrentTurn();
+            const totalSteps = (this.game.activeColors && this.game.activeColors.length) || 2;
 
             if (remaining.length > 0) {
                 const currentColor = remaining[0];
                 const stepNum = staged.length + 1;
-                const totalSteps = allColors.length;
 
                 this.bga.statusBar.setTitle(
                     _('[Turn ${turn}/${maxTurns}] ${you} must place a <b>${color}</b> stone (${step}/${total})'),
@@ -325,10 +323,58 @@ export class Game {
 
         this.initDom();
         this.renderBoard();
+        this.updateStonesOwnership();
         this.updateLastPlacedMarkers(this.lastPlacedCoords);
         this.updateScoresDisplay(gamedatas.scores || {});
         this.setupNotifications();
         this.setupResponsiveScaling();
+    }
+
+    getMyColor() {
+        const myId = this.getCurrentPlayerId();
+        return (this.playerColors && this.playerColors[myId]) || null;
+    }
+
+    getPlacementOrder(playerId) {
+        const allColors = this.activeColors || ['white', 'black'];
+        if (!playerId) {
+            playerId = this.getActivePlayerId() || this.getCurrentPlayerId();
+        }
+        const myColor = (this.playerColors && this.playerColors[playerId]) || allColors[0];
+        const idx = allColors.indexOf(myColor);
+        if (idx === -1) return allColors;
+
+        const order = [];
+        for (let i = 0; i < allColors.length; i++) {
+            order.push(allColors[(idx + i) % allColors.length]);
+        }
+        return order;
+    }
+
+    getRemainingColorsForCurrentTurn() {
+        const activeId = this.getActivePlayerId() || this.getCurrentPlayerId();
+        const order = (this.currentArgs && this.currentArgs.placement_order) || this.getPlacementOrder(activeId);
+        const staged = this.stagedStones || [];
+        const stagedColors = staged.map(s => s.color);
+        return order.filter(c => !stagedColors.includes(c));
+    }
+
+    updateStonesOwnership() {
+        const myColor = this.getMyColor();
+        document.querySelectorAll('.omega_cell').forEach(cell => {
+            const q = cell.getAttribute('data-q');
+            const r = cell.getAttribute('data-r');
+            const key = `${q}_${r}`;
+            const stone = cell.querySelector('.omega_stone');
+            if (stone) {
+                const occupiedColor = (this.boardData[key] && this.boardData[key].color);
+                if (occupiedColor && myColor && occupiedColor === myColor) {
+                    stone.classList.add('omega_stone_own');
+                } else {
+                    stone.classList.remove('omega_stone_own');
+                }
+            }
+        });
     }
 
     getRemainingColors(placed) {
@@ -496,9 +542,7 @@ export class Game {
         // If already occupied by a placed or staged stone, ignore
         if (this.boardData[key] && this.boardData[key].color) return;
 
-        const staged = this.stagedStones || [];
-        const stagedColors = staged.map(s => s.color);
-        const remaining = this.activeColors.filter(c => !stagedColors.includes(c));
+        const remaining = this.getRemainingColorsForCurrentTurn();
         if (!remaining.length) return; // All stones already staged, awaiting confirm or reset
 
         const colorToPlace = remaining[0];
@@ -508,6 +552,9 @@ export class Game {
         this.stagedStones.push({ q, r, color: colorToPlace });
         this.boardData[key] = { q, r, color: colorToPlace, staged: true };
 
+        const myColor = this.getMyColor();
+        const isOwn = (myColor && colorToPlace === myColor);
+
         const cell = document.querySelector(`.omega_cell[data-q="${q}"][data-r="${r}"]`);
         if (cell) {
             const stone = cell.querySelector('.omega_stone');
@@ -515,7 +562,7 @@ export class Game {
             const ghost = cell.querySelector('.omega_ghost_stone');
             if (ghost) ghost.style.display = 'none';
             if (stone) {
-                stone.setAttribute('class', `omega_stone omega_stone_${colorToPlace}`);
+                stone.setAttribute('class', `omega_stone omega_stone_${colorToPlace}${isOwn ? ' omega_stone_own' : ''}`);
                 stone.style.display = 'block';
             }
             if (shine) {
@@ -528,7 +575,7 @@ export class Game {
         this.playerTurn.updateControls(this.currentArgs, true);
 
         // 3. Update board interactions (disable cell targeting if all stones are now staged)
-        const nextRemaining = this.activeColors.filter(c => !this.stagedStones.map(s => s.color).includes(c));
+        const nextRemaining = this.getRemainingColorsForCurrentTurn();
         this.updateBoardInteractions(nextRemaining.length > 0);
     }
 
@@ -540,9 +587,7 @@ export class Game {
         if (!ghost || (stone && stone.style.display !== 'none')) return;
 
         if (isHover) {
-            const staged = this.stagedStones || [];
-            const stagedColors = staged.map(s => s.color);
-            const remaining = this.activeColors.filter(c => !stagedColors.includes(c));
+            const remaining = this.getRemainingColorsForCurrentTurn();
             if (remaining.length) {
                 const nextColor = remaining[0];
                 ghost.setAttribute('class', `omega_ghost_stone omega_ghost_${nextColor}`);
@@ -791,6 +836,7 @@ export class Game {
         if (scores) {
             this.updateScoresDisplay(scores);
         }
+        this.updateStonesOwnership();
     }
 
     async notif_stonePlaced(notif) {
@@ -878,6 +924,7 @@ export class Game {
         this.playerColors = args.player_colors;
         sounds.playChime();
         this.updateScoresDisplay(args.scores);
+        this.updateStonesOwnership();
     }
 
     async notif_endGameScores(notif) {
