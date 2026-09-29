@@ -29,8 +29,12 @@ class SetupPlacement extends GameState
             type: StateType::ACTIVE_PLAYER,
             description: clienttranslate('${actplayer} must choose a space with 1 fruit to place their sugar glider'),
             descriptionMyTurn: clienttranslate('${you} must choose a space with 1 fruit to place your sugar glider'),
-            args: 'argSelectStartSpace',
         );
+    }
+
+    public function getArgs(): array
+    {
+        return $this->argSelectStartSpace();
     }
 
     public function argSelectStartSpace(): array

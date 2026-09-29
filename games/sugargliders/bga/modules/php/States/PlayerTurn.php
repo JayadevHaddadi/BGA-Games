@@ -29,8 +29,12 @@ class PlayerTurn extends GameState
             type: StateType::ACTIVE_PLAYER,
             description: clienttranslate('${actplayer} must jump or enter torpor'),
             descriptionMyTurn: clienttranslate('${you} must jump or enter torpor'),
-            args: 'argPlayerTurn',
         );
+    }
+
+    public function getArgs(): array
+    {
+        return $this->argPlayerTurn();
     }
 
     public function argPlayerTurn(): array
