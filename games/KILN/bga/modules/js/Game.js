@@ -1173,8 +1173,8 @@ export class Game {
         if (!scalerWrapper || !boardEl) return;
 
         const isMultiplayer = Object.keys(this.gamedatas.players || {}).length > 2;
-        const baseWidth = isMultiplayer ? 980 : 820;
-        const baseHeight = 740;
+        const baseWidth = isMultiplayer ? 1020 : 720;
+        const baseHeight = 840;
 
         const updateScale = () => {
             const availableWidth = scalerWrapper.clientWidth || window.innerWidth;
