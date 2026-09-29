@@ -1,0 +1,39 @@
+{    
+    // Statistics for the table
+    "table": {
+        "turns_number": {
+            "id": 10,
+            "name": "Number of turns",
+            "type": "int"
+        },
+        "winning_score": {
+            "id": 11,
+            "name": "Winning score",
+            "type": "int"
+        }
+    },
+    
+    // Statistics for each player
+    "player": {
+        "turns_number": {
+            "id": 20,
+            "name": "Number of turns",
+            "type": "int"
+        },
+        "lines_sold": {
+            "id": 21,
+            "name": "Total lines sold",
+            "type": "int"
+        },
+        "points_scored": {
+            "id": 22,
+            "name": "Points scored from sales",
+            "type": "int"
+        },
+        "extra_turns": {
+            "id": 23,
+            "name": "Extra turns taken",
+            "type": "int"
+        }
+    }
+}

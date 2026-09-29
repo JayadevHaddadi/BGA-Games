@@ -32,6 +32,7 @@ TARGET_MAP = {
     "omegatest": ("games/omega/bga", "omegatest"),
     "yavalath": ("games/yavalath/bga", "yavalath"),
     "yavalathtest": ("games/yavalath/bga", "yavalath"),
+    "kiln": ("games/KILN/bga", "kiln"),
 }
 
 def load_credentials():

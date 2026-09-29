@@ -1,0 +1,45 @@
+{
+  "100": {
+    "name": "Target Winning Score",
+    "values": {
+      "14": {
+        "name": "Short / Beginners Game (14 points)",
+        "description": "Fast-paced game ideal for learning the mechanics",
+        "tmdisplay": "Target: 14 pts"
+      },
+      "17": {
+        "name": "Standard Game (17 points)",
+        "description": "Official recommended rules target score",
+        "tmdisplay": "Target: 17 pts"
+      },
+      "20": {
+        "name": "Long Game (20 points)",
+        "description": "Extended match offering deeper tactical spatial manipulation",
+        "tmdisplay": "Target: 20 pts"
+      },
+      "25": {
+        "name": "Marathon Game (25 points)",
+        "description": "Expert endurance match",
+        "tmdisplay": "Target: 25 pts",
+        "nobeginner": true
+      }
+    },
+    "default": 17
+  },
+  "101": {
+    "name": "Heating up the Kiln (Bonus Spaces)",
+    "values": {
+      "0": {
+        "name": "Disabled (Standard)",
+        "description": "Standard game without extra turn spaces"
+      },
+      "1": {
+        "name": "Enabled",
+        "description": "Landing exactly on track spaces 5, 8, 14, 17, 19, 23, 26 awards an extra turn",
+        "tmdisplay": "Bonus Spaces Active",
+        "nobeginner": true
+      }
+    },
+    "default": 0
+  }
+}

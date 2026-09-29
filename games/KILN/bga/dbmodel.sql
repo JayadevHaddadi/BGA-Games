@@ -1,0 +1,28 @@
+-- KILN Database Schema
+
+DROP TABLE IF EXISTS `kiln_board`;
+CREATE TABLE IF NOT EXISTS `kiln_board` (
+    `x` TINYINT UNSIGNED NOT NULL,
+    `y` TINYINT UNSIGNED NOT NULL,
+    `color` VARCHAR(16) NOT NULL,
+    PRIMARY KEY (`x`, `y`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+DROP TABLE IF EXISTS `outer_tile`;
+CREATE TABLE IF NOT EXISTS `outer_tile` (
+    `id` TINYINT UNSIGNED NOT NULL DEFAULT 1,
+    `border_slot` TINYINT UNSIGNED NOT NULL,
+    `color` VARCHAR(16) NOT NULL,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+DROP TABLE IF EXISTS `player_warehouse`;
+CREATE TABLE IF NOT EXISTS `player_warehouse` (
+    `player_id` INT UNSIGNED NOT NULL,
+    `wx` TINYINT UNSIGNED NOT NULL,
+    `wy` TINYINT UNSIGNED NOT NULL,
+    `filled` TINYINT(1) UNSIGNED NOT NULL DEFAULT 0,
+    PRIMARY KEY (`player_id`, `wx`, `wy`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+ALTER TABLE `player` ADD COLUMN IF NOT EXISTS `player_color_name` VARCHAR(16) DEFAULT NULL;

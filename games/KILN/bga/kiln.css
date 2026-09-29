@@ -1,0 +1,473 @@
+/**
+ *------
+ * BGA framework: Gregory Isabelli & Emmanuel Colin & BoardGameArena
+ * kiln implementation : © Jayadev Haddadi
+ *
+ * kiln.css - Stylesheet for KILN (nestorgames)
+ *------
+ */
+
+:root {
+    --kiln-red: #d32f2f;
+    --kiln-red-dark: #b71c1c;
+    --kiln-blue: #1976d2;
+    --kiln-blue-dark: #0d47a1;
+    --kiln-green: #2e7d32;
+    --kiln-green-dark: #1b5e20;
+    --kiln-yellow: #fbc02d;
+    --kiln-yellow-dark: #f57f17;
+    --kiln-black: #263238;
+    --kiln-black-dark: #10171a;
+    --kiln-bg-panel: #ffffff;
+    --kiln-border-color: #cfd8dc;
+}
+
+/* Scaler container pattern (AGENTS.md standard) */
+.kiln_scaler_container {
+    position: relative;
+    margin: 10px auto;
+    overflow: visible;
+}
+
+.kiln_main_layout {
+    display: flex;
+    flex-direction: row;
+    gap: 16px;
+    padding: 16px;
+    background: #eceff1;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    width: 1040px;
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.kiln_panel_header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 700;
+    font-size: 14px;
+    color: #37474f;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid #cfd8dc;
+}
+
+/* ========================================================
+   1. Left Column: Score Track (0 to 29)
+   ======================================================== */
+.kiln_track_panel {
+    width: 170px;
+    background: #fafafa;
+    border-radius: 8px;
+    padding: 10px;
+    border: 1px solid var(--kiln-border-color);
+    box-sizing: border-box;
+    flex-shrink: 0;
+}
+
+.kiln_goal_badge {
+    background: #ffb300;
+    color: #212121;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.kiln_score_track {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    max-height: 580px;
+}
+
+.kiln_track_cell {
+    background: #ffffff;
+    border: 1px solid #b0bec5;
+    border-radius: 6px;
+    height: 34px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.kiln_track_bonus {
+    background: repeating-linear-gradient(
+        45deg,
+        #f5f5f5,
+        #f5f5f5 4px,
+        #cfd8dc 4px,
+        #cfd8dc 8px
+    );
+    border-color: #78909c;
+}
+
+.kiln_track_goal {
+    border: 2px solid #f57f17;
+    background: #fff8e1;
+}
+
+.kiln_track_num {
+    font-size: 10px;
+    font-weight: 700;
+    color: #546e7a;
+    position: absolute;
+    top: 2px;
+    left: 3px;
+}
+
+.kiln_track_tokens {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    width: 100%;
+    height: 100%;
+}
+
+.kiln_score_disc {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    border: 1px solid #ffffff;
+    animation: kiln_pulse_subtle 2s infinite ease-in-out;
+}
+
+/* ========================================================
+   2. Center Column: The Kiln (6x6) with 24 Border Arrows
+   ======================================================== */
+.kiln_center_panel {
+    width: 480px;
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 12px;
+    border: 1px solid var(--kiln-border-color);
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.kiln_outer_badge {
+    font-size: 12px;
+    color: #455a64;
+}
+
+.kiln_color_tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    margin-left: 4px;
+}
+
+.kiln_oven_wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    margin-top: 10px;
+}
+
+.kiln_oven_middle {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+}
+
+.kiln_arrow_row {
+    display: flex;
+    flex-direction: row;
+    gap: 4px;
+    margin-left: 44px; /* match arrow col width */
+    margin-right: 44px;
+}
+
+.kiln_arrow_col {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.kiln_arrow_slot {
+    width: 44px;
+    height: 44px;
+    background: #eceff1;
+    border: 1px dashed #b0bec5;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: all 0.15s ease-in-out;
+    box-sizing: border-box;
+}
+
+.kiln_arrow_icon {
+    font-size: 18px;
+    font-weight: 900;
+    color: #90a4ae;
+    user-select: none;
+    transition: color 0.15s ease;
+}
+
+.kiln_arrow_clickable {
+    cursor: pointer;
+    background: #e0f2fe;
+    border: 2px solid #0284c7;
+    box-shadow: 0 0 8px rgba(2, 132, 199, 0.4);
+    animation: kiln_arrow_bounce 1.5s infinite ease-in-out;
+}
+
+.kiln_arrow_clickable .kiln_arrow_icon {
+    color: #0284c7;
+}
+
+.kiln_arrow_clickable:hover {
+    background: #0284c7;
+    transform: scale(1.08);
+}
+
+.kiln_arrow_clickable:hover .kiln_arrow_icon {
+    color: #ffffff;
+}
+
+.kiln_outer_tile_holder {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.kiln_outer_tile_disc {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    border: 2px solid #ffffff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+    animation: kiln_outer_glow 1.8s infinite alternate ease-in-out;
+}
+
+/* 6x6 Kiln Grid */
+.kiln_board_grid {
+    display: grid;
+    grid-template-columns: repeat(6, 44px);
+    grid-template-rows: repeat(6, 44px);
+    gap: 4px;
+    background: #cfd8dc;
+    padding: 6px;
+    border-radius: 8px;
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.kiln_board_tile {
+    width: 44px;
+    height: 44px;
+    border-radius: 6px;
+    position: relative;
+    box-sizing: border-box;
+    transition: transform 0.25s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+}
+
+.kiln_tile_inner {
+    width: 100%;
+    height: 100%;
+    border-radius: 6px;
+    box-shadow: inset 0 1px 1px rgba(255,255,255,0.4), inset 0 -1px 2px rgba(0,0,0,0.25);
+}
+
+.kiln_tile_candidate {
+    cursor: pointer;
+    animation: kiln_candidate_pulse 1.2s infinite ease-in-out;
+}
+
+.kiln_tile_candidate:hover {
+    transform: scale(1.06);
+    z-index: 5;
+}
+
+.kiln_tile_group_badge {
+    display: none;
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: #000000;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 800;
+    border-radius: 50%;
+    width: 14px;
+    height: 14px;
+    line-height: 14px;
+    text-align: center;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+/* ========================================================
+   3. Right Column: Warehouses (5x5)
+   ======================================================== */
+.kiln_warehouse_panel {
+    flex: 1;
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 12px;
+    border: 1px solid var(--kiln-border-color);
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+}
+
+.kiln_price_hint {
+    font-size: 11px;
+    color: #78909c;
+    cursor: help;
+}
+
+.kiln_warehouses_container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+    max-height: 580px;
+}
+
+.kiln_warehouse_card {
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 8px;
+    box-sizing: border-box;
+}
+
+.kiln_my_warehouse {
+    border: 2px solid #0284c7;
+    background: #f0f9ff;
+}
+
+.kiln_wh_title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    margin-bottom: 6px;
+    color: #1e293b;
+}
+
+.kiln_player_color_dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.kiln_wh_grid {
+    display: grid;
+    grid-template-columns: repeat(5, 34px);
+    grid-template-rows: repeat(5, 34px);
+    gap: 3px;
+    background: #cbd5e1;
+    padding: 4px;
+    border-radius: 6px;
+    width: fit-content;
+}
+
+.kiln_wh_cell {
+    width: 34px;
+    height: 34px;
+    background: #ffffff;
+    border-radius: 4px;
+    box-sizing: border-box;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.kiln_wh_filled {
+    box-shadow: inset 0 1px 2px rgba(255,255,255,0.4), inset 0 -1px 2px rgba(0,0,0,0.3);
+}
+
+.kiln_anchor_valid {
+    cursor: pointer;
+    box-shadow: inset 0 0 4px #0284c7;
+}
+
+.kiln_ghost_valid {
+    background: rgba(34, 197, 94, 0.75) !important;
+    box-shadow: 0 0 6px rgba(34, 197, 94, 0.9);
+}
+
+.kiln_ghost_invalid {
+    background: rgba(239, 68, 68, 0.75) !important;
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.9);
+}
+
+.kiln_line_sellable_row,
+.kiln_line_sellable_col {
+    animation: kiln_gold_shimmer 1.4s infinite alternate ease-in-out !important;
+}
+
+/* ========================================================
+   Tile & Disc Color Palette (Ceramic Gloss Styling)
+   ======================================================== */
+.kiln_tile_red, .kiln_disc_red, .kiln_dot_red, .kiln_tag_red {
+    background: linear-gradient(135deg, #e53935 0%, #c62828 100%);
+    border-color: #b71c1c;
+}
+.kiln_tile_blue, .kiln_disc_blue, .kiln_dot_blue, .kiln_tag_blue {
+    background: linear-gradient(135deg, #1e88e5 0%, #1565c0 100%);
+    border-color: #0d47a1;
+}
+.kiln_tile_green, .kiln_disc_green, .kiln_dot_green, .kiln_tag_green {
+    background: linear-gradient(135deg, #43a047 0%, #2e7d32 100%);
+    border-color: #1b5e20;
+}
+.kiln_tile_yellow, .kiln_disc_yellow, .kiln_dot_yellow, .kiln_tag_yellow {
+    background: linear-gradient(135deg, #fdd835 0%, #f9a825 100%);
+    border-color: #f57f17;
+}
+.kiln_tile_black, .kiln_disc_black, .kiln_dot_black, .kiln_tag_black {
+    background: linear-gradient(135deg, #455a64 0%, #263238 100%);
+    border-color: #10171a;
+}
+
+/* ========================================================
+   Animations
+   ======================================================== */
+@keyframes kiln_arrow_bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-2px); }
+}
+
+@keyframes kiln_outer_glow {
+    0% { transform: scale(0.96); box-shadow: 0 0 4px rgba(0,0,0,0.5); }
+    100% { transform: scale(1.04); box-shadow: 0 0 12px rgba(2, 132, 199, 0.85); }
+}
+
+@keyframes kiln_candidate_pulse {
+    0%, 100% { box-shadow: 0 0 4px #0284c7; }
+    50% { box-shadow: 0 0 14px #38bdf8; }
+}
+
+@keyframes kiln_gold_shimmer {
+    0% { box-shadow: inset 0 0 3px #f59e0b; border: 1px solid #d97706; }
+    100% { box-shadow: inset 0 0 10px #fbbf24, 0 0 8px #f59e0b; border: 1px solid #fef08a; }
+}
+
+@keyframes kiln_pulse_subtle {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+}

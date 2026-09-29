@@ -1,0 +1,26 @@
+{
+    "game_name": "KILN",
+    "publisher": "nestorgames",
+    "publisher_website": "https://nestorgames.com/",
+    "publisher_bgg_id": 9444,
+    "bgg_id": 0,
+    "players": [2, 3, 4],
+    "suggest_player_number": 2,
+    "not_recommend_player_number": null,
+    "estimated_duration": 20,
+    "fast_additional_time": 25,
+    "medium_additional_time": 35,
+    "slow_additional_time": 45,
+    "tie_breaker_description": "First player to reach or exceed target score wins immediately",
+    "losers_not_ranked": false,
+    "solo_mode_ranked": false,
+    "is_coop": 0,
+    "language_dependency": false,
+    "player_colors": ["d32f2f", "1976d2", "2e7d32", "fbc02d"],
+    "favorite_colors_support": true,
+    "disable_player_order_swap_on_rematch": false,
+    "game_interface_width": {
+        "min": 320
+    },
+    "exception_on_warning": true
+}

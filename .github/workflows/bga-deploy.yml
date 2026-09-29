@@ -21,6 +21,7 @@ on:
           - lordsofscotland
           - pushfight
           - mandala
+          - kiln
 
 jobs:
   deploy:
@@ -98,6 +99,12 @@ jobs:
             if echo "$CHANGED" | grep -q "games/mandala"; then
               echo "Deploying Mandala..."
               python tools/sync.py mandala
+              DEPLOYED=1
+            fi
+
+            if echo "$CHANGED" | grep -qi "games/kiln"; then
+              echo "Deploying Kiln..."
+              python tools/sync.py kiln
               DEPLOYED=1
             fi
 

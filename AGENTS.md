@@ -30,6 +30,7 @@ Every change should be committed and pushed to `main`. The GitHub Actions deploy
 | **Lords of Scotland** | `games/lordsofscotland/bga/` | `lordsofscotland` | `python tools/sync.py lordsofscotland` |
 | **Push Fight** | `games/pushfight/bga/` | `pushfighttest` / `pushfight` | `python tools/sync.py pushfighttest` |
 | **Mandala** | `games/mandala/bga-prod/` | `mandala` | `python tools/sync.py mandala` |
+| **Kiln** | `games/KILN/bga/` | `kiln` | `python tools/sync.py kiln` |
 
 ---
 
