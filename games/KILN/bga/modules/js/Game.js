@@ -198,17 +198,19 @@ class StatePlayerTurnSelectGroup {
             this.game.highlightCandidateGroups(groups);
 
             groups.forEach((g, idx) => {
-                this.bga.statusBar.addActionButton(
+                this.game.addActionButton(
+                    `btn_group_${idx}`,
                     _('Select Group ${num} (${size} tiles)').replace('${num}', idx + 1).replace('${size}', g.length),
                     () => this.onSelectGroup(idx),
-                    { color: 'secondary' }
+                    'secondary'
                 );
             });
 
-            this.bga.statusBar.addActionButton(
+            this.game.addActionButton(
+                'btn_undo_push',
                 _('Undo Push'),
                 () => this.game.onUndo(),
-                { color: 'alert' }
+                'alert'
             );
         } else {
             this.bga.statusBar.setTitle(_('${actplayer} is choosing which tied group to copy'));
@@ -245,32 +247,44 @@ class StatePlayerTurnPlaceShape {
         const cannotFit = args.cannot_fit || validAnchors.length === 0;
 
         if (isCurrentPlayerActive) {
+            // Cleanly highlight shape preview on the kiln board (no badges, no click handlers)
+            this.game.highlightShapePreview(shape);
+
             if (cannotFit) {
                 const size = args.shape_size || shape.length || 0;
                 this.bga.statusBar.setTitle(
                     _('${you}: largest group (${size} tiles) does not fit into your warehouse!').replace('${size}', size)
                 );
-                this.game.highlightCandidateGroups([shape]);
 
-                this.bga.statusBar.addActionButton(
-                    _('Skip Placement'),
+                // Show prominent inline banner above warehouse
+                this.game.showCannotFitBanner(
+                    size,
                     () => this.onSkipPlacement(),
-                    { color: 'primary' }
+                    () => this.game.onUndo()
                 );
 
-                this.bga.statusBar.addActionButton(
+                this.game.addActionButton(
+                    'btn_skip_placement',
+                    _('Skip Placement'),
+                    () => this.onSkipPlacement(),
+                    'primary'
+                );
+
+                this.game.addActionButton(
+                    'btn_undo_push',
                     _('Undo Push'),
                     () => this.game.onUndo(),
-                    { color: 'alert' }
+                    'alert'
                 );
             } else {
                 this.bga.statusBar.setTitle(_('${you} must place the tile shape into your warehouse (hover and click)'));
                 this.game.setupWarehousePlacement(norm, validAnchors);
 
-                this.bga.statusBar.addActionButton(
+                this.game.addActionButton(
+                    'btn_undo_push',
                     _('Undo Push'),
                     () => this.game.onUndo(),
-                    { color: 'alert' }
+                    'alert'
                 );
             }
         } else {
@@ -279,6 +293,7 @@ class StatePlayerTurnPlaceShape {
             } else {
                 this.bga.statusBar.setTitle(_('${actplayer} is copying their shape into their warehouse'));
             }
+            this.game.hideCannotFitBanner();
             this.game.clearWarehousePlacement();
             this.game.clearKilnHighlights();
         }
@@ -286,12 +301,14 @@ class StatePlayerTurnPlaceShape {
 
     onSkipPlacement() {
         sounds.playClick();
+        this.game.hideCannotFitBanner();
         this.game.clearActionButtons();
         this.game.clearKilnHighlights();
         this.bga.actions.performAction('actSkipPlacement', {});
     }
 
     onLeavingState(args, isCurrentPlayerActive) {
+        this.game.hideCannotFitBanner();
         this.game.clearWarehousePlacement();
         this.game.clearKilnHighlights();
         this.game.clearActionButtons();
@@ -314,16 +331,18 @@ class StatePlayerTurnFixMess {
             this.bga.statusBar.setTitle(_('${you} cannot fit your shape. "Fixing the Mess" is active: click 1 painted cell in your warehouse to erase it, or skip'));
             this.game.setupFixMessMode();
 
-            this.bga.statusBar.addActionButton(
+            this.game.addActionButton(
+                'btn_skip_fix',
                 _('Skip Erasing'),
                 () => this.onSkip(),
-                { color: 'secondary' }
+                'secondary'
             );
 
-            this.bga.statusBar.addActionButton(
+            this.game.addActionButton(
+                'btn_undo_push',
                 _('Undo Push'),
                 () => this.game.onUndo(),
-                { color: 'alert' }
+                'alert'
             );
         } else {
             this.bga.statusBar.setTitle(_('${actplayer} may erase 1 cell from their warehouse ("Fixing the Mess")'));
@@ -398,49 +417,55 @@ class StatePlayerTurnSell {
         if (count > 0) {
             const isMax = count === 5;
             const lineWord = this.selectedType === 'rows' ? _('Row(s)') : _('Column(s)');
-            this.bga.statusBar.addActionButton(
+            this.game.addActionButton(
+                'btn_confirm_sell',
                 _('Sell ${count} ${lines} (+${pts} pts)').replace('${count}', count).replace('${lines}', lineWord).replace('${pts}', pts),
                 () => this.onConfirmSell(),
-                { color: isMax ? 'primary' : 'alert' }
+                isMax ? 'primary' : 'alert'
             );
         }
 
         // 2. Secondary toggle / switch option (strictly keeping total buttons <= 4)
         if (otherAvailable.length > 0) {
             const otherWord = otherType === 'rows' ? _('Rows') : _('Columns');
-            this.bga.statusBar.addActionButton(
+            this.game.addActionButton(
+                'btn_toggle_type',
                 _('Switch to ${type}').replace('${type}', otherWord),
                 () => this.toggleType(),
-                { color: 'secondary' }
+                'secondary'
             );
         } else if (available.length > 1) {
             if (count < available.length) {
-                this.bga.statusBar.addActionButton(
+                this.game.addActionButton(
+                    'btn_select_all',
                     _('Select All (${total})').replace('${total}', available.length),
                     () => this.selectAll(),
-                    { color: 'secondary' }
+                    'secondary'
                 );
             } else {
-                this.bga.statusBar.addActionButton(
+                this.game.addActionButton(
+                    'btn_select_one',
                     _('Select 1 Only'),
                     () => this.selectOneOnly(),
-                    { color: 'secondary' }
+                    'secondary'
                 );
             }
         }
 
         // 3. Pass action
-        this.bga.statusBar.addActionButton(
+        this.game.addActionButton(
+            'btn_pass',
             _('Pass (Keep Tiles)'),
             () => this.onPass(),
-            { color: 'primary' }
+            'primary'
         );
 
         // 4. Undo action
-        this.bga.statusBar.addActionButton(
+        this.game.addActionButton(
+            'btn_undo_move',
             _('Undo Move'),
             () => this.game.onUndo(),
-            { color: 'alert' }
+            'alert'
         );
 
         // Update visual highlighting on warehouse & price table
@@ -591,14 +616,92 @@ export class Game {
         return null;
     }
 
+    addActionButton(id, text, callback, color = 'secondary') {
+        // 1. Modern BGA statusBar API: addActionButton(text, callback, { color: color })
+        if (this.bga?.statusBar && typeof this.bga.statusBar.addActionButton === 'function') {
+            try {
+                this.bga.statusBar.addActionButton(text, callback, { color: color });
+                return;
+            } catch (e) {
+                console.warn('[Kiln] bga.statusBar.addActionButton failed, trying fallback', e);
+            }
+        }
+        // 2. Legacy Dojo framework: gameui.addActionButton(id, text, callback, null, false, color)
+        if (typeof gameui !== 'undefined' && typeof gameui.addActionButton === 'function') {
+            try {
+                gameui.addActionButton(id, text, callback, null, false, color);
+                return;
+            } catch (e) {
+                console.warn('[Kiln] gameui.addActionButton failed', e);
+            }
+        }
+        // 3. Direct DOM fallback: #generalactions or .bga-statusbar__actions
+        const container = document.getElementById('generalactions') || document.querySelector('.bga-statusbar__actions');
+        if (container) {
+            let btn = document.getElementById(id);
+            if (!btn) {
+                btn = document.createElement('button');
+                btn.id = id;
+                container.appendChild(btn);
+            }
+            btn.className = `bgabutton bgabutton_${color} kiln_fallback_btn`;
+            btn.textContent = text;
+            btn.onclick = callback;
+        }
+    }
+
     clearActionButtons() {
         if (this.bga?.statusBar && typeof this.bga.statusBar.removeActionButtons === 'function') {
             this.bga.statusBar.removeActionButtons();
         } else if (this.bga?.statusBar && typeof this.bga.statusBar.clearActionButtons === 'function') {
             this.bga.statusBar.clearActionButtons();
-        } else if (typeof gameui !== 'undefined' && typeof gameui.removeActionButtons === 'function') {
+        }
+        if (typeof gameui !== 'undefined' && typeof gameui.removeActionButtons === 'function') {
             gameui.removeActionButtons();
         }
+        document.querySelectorAll('.kiln_fallback_btn').forEach(btn => btn.remove());
+        this.hideCannotFitBanner();
+    }
+
+    showCannotFitBanner(size, onSkip, onUndo) {
+        this.hideCannotFitBanner();
+        const myId = this.bga?.players?.getCurrentPlayerId?.() || Object.keys(this.gamedatas?.players || {})[0];
+        const card = document.getElementById(`kiln_warehouse_card_${myId}`);
+        if (!card) return;
+
+        const banner = document.createElement('div');
+        banner.id = 'kiln_cannot_fit_banner';
+        banner.className = 'kiln_cannot_fit_banner';
+        banner.innerHTML = `
+            <div class="kiln_cf_msg">
+                ⚠️ ${_('Largest group (%s tiles) does not fit into your warehouse!').replace('%s', size)}
+            </div>
+            <div class="kiln_cf_actions">
+                <button type="button" class="kiln_btn_action kiln_btn_primary" id="kiln_cf_skip">
+                    ${_('Skip Placement')}
+                </button>
+                <button type="button" class="kiln_btn_action kiln_btn_alert" id="kiln_cf_undo">
+                    ${_('Undo Push')}
+                </button>
+            </div>
+        `;
+
+        const body = card.querySelector('.kiln_wh_body');
+        if (body) {
+            card.insertBefore(banner, body);
+        } else {
+            card.prepend(banner);
+        }
+
+        const skipBtn = banner.querySelector('#kiln_cf_skip');
+        if (skipBtn) skipBtn.onclick = onSkip;
+        const undoBtn = banner.querySelector('#kiln_cf_undo');
+        if (undoBtn) undoBtn.onclick = onUndo;
+    }
+
+    hideCannotFitBanner() {
+        const b = document.getElementById('kiln_cannot_fit_banner');
+        if (b) b.remove();
     }
 
     setup(gamedatas) {
@@ -991,9 +1094,23 @@ export class Game {
         });
     }
 
+    /**
+     * Preview shape on the kiln board cleanly without badges or click handlers
+     */
+    highlightShapePreview(shape) {
+        this.clearKilnHighlights();
+        if (!shape || !Array.isArray(shape)) return;
+        shape.forEach(c => {
+            const tile = document.getElementById(`kiln_tile_${c.x}_${c.y}`);
+            if (tile) {
+                tile.classList.add('kiln_shape_highlighted');
+            }
+        });
+    }
+
     clearKilnHighlights() {
         document.querySelectorAll('.kiln_board_tile').forEach(el => {
-            el.classList.remove('kiln_tile_candidate');
+            el.classList.remove('kiln_tile_candidate', 'kiln_shape_highlighted');
             el.removeAttribute('data-group-idx');
             el.onclick = null;
         });
@@ -1113,6 +1230,9 @@ export class Game {
      */
     onUndo() {
         sounds.playReset();
+        this.hideCannotFitBanner();
+        this.clearWarehousePlacement();
+        this.clearKilnHighlights();
         this.clearActionButtons();
         this.bga.statusBar.setTitle(_('Undoing move...'));
         this.bga.actions.performAction('actUndo', {});
