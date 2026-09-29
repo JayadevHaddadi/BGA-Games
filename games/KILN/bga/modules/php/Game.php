@@ -41,9 +41,9 @@ class Game extends \Bga\GameFramework\Table
         if ($targetScore <= 0) return 0;
 
         $maxScore = 0;
-        $scores = $this->getCollectionFromDb("SELECT `player_id`, `player_score` FROM `player`");
-        foreach ($scores as $p) {
-            $score = (int) $p['player_score'];
+        $players = $this->loadPlayersBasicInfos();
+        foreach ($players as $pId => $playerInfo) {
+            $score = (int) $this->playerScore->get((int) $pId);
             if ($score > $maxScore) {
                 $maxScore = $score;
             }
