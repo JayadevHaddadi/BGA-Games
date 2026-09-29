@@ -105,6 +105,10 @@ Every change should be committed and pushed to `main`. The GitHub Actions deploy
   * **White / Secondary (`'secondary'`)**: Optional, non-critical, or side choices (*Standard Preset, Piece Selectors, Mode Toggles*).
   * **Grey**: Disabled actions (`disabled: true`).
 
+### ❌ Mistake 9: Inline Comments in `dbmodel.sql`
+* **What happens**: BGA setup fails with: `Key column '<column>' doesn't exist in table`.
+* **The Rule**: Never put inline `--` or `/* */` comments on column definition lines in `dbmodel.sql`. BGA's Studio preprocessor regex strips the entire line if it contains an inline comment, dropping the column definition completely. Only use comments on their own separate lines.
+
 ---
 
 ## 📱 4. User Experience & Adaptive Design Standards (Official BGA UX Guidelines: https://bga.li/mRdx)

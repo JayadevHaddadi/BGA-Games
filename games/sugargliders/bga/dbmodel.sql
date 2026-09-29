@@ -4,7 +4,7 @@ DROP TABLE IF EXISTS `board_tile`;
 CREATE TABLE IF NOT EXISTS `board_tile` (
     `tile_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
     `tile_value` tinyint(2) NOT NULL,
-    `location` varchar(16) NOT NULL, -- 'board', 'jumping', 'reserve', 'discard'
+    `location` varchar(16) NOT NULL,
     `coord_q` smallint(5) DEFAULT NULL,
     `coord_r` smallint(5) DEFAULT NULL,
     `player_id` int(10) unsigned DEFAULT NULL,
