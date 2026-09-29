@@ -1,0 +1,42 @@
+{
+    "game_name": "nestorgames GP",
+    "publisher": "nestorgames",
+    "publisher_website": "https://nestorgames.com/",
+    "publisher_bgg_id": 9976,
+    "bgg_id": 351146,
+
+    "players": [2, 3, 4, 5, 6, 7, 8],
+    "suggest_player_number": 4,
+    "not_recommend_player_number": null,
+
+    "estimated_duration": 25,
+    "fast_additional_time": 20,
+    "medium_additional_time": 30,
+    "slow_additional_time": 45,
+
+    "tie_breaker_description": "Final finish line crossing order, then least damage taken",
+    "losers_not_ranked": false,
+    "solo_mode_ranked": false,
+
+    "is_coop": 0,
+    "complexity": 2,
+    "luck": 3,
+    "strategy": 3,
+    "diplomacy": 2,
+
+    "player_colors": ["e53935", "1e88e5", "43a047", "fdd835", "8e24aa", "fb8c00", "00acc1", "3949ab"],
+    "favorite_colors": ["e53935", "1e88e5"],
+
+    "custom_buy_button": {
+        "url": "https://nestorgames.com/#gp_detail",
+        "label": "Buy at nestorgames"
+    },
+
+    "language_dependency": false,
+    "favorite_colors_support": false,
+    "disable_player_order_swap_on_rematch": false,
+    "game_interface_width": {
+        "min": 320
+    },
+    "exception_on_warning": true
+}

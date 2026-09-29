@@ -1,0 +1,36 @@
+{
+    "table": {
+        "turns_number": {
+            "id": 10,
+            "name": "Number of turns",
+            "type": "int"
+        },
+        "laps_number": {
+            "id": 11,
+            "name": "Number of laps",
+            "type": "int"
+        }
+    },
+    "player": {
+        "turns_number": {
+            "id": 10,
+            "name": "Number of turns",
+            "type": "int"
+        },
+        "items_used": {
+            "id": 11,
+            "name": "Special items used",
+            "type": "int"
+        },
+        "collisions_count": {
+            "id": 12,
+            "name": "Collisions",
+            "type": "int"
+        },
+        "top_speed": {
+            "id": 13,
+            "name": "Top speed reached",
+            "type": "int"
+        }
+    }
+}

@@ -32,6 +32,8 @@ Every change should be committed and pushed to `main`. The GitHub Actions deploy
 | **Mandala** | `games/mandala/bga-prod/` | `mandala` | `python tools/sync.py mandala` |
 | **Kiln** | `games/KILN/bga/` | `kiln` | `python tools/sync.py kiln` |
 | **Sugar Gliders** | `games/sugargliders/bga/` | `sugargliders` | `python tools/sync.py sugargliders` |
+| **Gardens of Uranus** | `games/gardensofuranus/bga/` | `gardensofuranustest` / `gardensofuranus` | `python tools/sync.py gardensofuranus` |
+| **nestorgames GP** | `games/nestorgamesgp/bga/` | `nestorgamesgptest` / `nestorgamesgp` | `python tools/sync.py nestorgamesgp` |
 
 ---
 

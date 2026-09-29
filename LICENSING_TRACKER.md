@@ -14,6 +14,8 @@ This document tracks publisher/designer permissions, communications, contact inf
 | **Omega** | Néstor Romeral Andrés | nestorgames | 🟢 **Ready for Testing** | Built on BGA (`omegatest`) |
 | **Seven** | Néstor Romeral Andrés | nestorgames | 🟢 **Approved** (SVGs received) | Rule clarification needed |
 | **Lords of Scotland**| Richard Sivél | Z-Man Games / Asmodee | 🟡 **Pending Studio Approval** | Core Engine Ready (`lordsofscotland`) |
+| **Gardens of Uranus** | Néstor Romeral Andrés | nestorgames | 🟢 **Recommended by Nestor** | Workspace Scaffolding Ready |
+| **nestorgames GP** | Néstor Romeral Andrés | nestorgames | 🟢 **Recommended by Nestor** | Workspace Scaffolding Ready |
 | **Taiji** | Néstor Romeral Andrés | nestorgames | ⚪ Inquiry Sent | Backlog |
 | **Amazons** | Walter Zamkauskas | nestorgames (edition) | ⚪ Inquiry Sent | Backlog |
 | **ConHex** | Michail Antonow | nestorgames (edition) | ⚪ Inquiry Sent | Backlog |

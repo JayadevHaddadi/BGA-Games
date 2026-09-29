@@ -1,0 +1,31 @@
+{
+    "table": {
+        "turns_number": {
+            "id": 10,
+            "name": "Number of turns",
+            "type": "int"
+        },
+        "winning_score": {
+            "id": 11,
+            "name": "Winning score",
+            "type": "int"
+        }
+    },
+    "player": {
+        "turns_number": {
+            "id": 10,
+            "name": "Number of turns",
+            "type": "int"
+        },
+        "flowers_planted": {
+            "id": 11,
+            "name": "Flowers planted",
+            "type": "int"
+        },
+        "largest_garden_size": {
+            "id": 12,
+            "name": "Largest garden size",
+            "type": "int"
+        }
+    }
+}

@@ -23,6 +23,8 @@ on:
           - mandala
           - kiln
           - sugargliders
+          - gardensofuranus
+          - nestorgamesgp
 
 jobs:
   deploy:
@@ -112,6 +114,18 @@ jobs:
             if echo "$CHANGED" | grep -qi "games/sugargliders"; then
               echo "Deploying Sugar Gliders..."
               python tools/sync.py sugargliders
+              DEPLOYED=1
+            fi
+
+            if echo "$CHANGED" | grep -qi "games/gardensofuranus"; then
+              echo "Deploying Gardens of Uranus..."
+              python tools/sync.py gardensofuranus
+              DEPLOYED=1
+            fi
+
+            if echo "$CHANGED" | grep -qi "games/nestorgamesgp"; then
+              echo "Deploying nestorgames GP..."
+              python tools/sync.py nestorgamesgp
               DEPLOYED=1
             fi
 
