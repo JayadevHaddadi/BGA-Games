@@ -13,8 +13,8 @@ namespace Bga\Games\sugargliders\States;
 
 use Bga\GameFramework\StateType;
 use Bga\GameFramework\States\GameState;
+use Bga\GameFramework\States\PossibleAction;
 use Bga\GameFramework\UserException;
-use Bga\GameFramework\Attributes\PossibleAction;
 use Bga\Games\sugargliders\Game;
 use Bga\Games\sugargliders\SugarGlidersEngine;
 
