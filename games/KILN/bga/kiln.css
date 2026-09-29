@@ -357,28 +357,52 @@
    3. Right Column: Warehouses (5x5)
    ======================================================== */
 .kiln_warehouse_panel {
-    flex: 1;
-    background: #ffffff;
-    border-radius: 8px;
-    padding: 12px;
-    border: 1px solid var(--kiln-border-color);
-    box-sizing: border-box;
+/* ========================================================
+   3. Center Arena: The Table with Warehouses around the Kiln
+   ======================================================== */
+.kiln_arena_container {
     display: flex;
     flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-grow: 1;
 }
 
-.kiln_price_hint {
-    font-size: 11px;
-    color: #78909c;
-    cursor: help;
-}
-
-.kiln_warehouses_container {
+.kiln_arena_middle {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
     gap: 12px;
-    overflow-y: auto;
-    max-height: 580px;
+}
+
+.kiln_arena_slot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+}
+
+.kiln_slot_top {
+    min-height: 120px;
+    width: 100%;
+}
+
+.kiln_slot_bottom {
+    min-height: 185px;
+    width: 100%;
+}
+
+.kiln_slot_left, .kiln_slot_right {
+    width: 155px;
+    min-height: 380px;
+}
+
+.kiln_slot_left:empty,
+.kiln_slot_right:empty,
+.kiln_slot_top:empty {
+    display: none;
 }
 
 .kiln_warehouse_card {
@@ -387,11 +411,88 @@
     border-radius: 8px;
     padding: 8px;
     box-sizing: border-box;
+    transition: transform 0.2s ease;
 }
 
 .kiln_my_warehouse {
     border: 2px solid #0284c7;
     background: #f0f9ff;
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.15);
+}
+
+.kiln_opponent_card {
+    background: #ffffff;
+    border: 1px solid var(--kiln-border-color);
+    border-radius: 8px;
+    padding: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform-origin: center center;
+}
+
+.kiln_opponent_card .kiln_wh_grid {
+    grid-template-columns: repeat(5, 20px) !important;
+    grid-template-rows: repeat(5, 20px) !important;
+    gap: 2px !important;
+    padding: 3px !important;
+    border-radius: 4px !important;
+}
+
+.kiln_opponent_card .kiln_wh_cell {
+    width: 20px !important;
+    height: 20px !important;
+    border-radius: 3px !important;
+}
+
+.kiln_opponent_card .kiln_wh_title {
+    font-size: 11px !important;
+    margin-bottom: 4px !important;
+    font-weight: 700;
+}
+
+.kiln_opponent_card .kiln_price_table {
+    width: 68px !important;
+    padding: 3px 4px !important;
+    border-radius: 4px !important;
+}
+
+.kiln_opponent_card .kiln_price_table_header {
+    font-size: 8px !important;
+    margin-bottom: 2px !important;
+    padding-bottom: 1px !important;
+}
+
+.kiln_opponent_card .kiln_price_row {
+    font-size: 10px !important;
+    padding: 1px 3px !important;
+    margin-bottom: 2px !important;
+}
+
+.kiln_opponent_card .kiln_pr_num {
+    font-size: 9px !important;
+}
+
+.kiln_opponent_card .kiln_pr_pts {
+    font-size: 11px !important;
+}
+
+.kiln_rot_0 {
+    transform: rotate(0deg);
+}
+
+.kiln_rot_90 {
+    transform: rotate(90deg);
+}
+
+.kiln_rot_180 {
+    transform: rotate(180deg);
+}
+
+.kiln_rot_270 {
+    transform: rotate(270deg);
 }
 
 .kiln_wh_title {

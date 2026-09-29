@@ -26,7 +26,7 @@ class PlayerTurnPlaceShape extends GameState
     {
         $activePlayerId = (int) $this->game->getActivePlayerId();
         $shape = $this->game->globals->get('selected_group', []);
-        $norm = Game::normalizeShape($shape);
+        $norm = $this->game->normalizeShapeForPlayer($activePlayerId, $shape);
         $validAnchors = $this->game->getValidPlacementAnchors($activePlayerId, $shape);
 
         return [

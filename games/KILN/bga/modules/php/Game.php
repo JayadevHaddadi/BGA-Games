@@ -133,6 +133,24 @@ class Game extends \Bga\GameFramework\Table
         $this->reloadPlayersBasicInfos();
         $this->globals->set('player_colors', $playerColorMap);
 
+        // Assign fixed relative seats around table: 0=South, 1=East, 2=North, 3=West
+        $playerSeats = [];
+        $pCount = count($playerIds);
+        if ($pCount === 2) {
+            $playerSeats[$playerIds[0]] = 0; // South
+            $playerSeats[$playerIds[1]] = 2; // North (opposite across table)
+        } elseif ($pCount === 3) {
+            $playerSeats[$playerIds[0]] = 0; // South
+            $playerSeats[$playerIds[1]] = 1; // East
+            $playerSeats[$playerIds[2]] = 3; // West
+        } else {
+            $playerSeats[$playerIds[0]] = 0; // South (Red)
+            $playerSeats[$playerIds[1]] = 1; // East (Green)
+            $playerSeats[$playerIds[2]] = 2; // North (Blue)
+            $playerSeats[$playerIds[3]] = 3; // West (Yellow)
+        }
+        $this->globals->set('player_seats', $playerSeats);
+
         // Target Score option (100): 14, 17, 20, 25
         $targetScore = isset($options[100]) ? (int) $options[100] : (int) $this->getGameStateValue('100', 17);
         if (!in_array($targetScore, [14, 17, 20, 25], true)) {
@@ -244,6 +262,7 @@ class Game extends \Bga\GameFramework\Table
         $result['outer_tile'] = $this->getOuterTile();
         $result['warehouses'] = $this->getAllWarehouses();
         $result['player_colors'] = $this->getPlayerColorMap();
+        $result['player_seats'] = $this->getPlayerSeats();
         $result['turn_count'] = (int) $this->globals->get('turn_count', 1);
 
         // Player scores
@@ -548,6 +567,93 @@ class Game extends \Bga\GameFramework\Table
     /**
      * Normalize shape coordinates relative to top-left (min_x, min_y)
      */
+    public function getPlayerSeats(): array
+    {
+        $seats = $this->globals->get('player_seats', null);
+        if (!empty($seats)) {
+            return $seats;
+        }
+
+        // Defensive fallback for legacy tables
+        $playerIds = array_keys($this->loadPlayersBasicInfos());
+        $pCount = count($playerIds);
+        $fallback = [];
+        if ($pCount === 2) {
+            $fallback[$playerIds[0]] = 0;
+            $fallback[$playerIds[1]] = 2;
+        } elseif ($pCount === 3) {
+            $fallback[$playerIds[0]] = 0;
+            $fallback[$playerIds[1]] = 1;
+            $fallback[$playerIds[2]] = 3;
+        } else {
+            foreach ($playerIds as $i => $pId) {
+                $fallback[$pId] = $i % 4;
+            }
+        }
+        return $fallback;
+    }
+
+    public function getPlayerSeat(int $playerId): int
+    {
+        $seats = $this->getPlayerSeats();
+        return (int) ($seats[$playerId] ?? 0);
+    }
+
+    /**
+     * Map canonical board coordinates (x, y) to player's oriented screen coordinates (u, v)
+     * Seat 0 (South): u = x, v = y
+     * Seat 1 (East): u = y, v = 5 - x
+     * Seat 2 (North): u = 5 - x, v = 5 - y
+     * Seat 3 (West): u = 5 - y, v = x
+     */
+    public function canonicalToOriented(int $seat, int $x, int $y): array
+    {
+        return match ($seat % 4) {
+            1 => ['u' => $y, 'v' => 5 - $x],
+            2 => ['u' => 5 - $x, 'v' => 5 - $y],
+            3 => ['u' => 5 - $y, 'v' => $x],
+            default => ['u' => $x, 'v' => $y],
+        };
+    }
+
+    public function orientedToCanonical(int $seat, int $u, int $v): array
+    {
+        return match ($seat % 4) {
+            1 => ['x' => 5 - $v, 'y' => $u],
+            2 => ['x' => 5 - $u, 'y' => 5 - $v],
+            3 => ['x' => $v, 'y' => 5 - $u],
+            default => ['x' => $u, 'y' => $v],
+        };
+    }
+
+    /**
+     * Normalize shape coordinates relative to player's seat orientation
+     */
+    public function normalizeShapeForPlayer(int $playerId, array $shape): array
+    {
+        if (empty($shape)) return [];
+        $seat = $this->getPlayerSeat($playerId);
+
+        $oriented = [];
+        foreach ($shape as $c) {
+            $oriented[] = $this->canonicalToOriented($seat, (int)$c['x'], (int)$c['y']);
+        }
+
+        $minU = min(array_column($oriented, 'u'));
+        $minV = min(array_column($oriented, 'v'));
+
+        $norm = [];
+        foreach ($oriented as $o) {
+            $norm[] = [
+                'dx' => $o['u'] - $minU,
+                'dy' => $o['v'] - $minV,
+            ];
+        }
+
+        usort($norm, fn($a, $b) => ($a['dy'] === $b['dy']) ? ($a['dx'] <=> $b['dx']) : ($a['dy'] <=> $b['dy']));
+        return $norm;
+    }
+
     public static function normalizeShape(array $shape): array
     {
         if (empty($shape)) return [];
@@ -569,7 +675,7 @@ class Game extends \Bga\GameFramework\Table
      */
     public function getValidPlacementAnchors(int $playerId, array $shape): array
     {
-        $norm = self::normalizeShape($shape);
+        $norm = $this->normalizeShapeForPlayer($playerId, $shape);
         if (empty($norm)) return [];
 
         $warehouse = $this->getPlayerWarehouse($playerId);
@@ -618,7 +724,7 @@ class Game extends \Bga\GameFramework\Table
             throw new UserException(clienttranslate("Invalid shape placement position in warehouse."));
         }
 
-        $norm = self::normalizeShape($shape);
+        $norm = $this->normalizeShapeForPlayer($playerId, $shape);
         $placedCells = [];
         foreach ($norm as $n) {
             $wx = $ox + $n['dx'];

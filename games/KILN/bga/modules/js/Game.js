@@ -584,6 +584,10 @@ export class Game {
         const area = this.bga.gameArea.getElement();
         area.innerHTML = '';
 
+        const myId = this.bga?.players?.getCurrentPlayerId?.() || Object.keys(this.gamedatas.players)[0];
+        const playerSeats = this.gamedatas.player_seats || {};
+        this.mySeat = playerSeats[myId] !== undefined ? playerSeats[myId] : 0;
+
         const wrapper = document.createElement('div');
         wrapper.id = 'kiln_scaler_container';
         wrapper.className = 'kiln_scaler_container';
@@ -603,40 +607,47 @@ export class Game {
                     </div>
                 </div>
 
-                <!-- Center: The Kiln (6x6) with 24 Arrow Slots -->
-                <div class="kiln_center_panel">
-                    <div class="kiln_panel_header">
-                        <span>🔥 ${_('The Kiln (6×6)')}</span>
-                        <span id="kiln_outer_badge" class="kiln_outer_badge">
-                            ${_('Outer Tile')}: <span id="kiln_outer_color_label" class="kiln_color_tag kiln_tag_${this.outerTile.color}">${this.outerTile.color.toUpperCase()}</span>
-                        </span>
-                    </div>
-                    <div id="kiln_oven_wrapper" class="kiln_oven_wrapper">
-                        <!-- North Arrows (0..5) -->
-                        <div id="kiln_arrows_north" class="kiln_arrow_row kiln_arrows_n"></div>
+                <!-- Center: Arena Table Layout (Oriented per Nestor Romeral Andrés) -->
+                <div class="kiln_arena_container" id="kiln_arena_container">
+                    <!-- Top Slot: Opponent across the table (180°) -->
+                    <div class="kiln_arena_slot kiln_slot_top" id="kiln_slot_top"></div>
 
-                        <div class="kiln_oven_middle">
-                            <!-- West Arrows (18..23) -->
-                            <div id="kiln_arrows_west" class="kiln_arrow_col kiln_arrows_w"></div>
+                    <!-- Middle: Left Player (90°), The Kiln (6x6), Right Player (270°) -->
+                    <div class="kiln_arena_middle">
+                        <div class="kiln_arena_slot kiln_slot_left" id="kiln_slot_left"></div>
 
-                            <!-- 6x6 Kiln Board -->
-                            <div id="kiln_board_grid" class="kiln_board_grid"></div>
+                        <div class="kiln_center_panel" id="kiln_center_panel">
+                            <div class="kiln_panel_header">
+                                <span>🔥 ${_('The Kiln (6×6)')}</span>
+                                <span id="kiln_outer_badge" class="kiln_outer_badge">
+                                    ${_('Outer Tile')}: <span id="kiln_outer_color_label" class="kiln_color_tag kiln_tag_${this.outerTile.color}">${this.outerTile.color.toUpperCase()}</span>
+                                </span>
+                            </div>
+                            <div id="kiln_oven_wrapper" class="kiln_oven_wrapper" style="transform: rotate(${this.mySeat * 90}deg); transform-origin: center center;">
+                                <!-- North Arrows (0..5) -->
+                                <div id="kiln_arrows_north" class="kiln_arrow_row kiln_arrows_n"></div>
 
-                            <!-- East Arrows (6..11) -->
-                            <div id="kiln_arrows_east" class="kiln_arrow_col kiln_arrows_e"></div>
+                                <div class="kiln_oven_middle">
+                                    <!-- West Arrows (18..23) -->
+                                    <div id="kiln_arrows_west" class="kiln_arrow_col kiln_arrows_w"></div>
+
+                                    <!-- 6x6 Kiln Board -->
+                                    <div id="kiln_board_grid" class="kiln_board_grid"></div>
+
+                                    <!-- East Arrows (6..11) -->
+                                    <div id="kiln_arrows_east" class="kiln_arrow_col kiln_arrows_e"></div>
+                                </div>
+
+                                <!-- South Arrows (12..17) -->
+                                <div id="kiln_arrows_south" class="kiln_arrow_row kiln_arrows_s"></div>
+                            </div>
                         </div>
 
-                        <!-- South Arrows (12..17) -->
-                        <div id="kiln_arrows_south" class="kiln_arrow_row kiln_arrows_s"></div>
+                        <div class="kiln_arena_slot kiln_slot_right" id="kiln_slot_right"></div>
                     </div>
-                </div>
 
-                <!-- Right: Warehouses (5x5) -->
-                <div class="kiln_warehouse_panel">
-                    <div class="kiln_panel_header">
-                        <span>📦 ${_('Warehouses')}</span>
-                    </div>
-                    <div id="kiln_warehouses_container" class="kiln_warehouses_container"></div>
+                    <!-- Bottom Slot: Current Player (You, 0°) -->
+                    <div class="kiln_arena_slot kiln_slot_bottom" id="kiln_slot_bottom"></div>
                 </div>
             </div>
         `;
@@ -759,26 +770,50 @@ export class Game {
      * Render Warehouses with side pricing chart for all players
      */
     renderWarehouses() {
-        const container = document.getElementById('kiln_warehouses_container');
-        if (!container) return;
-        container.innerHTML = '';
-
         const myId = this.bga?.players?.getCurrentPlayerId?.() || Object.keys(this.gamedatas.players)[0];
+        const playerSeats = this.gamedatas.player_seats || {};
+        const mySeat = playerSeats[myId] !== undefined ? playerSeats[myId] : 0;
+        this.mySeat = mySeat;
 
-        // Put current player's warehouse first
-        const sortedPlayerIds = Object.keys(this.gamedatas.players).sort((a, b) => {
-            if (String(a) === String(myId)) return -1;
-            if (String(b) === String(myId)) return 1;
-            return a - b;
+        // Clear all arena slots
+        ['kiln_slot_top', 'kiln_slot_bottom', 'kiln_slot_left', 'kiln_slot_right'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = '';
         });
 
-        sortedPlayerIds.forEach(pId => {
+        // Rotate kiln oven according to viewer seat
+        const oven = document.getElementById('kiln_oven_wrapper');
+        if (oven) {
+            oven.style.transform = `rotate(${mySeat * 90}deg)`;
+            oven.style.transformOrigin = 'center center';
+        }
+
+        Object.keys(this.gamedatas.players).forEach(pId => {
             const pInfo = this.gamedatas.players[pId];
             const pColor = this.playerColors[pId] || 'red';
             const isMe = String(pId) === String(myId);
+            const pSeat = playerSeats[pId] !== undefined ? playerSeats[pId] : 0;
+            const delta = (pSeat - mySeat + 4) % 4;
+
+            let slotId = 'kiln_slot_bottom';
+            let rotClass = 'kiln_rot_0';
+
+            if (delta === 1) {
+                slotId = 'kiln_slot_right';
+                rotClass = 'kiln_rot_270';
+            } else if (delta === 2) {
+                slotId = 'kiln_slot_top';
+                rotClass = 'kiln_rot_180';
+            } else if (delta === 3) {
+                slotId = 'kiln_slot_left';
+                rotClass = 'kiln_rot_90';
+            }
+
+            const targetSlot = document.getElementById(slotId);
+            if (!targetSlot) return;
 
             const card = document.createElement('div');
-            card.className = `kiln_warehouse_card ${isMe ? 'kiln_my_warehouse' : ''}`;
+            card.className = `kiln_warehouse_card ${isMe ? 'kiln_my_warehouse' : 'kiln_opponent_card'} ${rotClass}`;
             card.id = `kiln_warehouse_card_${pId}`;
 
             card.innerHTML = `
@@ -803,7 +838,7 @@ export class Game {
                 </div>
             `;
 
-            container.appendChild(card);
+            targetSlot.appendChild(card);
 
             const grid = card.querySelector(`#kiln_wh_grid_${pId}`);
             const whData = this.warehouses[pId] || [];
@@ -909,6 +944,7 @@ export class Game {
                     if (badge) {
                         badge.textContent = `${gIdx + 1}`;
                         badge.style.display = 'block';
+                        badge.style.transform = `rotate(${-this.mySeat * 90}deg)`;
                     }
                 }
             });
@@ -1136,8 +1172,9 @@ export class Game {
         const boardEl = document.getElementById('kiln_main_layout');
         if (!scalerWrapper || !boardEl) return;
 
-        const baseWidth = 1060;
-        const baseHeight = 680;
+        const isMultiplayer = Object.keys(this.gamedatas.players || {}).length > 2;
+        const baseWidth = isMultiplayer ? 980 : 820;
+        const baseHeight = 740;
 
         const updateScale = () => {
             const availableWidth = scalerWrapper.clientWidth || window.innerWidth;
