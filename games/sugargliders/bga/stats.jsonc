@@ -1,0 +1,46 @@
+{
+    "table": {
+        "turns_number": {
+            "id": 10,
+            "name": "Number of turns",
+            "type": "int"
+        },
+        "end_reason_consecutive_torpor": {
+            "id": 11,
+            "name": "Ended by consecutive torpor",
+            "type": "int"
+        },
+        "end_reason_tree_empty": {
+            "id": 12,
+            "name": "Ended by tree empty",
+            "type": "int"
+        }
+    },
+    "player": {
+        "turns_number": {
+            "id": 10,
+            "name": "Number of turns",
+            "type": "int"
+        },
+        "tiles_collected": {
+            "id": 11,
+            "name": "Tiles collected",
+            "type": "int"
+        },
+        "points_scored": {
+            "id": 12,
+            "name": "Total fruit points",
+            "type": "int"
+        },
+        "torpor_actions": {
+            "id": 13,
+            "name": "Torpor turns",
+            "type": "int"
+        },
+        "reserve_jumps": {
+            "id": 14,
+            "name": "Reserve jumps (discards)",
+            "type": "int"
+        }
+    }
+}

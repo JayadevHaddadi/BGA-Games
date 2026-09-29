@@ -31,6 +31,7 @@ Every change should be committed and pushed to `main`. The GitHub Actions deploy
 | **Push Fight** | `games/pushfight/bga/` | `pushfighttest` / `pushfight` | `python tools/sync.py pushfighttest` |
 | **Mandala** | `games/mandala/bga-prod/` | `mandala` | `python tools/sync.py mandala` |
 | **Kiln** | `games/KILN/bga/` | `kiln` | `python tools/sync.py kiln` |
+| **Sugar Gliders** | `games/sugargliders/bga/` | `sugargliders` | `python tools/sync.py sugargliders` |
 
 ---
 

@@ -1,0 +1,33 @@
+{
+    "game_name": "Sugar Gliders",
+    "publisher": "nestorgames",
+    "publisher_website": "https://nestorgames.com/",
+    "publisher_bgg_id": 9976,
+    "bgg_id": 112192,
+
+    "players": [2, 3, 4],
+    "suggest_player_number": 2,
+    "not_recommend_player_number": null,
+
+    "estimated_duration": 20,
+    "fast_additional_time": 20,
+    "medium_additional_time": 30,
+    "slow_additional_time": 45,
+
+    "tie_breaker_description": "In case of a tie, players share victory",
+    "losers_not_ranked": false,
+    "solo_mode_ranked": false,
+
+    "is_coop": 0,
+
+    "player_colors": ["ffffff", "222222", "d32f2f", "1976d2"],
+    "favorite_colors": ["ffffff", "222222", "d32f2f", "1976d2"],
+
+    "language_dependency": false,
+    "favorite_colors_support": true,
+    "disable_player_order_swap_on_rematch": false,
+    "game_interface_width": {
+        "min": 320
+    },
+    "exception_on_warning": true
+}

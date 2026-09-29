@@ -1,0 +1,378 @@
+/**
+ *------
+ * BGA framework: Gregory Isabelli & Emmanuel Colin & BoardGameArena
+ * sugargliders implementation : © Jayadev Haddadi
+ *
+ * sugargliders.css - Handcrafted Adaptive Styles for Sugar Gliders
+ *------
+ */
+
+:root {
+    --sg-board-bg: #2e5d32;
+    --sg-hex-empty: rgba(255, 255, 255, 0.08);
+    --sg-hex-border: rgba(255, 255, 255, 0.25);
+    --sg-center-bg: #8d6e63;
+    --sg-center-border: #d7ccc8;
+    --sg-highlight: #ffeb3b;
+    --sg-highlight-glow: rgba(255, 235, 59, 0.75);
+    --sg-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+#sg_container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    margin: 8px auto 20px auto;
+    font-family: var(--sg-font);
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* Header & Status Badges */
+#sg_header_info {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.sg_badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    background: #e8f5e9;
+    color: #1b5e20;
+    border: 1px solid #81c784;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.sg_torpor_badge {
+    background: #ede7f6;
+    color: #4a148c;
+    border-color: #b39ddb;
+}
+
+.sg_tiles_badge {
+    background: #fff8e1;
+    color: #e65100;
+    border-color: #ffe082;
+}
+
+.sg_ctrl_btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    background: #ffffff;
+    color: #333333;
+    border: 1px solid #cccccc;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    cursor: pointer;
+    outline: none;
+    transition: all 0.15s ease;
+}
+
+.sg_ctrl_btn:hover:not(:disabled) {
+    background: #f5f5f5;
+    border-color: #999999;
+    transform: translateY(-1px);
+}
+
+.sg_ctrl_btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* Reserve Selector Tray (When choosing a reserve tile to jump) */
+#sg_reserve_tray {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: #ffffff;
+    padding: 10px 18px;
+    border-radius: 16px;
+    border: 2px solid #81c784;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    margin-bottom: 12px;
+}
+
+.sg_tray_label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #2e7d32;
+}
+
+.sg_tray_tiles {
+    display: flex;
+    gap: 8px;
+}
+
+.sg_tray_tile_btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    font-weight: 800;
+    font-size: 16px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.15s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.sg_tray_tile_btn.val-1,
+.sg_tray_tile_btn.val-2,
+.sg_tray_tile_btn.val-3,
+.sg_tray_tile_btn.val-4 {
+    background: #e8f5e9;
+    color: #1b5e20;
+    border-color: #4caf50;
+}
+
+.sg_tray_tile_btn.val-5 {
+    background: #7b1fa2;
+    color: #ffffff;
+    border-color: #ffd54f;
+}
+
+.sg_tray_tile_btn:hover {
+    transform: scale(1.12);
+}
+
+.sg_tray_tile_btn.selected {
+    border-color: #ffeb3b !important;
+    box-shadow: 0 0 10px #ffeb3b, 0 3px 8px rgba(0, 0, 0, 0.3) !important;
+    transform: scale(1.16);
+}
+
+/* Scaler & Responsive Board */
+.game-board-scaler {
+    position: relative;
+    width: 640px;
+    height: 640px;
+    overflow: hidden;
+    margin: 0 auto;
+    border-radius: 28px;
+    box-shadow: 0 14px 38px rgba(0, 0, 0, 0.22), 0 3px 10px rgba(0, 0, 0, 0.12);
+    background: radial-gradient(circle at 50% 50%, #3e7b43 0%, #255029 65%, #18371b 100%);
+    transition: transform 0.1s ease-out;
+}
+
+#sg_board_wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 640px;
+    height: 640px;
+}
+
+#sg_board_svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* Hexagons in SVG */
+.sg-hex {
+    fill: var(--sg-hex-empty);
+    stroke: var(--sg-hex-border);
+    stroke-width: 1.5;
+    transition: fill 0.2s ease, stroke 0.2s ease;
+}
+
+.sg-hex.center-space {
+    fill: rgba(141, 110, 99, 0.28);
+    stroke: #d7ccc8;
+    stroke-width: 2.2;
+    stroke-dasharray: 4, 3;
+}
+
+.sg-hex-cell {
+    cursor: default;
+}
+
+.sg-hex-cell.selectable {
+    cursor: pointer;
+}
+
+.sg-hex-cell.selectable .sg-hex {
+    fill: rgba(255, 235, 59, 0.22);
+    stroke: #ffeb3b;
+    stroke-width: 2.5;
+    filter: drop-shadow(0 0 6px rgba(255, 235, 59, 0.8));
+    animation: sg_pulse_hex 1.3s infinite alternate;
+}
+
+@keyframes sg_pulse_hex {
+    0% {
+        stroke-width: 2.2;
+        fill: rgba(255, 235, 59, 0.18);
+    }
+    100% {
+        stroke-width: 3.4;
+        fill: rgba(255, 235, 59, 0.38);
+    }
+}
+
+/* Leap target highlight */
+.sg-landing-marker {
+    pointer-events: none;
+    animation: sg_landing_ring 1.3s infinite ease-out;
+}
+
+@keyframes sg_landing_ring {
+    0% {
+        r: 10;
+        opacity: 0.9;
+    }
+    100% {
+        r: 24;
+        opacity: 0;
+    }
+}
+
+/* Food Tile SVG Styling (Placeholders ready to swap with image tags) */
+.sg-food-tile {
+    pointer-events: none;
+    transition: transform 0.25s ease;
+}
+
+.sg-tile-bg-green {
+    fill: #81c784;
+    stroke: #2e7d32;
+    stroke-width: 2;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.sg-tile-bg-purple {
+    fill: #8e24aa;
+    stroke: #ffd54f;
+    stroke-width: 2.5;
+    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.45));
+}
+
+.sg-tile-pip {
+    fill: #ffffff;
+    stroke: #333333;
+    stroke-width: 0.8;
+}
+
+.sg-tile-text {
+    font-weight: 900;
+    font-size: 15px;
+    fill: #ffffff;
+    text-anchor: middle;
+    dominant-baseline: central;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+}
+
+/* Sugar Glider Pawns */
+.sg-glider-piece {
+    pointer-events: none;
+    transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+    filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.5));
+}
+
+.sg-glider-body.color-white {
+    fill: #ffffff;
+    stroke: #b0bec5;
+    stroke-width: 2;
+}
+
+.sg-glider-body.color-black {
+    fill: #263238;
+    stroke: #78909c;
+    stroke-width: 2;
+}
+
+.sg-glider-body.color-red {
+    fill: #e53935;
+    stroke: #ffcdd2;
+    stroke-width: 2;
+}
+
+.sg-glider-body.color-blue {
+    fill: #1e88e5;
+    stroke: #bbdefb;
+    stroke-width: 2;
+}
+
+.sg-torpor-zzz {
+    font-size: 16px;
+    animation: sg_zzz_float 1.8s infinite ease-in-out;
+}
+
+@keyframes sg_zzz_float {
+    0% { transform: translateY(0) scale(0.9); opacity: 0.4; }
+    50% { transform: translateY(-5px) scale(1.1); opacity: 1; }
+    100% { transform: translateY(0) scale(0.9); opacity: 0.4; }
+}
+
+/* Player Panels Custom Reserve Counters */
+.sg_panel_inventory {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 6px;
+    margin-top: 6px;
+    background: rgba(0, 0, 0, 0.04);
+    border-radius: 8px;
+    font-size: 12px;
+}
+
+.sg_panel_jumping {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+}
+
+.sg_panel_reserves {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+}
+
+.sg_mini_fruit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 4px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 800;
+    color: #ffffff;
+    background: #4caf50;
+    border: 1px solid #2e7d32;
+}
+
+.sg_mini_fruit.val-5 {
+    background: #8e24aa;
+    border-color: #ffd54f;
+}
+
+#sg_attribution {
+    margin-top: 14px;
+    font-size: 12px;
+    color: #666666;
+    text-align: center;
+}

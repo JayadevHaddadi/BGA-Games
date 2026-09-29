@@ -1,0 +1,12 @@
+{
+    "100": {
+        "name": "Game Mode",
+        "values": {
+            "1": {
+                "name": "Standard (Full Tree)",
+                "description": "Standard board (61 spaces, 60 food tiles, 2-4 players)."
+            }
+        },
+        "default": 1
+    }
+}

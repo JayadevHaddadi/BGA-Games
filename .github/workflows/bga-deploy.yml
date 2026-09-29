@@ -22,6 +22,7 @@ on:
           - pushfight
           - mandala
           - kiln
+          - sugargliders
 
 jobs:
   deploy:
@@ -105,6 +106,12 @@ jobs:
             if echo "$CHANGED" | grep -qi "games/kiln"; then
               echo "Deploying Kiln..."
               python tools/sync.py kiln
+              DEPLOYED=1
+            fi
+
+            if echo "$CHANGED" | grep -qi "games/sugargliders"; then
+              echo "Deploying Sugar Gliders..."
+              python tools/sync.py sugargliders
               DEPLOYED=1
             fi
 
