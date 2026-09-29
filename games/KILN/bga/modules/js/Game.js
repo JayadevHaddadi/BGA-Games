@@ -634,17 +634,18 @@ export class Game {
 
         wrapper.innerHTML = `
             <div id="kiln_main_layout" class="kiln_main_layout">
-                <!-- Left: Score Track (0 to 29) -->
+                <!-- Left: Score Track (Cut after goal score) -->
                 <div class="kiln_track_panel">
                     <div class="kiln_panel_header">
                         <span>🏆 ${_('Score Track')}</span>
-                        <span class="kiln_goal_badge">${_('Goal')}: <strong>${this.targetScore}</strong></span>
                     </div>
                     <div id="kiln_score_track" class="kiln_score_track"></div>
-                    <div class="kiln_track_legend" title="${_('Spaces 5, 8, 14, 17, 19, 23, 26 award an extra turn in the Heating up the Kiln variant')}">
-                        <span class="kiln_legend_stripe"></span>
-                        <span>${_('Striped = Bonus Space')}</span>
-                    </div>
+                    ${Number(this.variantBonusSpaces) === 1 ? `
+                        <div class="kiln_track_legend" title="${_('Spaces 5, 8, 14, 17, 19, 23, 26 award an extra turn in the Heating up the Kiln variant')}">
+                            <span class="kiln_legend_stripe"></span>
+                            <span>${_('Striped = Bonus Space')}</span>
+                        </div>
+                    ` : ''}
                 </div>
 
                 <!-- Center: Arena Table Layout (Oriented per Nestor Romeral Andrés) -->
@@ -704,9 +705,10 @@ export class Game {
         track.innerHTML = '';
 
         const bonusSpaces = [5, 8, 14, 17, 19, 23, 26];
+        const isBonusActive = Number(this.variantBonusSpaces) === 1;
 
-        for (let i = 0; i <= 29; i++) {
-            const isBonus = bonusSpaces.includes(i);
+        for (let i = 0; i <= this.targetScore; i++) {
+            const isBonus = isBonusActive && bonusSpaces.includes(i);
             const isGoal = i === this.targetScore;
 
             const cell = document.createElement('div');
@@ -718,13 +720,13 @@ export class Game {
             if (i === 0) tooltip = _('Starting Space (0 pts)');
             if (isGoal) tooltip += ` - ${_('Target Goal (%s pts) - First player here WINS!')}`.replace('%s', this.targetScore);
             if (isBonus) {
-                tooltip += ` - ${_('Grey Striped Bonus Space: Landing here awards an EXTRA TURN (if "Heating up the Kiln" variant is active). Nestor selected 5, 8, 14, 17, 19, 23, 26 because they are neither triangular numbers nor the sum of two triangular numbers.')}`;
+                tooltip += ` - ${_('Grey Striped Bonus Space: Landing here awards an EXTRA TURN (Heating up the Kiln variant).')}`;
             }
             cell.setAttribute('title', tooltip);
 
             let label = `${i}`;
             if (i === 0) label = 'START';
-            if (isGoal) label += ' 🎯';
+            if (isGoal) label = `${i} 🎯`;
 
             cell.innerHTML = `
                 <span class="kiln_track_num">${label}</span>
@@ -1189,7 +1191,7 @@ export class Game {
             }
 
             // Update score track token
-            const spaceNum = Math.min(29, Math.max(0, score));
+            const spaceNum = Math.min(this.targetScore, Math.max(0, score));
             const holder = document.getElementById(`kiln_tokens_${spaceNum}`);
             const pColor = this.playerColors[pId] || 'red';
 
