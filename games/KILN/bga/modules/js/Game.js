@@ -362,6 +362,9 @@ class StatePlayerTurnSell {
         this.completedRows = args.completed_rows || [];
         this.completedCols = args.completed_cols || [];
         this.game.isSellStateActive = isCurrentPlayerActive;
+        document.querySelectorAll('.kiln_price_row').forEach(r => {
+            r.style.cursor = isCurrentPlayerActive ? 'pointer' : 'default';
+        });
 
         if (isCurrentPlayerActive) {
             // Default selection: whichever has more points (rows by default, or cols if more cols)
@@ -531,6 +534,9 @@ class StatePlayerTurnSell {
 
     onLeavingState(args, isCurrentPlayerActive) {
         this.game.isSellStateActive = false;
+        document.querySelectorAll('.kiln_price_row').forEach(r => {
+            r.style.cursor = 'default';
+        });
         this.game.clearSellHighlights();
         this.game.clearActionButtons();
     }
@@ -651,12 +657,6 @@ export class Game {
                         <div class="kiln_arena_slot kiln_slot_left" id="kiln_slot_left"></div>
 
                         <div class="kiln_center_panel" id="kiln_center_panel">
-                            <div class="kiln_panel_header">
-                                <span>🔥 ${_('The Kiln (6×6)')}</span>
-                                <span id="kiln_outer_badge" class="kiln_outer_badge">
-                                    ${_('Outer Tile')}: <span id="kiln_outer_color_label" class="kiln_color_tag kiln_tag_${this.outerTile.color}">${this.outerTile.color.toUpperCase()}</span>
-                                </span>
-                            </div>
                             <div id="kiln_oven_wrapper" class="kiln_oven_wrapper" style="transform: rotate(${this.mySeat * 90}deg); transform-origin: center center;">
                                 <!-- North Arrows (0..5) -->
                                 <div id="kiln_arrows_north" class="kiln_arrow_row kiln_arrows_n"></div>
@@ -833,22 +833,37 @@ export class Game {
             let rotClass = 'kiln_rot_0';
 
             if (delta === 1) {
-                slotId = 'kiln_slot_right';
-                rotClass = 'kiln_rot_270';
+                slotId = 'kiln_slot_left';
+                rotClass = 'kiln_rot_90';
             } else if (delta === 2) {
                 slotId = 'kiln_slot_top';
                 rotClass = 'kiln_rot_180';
             } else if (delta === 3) {
-                slotId = 'kiln_slot_left';
-                rotClass = 'kiln_rot_90';
+                slotId = 'kiln_slot_right';
+                rotClass = 'kiln_rot_270';
             }
 
             const targetSlot = document.getElementById(slotId);
             if (!targetSlot) return;
 
             const card = document.createElement('div');
-            card.className = `kiln_warehouse_card ${isMe ? 'kiln_my_warehouse' : 'kiln_opponent_card'} ${rotClass}`;
+            card.className = `kiln_warehouse_card ${isMe ? 'kiln_my_warehouse' : 'kiln_opponent_card'}`;
             card.id = `kiln_warehouse_card_${pId}`;
+
+            const priceTableHtml = isMe ? `
+                <!-- Side Selling Table (Rule 2) -->
+                <div class="kiln_price_table" id="kiln_price_table_${pId}" title="${_('Selling Price Table: completed rows or columns sell for these points')}">
+                    <div class="kiln_price_table_header">
+                        <span class="kiln_th_lines">📏 ${_('Lines')}</span>
+                        <span class="kiln_th_pts">⭐ ${_('Pts')}</span>
+                    </div>
+                    <div class="kiln_price_row" data-lines="1"><span class="kiln_pr_num">1</span><span class="kiln_pr_pts">1</span></div>
+                    <div class="kiln_price_row" data-lines="2"><span class="kiln_pr_num">2</span><span class="kiln_pr_pts">3</span></div>
+                    <div class="kiln_price_row" data-lines="3"><span class="kiln_pr_num">3</span><span class="kiln_pr_pts">6</span></div>
+                    <div class="kiln_price_row" data-lines="4"><span class="kiln_pr_num">4</span><span class="kiln_pr_pts">10</span></div>
+                    <div class="kiln_price_row" data-lines="5"><span class="kiln_pr_num">5</span><span class="kiln_pr_pts">15</span></div>
+                </div>
+            ` : '';
 
             card.innerHTML = `
                 <div class="kiln_wh_title">
@@ -856,19 +871,8 @@ export class Game {
                     <strong>${pInfo.name}</strong> ${isMe ? `(${_('You')})` : ''}
                 </div>
                 <div class="kiln_wh_body">
-                    <div class="kiln_wh_grid" id="kiln_wh_grid_${pId}"></div>
-                    <!-- Side Selling Table (Rule 2) -->
-                    <div class="kiln_price_table" id="kiln_price_table_${pId}" title="${_('Selling Price Table: completed rows or columns sell for these points')}">
-                        <div class="kiln_price_table_header">
-                            <span class="kiln_th_lines">📏 ${_('Lines')}</span>
-                            <span class="kiln_th_pts">⭐ ${_('Pts')}</span>
-                        </div>
-                        <div class="kiln_price_row" data-lines="1"><span class="kiln_pr_num">1</span><span class="kiln_pr_pts">1</span></div>
-                        <div class="kiln_price_row" data-lines="2"><span class="kiln_pr_num">2</span><span class="kiln_pr_pts">3</span></div>
-                        <div class="kiln_price_row" data-lines="3"><span class="kiln_pr_num">3</span><span class="kiln_pr_pts">6</span></div>
-                        <div class="kiln_price_row" data-lines="4"><span class="kiln_pr_num">4</span><span class="kiln_pr_pts">10</span></div>
-                        <div class="kiln_price_row kiln_price_max" data-lines="5"><span class="kiln_pr_num">5</span><span class="kiln_pr_pts">15</span></div>
-                    </div>
+                    <div class="kiln_wh_grid ${rotClass}" id="kiln_wh_grid_${pId}"></div>
+                    ${priceTableHtml}
                 </div>
             `;
 
@@ -899,7 +903,7 @@ export class Game {
 
             if (isMe) {
                 card.querySelectorAll('.kiln_price_row').forEach(r => {
-                    r.style.cursor = 'pointer';
+                    r.style.cursor = 'default';
                     r.addEventListener('click', () => {
                         if (this.isSellStateActive && this.isCurrentPlayerActive()) {
                             const lines = parseInt(r.getAttribute('data-lines'), 10);

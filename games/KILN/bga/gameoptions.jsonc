@@ -24,7 +24,7 @@
         "nobeginner": true
       }
     },
-    "default": 17
+    "default": 14
   },
   "101": {
     "name": "Heating up the Kiln (Bonus Spaces)",
@@ -46,16 +46,15 @@
     "name": "Fixing the Mess (Erase 1 Cell)",
     "values": {
       "0": {
-        "name": "Disabled (Standard)",
+        "name": "Disabled",
         "description": "Standard rule: if your largest group cannot fit, skip placement"
       },
       "1": {
         "name": "Enabled (Catch-up Rule)",
         "description": "If your largest group cannot fit into your warehouse, you may erase 1 painted cell to clear space",
-        "tmdisplay": "Fixing the Mess Active",
-        "nobeginner": true
+        "tmdisplay": "Fixing the Mess Active"
       }
     },
-    "default": 0
+    "default": 1
   }
 }

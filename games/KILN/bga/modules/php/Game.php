@@ -141,8 +141,8 @@ class Game extends \Bga\GameFramework\Table
             $playerSeats[$playerIds[1]] = 2; // North (opposite across table)
         } elseif ($pCount === 3) {
             $playerSeats[$playerIds[0]] = 0; // South
-            $playerSeats[$playerIds[1]] = 1; // East
-            $playerSeats[$playerIds[2]] = 3; // West
+            $playerSeats[$playerIds[1]] = 1; // Left
+            $playerSeats[$playerIds[2]] = 2; // Top
         } else {
             $playerSeats[$playerIds[0]] = 0; // South (Red)
             $playerSeats[$playerIds[1]] = 1; // East (Green)
@@ -152,16 +152,16 @@ class Game extends \Bga\GameFramework\Table
         $this->globals->set('player_seats', $playerSeats);
 
         // Target Score option (100): 14, 17, 20, 25
-        $targetScore = isset($options[100]) ? (int) $options[100] : (int) $this->getGameStateValue('100', 17);
+        $targetScore = isset($options[100]) ? (int) $options[100] : (int) $this->getGameStateValue('100', 14);
         if (!in_array($targetScore, [14, 17, 20, 25], true)) {
-            $targetScore = 17;
+            $targetScore = 14;
         }
 
         // Heating up the Kiln variant option (101): 0 = disabled, 1 = enabled
         $bonusSpacesVariant = isset($options[101]) ? (int) $options[101] : (int) $this->getGameStateValue('101', 0);
 
         // Fixing the Mess variant option (102): 0 = disabled, 1 = enabled
-        $fixingMessVariant = isset($options[102]) ? (int) $options[102] : (int) $this->getGameStateValue('102', 0);
+        $fixingMessVariant = isset($options[102]) ? (int) $options[102] : (int) $this->getGameStateValue('102', 1);
 
         $this->globals->set('target_score', $targetScore);
         $this->globals->set('variant_bonus_spaces', $bonusSpacesVariant);
@@ -584,7 +584,7 @@ class Game extends \Bga\GameFramework\Table
         } elseif ($pCount === 3) {
             $fallback[$playerIds[0]] = 0;
             $fallback[$playerIds[1]] = 1;
-            $fallback[$playerIds[2]] = 3;
+            $fallback[$playerIds[2]] = 2;
         } else {
             foreach ($playerIds as $i => $pId) {
                 $fallback[$pId] = $i % 4;
