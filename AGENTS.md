@@ -149,3 +149,46 @@ Every change should be committed and pushed to `main`. The GitHub Actions deploy
 2. **Status Bar Guidance**:
    * Always provide dynamic, informative titles in `this.bga.statusBar.setTitle(...)` guiding the active player.
 
+---
+
+## 🚀 5. Transitioning to Alpha: Game Metadata Manager (GMM) & Pre-Flight Checklist
+
+When requesting **PRIVATE ALPHA** status on BGA Studio (`https://studio.boardgamearena.com/manage?game=<game>`), BGA runs automated pre-flight checks. Follow these rules to pass cleanly.
+
+### A. Deprecated JS Code Warnings (Clean Before Build)
+1. **No `ajaxcall`**:
+   * Never use `gameui.ajaxcall(...)`. Always use modern:
+     ```javascript
+     this.bga.actions.performAction(actionName, args);
+     ```
+2. **No `this.scoreCtrl`**:
+   * Never access `this.scoreCtrl[pId]`. Always use the official BGA modern counter:
+     ```javascript
+     const counter = this.bga?.playerPanels?.getScoreCounter?.(pId);
+     if (counter) counter.toValue(newScore);
+     ```
+3. **No Direct Player Board DOM Access**:
+   * Never use `document.getElementById('player_board_${pId}')`. Always use:
+     ```javascript
+     const panel = this.bga?.playerPanels?.getElement?.(pId);
+     ```
+
+### B. Mandatory Web Metadata in GMM (Hard Blockers for Alpha)
+If you see:
+> `ERROR: Missing description in Game Metadata Manager`  
+> `ERROR: Missing zombieModeLevel in Game Metadata Manager`  
+> `Impossible to request PRIVATE ALPHA status: some mandatory game metadata is missing.`
+
+These two fields **MUST** be filled in the BGA Studio Web Interface via the **Game Metadata Manager (GMM)**:
+1. Open GMM at: `https://studio.boardgamearena.com/gamemetadatamanager?game=<game>` (or *Manage Game* $\rightarrow$ *Game Metadata Manager*).
+2. **Description**: Enter a 1–2 paragraph English description of the game, theme, and objective.
+3. **Zombie Mode Level**: Select **Level 1** (or *"Turn-based / complete support handled by game engine"*).
+4. **Characteristics**: Set sliders/values (1–5) for `Complexity`, `Luck`, `Strategy`, `Diplomacy` (also duplicate these into `gameinfos.jsonc`).
+5. **Tags**: Add relevant tags (e.g., *Abstract strategy*, *Hexagonal grid*, *Animals*).
+6. Click **Save** in GMM, then return to *Manage Game* and click **Request PRIVATE ALPHA status**.
+
+### C. Warnings You Can Safely Ignore for Private Alpha
+* **"There is no registered licence linked to the BGG id"**: Safe to ignore for Private Alpha. BGA allows developer playtesting in Private Alpha before the publisher officially signs off on `boardgamearena.com/gamepublishers`.
+* **"The game has 1 tags set..."**: Informational notification only.
+
+

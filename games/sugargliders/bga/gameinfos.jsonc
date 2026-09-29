@@ -19,6 +19,10 @@
     "solo_mode_ranked": false,
 
     "is_coop": 0,
+    "complexity": 2,
+    "luck": 1,
+    "strategy": 4,
+    "diplomacy": 1,
 
     "player_colors": ["ffffff", "222222", "d32f2f", "1976d2"],
     "favorite_colors": ["ffffff", "222222", "d32f2f", "1976d2"],

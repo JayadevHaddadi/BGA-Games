@@ -225,4 +225,31 @@ BGA strictly enforces a platform-wide "traffic light" button color convention:
 1. **Interface Min Width**: In `gameinfos.jsonc`, configure `"game_interface_width": { "min": 320 }` so BGA doesn't force a zoomed-out 740px container on narrow mobile viewports.
 2. **Board Scaler Pattern**: Avoid static `@media (max-width: ...)` rules with `transform: scale(...)` on the board wrapper; they multiply on top of BGA's viewport zoom and cause **double-scaling** (shrinking boards to < 40% screen width). Instead, use a dynamic scaler container with JavaScript (`ResizeObserver` + window `resize`) to scale the board to fill ~98% of the available screen width on mobile portrait.
 
+---
+
+## 11. Transitioning to Private Alpha: Game Metadata Manager (GMM) Requirements
+
+When clicking **"Request PRIVATE ALPHA status"** on BGA Studio (`https://studio.boardgamearena.com/manage?game=<game>`), the system enforces two hard database requirements before status can change:
+
+### A. The Two Mandatory GMM Fields (Hard Blockers)
+1. **`description`**: A text description of the game in English.
+2. **`zombieModeLevel`**: The zombie mode level selection.
+
+> 💡 **How to solve**: Open the **Game Metadata Manager (GMM)** web interface via:
+> `https://studio.boardgamearena.com/gamemetadatamanager?game=<game>`
+> - Fill in the **Description** box.
+> - Select **Zombie Mode Level** = `Level 1` (Turn-based / complete support handled by game engine).
+> - Set game characteristics (Complexity, Luck, Strategy, Diplomacy) and tags.
+> - Click **Save**, then re-request Private Alpha status.
+
+### B. Warnings You Can Safely Ignore
+- **"There is no registered licence linked to the BGG id"**: Normal for Private Alpha development. The publisher signs the digital agreement on `boardgamearena.com/gamepublishers` before public Beta.
+- **"The game has 1 tags set..."**: Informational message.
+
+### C. Clean Codebase Deployment Checklist (Linter Rules)
+- **Never use `gameui.ajaxcall`**: Use `this.bga.actions.performAction(...)`.
+- **Never access `this.scoreCtrl`**: Use `this.bga.playerPanels.getScoreCounter(pId).toValue(...)`.
+- **Never access `document.getElementById('player_board_${pId}')`**: Use `this.bga.playerPanels.getElement(pId)`.
+
+
 
