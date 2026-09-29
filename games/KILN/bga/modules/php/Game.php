@@ -84,11 +84,6 @@ class Game extends \Bga\GameFramework\Table
                     PRIMARY KEY (`player_id`, `wx`, `wy`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
             }
-
-            $playerCols = static::getObjectListFromDb("SHOW COLUMNS FROM `player` LIKE 'player_color_name'");
-            if (empty($playerCols)) {
-                static::DbQuery("ALTER TABLE `player` ADD COLUMN `player_color_name` VARCHAR(16) DEFAULT NULL;");
-            }
         } catch (\Exception $e) {
             // DB might be partially initialized
         }
@@ -119,24 +114,24 @@ class Game extends \Bga\GameFramework\Table
             $name = $colorNames[$idx % count($colorNames)];
             $playerColorMap[$player_id] = $name;
 
-            $query_values[] = vsprintf("(%s, %d, '%s', '%s', '%s')", [
+            $query_values[] = vsprintf("(%s, %d, '%s', '%s')", [
                 $player_id,
                 $idx + 1,
                 $hex,
                 addslashes($players[$player_id]["player_name"]),
-                $name,
             ]);
             $idx++;
         }
 
         static::DbQuery(
             sprintf(
-                "INSERT INTO `player` (`player_id`, `player_no`, `player_color`, `player_name`, `player_color_name`) VALUES %s",
+                "INSERT INTO `player` (`player_id`, `player_no`, `player_color`, `player_name`) VALUES %s",
                 implode(",", $query_values)
             )
         );
 
         $this->reloadPlayersBasicInfos();
+        $this->globals->set('player_colors', $playerColorMap);
 
         // Target Score option (100): 14, 17, 20, 25
         $targetScore = isset($options[100]) ? (int) $options[100] : (int) $this->getGameStateValue('100', 17);
@@ -258,18 +253,13 @@ class Game extends \Bga\GameFramework\Table
 
     public function getPlayerColorMap(): array
     {
-        $rows = static::getObjectListFromDb("SELECT `player_id`, `player_color_name` FROM `player`");
-        $map = [];
-        foreach ($rows as $r) {
-            $map[(int)$r['player_id']] = $r['player_color_name'];
-        }
-        return $map;
+        return $this->globals->get('player_colors', []);
     }
 
     public function getPlayerColor(int $playerId): string
     {
-        $val = $this->getUniqueValueFromDb("SELECT `player_color_name` FROM `player` WHERE `player_id` = {$playerId}");
-        return $val ?: 'red';
+        $map = $this->getPlayerColorMap();
+        return $map[$playerId] ?? 'red';
     }
 
     public function getKilnBoard(): array

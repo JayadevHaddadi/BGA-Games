@@ -17,7 +17,7 @@
     "is_coop": 0,
     "language_dependency": false,
     "player_colors": ["d32f2f", "1976d2", "2e7d32", "fbc02d"],
-    "favorite_colors_support": true,
+    "favorite_colors_support": false,
     "disable_player_order_swap_on_rematch": false,
     "game_interface_width": {
         "min": 320

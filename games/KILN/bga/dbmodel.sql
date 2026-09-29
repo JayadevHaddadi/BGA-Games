@@ -24,5 +24,3 @@ CREATE TABLE IF NOT EXISTS `player_warehouse` (
     `filled` TINYINT(1) UNSIGNED NOT NULL DEFAULT 0,
     PRIMARY KEY (`player_id`, `wx`, `wy`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-ALTER TABLE `player` ADD COLUMN IF NOT EXISTS `player_color_name` VARCHAR(16) DEFAULT NULL;
