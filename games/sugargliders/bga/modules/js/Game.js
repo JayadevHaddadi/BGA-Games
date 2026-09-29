@@ -706,80 +706,97 @@ export class Game {
         }
     }
 
+    _getNotifArgs(notif) {
+        if (!notif) return {};
+        return (notif.args !== undefined) ? notif.args : notif;
+    }
+
     setupNotifications() {
-        if (!this.bga?.notifications) return;
+        if (this.bga?.notifications?.setupPromiseNotifications) {
+            this.bga.notifications.setupPromiseNotifications();
+        } else if (typeof dojo !== 'undefined' && typeof dojo.subscribe === 'function') {
+            dojo.subscribe('gliderPlaced', this, 'notif_gliderPlaced');
+            dojo.subscribe('sugarGliderJumped', this, 'notif_sugarGliderJumped');
+            dojo.subscribe('sugarGliderTorpor', this, 'notif_sugarGliderTorpor');
+            dojo.subscribe('endGameScores', this, 'notif_endGameScores');
+        }
+    }
 
-        this.bga.notifications.subscribe('gliderPlaced', notif => {
-            const { player_id, coord_q, coord_r, tile_id } = notif.args;
-            this.gliders[player_id] = { player_id, q: coord_q, r: coord_r, in_torpor: false };
-            this.jumpingTiles[player_id] = { tile_id, value: 1 };
-            delete this.boardTiles[`${coord_q}_${coord_r}`];
+    notif_gliderPlaced(notif) {
+        const { player_id, coord_q, coord_r, tile_id } = this._getNotifArgs(notif);
+        this.gliders[player_id] = { player_id, q: coord_q, r: coord_r, in_torpor: false };
+        this.jumpingTiles[player_id] = { tile_id, value: 1 };
+        delete this.boardTiles[`${coord_q}_${coord_r}`];
 
-            sounds.playHarvest();
-            this.renderBoard();
-            this.updatePlayerPanels();
-        });
+        sounds.playHarvest();
+        this.renderBoard();
+        this.updatePlayerPanels();
+    }
 
-        this.bga.notifications.subscribe('sugarGliderJumped', notif => {
-            const { player_id, to_q, to_r, collected_tile, discarded_tile, new_jumping_tile, current_score } = notif.args;
+    notif_sugarGliderJumped(notif) {
+        const { player_id, to_q, to_r, collected_tile, discarded_tile, new_jumping_tile, current_score } = this._getNotifArgs(notif);
 
+        if (!this.gliders[player_id]) {
+            this.gliders[player_id] = { player_id, q: to_q, r: to_r, in_torpor: false };
+        } else {
             this.gliders[player_id].q = to_q;
             this.gliders[player_id].r = to_r;
             this.gliders[player_id].in_torpor = false;
+        }
 
-            if (collected_tile) {
-                this.playerReserves[player_id] = this.playerReserves[player_id] || [];
-                this.playerReserves[player_id].push(collected_tile);
-                sounds.playHarvest();
-            } else if (discarded_tile) {
-                const list = this.playerReserves[player_id] || [];
-                const idx = list.findIndex(t => t.tile_id === discarded_tile.tile_id);
-                if (idx !== -1) list.splice(idx, 1);
-            }
+        if (collected_tile) {
+            this.playerReserves[player_id] = this.playerReserves[player_id] || [];
+            this.playerReserves[player_id].push(collected_tile);
+            sounds.playHarvest();
+        } else if (discarded_tile) {
+            const list = this.playerReserves[player_id] || [];
+            const idx = list.findIndex(t => t.tile_id === discarded_tile.tile_id);
+            if (idx !== -1) list.splice(idx, 1);
+        }
 
-            delete this.boardTiles[`${to_q}_${to_r}`];
-            this.jumpingTiles[player_id] = new_jumping_tile;
-            this.scores[player_id] = current_score;
+        delete this.boardTiles[`${to_q}_${to_r}`];
+        this.jumpingTiles[player_id] = new_jumping_tile;
+        this.scores[player_id] = current_score;
 
-            sounds.playJump();
-            this.renderBoard();
-            this.updatePlayerPanels();
+        sounds.playJump();
+        this.renderBoard();
+        this.updatePlayerPanels();
 
-            // Update remaining tiles badge
-            const remBadge = document.getElementById('sg_remaining_tiles_badge');
-            if (remBadge) {
-                remBadge.innerHTML = `Tiles in Tree: ${Object.keys(this.boardTiles).length}`;
-            }
-            const torpBadge = document.getElementById('sg_consecutive_torpor_badge');
-            if (torpBadge) {
-                torpBadge.innerHTML = `Torpor: 0 / ${Object.keys(this.gamedatas.players).length}`;
-            }
-        });
+        const remBadge = document.getElementById('sg_remaining_tiles_badge');
+        if (remBadge) {
+            remBadge.innerHTML = `Tiles in Tree: ${Object.keys(this.boardTiles).length}`;
+        }
+        const torpBadge = document.getElementById('sg_consecutive_torpor_badge');
+        if (torpBadge) {
+            torpBadge.innerHTML = `Torpor: 0 / ${Object.keys(this.gamedatas.players).length}`;
+        }
+    }
 
-        this.bga.notifications.subscribe('sugarGliderTorpor', notif => {
-            const { player_id, collected_tile, consecutive_torpor, current_score } = notif.args;
+    notif_sugarGliderTorpor(notif) {
+        const { player_id, collected_tile, consecutive_torpor, current_score } = this._getNotifArgs(notif);
+        if (this.gliders[player_id]) {
             this.gliders[player_id].in_torpor = true;
+        }
 
-            if (collected_tile) {
-                this.playerReserves[player_id] = this.playerReserves[player_id] || [];
-                this.playerReserves[player_id].push(collected_tile);
-                this.jumpingTiles[player_id] = null;
-                sounds.playHarvest();
-            }
+        if (collected_tile) {
+            this.playerReserves[player_id] = this.playerReserves[player_id] || [];
+            this.playerReserves[player_id].push(collected_tile);
+            this.jumpingTiles[player_id] = null;
+            sounds.playHarvest();
+        }
 
-            this.scores[player_id] = current_score;
-            sounds.playTorpor();
-            this.renderBoard();
-            this.updatePlayerPanels();
+        this.scores[player_id] = current_score;
+        sounds.playTorpor();
+        this.renderBoard();
+        this.updatePlayerPanels();
 
-            const torpBadge = document.getElementById('sg_consecutive_torpor_badge');
-            if (torpBadge) {
-                torpBadge.innerHTML = `Torpor: ${consecutive_torpor} / ${Object.keys(this.gamedatas.players).length}`;
-            }
-        });
+        const torpBadge = document.getElementById('sg_consecutive_torpor_badge');
+        if (torpBadge) {
+            torpBadge.innerHTML = `Torpor: ${consecutive_torpor} / ${Object.keys(this.gamedatas.players).length}`;
+        }
+    }
 
-        this.bga.notifications.subscribe('endGameScores', notif => {
-            sounds.playVictory();
-        });
+    notif_endGameScores(notif) {
+        sounds.playVictory();
     }
 }
