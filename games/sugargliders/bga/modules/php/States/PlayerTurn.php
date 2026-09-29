@@ -168,6 +168,9 @@ class PlayerTurn extends GameState
             $msg = clienttranslate('${player_name} jumps from (${from_q}, ${from_r}) to (${to_q}, ${to_r}) by spending a reserve fruit worth ${val} pt(s)');
         }
 
+        $currentScore = $this->game->calculatePlayerScore($activePlayerId);
+        $this->bga->playerScore->set($activePlayerId, $currentScore);
+
         $this->game->notifyAllPlayers('sugarGliderJumped', $msg, [
             'player_id' => $activePlayerId,
             'player_name' => $playerName,
@@ -179,7 +182,7 @@ class PlayerTurn extends GameState
             'collected_tile' => $collectedTile,
             'discarded_tile' => $discardedTile,
             'new_jumping_tile' => $newJumpingTile,
-            'current_score' => $this->game->calculatePlayerScore($activePlayerId),
+            'current_score' => $currentScore,
         ]);
 
         return NextPlayer::class;
@@ -216,13 +219,16 @@ class PlayerTurn extends GameState
             $msg = clienttranslate('${player_name} enters torpor and collects a fruit worth ${val} pt(s) into reserve');
         }
 
+        $currentScore = $this->game->calculatePlayerScore($activePlayerId);
+        $this->bga->playerScore->set($activePlayerId, $currentScore);
+
         $this->game->notifyAllPlayers('sugarGliderTorpor', $msg, [
             'player_id' => $activePlayerId,
             'player_name' => $playerName,
             'val' => $collectedTile ? $collectedTile['value'] : 0,
             'collected_tile' => $collectedTile,
             'consecutive_torpor' => $consecutiveTorpor,
-            'current_score' => $this->game->calculatePlayerScore($activePlayerId),
+            'current_score' => $currentScore,
         ]);
 
         return NextPlayer::class;

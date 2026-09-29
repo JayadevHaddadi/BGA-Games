@@ -690,6 +690,15 @@ export class Game {
             const reserves = this.playerReserves[pId] || [];
             const score = this.scores[pId] || 0;
 
+            // Update standard BGA star VP score counter next to player name
+            const scoreEl = document.getElementById(`player_score_${pId}`);
+            if (scoreEl) {
+                scoreEl.textContent = `${score}`;
+            }
+            if (this.scoreCtrl && this.scoreCtrl[pId]) {
+                this.scoreCtrl[pId].setValue(score);
+            }
+
             let jumpingText = jumping ? `Fruit: ${jumping.value} pt(s)` : 'Empty (needs reserve)';
             let reserveHtml = '';
             reserves.forEach(t => {
@@ -704,7 +713,6 @@ export class Game {
                 <div class="sg_panel_reserves">
                     <span>&#127822; Reserve:</span> ${reserveHtml}
                 </div>
-                <div><strong>Score:</strong> ${score} pts</div>
             `;
         }
     }

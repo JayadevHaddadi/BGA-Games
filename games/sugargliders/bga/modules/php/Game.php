@@ -172,6 +172,11 @@ class Game extends \Bga\GameFramework\Table
         $this->tableStats->init(['turns_number', 'end_reason_consecutive_torpor', 'end_reason_tree_empty'], 0);
         $this->playerStats->init(['turns_number', 'tiles_collected', 'points_scored', 'torpor_actions', 'reserve_jumps'], 0);
 
+        // Initialize Player Scores (VP)
+        foreach ($playerIds as $player_id) {
+            $this->playerScore->set((int) $player_id, 0);
+        }
+
         // First player begins Setup Placement
         $firstPlayerId = (int) $playerIds[0];
         $this->gamestate->changeActivePlayer($firstPlayerId);
