@@ -66,13 +66,14 @@ class PlayerTurn extends GameState
             }
         }
 
+        $radius = (int) $this->globals->get('hex_radius', Game::HEX_RADIUS);
         $legalJumps = SugarGlidersEngine::getLegalJumps(
             $glider['q'],
             $glider['r'],
             $jumpingTile,
             $reserveTiles,
             $occupiedPositions,
-            Game::HEX_RADIUS
+            $radius
         );
 
         $isCenter = ($glider['q'] === 0 && $glider['r'] === 0);

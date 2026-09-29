@@ -57,6 +57,14 @@ class PlayerTurnSell extends GameState
             'warehouse' => $res['warehouse'],
         ]);
 
+        if (!empty($res['bonus_landed'])) {
+            $this->notify->all('bonusSpaceLanded', clienttranslate('${player_name} landed on bonus space ${score}! An EXTRA TURN is awarded ("Heating up the Kiln")!'), [
+                'player_id' => $activePlayerId,
+                'player_name' => $this->game->getPlayerNameById($activePlayerId),
+                'score' => $res['new_score'],
+            ]);
+        }
+
         if ($this->game->hasPlayerWon($activePlayerId)) {
             $target = (int) $this->game->globals->get('target_score', 17);
             $this->notify->all('gameWon', clienttranslate('${player_name} has reached the target of ${target} points and WINS THE GAME!'), [

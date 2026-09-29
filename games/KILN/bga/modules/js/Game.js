@@ -265,6 +265,52 @@ class StatePlayerTurnPlaceShape {
 }
 
 /**
+ * State 35: PlayerTurnFixMess (Optional "Fixing the Mess" variant)
+ */
+class StatePlayerTurnFixMess {
+    constructor(game, bga) {
+        this.game = game;
+        this.bga = bga;
+    }
+
+    onEnteringState(args, isCurrentPlayerActive) {
+        this.game.currentArgs = args || {};
+
+        if (isCurrentPlayerActive) {
+            this.bga.statusBar.setTitle(_('${you} cannot fit your shape. "Fixing the Mess" is active: click 1 painted cell in your warehouse to erase it, or skip'));
+            this.game.setupFixMessMode();
+
+            this.bga.statusBar.addActionButton(
+                _('Skip Erasing'),
+                () => this.onSkip(),
+                { color: 'secondary' }
+            );
+
+            this.bga.statusBar.addActionButton(
+                _('Undo Push'),
+                () => this.game.onUndo(),
+                { color: 'alert' }
+            );
+        } else {
+            this.bga.statusBar.setTitle(_('${actplayer} may erase 1 cell from their warehouse ("Fixing the Mess")'));
+            this.game.clearFixMessMode();
+        }
+    }
+
+    onSkip() {
+        sounds.playClick();
+        this.game.clearActionButtons();
+        this.game.clearFixMessMode();
+        this.bga.actions.performAction('actSkipFix', {});
+    }
+
+    onLeavingState(args, isCurrentPlayerActive) {
+        this.game.clearFixMessMode();
+        this.game.clearActionButtons();
+    }
+}
+
+/**
  * State 40: PlayerTurnSell (Sell completed lines or pass)
  */
 class StatePlayerTurnSell {
@@ -353,6 +399,9 @@ export class Game {
         this.playerTurnPlaceShape = new StatePlayerTurnPlaceShape(this, bga);
         this.bga.states.register('PlayerTurnPlaceShape', this.playerTurnPlaceShape);
 
+        this.playerTurnFixMess = new StatePlayerTurnFixMess(this, bga);
+        this.bga.states.register('PlayerTurnFixMess', this.playerTurnFixMess);
+
         this.playerTurnSell = new StatePlayerTurnSell(this, bga);
         this.bga.states.register('PlayerTurnSell', this.playerTurnSell);
 
@@ -401,7 +450,10 @@ export class Game {
         this.outerTile = gamedatas.outer_tile || { border_slot: 0, color: 'black' };
         this.warehouses = gamedatas.warehouses || {};
         this.targetScore = gamedatas.target_score || 17;
+        this.variantBonusSpaces = gamedatas.variant_bonus_spaces || 0;
+        this.variantFixingMess = gamedatas.variant_fixing_mess || 0;
         this.playerColors = gamedatas.player_colors || {};
+        this.isFixMessActive = false;
 
         this.buildMainLayout();
         this.setupBoardScaler();
@@ -790,6 +842,11 @@ export class Game {
     }
 
     onWarehouseCellClick(wx, wy) {
+        if (this.isFixMessActive && this.isCurrentPlayerActive()) {
+            this.onEraseCellClick(wx, wy);
+            return;
+        }
+
         if (!this.currentPlacementNorm || !this.isCurrentPlayerActive()) return;
         const isValid = this.currentPlacementAnchors.some(a => a.ox === wx && a.oy === wy);
         if (!isValid) return;
@@ -800,6 +857,43 @@ export class Game {
         this.bga.statusBar.setTitle(_('Placing shape in warehouse...'));
 
         this.bga.actions.performAction('actPlaceShape', { ox: wx, oy: wy });
+    }
+
+    /**
+     * Fixing the Mess variant UI handlers
+     */
+    setupFixMessMode() {
+        this.isFixMessActive = true;
+        const myId = this.bga?.players?.getCurrentPlayerId?.();
+        const whData = this.warehouses[myId] || [];
+
+        for (let wy = 0; wy < 5; wy++) {
+            for (let wx = 0; wx < 5; wx++) {
+                if (whData[wy] && whData[wy][wx]) {
+                    const cell = document.getElementById(`kiln_wh_${myId}_${wx}_${wy}`);
+                    if (cell) cell.classList.add('kiln_wh_erasable');
+                }
+            }
+        }
+    }
+
+    clearFixMessMode() {
+        this.isFixMessActive = false;
+        document.querySelectorAll('.kiln_wh_erasable').forEach(el => {
+            el.classList.remove('kiln_wh_erasable');
+        });
+    }
+
+    onEraseCellClick(wx, wy) {
+        const myId = this.bga?.players?.getCurrentPlayerId?.();
+        const whData = this.warehouses[myId] || [];
+        if (!whData[wy] || !whData[wy][wx]) return;
+
+        sounds.playClick();
+        this.clearFixMessMode();
+        this.clearActionButtons();
+        this.bga.statusBar.setTitle(_('Erasing cell from warehouse...'));
+        this.bga.actions.performAction('actEraseCell', { wx, wy });
     }
 
     /**
@@ -934,6 +1028,9 @@ export class Game {
             dojo.subscribe('turnUndone', this, 'notif_turnUndone');
             dojo.subscribe('blackTileEjected', this, 'notif_blackTileEjected');
             dojo.subscribe('extraTurnStarted', this, 'notif_extraTurnStarted');
+            dojo.subscribe('bonusSpaceLanded', this, 'notif_bonusSpaceLanded');
+            dojo.subscribe('cellErased', this, 'notif_cellErased');
+            dojo.subscribe('fixSkipped', this, 'notif_fixSkipped');
         }
     }
 
@@ -1014,5 +1111,28 @@ export class Game {
 
     async notif_extraTurnStarted(notif) {
         sounds.playExtraTurn();
+    }
+
+    async notif_bonusSpaceLanded(notif) {
+        sounds.playExtraTurn();
+    }
+
+    async notif_cellErased(notif) {
+        const args = this._getNotifArgs(notif);
+        const { player_id, wx, wy, warehouse } = args;
+
+        if (this.warehouses && warehouse) {
+            this.warehouses[player_id] = warehouse;
+        }
+
+        const cell = document.getElementById(`kiln_wh_${player_id}_${wx}_${wy}`);
+        if (cell) {
+            cell.className = 'kiln_wh_cell';
+        }
+        sounds.playReset();
+    }
+
+    async notif_fixSkipped(notif) {
+        // Notification logged in BGA status bar / chat log
     }
 }

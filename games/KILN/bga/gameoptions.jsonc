@@ -41,5 +41,21 @@
       }
     },
     "default": 0
+  },
+  "102": {
+    "name": "Fixing the Mess (Erase 1 Cell)",
+    "values": {
+      "0": {
+        "name": "Disabled (Standard)",
+        "description": "Standard rule: if your largest group cannot fit, skip placement"
+      },
+      "1": {
+        "name": "Enabled (Catch-up Rule)",
+        "description": "If your largest group cannot fit into your warehouse, you may erase 1 painted cell to clear space",
+        "tmdisplay": "Fixing the Mess Active",
+        "nobeginner": true
+      }
+    },
+    "default": 0
   }
 }

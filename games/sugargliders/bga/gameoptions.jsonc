@@ -1,10 +1,28 @@
 {
     "100": {
-        "name": "Game Mode",
+        "name": "Board Size & Variant",
         "values": {
             "1": {
                 "name": "Standard (Full Tree)",
-                "description": "Standard board (61 spaces, 60 food tiles, 2-4 players)."
+                "description": "Standard board (61 spaces, 60 food tiles, values 1-5)."
+            },
+            "2": {
+                "name": "Compact Inner Tree (Short Variant)",
+                "description": "Compact board (37 spaces, 36 food tiles, values 1-4, no purples). Official 2-player short variant."
+            }
+        },
+        "default": 1
+    },
+    "101": {
+        "name": "Tie-Breaker",
+        "values": {
+            "1": {
+                "name": "Shared Victory",
+                "description": "Players with equal highest points share the victory (official rulebook)."
+            },
+            "2": {
+                "name": "Most Food Tiles",
+                "description": "Tied player who collected more total food tiles in their reserve wins."
             }
         },
         "default": 1

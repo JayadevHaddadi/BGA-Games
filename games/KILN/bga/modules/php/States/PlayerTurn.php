@@ -94,6 +94,24 @@ class PlayerTurn extends GameState
                 'player_name' => $this->game->getPlayerNameById($activePlayerId),
                 'size' => $groupSize,
             ]);
+
+            $variantFixMess = (int) $this->game->globals->get('variant_fixing_mess', 0);
+            if ($variantFixMess === 1) {
+                $warehouse = $this->game->getPlayerWarehouse($activePlayerId);
+                $hasFilled = false;
+                for ($wy = 0; $wy < Game::WAREHOUSE_SIZE; $wy++) {
+                    for ($wx = 0; $wx < Game::WAREHOUSE_SIZE; $wx++) {
+                        if ($warehouse[$wy][$wx] === 1) {
+                            $hasFilled = true;
+                            break 2;
+                        }
+                    }
+                }
+                if ($hasFilled) {
+                    return PlayerTurnFixMess::class;
+                }
+            }
+
             return $this->resolveAfterPlacementSkipped($activePlayerId);
         }
 

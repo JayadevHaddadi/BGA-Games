@@ -142,8 +142,12 @@ class Game extends \Bga\GameFramework\Table
         // Heating up the Kiln variant option (101): 0 = disabled, 1 = enabled
         $bonusSpacesVariant = isset($options[101]) ? (int) $options[101] : (int) $this->getGameStateValue('101', 0);
 
+        // Fixing the Mess variant option (102): 0 = disabled, 1 = enabled
+        $fixingMessVariant = isset($options[102]) ? (int) $options[102] : (int) $this->getGameStateValue('102', 0);
+
         $this->globals->set('target_score', $targetScore);
         $this->globals->set('variant_bonus_spaces', $bonusSpacesVariant);
+        $this->globals->set('variant_fixing_mess', $fixingMessVariant);
         $this->globals->set('extra_turn_earned', false);
         $this->globals->set('turn_count', 1);
         $this->globals->set('selected_group', []);
@@ -235,6 +239,7 @@ class Game extends \Bga\GameFramework\Table
         $result['players'] = $this->loadPlayersBasicInfos();
         $result['target_score'] = (int) $this->globals->get('target_score', 17);
         $result['variant_bonus_spaces'] = (int) $this->globals->get('variant_bonus_spaces', 0);
+        $result['variant_fixing_mess'] = (int) $this->globals->get('variant_fixing_mess', 0);
         $result['board'] = $this->getKilnBoard();
         $result['outer_tile'] = $this->getOuterTile();
         $result['warehouses'] = $this->getAllWarehouses();
@@ -705,9 +710,11 @@ class Game extends \Bga\GameFramework\Table
         $this->playerStats->inc('points_scored', $points, $playerId);
 
         // Check if landing on bonus space (variant)
+        $bonusLanded = false;
         $variantBonus = (int) $this->globals->get('variant_bonus_spaces', 0);
         if ($variantBonus === 1 && in_array($newScore, self::BONUS_SPACES, true)) {
             $this->globals->set('extra_turn_earned', true);
+            $bonusLanded = true;
         }
 
         return [
@@ -716,6 +723,7 @@ class Game extends \Bga\GameFramework\Table
             'count' => $count,
             'points' => $points,
             'new_score' => $newScore,
+            'bonus_landed' => $bonusLanded,
             'warehouse' => $this->getPlayerWarehouse($playerId),
         ];
     }

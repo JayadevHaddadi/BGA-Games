@@ -32,9 +32,9 @@ class Game extends \Bga\GameFramework\Table
     public function getGameProgression(): int
     {
         $remainingBoardTiles = (int) $this->getUniqueValueFromDb("SELECT COUNT(*) FROM `board_tile` WHERE `location` = 'board'");
-        $totalTiles = 60;
+        $totalTiles = (int) $this->globals->get('total_tiles', 60);
         $collectedOrDiscarded = max(0, $totalTiles - $remainingBoardTiles);
-        return (int) min(100, round(($collectedOrDiscarded / $totalTiles) * 100));
+        return (int) min(100, round(($collectedOrDiscarded / max(1, $totalTiles)) * 100));
     }
 
     public function ensureSchema(): void
@@ -113,17 +113,35 @@ class Game extends \Bga\GameFramework\Table
 
         $this->reloadPlayersBasicInfos();
 
-        // Generate 60 food tiles: 12 each of values 1, 2, 3, 4, 5
-        $tileValues = [];
-        for ($v = 1; $v <= 5; $v++) {
-            for ($c = 0; $c < 12; $c++) {
-                $tileValues[] = $v;
+        // Read options
+        $gameMode = (int) ($options[100] ?? ($this->tableOptions ? $this->tableOptions->get(100) : 1) ?? 1);
+        $tieBreaker = (int) ($options[101] ?? ($this->tableOptions ? $this->tableOptions->get(101) : 1) ?? 1);
+
+        if ($gameMode === 2) {
+            // Mode 2: Compact Inner Tree (2-Player Short Variant)
+            $radius = 3; // 37 cells total, center empty -> 36 spaces for tiles
+            // Discard all 12 purple fruits (5s) and 3 of each other value -> 9 of each 1, 2, 3, 4 = 36 tiles
+            $tileValues = [];
+            for ($v = 1; $v <= 4; $v++) {
+                for ($c = 0; $c < 9; $c++) {
+                    $tileValues[] = $v;
+                }
+            }
+        } else {
+            // Mode 1: Standard Full Tree (61 cells total, center empty -> 60 spaces for tiles)
+            $radius = 4;
+            // 12 of each 1, 2, 3, 4, 5 = 60 tiles
+            $tileValues = [];
+            for ($v = 1; $v <= 5; $v++) {
+                for ($c = 0; $c < 12; $c++) {
+                    $tileValues[] = $v;
+                }
             }
         }
         shuffle($tileValues);
 
-        // Get 60 board coordinates excluding center (0, 0)
-        $boardCoords = SugarGlidersEngine::getAllBoardCoords(self::HEX_RADIUS);
+        // Get board coordinates excluding center (0, 0)
+        $boardCoords = SugarGlidersEngine::getAllBoardCoords($radius);
         unset($boardCoords['0_0']); // Center is left empty per rules!
         $coordsList = array_values($boardCoords);
 
@@ -145,7 +163,10 @@ class Game extends \Bga\GameFramework\Table
         $this->globals->set('player_colors', $playerColors);
         $this->globals->set('setup_player_order', $playerIds);
         $this->globals->set('setup_index', 0);
-        $this->globals->set('hex_radius', self::HEX_RADIUS);
+        $this->globals->set('game_mode', $gameMode);
+        $this->globals->set('tie_breaker', $tieBreaker);
+        $this->globals->set('hex_radius', $radius);
+        $this->globals->set('total_tiles', count($tileValues));
 
         // Initialize Stats
         $this->tableStats->init(['turns_number', 'end_reason_consecutive_torpor', 'end_reason_tree_empty'], 0);
@@ -164,6 +185,9 @@ class Game extends \Bga\GameFramework\Table
         $result['players'] = $this->loadPlayersBasicInfos();
         $result['player_colors'] = $this->globals->get('player_colors', []);
         $result['hex_radius'] = (int) $this->globals->get('hex_radius', self::HEX_RADIUS);
+        $result['game_mode'] = (int) $this->globals->get('game_mode', 1);
+        $result['tie_breaker'] = (int) $this->globals->get('tie_breaker', 1);
+        $result['total_tiles'] = (int) $this->globals->get('total_tiles', 60);
         $result['turn_count'] = (int) $this->globals->get('turn_count', 1);
         $result['consecutive_torpor'] = (int) $this->globals->get('consecutive_torpor', 0);
 

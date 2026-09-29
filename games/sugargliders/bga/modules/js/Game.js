@@ -253,6 +253,9 @@ export class Game {
         main.innerHTML = `
             <div id="sg_container">
                 <div id="sg_header_info">
+                    <span id="sg_mode_badge" class="sg_badge" style="background:#e0f2f1; color:#004d40; border-color:#80cbc4;">
+                        ${this.gamedatas.game_mode === 2 ? 'Compact Variant' : 'Standard'}
+                    </span>
                     <span id="sg_consecutive_torpor_badge" class="sg_badge sg_torpor_badge">
                         Torpor: ${this.gamedatas.consecutive_torpor || 0} / ${Object.keys(this.gamedatas.players).length}
                     </span>
@@ -335,7 +338,7 @@ export class Game {
         if (!svg) return;
 
         const radius = this.HEX_RADIUS;
-        const size = 34;
+        const size = (radius === 3) ? 42 : 34;
         this.HEX_SIZE = size;
         const svgDim = 640;
         const cx = svgDim / 2;
@@ -369,7 +372,7 @@ export class Game {
                     hexGroup += `
                         <g class="sg-hex-cell" id="sg_cell_${cellKey}" data-q="${q}" data-r="${r}">
                             <polygon class="sg-hex ${isCenter ? 'center-space' : ''}" points="${points}" />
-                            ${isCenter ? `<text x="${x}" y="${y}" fill="#d7ccc8" font-size="10" font-weight="700" text-anchor="middle" dominant-baseline="central">NEST</text>` : ''}
+                            ${isCenter ? `<text x="${x}" y="${y}" fill="#d7ccc8" font-size="${radius === 3 ? 12 : 10}" font-weight="700" text-anchor="middle" dominant-baseline="central">NEST</text>` : ''}
                         </g>
                     `;
 
@@ -401,14 +404,14 @@ export class Game {
     }
 
     renderFoodTileSvg(x, y, value, tileId, cellKey) {
-        const radius = 17;
+        const radius = (this.HEX_RADIUS === 3) ? 21 : 17;
         const isPurple = (value === 5);
         const bgClass = isPurple ? 'sg-tile-bg-purple' : 'sg-tile-bg-green';
 
         let innerContent = '';
         if (isPurple) {
             innerContent = `
-                <text x="${x}" y="${y}" class="sg-tile-text">5</text>
+                <text x="${x}" y="${y}" class="sg-tile-text" font-size="${this.HEX_RADIUS === 3 ? 17 : 15}">5</text>
             `;
         } else {
             // White pip fruit dots
@@ -424,8 +427,8 @@ export class Game {
     }
 
     renderPipsSvg(cx, cy, count) {
-        const pipR = 3;
-        const dist = 7;
+        const pipR = (this.HEX_RADIUS === 3) ? 3.8 : 3;
+        const dist = (this.HEX_RADIUS === 3) ? 9 : 7;
         let pips = '';
 
         if (count === 1) {
@@ -550,7 +553,7 @@ export class Game {
                     const marker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
                     marker.setAttribute('cx', x);
                     marker.setAttribute('cy', y);
-                    marker.setAttribute('r', '14');
+                    marker.setAttribute('r', (this.HEX_RADIUS === 3) ? '18' : '14');
                     marker.setAttribute('class', 'sg-landing-marker');
                     marker.setAttribute('fill', 'none');
                     marker.setAttribute('stroke', '#ffeb3b');

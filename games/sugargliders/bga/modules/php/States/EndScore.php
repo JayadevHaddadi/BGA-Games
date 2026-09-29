@@ -54,6 +54,27 @@ class EndScore extends GameState
             }
         }
 
+        $tieBreaker = (int) $this->globals->get('tie_breaker', 1);
+        $wonByTieBreaker = false;
+        if (count($winners) > 1 && $tieBreaker === 2) {
+            // Tie-breaker: most total food tiles collected
+            $maxTiles = -1;
+            $tieWinners = [];
+            foreach ($winners as $wId) {
+                $tCount = (int) Game::getUniqueValueFromDb("SELECT COUNT(*) FROM `board_tile` WHERE `location` = 'reserve' AND `player_id` = {$wId}");
+                if ($tCount > $maxTiles) {
+                    $maxTiles = $tCount;
+                    $tieWinners = [$wId];
+                } elseif ($tCount === $maxTiles) {
+                    $tieWinners[] = $wId;
+                }
+            }
+            if (count($tieWinners) === 1) {
+                $winners = $tieWinners;
+                $wonByTieBreaker = true;
+            }
+        }
+
         $turnCount = (int) $this->globals->get('turn_count', 1);
         $this->tableStats->set('turns_number', $turnCount);
 
@@ -71,7 +92,9 @@ class EndScore extends GameState
         $winnerString = implode(', ', $winnerNames);
 
         $msg = clienttranslate('Game over! ${player_name} wins with ${score} fruit points!');
-        if (count($winners) > 1) {
+        if ($wonByTieBreaker) {
+            $msg = clienttranslate('Game over! ${player_name} wins the tie-breaker by collecting more food tiles (${score} points)!');
+        } elseif (count($winners) > 1) {
             $msg = clienttranslate('Game over! It is a tie between ${player_name} with ${score} fruit points!');
         }
 
