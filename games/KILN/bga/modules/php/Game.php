@@ -736,6 +736,12 @@ class Game extends \Bga\GameFramework\Table
         return $placedCells;
     }
 
+    public function eraseWarehouseCell(int $playerId, int $wx, int $wy): array
+    {
+        static::DbQuery("UPDATE `player_warehouse` SET `filled` = 0 WHERE `player_id` = {$playerId} AND `wx` = {$wx} AND `wy` = {$wy}");
+        return $this->getPlayerWarehouse($playerId);
+    }
+
     /**
      * Check which complete rows and complete columns exist in warehouse
      */

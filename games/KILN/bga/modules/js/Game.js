@@ -242,24 +242,58 @@ class StatePlayerTurnPlaceShape {
         const shape = args.shape || [];
         const norm = args.normalized_shape || [];
         const validAnchors = args.valid_anchors || [];
+        const cannotFit = args.cannot_fit || validAnchors.length === 0;
 
         if (isCurrentPlayerActive) {
-            this.bga.statusBar.setTitle(_('${you} must place the tile shape into your warehouse (hover and click)'));
-            this.game.setupWarehousePlacement(norm, validAnchors);
+            if (cannotFit) {
+                const size = args.shape_size || shape.length || 0;
+                this.bga.statusBar.setTitle(
+                    _('${you}: largest group (${size} tiles) does not fit into your warehouse!').replace('${size}', size)
+                );
+                this.game.highlightCandidateGroups([shape]);
 
-            this.bga.statusBar.addActionButton(
-                _('Undo Push'),
-                () => this.game.onUndo(),
-                { color: 'alert' }
-            );
+                this.bga.statusBar.addActionButton(
+                    _('Skip Placement'),
+                    () => this.onSkipPlacement(),
+                    { color: 'primary' }
+                );
+
+                this.bga.statusBar.addActionButton(
+                    _('Undo Push'),
+                    () => this.game.onUndo(),
+                    { color: 'alert' }
+                );
+            } else {
+                this.bga.statusBar.setTitle(_('${you} must place the tile shape into your warehouse (hover and click)'));
+                this.game.setupWarehousePlacement(norm, validAnchors);
+
+                this.bga.statusBar.addActionButton(
+                    _('Undo Push'),
+                    () => this.game.onUndo(),
+                    { color: 'alert' }
+                );
+            }
         } else {
-            this.bga.statusBar.setTitle(_('${actplayer} is copying their shape into their warehouse'));
+            if (cannotFit) {
+                this.bga.statusBar.setTitle(_('${actplayer}\'s largest group does not fit into their warehouse'));
+            } else {
+                this.bga.statusBar.setTitle(_('${actplayer} is copying their shape into their warehouse'));
+            }
             this.game.clearWarehousePlacement();
+            this.game.clearKilnHighlights();
         }
+    }
+
+    onSkipPlacement() {
+        sounds.playClick();
+        this.game.clearActionButtons();
+        this.game.clearKilnHighlights();
+        this.bga.actions.performAction('actSkipPlacement', {});
     }
 
     onLeavingState(args, isCurrentPlayerActive) {
         this.game.clearWarehousePlacement();
+        this.game.clearKilnHighlights();
         this.game.clearActionButtons();
     }
 }
@@ -1217,6 +1251,7 @@ export class Game {
             dojo.subscribe('bonusSpaceLanded', this, 'notif_bonusSpaceLanded');
             dojo.subscribe('cellErased', this, 'notif_cellErased');
             dojo.subscribe('fixSkipped', this, 'notif_fixSkipped');
+            dojo.subscribe('groupCannotFit', this, 'notif_groupCannotFit');
         }
     }
 
@@ -1320,5 +1355,9 @@ export class Game {
 
     async notif_fixSkipped(notif) {
         // Notification logged in BGA status bar / chat log
+    }
+
+    async notif_groupCannotFit(notif) {
+        sounds.playReset();
     }
 }

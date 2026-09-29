@@ -78,51 +78,14 @@ class PlayerTurn extends GameState
             return $this->resolveAfterPlacementSkipped($activePlayerId);
         }
 
-        $fittableGroups = [];
-        foreach ($largestGroups as $g) {
-            $anchors = $this->game->getValidPlacementAnchors($activePlayerId, $g);
-            if (!empty($anchors)) {
-                $fittableGroups[] = $g;
-            }
-        }
-
-        if (empty($fittableGroups)) {
-            // Cannot fit largest group anywhere in warehouse: skip placement!
-            $groupSize = count($largestGroups[0]);
-            $this->notify->all('groupCannotFit', clienttranslate('${player_name}\'s largest group (${size} tiles) does not fit into their warehouse and is skipped.'), [
-                'player_id' => $activePlayerId,
-                'player_name' => $this->game->getPlayerNameById($activePlayerId),
-                'size' => $groupSize,
-            ]);
-
-            $variantFixMess = (int) $this->game->globals->get('variant_fixing_mess', 0);
-            if ($variantFixMess === 1) {
-                $warehouse = $this->game->getPlayerWarehouse($activePlayerId);
-                $hasFilled = false;
-                for ($wy = 0; $wy < Game::WAREHOUSE_SIZE; $wy++) {
-                    for ($wx = 0; $wx < Game::WAREHOUSE_SIZE; $wx++) {
-                        if ($warehouse[$wy][$wx] === 1) {
-                            $hasFilled = true;
-                            break 2;
-                        }
-                    }
-                }
-                if ($hasFilled) {
-                    return PlayerTurnFixMess::class;
-                }
-            }
-
-            return $this->resolveAfterPlacementSkipped($activePlayerId);
-        }
-
-        if (count($fittableGroups) === 1) {
-            // Single candidate group: auto-select and proceed to placement
-            $this->game->globals->set('selected_group', $fittableGroups[0]);
+        if (count($largestGroups) === 1) {
+            // Single candidate group: proceed to placement (PlayerTurnPlaceShape handles Undo or Skip if it cannot fit)
+            $this->game->globals->set('selected_group', $largestGroups[0]);
             return PlayerTurnPlaceShape::class;
         }
 
         // Multiple tied groups: player chooses which one to copy
-        $this->game->globals->set('candidate_groups', $fittableGroups);
+        $this->game->globals->set('candidate_groups', $largestGroups);
         return PlayerTurnSelectGroup::class;
     }
 
