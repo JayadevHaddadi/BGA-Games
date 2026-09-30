@@ -35,10 +35,10 @@ TARGET_MAP = {
     "kiln": ("games/KILN/bga", "kiln"),
     "sugargliders": ("games/sugargliders/bga", "sugargliders"),
     "sugargliderstest": ("games/sugargliders/bga", "sugargliders"),
-    "gardensofuranus": ("games/gardensofuranus/bga", "gardensofuranustest"),
-    "gardensofuranustest": ("games/gardensofuranus/bga", "gardensofuranustest"),
-    "nestorgamesgp": ("games/nestorgamesgp/bga", "nestorgamesgptest"),
-    "nestorgamesgptest": ("games/nestorgamesgp/bga", "nestorgamesgptest"),
+    "gardensofuranus": ("games/gardensofuranus/bga", "gardensofuranus"),
+    "gardensofuranustest": ("games/gardensofuranus/bga", "gardensofuranus"),
+    "nestorgamesgp": ("games/nestorgamesgp/bga", "nestorgamesgp"),
+    "nestorgamesgptest": ("games/nestorgamesgp/bga", "nestorgamesgp"),
 }
 
 def load_credentials():
