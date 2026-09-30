@@ -149,10 +149,9 @@ class PlayerTurn extends GameState
     }
 
     #[PossibleAction]
-    public function actStop(mixed $useShortcut = false): string
+    public function actStop(bool $useShortcut = false): string
     {
         $activePlayerId = (int) $this->game->getActivePlayerId();
-        $useShortcut = filter_var($useShortcut, FILTER_VALIDATE_BOOLEAN);
         $rolledDice = $this->globals->get('current_roll_dice', []);
         if (empty($rolledDice)) {
             throw new UserException(clienttranslate("You must roll at least one die before moving."));
