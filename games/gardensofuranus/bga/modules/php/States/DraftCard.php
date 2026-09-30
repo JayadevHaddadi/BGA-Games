@@ -30,18 +30,20 @@ class DraftCard extends GameState
     public function getArgs(): array
     {
         $round = (int) $this->globals->get('draft_round', 1);
-        $playerId = $this->game->getCurrentPlayerId(true);
-
-        $draftCards = [];
-        if ($playerId !== null) {
-            $draftCards = $this->game->getObjectListFromDb(
-                "SELECT `card_id`, `card_type`, `color1`, `color2` FROM `card` WHERE `card_location` = 'draft_hand' AND `location_arg` = " . (int)$playerId
+        $playerIds = array_keys($this->game->loadPlayersBasicInfos());
+        $privateData = [];
+        foreach ($playerIds as $pId) {
+            $cards = $this->game->getObjectListFromDb(
+                "SELECT `card_id`, `card_type`, `color1`, `color2` FROM `card` WHERE `card_location` = 'draft_hand' AND `location_arg` = " . (int)$pId
             );
+            $privateData[$pId] = [
+                'draft_cards' => $cards,
+            ];
         }
 
         return [
             'round' => $round,
-            'draft_cards' => $draftCards,
+            '_private' => $privateData,
         ];
     }
 
@@ -55,7 +57,7 @@ class DraftCard extends GameState
         $playerId = (int) $playerId;
 
         $card = $this->game->getObjectFromDb(
-            "SELECT `card_id` FROM `card` WHERE `card_id` = $cardId AND `card_location` = 'draft_hand' AND `location_arg` = $playerId"
+            "SELECT `card_id` FROM `card` WHERE `card_id` = " . (int)$cardId . " AND `card_location` = 'draft_hand' AND `location_arg` = " . (int)$playerId
         );
         if (!$card) {
             throw new UserException(clienttranslate("Invalid card choice."));
@@ -63,8 +65,14 @@ class DraftCard extends GameState
 
         // Keep card in player hand
         $this->game->DbQuery(
-            "UPDATE `card` SET `card_location` = 'hand' WHERE `card_id` = $cardId"
+            "UPDATE `card` SET `card_location` = 'hand' WHERE `card_id` = " . (int)$cardId
         );
+
+        $this->game->notifyAllPlayers("cardDrafted", clienttranslate('${player_name} chose a card.'), [
+            'player_id' => $playerId,
+            'player_name' => $this->game->getPlayerNameById($playerId),
+            'round' => (int) $this->globals->get('draft_round', 1),
+        ]);
 
         $this->gamestate->setPlayerNonMultiactive($playerId, '');
 
@@ -90,6 +98,9 @@ class DraftCard extends GameState
                 );
 
                 $this->globals->set('draft_round', $round + 1);
+                $this->game->notifyAllPlayers("draftRoundStarted", clienttranslate('Draft Round ${round}: Remaining cards passed to the next player!'), [
+                    'round' => $round + 1,
+                ]);
                 $this->gamestate->setAllPlayersMultiactive();
                 return self::class;
             } else {

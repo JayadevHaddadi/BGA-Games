@@ -222,16 +222,72 @@ export class Game {
     }
 
     axialToPixel(q, r) {
-        // Hexagonal axial coordinates to Board 1 pixel coordinates
-        // Center is (350, 508)
-        const centerX = 350;
-        const centerY = 508;
-        const stepX = 58.4;
-        const stepY = 33.7;
+        const boardType = parseInt(this.gamedatas?.board_type) || 1;
+        if (boardType === 1) {
+            // Hexagonal board: 61 spots, pointy-topped centered at (349.5, 506.5)
+            const centerX = 349.5;
+            const centerY = 506.5;
+            const stepX = 58.0;
+            const stepY = 33.5;
+            const x = centerX + q * stepX;
+            const y = centerY + (2 * r + q) * stepY;
+            return { x: Math.round(x), y: Math.round(y) };
+        } else if (boardType === 3) {
+            // Rhombus:
+            const startX = 140;
+            const startY = 240;
+            const stepX = 52.0;
+            const stepY = 60.0;
+            const x = startX + q * stepX + r * (stepX * 0.5);
+            const y = startY + r * stepY;
+            return { x: Math.round(x), y: Math.round(y) };
+        } else {
+            // Trapezoid:
+            const startX = 150;
+            const startY = 220;
+            const stepX = 48.0;
+            const stepY = 56.0;
+            const x = startX + q * stepX;
+            const y = startY + r * stepY;
+            return { x: Math.round(x), y: Math.round(y) };
+        }
+    }
 
-        const x = centerX + q * stepX + (r * stepX * 0.5);
-        const y = centerY + r * (stepY * 1.732);
-        return { x: Math.round(x), y: Math.round(y) };
+    getCardInfo(cardId) {
+        const id = parseInt(cardId);
+        if (this.gamedatas?.mission_deck?.[id]) {
+            return this.gamedatas.mission_deck[id];
+        }
+        return {
+            name: _('Mission Card #') + id,
+            desc: _('Complete the flower pattern to score points.')
+        };
+    }
+
+    createCardElement(card, options = {}) {
+        const id = parseInt(card.card_id);
+        const info = this.getCardInfo(id);
+        const themeUrl = typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : '';
+        const cardEl = document.createElement('div');
+        cardEl.className = 'gou_card' + (options.selected ? ' selected' : '');
+        cardEl.dataset.cardId = id;
+        cardEl.title = `${info.name}: ${info.desc}`;
+
+        cardEl.innerHTML = `
+            <img src="${themeUrl}img/cards/card_${id}.jpg" alt="${info.name}">
+            <div class="gou_card_desc_bar">${info.name}</div>
+        `;
+
+        if (this.bga?.tooltips?.add) {
+            this.bga.tooltips.add(cardEl, `
+                <div class="gou_card_tooltip">
+                    <div class="gou_card_tooltip_title">${info.name}</div>
+                    <div class="gou_card_tooltip_desc">${info.desc}</div>
+                </div>
+            `);
+        }
+
+        return cardEl;
     }
 
     renderSpots() {
@@ -313,14 +369,8 @@ export class Game {
         if (!container || !this.gamedatas.hand_cards) return;
 
         container.innerHTML = '';
-        const themeUrl = typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : '';
         this.gamedatas.hand_cards.forEach(card => {
-            const cardEl = document.createElement('div');
-            cardEl.className = 'gou_card';
-            cardEl.dataset.cardId = card.card_id;
-            cardEl.innerHTML = `
-                <img src="${themeUrl}img/cards/card_${card.card_id}.jpg" alt="${card.card_type}" style="width:100%; height:100%; border-radius:8px; display:block; object-fit:cover;">
-            `;
+            const cardEl = this.createCardElement(card);
             cardEl.addEventListener('click', () => this.onCardClicked(card.card_id));
             container.appendChild(cardEl);
         });
@@ -329,29 +379,68 @@ export class Game {
     updateDraftUI(args) {
         if (!this.isCurrentPlayerActive()) {
             this.bga?.statusBar?.setTitle?.(_('Draft Phase: Waiting for other players to choose a card...'));
+            if (this.bga?.statusBar?.clearActionButtons) {
+                this.bga.statusBar.clearActionButtons();
+            }
             return;
         }
-        this.bga?.statusBar?.setTitle?.(_('Draft Phase: Choose 1 mission card to keep in your hand'));
+
+        const cards = args?.draft_cards || this.gamedatas?.draft_cards || [];
+        if (!cards.length) {
+            this.bga?.statusBar?.setTitle?.(_('Draft Phase: Card chosen! Waiting for other players...'));
+            if (this.bga?.statusBar?.clearActionButtons) {
+                this.bga.statusBar.clearActionButtons();
+            }
+            return;
+        }
+
+        // Default selection to first card or keep existing selection
+        if (!this.selectedCardId || !cards.some(c => parseInt(c.card_id) === parseInt(this.selectedCardId))) {
+            this.selectedCardId = cards[0].card_id;
+        }
+
+        const selectedInfo = this.getCardInfo(this.selectedCardId);
+        this.bga?.statusBar?.setTitle?.(
+            _('Draft Phase: Selected "${card_name}" — ${card_desc}'),
+            {
+                card_name: selectedInfo.name,
+                card_desc: selectedInfo.desc
+            }
+        );
+
+        if (this.bga?.statusBar?.clearActionButtons) {
+            this.bga.statusBar.clearActionButtons();
+        }
+        this.bga?.statusBar?.addActionButton?.(
+            _('Keep Selected Card'),
+            () => {
+                if (this.selectedCardId) {
+                    sounds.playClick();
+                    this.bga.actions.performAction('actKeepCard', { cardId: parseInt(this.selectedCardId) });
+                }
+            },
+            { color: 'primary' }
+        );
 
         const container = document.getElementById('gou_cards_container');
         if (!container) return;
         container.innerHTML = '';
-        const themeUrl = typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : '';
-        const cards = args?.draft_cards || [];
+
         cards.forEach(card => {
-            const cardEl = document.createElement('div');
-            cardEl.className = 'gou_card';
-            cardEl.dataset.cardId = card.card_id;
-            cardEl.style.cursor = 'pointer';
-            cardEl.innerHTML = `
-                <img src="${themeUrl}img/cards/card_${card.card_id}.jpg" alt="${card.card_type}" style="width:100%; height:100%; border-radius:8px; display:block; object-fit:cover;">
-                <div style="text-align:center; margin-top:6px;">
-                    <button class="bgabutton bgabutton_blue" style="padding:4px 10px; font-size:12px; font-weight:700; border-radius:12px; cursor:pointer;">Keep</button>
-                </div>
-            `;
+            const isSelected = parseInt(card.card_id) === parseInt(this.selectedCardId);
+            const cardEl = this.createCardElement(card, { selected: isSelected });
+
             cardEl.addEventListener('click', () => {
-                this.bga.actions.performAction('actKeepCard', { cardId: card.card_id });
+                sounds.playClick();
+                if (parseInt(this.selectedCardId) === parseInt(card.card_id)) {
+                    // Clicking already selected card confirms
+                    this.bga.actions.performAction('actKeepCard', { cardId: parseInt(card.card_id) });
+                } else {
+                    this.selectedCardId = card.card_id;
+                    this.updateDraftUI(args);
+                }
             });
+
             container.appendChild(cardEl);
         });
     }
@@ -461,6 +550,8 @@ export class Game {
             dojo.subscribe('treeNuked', this, 'notif_treeNuked');
             dojo.subscribe('gardenerTeleported', this, 'notif_gardenerTeleported');
             dojo.subscribe('flowersSwapped', this, 'notif_flowersSwapped');
+            dojo.subscribe('cardDrafted', this, 'notif_cardDrafted');
+            dojo.subscribe('draftRoundStarted', this, 'notif_draftRoundStarted');
         } else if (typeof this.bga?.notifications?.subscribe === 'function') {
             this.bga.notifications.subscribe('gardenerMoved', (notif) => this.notif_gardenerMoved(notif));
             this.bga.notifications.subscribe('missionScored', (notif) => this.notif_missionScored(notif));
@@ -468,7 +559,26 @@ export class Game {
             this.bga.notifications.subscribe('treeNuked', (notif) => this.notif_treeNuked(notif));
             this.bga.notifications.subscribe('gardenerTeleported', (notif) => this.notif_gardenerTeleported(notif));
             this.bga.notifications.subscribe('flowersSwapped', (notif) => this.notif_flowersSwapped(notif));
+            this.bga.notifications.subscribe('cardDrafted', (notif) => this.notif_cardDrafted(notif));
+            this.bga.notifications.subscribe('draftRoundStarted', (notif) => this.notif_draftRoundStarted(notif));
         }
+    }
+
+    notif_cardDrafted(notif) {
+        sounds.playClick();
+        const args = this._getNotifArgs(notif);
+        const myId = this.bga?.players?.getCurrentPlayerId?.() || 0;
+        if (parseInt(args.player_id) === parseInt(myId)) {
+            this.bga?.statusBar?.setTitle?.(_('Mission card selected! Waiting for other players...'));
+            if (this.bga?.statusBar?.clearActionButtons) {
+                this.bga.statusBar.clearActionButtons();
+            }
+        }
+    }
+
+    notif_draftRoundStarted(notif) {
+        sounds.playMove();
+        this.selectedCardId = null;
     }
 
     notif_gardenerMoved(notif) {

@@ -949,51 +949,68 @@ class Game extends \Bga\GameFramework\Table
 
         $currentPlayerId = $this->getCurrentPlayerId(true);
         $result['hand_cards'] = ($currentPlayerId !== null) ? $this->getPlayerCards((int)$currentPlayerId) : [];
+        $result['draft_cards'] = ($currentPlayerId !== null) ? static::getObjectListFromDb(
+            "SELECT `card_id`, `card_type`, `color1`, `color2` FROM `card` WHERE `card_location` = 'draft_hand' AND `location_arg` = " . (int)$currentPlayerId
+        ) : [];
         $result['board_decks'] = $this->getBoardDecks();
         $result['special_powers'] = (int) $this->globals->get('special_powers', 1);
+        $result['mission_deck'] = $this->getMissionDeckWithDescriptions();
 
         return $result;
     }
 
-    public function getMissionDeck(): array
+    public function getMissionDeckWithDescriptions(): array
     {
         return [
-            1 => ['type' => 'ADJACENT_PAIRS', 'color1' => 'blue', 'color2' => 'red'],
-            2 => ['type' => 'TRIANGLE', 'color1' => 'blue'],
-            3 => ['type' => 'BIGGEST_GROUP', 'color1' => 'blue'],
-            4 => ['type' => 'GROUP_COUNT', 'color1' => 'red'],
-            5 => ['type' => 'ADJACENT_PAIRS', 'color1' => 'yellow', 'color2' => 'red'],
-            6 => ['type' => 'TRIANGLE', 'color1' => 'green'],
-            7 => ['type' => 'STRAIGHT_LINE', 'color1' => 'blue'],
-            8 => ['type' => 'GROUP_COUNT', 'color1' => 'yellow'],
-            9 => ['type' => 'ADJACENT_PAIRS', 'color1' => 'yellow', 'color2' => 'purple'],
-            10 => ['type' => 'EDGE_OR_TREE', 'color1' => 'green'],
-            11 => ['type' => 'STRAIGHT_LINE', 'color1' => 'red'],
-            12 => ['type' => 'GROUP_COUNT', 'color1' => 'blue'],
-            13 => ['type' => 'ADJACENT_PAIRS', 'color1' => 'green', 'color2' => 'purple'],
-            14 => ['type' => 'EDGE_OR_TREE', 'color1' => 'red'],
-            15 => ['type' => 'STRAIGHT_LINE', 'color1' => 'yellow'],
-            16 => ['type' => 'GROUP_COUNT', 'color1' => 'green'],
-            17 => ['type' => 'ADJACENT_PAIRS', 'color1' => 'blue', 'color2' => 'purple'],
-            18 => ['type' => 'EDGE_OR_TREE', 'color1' => 'blue'],
-            19 => ['type' => 'STRAIGHT_LINE', 'color1' => 'green'],
-            20 => ['type' => 'GROUP_COUNT', 'color1' => 'purple'],
-            21 => ['type' => 'ADJACENT_PAIRS', 'color1' => 'blue', 'color2' => 'yellow'],
-            22 => ['type' => 'EDGE_OR_TREE', 'color1' => 'yellow'],
-            23 => ['type' => 'STRAIGHT_LINE', 'color1' => 'purple'],
-            24 => ['type' => 'BIGGEST_GROUP', 'color1' => 'purple'],
-            25 => ['type' => 'ADJACENT_PAIRS', 'color1' => 'green', 'color2' => 'yellow'],
-            26 => ['type' => 'EDGE_OR_TREE', 'color1' => 'purple'],
-            27 => ['type' => 'TRIANGLE', 'color1' => 'purple'],
-            28 => ['type' => 'BIGGEST_GROUP', 'color1' => 'yellow'],
-            29 => ['type' => 'ADJACENT_PAIRS', 'color1' => 'green', 'color2' => 'blue'],
-            30 => ['type' => 'ADJACENT_PAIRS', 'color1' => 'purple', 'color2' => 'red'],
-            31 => ['type' => 'TRIANGLE', 'color1' => 'yellow'],
-            32 => ['type' => 'BIGGEST_GROUP', 'color1' => 'green'],
-            33 => ['type' => 'HEXAGON', 'color1' => 'any'],
-            34 => ['type' => 'ADJACENT_PAIRS', 'color1' => 'green', 'color2' => 'red'],
-            35 => ['type' => 'TRIANGLE', 'color1' => 'red'],
-            36 => ['type' => 'BIGGEST_GROUP', 'color1' => 'red'],
+            1 => ['type' => 'ADJACENT_PAIRS', 'color1' => 'blue', 'color2' => 'red', 'name' => clienttranslate('Adjacent Pairs: Blue & Red'), 'desc' => clienttranslate('Score 1 point for every connection between adjacent Blue and Red flowers.')],
+            2 => ['type' => 'TRIANGLE', 'color1' => 'blue', 'name' => clienttranslate('Equilateral Triangle: Blue'), 'desc' => clienttranslate('Score 1 point per spot on one side of the largest equilateral triangle of Blue flowers.')],
+            3 => ['type' => 'GROUP_COUNT', 'color1' => 'blue', 'name' => clienttranslate('Group Count: Blue'), 'desc' => clienttranslate('Score 1 point for every separate group of Blue flowers (including isolated ones).')],
+            4 => ['type' => 'BIGGEST_GROUP', 'color1' => 'red', 'name' => clienttranslate('Biggest Group: Red'), 'desc' => clienttranslate('Score 1 point for every flower in the largest group of Red flowers.')],
+            5 => ['type' => 'ADJACENT_PAIRS', 'color1' => 'yellow', 'color2' => 'red', 'name' => clienttranslate('Adjacent Pairs: Yellow & Red'), 'desc' => clienttranslate('Score 1 point for every connection between adjacent Yellow and Red flowers.')],
+            6 => ['type' => 'TRIANGLE', 'color1' => 'green', 'name' => clienttranslate('Equilateral Triangle: Green'), 'desc' => clienttranslate('Score 1 point per spot on one side of the largest equilateral triangle of Green flowers.')],
+            7 => ['type' => 'STRAIGHT_LINE', 'color1' => 'blue', 'name' => clienttranslate('Straight Line: Blue'), 'desc' => clienttranslate('Score 2 points for every Blue flower in the longest straight line beyond the first (2 × (L - 1)).')],
+            8 => ['type' => 'BIGGEST_GROUP', 'color1' => 'yellow', 'name' => clienttranslate('Biggest Group: Yellow'), 'desc' => clienttranslate('Score 1 point for every flower in the largest group of Yellow flowers.')],
+            9 => ['type' => 'ADJACENT_PAIRS', 'color1' => 'yellow', 'color2' => 'purple', 'name' => clienttranslate('Adjacent Pairs: Yellow & Purple'), 'desc' => clienttranslate('Score 1 point for every connection between adjacent Yellow and Purple flowers.')],
+            10 => ['type' => 'EDGE_OR_TREE', 'color1' => 'green', 'name' => clienttranslate('Edge or Tree: Green'), 'desc' => clienttranslate('Score 1 point for every Green flower on the edge of the grid or adjacent to a tree.')],
+            11 => ['type' => 'STRAIGHT_LINE', 'color1' => 'red', 'name' => clienttranslate('Straight Line: Red'), 'desc' => clienttranslate('Score 2 points for every Red flower in the longest straight line beyond the first (2 × (L - 1)).')],
+            12 => ['type' => 'BIGGEST_GROUP', 'color1' => 'blue', 'name' => clienttranslate('Biggest Group: Blue'), 'desc' => clienttranslate('Score 1 point for every flower in the largest group of Blue flowers.')],
+            13 => ['type' => 'ADJACENT_PAIRS', 'color1' => 'green', 'color2' => 'purple', 'name' => clienttranslate('Adjacent Pairs: Green & Purple'), 'desc' => clienttranslate('Score 1 point for every connection between adjacent Green and Purple flowers.')],
+            14 => ['type' => 'EDGE_OR_TREE', 'color1' => 'red', 'name' => clienttranslate('Edge or Tree: Red'), 'desc' => clienttranslate('Score 1 point for every Red flower on the edge of the grid or adjacent to a tree.')],
+            15 => ['type' => 'STRAIGHT_LINE', 'color1' => 'yellow', 'name' => clienttranslate('Straight Line: Yellow'), 'desc' => clienttranslate('Score 2 points for every Yellow flower in the longest straight line beyond the first (2 × (L - 1)).')],
+            16 => ['type' => 'BIGGEST_GROUP', 'color1' => 'green', 'name' => clienttranslate('Biggest Group: Green'), 'desc' => clienttranslate('Score 1 point for every flower in the largest group of Green flowers.')],
+            17 => ['type' => 'ADJACENT_PAIRS', 'color1' => 'blue', 'color2' => 'purple', 'name' => clienttranslate('Adjacent Pairs: Blue & Purple'), 'desc' => clienttranslate('Score 1 point for every connection between adjacent Blue and Purple flowers.')],
+            18 => ['type' => 'EDGE_OR_TREE', 'color1' => 'blue', 'name' => clienttranslate('Edge or Tree: Blue'), 'desc' => clienttranslate('Score 1 point for every Blue flower on the edge of the grid or adjacent to a tree.')],
+            19 => ['type' => 'STRAIGHT_LINE', 'color1' => 'green', 'name' => clienttranslate('Straight Line: Green'), 'desc' => clienttranslate('Score 2 points for every Green flower in the longest straight line beyond the first (2 × (L - 1)).')],
+            20 => ['type' => 'BIGGEST_GROUP', 'color1' => 'purple', 'name' => clienttranslate('Biggest Group: Purple'), 'desc' => clienttranslate('Score 1 point for every flower in the largest group of Purple flowers.')],
+            21 => ['type' => 'ADJACENT_PAIRS', 'color1' => 'blue', 'color2' => 'yellow', 'name' => clienttranslate('Adjacent Pairs: Blue & Yellow'), 'desc' => clienttranslate('Score 1 point for every connection between adjacent Blue and Yellow flowers.')],
+            22 => ['type' => 'EDGE_OR_TREE', 'color1' => 'yellow', 'name' => clienttranslate('Edge or Tree: Yellow'), 'desc' => clienttranslate('Score 1 point for every Yellow flower on the edge of the grid or adjacent to a tree.')],
+            23 => ['type' => 'STRAIGHT_LINE', 'color1' => 'purple', 'name' => clienttranslate('Straight Line: Purple'), 'desc' => clienttranslate('Score 2 points for every Purple flower in the longest straight line beyond the first (2 × (L - 1)).')],
+            24 => ['type' => 'GROUP_COUNT', 'color1' => 'purple', 'name' => clienttranslate('Group Count: Purple'), 'desc' => clienttranslate('Score 1 point for every separate group of Purple flowers (including isolated ones).')],
+            25 => ['type' => 'ADJACENT_PAIRS', 'color1' => 'green', 'color2' => 'yellow', 'name' => clienttranslate('Adjacent Pairs: Green & Yellow'), 'desc' => clienttranslate('Score 1 point for every connection between adjacent Green and Yellow flowers.')],
+            26 => ['type' => 'EDGE_OR_TREE', 'color1' => 'purple', 'name' => clienttranslate('Edge or Tree: Purple'), 'desc' => clienttranslate('Score 1 point for every Purple flower on the edge of the grid or adjacent to a tree.')],
+            27 => ['type' => 'TRIANGLE', 'color1' => 'purple', 'name' => clienttranslate('Equilateral Triangle: Purple'), 'desc' => clienttranslate('Score 1 point per spot on one side of the largest equilateral triangle of Purple flowers.')],
+            28 => ['type' => 'GROUP_COUNT', 'color1' => 'yellow', 'name' => clienttranslate('Group Count: Yellow'), 'desc' => clienttranslate('Score 1 point for every separate group of Yellow flowers (including isolated ones).')],
+            29 => ['type' => 'ADJACENT_PAIRS', 'color1' => 'green', 'color2' => 'blue', 'name' => clienttranslate('Adjacent Pairs: Green & Blue'), 'desc' => clienttranslate('Score 1 point for every connection between adjacent Green and Blue flowers.')],
+            30 => ['type' => 'ADJACENT_PAIRS', 'color1' => 'purple', 'color2' => 'red', 'name' => clienttranslate('Adjacent Pairs: Purple & Red'), 'desc' => clienttranslate('Score 1 point for every connection between adjacent Purple and Red flowers.')],
+            31 => ['type' => 'TRIANGLE', 'color1' => 'yellow', 'name' => clienttranslate('Equilateral Triangle: Yellow'), 'desc' => clienttranslate('Score 1 point per spot on one side of the largest equilateral triangle of Yellow flowers.')],
+            32 => ['type' => 'GROUP_COUNT', 'color1' => 'green', 'name' => clienttranslate('Group Count: Green'), 'desc' => clienttranslate('Score 1 point for every separate group of Green flowers (including isolated ones).')],
+            33 => ['type' => 'HEXAGON', 'color1' => 'any', 'name' => clienttranslate('Instant Win: Hexagon'), 'desc' => clienttranslate('Instant Win! If 6 flowers of any single color are placed on the 6 corners of a regular hexagon, you instantly win.')],
+            34 => ['type' => 'ADJACENT_PAIRS', 'color1' => 'green', 'color2' => 'red', 'name' => clienttranslate('Adjacent Pairs: Green & Red'), 'desc' => clienttranslate('Score 1 point for every connection between adjacent Green and Red flowers.')],
+            35 => ['type' => 'TRIANGLE', 'color1' => 'red', 'name' => clienttranslate('Equilateral Triangle: Red'), 'desc' => clienttranslate('Score 1 point per spot on one side of the largest equilateral triangle of Red flowers.')],
+            36 => ['type' => 'GROUP_COUNT', 'color1' => 'red', 'name' => clienttranslate('Group Count: Red'), 'desc' => clienttranslate('Score 1 point for every separate group of Red flowers (including isolated ones).')],
         ];
+    }
+
+    public function getMissionDeck(): array
+    {
+        $deck = [];
+        foreach ($this->getMissionDeckWithDescriptions() as $id => $data) {
+            $deck[$id] = [
+                'type' => $data['type'],
+                'color1' => $data['color1'],
+                'color2' => $data['color2'] ?? null,
+            ];
+        }
+        return $deck;
     }
 }
