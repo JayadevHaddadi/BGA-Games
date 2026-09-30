@@ -168,6 +168,20 @@ class RetroAudioController {
             setTimeout(() => this.playTone(freq, 'triangle', 0.12, 0.10), idx * 80);
         });
     }
+
+    playSadBust() {
+        const notes = [
+            { f: 330, d: 0.14 },
+            { f: 311, d: 0.14 },
+            { f: 293, d: 0.14 },
+            { f: 260, d: 0.35 }
+        ];
+        let delay = 0;
+        notes.forEach(({ f, d }) => {
+            setTimeout(() => this.playTone(f, 'sawtooth', d, 0.08), delay);
+            delay += Math.round(d * 1000) + 20;
+        });
+    }
 }
 
 class QualifyingTurnState {
@@ -205,15 +219,15 @@ class QualifyingTurnState {
                 );
 
                 if (diceLeft > 0) {
-                    this.game.addActionButton('btnRollQualAgain', _('🎲 Roll Again') + ` (${diceLeft} left)`, () => {
+                    this.game.addActionButton('btnRollQualAgain', _('⚠️ Push Luck: Roll Again') + ` (${diceLeft} left)`, () => {
                         this.game.sound.playRoll();
                         this.bga.actions.performAction('actRoll', {});
-                    }, 'primary');
+                    }, 'alert');
                 }
 
                 this.game.addActionButton('btnStopQual', _('🛑 Stop & Lock') + ` (${score} pts)`, () => {
                     this.bga.actions.performAction('actStop', {});
-                }, 'alert');
+                }, 'primary');
             }
         } else {
             this.bga.statusBar.setTitle(_('${actplayer} is rolling for qualifying position...'));
@@ -297,10 +311,10 @@ class PlayerTurnState {
 
                 const diceLeft = args?.dice_remaining ?? 0;
                 if (diceLeft > 0) {
-                    this.game.addActionButton('btnRollMore', _('🎲 Push Luck: Roll Again') + ` (${diceLeft} left)`, () => {
+                    this.game.addActionButton('btnRollMore', _('⚠️ Push Luck: Roll Again') + ` (${diceLeft} left)`, () => {
                         this.game.sound.playRoll();
                         this.bga.actions.performAction('actRoll', {});
-                    }, 'secondary');
+                    }, 'alert');
                 }
 
                 const driveLabel = currentMp === 1
@@ -854,6 +868,19 @@ export class Game {
         setTimeout(() => flash.remove(), 1000);
     }
 
+    spawnBustBadge(spaceId, text, type = 'bust') {
+        const layer = document.getElementById('gp_highlights_layer');
+        if (!layer) return;
+        const coords = this.getSpaceCoordinates(spaceId) || { x: 450, y: 220 };
+        const badge = document.createElement('div');
+        badge.className = `gp_bust_badge gp_bust_${type}`;
+        badge.style.left = `${coords.x}px`;
+        badge.style.top = `${coords.y}px`;
+        badge.innerHTML = text;
+        layer.appendChild(badge);
+        setTimeout(() => badge.remove(), 1600);
+    }
+
     async animateCarDrive(playerId, steps, finalSpace, racerData) {
         const carEl = document.getElementById(`gp_car_${playerId}`);
         if (!carEl) {
@@ -1029,9 +1056,20 @@ export class Game {
     notif_qualifyingBust(notif) {
         const args = this._getNotifArgs(notif);
         this.clearHighlights();
-        this.sound.playCrash();
+        this.sound.playSadBust();
         this.renderDiceTray(args.all_dice);
         this.clearActionButtons();
+
+        const pId = args.player_id;
+        const racer = this.racers?.[pId];
+        const spaceId = racer?.space_id ?? 74;
+        this.spawnBustBadge(spaceId, '😭 BUSTED! (0 pts)', 'bust');
+
+        const carEl = document.getElementById(`gp_car_${pId}`);
+        if (carEl) {
+            carEl.classList.add('gp_car_sad_wobble');
+            setTimeout(() => carEl.classList.remove('gp_car_sad_wobble'), 950);
+        }
     }
 
     notif_qualifyingFinished(notif) {
@@ -1083,9 +1121,19 @@ export class Game {
         if (args.racer && this.racers) {
             this.racers[args.player_id] = args.racer;
         }
+
+        const pId = args.player_id;
+        const racer = this.racers?.[pId];
+        const spaceId = racer?.space_id ?? 1;
+        this.spawnBustBadge(spaceId, '💥 CRASH! -1 🎲', 'crash');
+
         const carEl = document.getElementById(`gp_car_${args.player_id}`);
         if (carEl) {
-            carEl.classList.add('gp_belly_up');
+            carEl.classList.add('gp_car_crashing');
+            setTimeout(() => {
+                carEl.classList.remove('gp_car_crashing');
+                carEl.classList.add('gp_belly_up');
+            }, 450);
         }
         this.clearActionButtons();
     }
@@ -1093,9 +1141,20 @@ export class Game {
     notif_raceStall(notif) {
         const args = this._getNotifArgs(notif);
         this.clearHighlights();
-        this.sound.playScreech();
+        this.sound.playSadBust();
         this.renderDiceTray(args.all_dice);
         this.clearActionButtons();
+
+        const pId = args.player_id;
+        const racer = this.racers?.[pId];
+        const spaceId = racer?.space_id ?? 1;
+        this.spawnBustBadge(spaceId, '💨 STALLED! 😵', 'stall');
+
+        const carEl = document.getElementById(`gp_car_${pId}`);
+        if (carEl) {
+            carEl.classList.add('gp_car_sad_wobble');
+            setTimeout(() => carEl.classList.remove('gp_car_sad_wobble'), 950);
+        }
     }
 
     async notif_carMoved(notif) {

@@ -57,6 +57,7 @@
     width: 34px;
     height: 34px;
     pointer-events: none;
+    border-radius: 50%;
     transition: left 0.35s ease,
                 top 0.35s ease,
                 transform 0.30s ease;
@@ -66,14 +67,17 @@
 .gp_car_svg {
     width: 100%;
     height: 100%;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45));
 }
 
 /* 🏎️ Active Driving State */
 .gp_car.gp_driving {
     z-index: 35 !important;
-    filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.75)) brightness(1.15);
     animation: gp_drive_wobble 0.12s infinite alternate;
+}
+
+.gp_car.gp_driving .gp_car_svg {
+    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.55)) brightness(1.12);
 }
 
 @keyframes gp_drive_wobble {
@@ -362,6 +366,61 @@
 @keyframes gp_die_appear {
     0% { transform: scale(0.3) rotate(-20deg); opacity: 0; }
     100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+/* 😭 Cute Sad Bust & Stall Badges */
+.gp_bust_badge {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    background: rgba(220, 20, 60, 0.95);
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 900;
+    padding: 4px 12px;
+    border-radius: 14px;
+    border: 2px solid #ffffff;
+    box-shadow: 0 4px 12px rgba(220, 20, 60, 0.7);
+    pointer-events: none;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    animation: gp_bust_float 1.6s ease-out forwards;
+}
+
+.gp_bust_badge.gp_bust_stall {
+    background: rgba(255, 140, 0, 0.95);
+    box-shadow: 0 4px 12px rgba(255, 140, 0, 0.7);
+}
+
+.gp_bust_badge.gp_bust_crash {
+    background: rgba(183, 28, 28, 0.98);
+    box-shadow: 0 4px 16px rgba(255, 23, 68, 0.85);
+    border-color: #ff5252;
+}
+
+@keyframes gp_bust_float {
+    0% { opacity: 0; transform: translate(-50%, -20%) scale(0.5); }
+    20% { opacity: 1; transform: translate(-50%, -60%) scale(1.15); }
+    35% { transform: translate(-50%, -55%) scale(0.95); }
+    50% { transform: translate(-50%, -60%) scale(1.0); }
+    80% { opacity: 1; transform: translate(-50%, -85%) scale(1.0); }
+    100% { opacity: 0; transform: translate(-50%, -120%) scale(0.85); }
+}
+
+/* 🥺 Sad Head-Shaking Car Wobble on Bust */
+.gp_car.gp_car_sad_wobble {
+    animation: gp_sad_wobble 0.9s ease-in-out;
+}
+
+@keyframes gp_sad_wobble {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    15% { transform: translate(-50%, -50%) rotate(-18deg) scale(0.92); }
+    30% { transform: translate(-50%, -50%) rotate(18deg) scale(0.92); }
+    45% { transform: translate(-50%, -50%) rotate(-12deg) scale(0.95); }
+    60% { transform: translate(-50%, -50%) rotate(12deg) scale(0.95); }
+    75% { transform: translate(-50%, -50%) rotate(-5deg) scale(0.98); }
+    100% { transform: translate(-50%, -50%) rotate(0deg) scale(1); }
 }
 
 /* 📱 Responsive Mobile Standard */
