@@ -221,6 +221,13 @@ def import_chats(input_zip, target_dir=None, target_workspace_uri=None):
                     if schema and schema[0]:
                         dst_conn.execute(schema[0])
 
+                existing_project_id = None
+                if target_workspace_uri:
+                    target_match = target_workspace_uri.replace("file://", "").strip("[]\"'")
+                    found = dst_conn.execute("SELECT project_id FROM conversation_summaries WHERE workspace_uris LIKE ? AND project_id != '' AND project_id != 'outside-of-project' LIMIT 1", (f"%{target_match}%",)).fetchone()
+                    if found:
+                        existing_project_id = found[0]
+
                 rows = src_conn.execute("SELECT * FROM conversation_summaries").fetchall()
                 print(f"Merging {len(rows)} conversation summary rows...")
 
@@ -238,6 +245,10 @@ def import_chats(input_zip, target_dir=None, target_workspace_uri=None):
                         else:
                             target_uris = target_workspace_uri
                         row_dict["workspace_uris"] = target_uris
+
+                    # Remap project_id to match destination project
+                    if existing_project_id:
+                        row_dict["project_id"] = existing_project_id
 
                     columns = list(row_dict.keys())
                     placeholders = ", ".join(["?" for _ in columns])
