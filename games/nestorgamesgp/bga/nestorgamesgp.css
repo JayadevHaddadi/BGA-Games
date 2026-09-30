@@ -336,15 +336,31 @@
     top: 180px;
     left: 450px;
     transform: translate(-50%, -50%);
-    background: rgba(18, 18, 24, 0.92);
+    background: rgba(18, 18, 24, 0.94);
     border: 2px solid #fdd835;
-    border-radius: 8px;
-    padding: 8px 16px;
+    border-radius: 10px;
+    padding: 10px 16px;
     display: none;
-    gap: 12px;
+    flex-direction: column;
+    gap: 8px;
     align-items: center;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.8), 0 0 12px rgba(253, 216, 53, 0.4);
     z-index: 25;
+}
+
+.gp_dice_tray_header {
+    font-size: 12px;
+    font-weight: 700;
+    color: #e0e0e0;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    letter-spacing: 0.3px;
+}
+
+.gp_dice_tray_row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
 }
 
 .gp_die {
@@ -550,3 +566,294 @@
         border-radius: 0;
     }
 }
+
+/* 🏎️ Player Panel Sidebar Stats */
+.gp_panel_info {
+    margin-top: 6px;
+    padding: 6px 8px;
+    background: rgba(20, 24, 30, 0.85);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    font-size: 11px;
+    color: #e0e0e0;
+    line-height: 1.4;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.gp_panel_row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 3px;
+}
+
+.gp_panel_label {
+    font-weight: 600;
+    color: #aaa;
+}
+
+.gp_panel_val {
+    font-size: 12px;
+    font-weight: 800;
+    color: #fff;
+}
+
+.gp_panel_pips_row {
+    display: inline-flex;
+    gap: 2px;
+    align-items: center;
+}
+
+.gp_panel_pip {
+    font-size: 11px;
+    line-height: 1;
+}
+
+.gp_panel_pip.gp_pip_active {
+    filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.5));
+}
+
+.gp_panel_pip.gp_pip_lost {
+    opacity: 0.45;
+    filter: grayscale(1);
+}
+
+.gp_panel_sub {
+    font-size: 10px;
+    color: #888;
+}
+
+.gp_panel_tag {
+    font-size: 10px;
+    font-weight: 800;
+    padding: 1px 6px;
+    border-radius: 4px;
+}
+
+.gp_tag_racing {
+    background: #1b5e20;
+    color: #a5d6a7;
+    border: 1px solid #2e7d32;
+}
+
+.gp_tag_belly_up {
+    background: #b71c1c;
+    color: #ffcdd2;
+    border: 1px solid #d32f2f;
+    animation: gp_danger_flash 1s infinite alternate;
+}
+
+.gp_tag_finished {
+    background: #f57f17;
+    color: #fff9c4;
+    border: 1px solid #fbc02d;
+}
+
+.gp_panel_shortcut {
+    font-size: 9px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-weight: 700;
+}
+
+.gp_shortcut_avail {
+    background: rgba(33, 150, 243, 0.2);
+    color: #64b5f6;
+    border: 1px solid rgba(33, 150, 243, 0.4);
+}
+
+.gp_shortcut_used {
+    background: rgba(120, 120, 120, 0.2);
+    color: #888;
+    text-decoration: line-through;
+    border: 1px solid rgba(120, 120, 120, 0.3);
+}
+
+/* 🏁 Cute Qualifying Leaderboard on the Left */
+.gp_qualifying_panel {
+    position: absolute;
+    top: 50px;
+    left: 20px;
+    width: 250px;
+    background: rgba(14, 18, 25, 0.93);
+    border: 2px solid #fdd835;
+    border-radius: 12px;
+    padding: 8px 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.75), 0 0 14px rgba(253, 216, 53, 0.35);
+    z-index: 20;
+    pointer-events: auto;
+    font-family: inherit;
+    animation: gp_panel_slide_in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes gp_panel_slide_in {
+    0% { transform: translateX(-40px); opacity: 0; }
+    100% { transform: translateX(0); opacity: 1; }
+}
+
+.gp_qual_header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(253, 216, 53, 0.3);
+    margin-bottom: 6px;
+}
+
+.gp_qual_icon {
+    font-size: 16px;
+}
+
+.gp_qual_title {
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    color: #fdd835;
+    text-transform: uppercase;
+}
+
+.gp_qual_list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    max-height: 380px;
+    overflow-y: auto;
+}
+
+.gp_qual_row {
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    padding: 4px 6px;
+    gap: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.gp_qual_row.gp_qual_row_active {
+    background: rgba(33, 150, 243, 0.18);
+    border-color: #2196f3;
+    box-shadow: 0 0 8px rgba(33, 150, 243, 0.4);
+}
+
+.gp_qual_rank {
+    font-size: 11px;
+    font-weight: 900;
+    width: 22px;
+    text-align: center;
+    color: #eee;
+    flex-shrink: 0;
+}
+
+.gp_qual_player_info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.gp_qual_name_row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.gp_qual_car_dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1px solid #fff;
+    flex-shrink: 0;
+}
+
+.gp_qual_player_name {
+    font-size: 11px;
+    font-weight: 800;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gp_qual_dice_row {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    flex-wrap: wrap;
+}
+
+.gp_qual_die {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    background: #ffffff;
+    color: #111;
+    font-size: 10px;
+    font-weight: 900;
+    border-radius: 3px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    border: 1px solid #aaa;
+}
+
+.gp_qual_status_tag {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 4px;
+    border-radius: 3px;
+}
+
+.gp_qual_tag_rolling {
+    background: rgba(255, 193, 7, 0.25);
+    color: #ffd54f;
+    border: 1px solid rgba(255, 193, 7, 0.4);
+    animation: gp_danger_flash 1s infinite alternate;
+}
+
+.gp_qual_tag_waiting {
+    background: rgba(255, 255, 255, 0.08);
+    color: #888;
+}
+
+.gp_qual_score_col {
+    flex-shrink: 0;
+    text-align: right;
+}
+
+.gp_qual_score {
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 5px;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.gp_score_locked {
+    background: #f57f17;
+    color: #fff9c4;
+    border: 1px solid #fbc02d;
+    box-shadow: 0 0 6px rgba(245, 127, 23, 0.6);
+}
+
+.gp_score_busted {
+    background: #c62828;
+    color: #ffcdd2;
+    border: 1px solid #e53935;
+}
+
+.gp_score_rolling {
+    background: #0277bd;
+    color: #b3e5fc;
+    border: 1px solid #039be5;
+}
+
+.gp_score_waiting {
+    color: #666;
+}
+
+

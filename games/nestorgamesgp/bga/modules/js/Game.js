@@ -20,7 +20,7 @@ class RetroAudioController {
         }
     }
 
-    playTone(freq, type = 'sine', duration = 0.08, gainVal = 0.10) {
+    playTone(freq, type = 'sine', duration = 0.08, gainVal = 0.035) {
         if (this.muted) return;
         try {
             this.init();
@@ -41,7 +41,9 @@ class RetroAudioController {
     }
 
     playRoll() {
-        this.playTone(480, 'triangle', 0.06, 0.09);
+        // Cute, soft two-tone arcade bubble chime (plink-pop)
+        this.playTone(523.25, 'sine', 0.045, 0.022); // C5
+        setTimeout(() => this.playTone(783.99, 'sine', 0.055, 0.020), 38); // G5
     }
 
     playEngineRev() {
@@ -56,7 +58,7 @@ class RetroAudioController {
             osc.frequency.setValueAtTime(110, now);
             osc.frequency.exponentialRampToValueAtTime(260, now + 0.18);
             gain.gain.setValueAtTime(0.001, now);
-            gain.gain.linearRampToValueAtTime(0.08, now + 0.02);
+            gain.gain.linearRampToValueAtTime(0.035, now + 0.02);
             gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.20);
             osc.connect(gain);
             gain.connect(this.ctx.destination);
@@ -70,7 +72,7 @@ class RetroAudioController {
         // Ascending subtle throttle purr as car traverses spaces
         const baseFreq = 130;
         const freq = Math.min(280, baseFreq + (stepIdx * 8));
-        this.playTone(freq, 'sawtooth', 0.045, 0.04);
+        this.playTone(freq, 'sawtooth', 0.045, 0.02);
     }
 
     playTireChirp() {
@@ -86,7 +88,7 @@ class RetroAudioController {
             osc.frequency.setValueAtTime(680, now);
             osc.frequency.exponentialRampToValueAtTime(920, now + 0.06);
             gain.gain.setValueAtTime(0.001, now);
-            gain.gain.linearRampToValueAtTime(0.06, now + 0.01);
+            gain.gain.linearRampToValueAtTime(0.025, now + 0.01);
             gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.08);
             osc.connect(gain);
             gain.connect(this.ctx.destination);
@@ -107,7 +109,7 @@ class RetroAudioController {
             osc.frequency.setValueAtTime(240, now);
             osc.frequency.exponentialRampToValueAtTime(90, now + 0.12);
             gain.gain.setValueAtTime(0.001, now);
-            gain.gain.linearRampToValueAtTime(0.07, now + 0.01);
+            gain.gain.linearRampToValueAtTime(0.03, now + 0.01);
             gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.13);
             osc.connect(gain);
             gain.connect(this.ctx.destination);
@@ -128,7 +130,7 @@ class RetroAudioController {
             osc.frequency.setValueAtTime(300, now);
             osc.frequency.exponentialRampToValueAtTime(460, now + 0.08);
             gain.gain.setValueAtTime(0.001, now);
-            gain.gain.linearRampToValueAtTime(0.10, now + 0.01);
+            gain.gain.linearRampToValueAtTime(0.04, now + 0.01);
             gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
             osc.connect(gain);
             gain.connect(this.ctx.destination);
@@ -138,7 +140,7 @@ class RetroAudioController {
     }
 
     playScreech() {
-        this.playTone(850, 'sawtooth', 0.12, 0.08);
+        this.playTone(850, 'sawtooth', 0.12, 0.035);
     }
 
     playCrash() {
@@ -153,7 +155,7 @@ class RetroAudioController {
             osc.frequency.setValueAtTime(180, now);
             osc.frequency.exponentialRampToValueAtTime(45, now + 0.25);
             gain.gain.setValueAtTime(0.001, now);
-            gain.gain.linearRampToValueAtTime(0.14, now + 0.01);
+            gain.gain.linearRampToValueAtTime(0.05, now + 0.01);
             gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.26);
             osc.connect(gain);
             gain.connect(this.ctx.destination);
@@ -165,7 +167,7 @@ class RetroAudioController {
     playLapFanfare() {
         const notes = [523.25, 659.25, 783.99, 1046.50];
         notes.forEach((freq, idx) => {
-            setTimeout(() => this.playTone(freq, 'triangle', 0.12, 0.10), idx * 80);
+            setTimeout(() => this.playTone(freq, 'triangle', 0.12, 0.04), idx * 80);
         });
     }
 
@@ -178,7 +180,7 @@ class RetroAudioController {
         ];
         let delay = 0;
         notes.forEach(({ f, d }) => {
-            setTimeout(() => this.playTone(f, 'sawtooth', d, 0.08), delay);
+            setTimeout(() => this.playTone(f, 'sawtooth', d, 0.035), delay);
             delay += Math.round(d * 1000) + 20;
         });
     }
@@ -193,7 +195,10 @@ class QualifyingTurnState {
     onEnteringState(args) {
         this.game.currentArgs = args;
         this.game.clearHighlights();
-        this.game.renderDiceTray(args?.rolled_dice || []);
+        this.game.renderDiceTray(args?.rolled_dice || [], null, false, true);
+        if (args?.qualifying_board) {
+            this.game.renderQualifyingBoard(args.qualifying_board, true);
+        }
         const active = this.game.isCurrentPlayerActive();
         this.updateControls(args, active);
     }
@@ -248,7 +253,7 @@ class PlayerTurnState {
 
     onEnteringState(args) {
         this.game.currentArgs = args;
-        this.game.renderDiceTray(args?.rolled_dice || []);
+        this.game.renderDiceTray(args?.rolled_dice || [], args?.active_player_id, args?.is_corner, false);
         const active = this.game.isCurrentPlayerActive();
 
         const activeId = args?.active_player_id || this.game.getActivePlayerId();
@@ -300,10 +305,20 @@ class PlayerTurnState {
                     }, 'secondary');
                 }
             } else {
-                this.bga.statusBar.setTitle(
-                    _('${you}: ${mp} movement points ready. Roll another die or drive forward?'),
-                    { mp: currentMp }
-                );
+                const available = args?.dice_available ?? (racer?.dice_available ?? 6);
+                const isCorner = args?.is_corner || (racer ? this.game.isCorner(racer.space_id) : false);
+
+                if (isCorner) {
+                    this.bga.statusBar.setTitle(
+                        _('⚠️ CORNER ALERT: ${you} have ${mp} MP (${count}/${avail} dice). Roll again = CRASH danger, or Drive?'),
+                        { mp: currentMp, count: rolled.length, avail: available }
+                    );
+                } else {
+                    this.bga.statusBar.setTitle(
+                        _('${you}: ${mp} MP ready (${count}/${avail} dice). Roll again or drive forward?'),
+                        { mp: currentMp, count: rolled.length, avail: available }
+                    );
+                }
 
                 if (currentMp > 0 && activeId) {
                     this.game.updateMovePreview(activeId, currentMp, canShortcut);
@@ -311,7 +326,11 @@ class PlayerTurnState {
 
                 const diceLeft = args?.dice_remaining ?? 0;
                 if (diceLeft > 0) {
-                    this.game.addActionButton('btnRollMore', _('⚠️ Push Luck: Roll Again') + ` (${diceLeft} left)`, () => {
+                    const rollBtnLabel = isCorner
+                        ? _('🚨 Push Luck in Corner (CRASH RISK!)') + ` (${diceLeft} left)`
+                        : _('🎲 Push Luck: Roll Again') + ` (${diceLeft} left)`;
+
+                    this.game.addActionButton('btnRollMore', rollBtnLabel, () => {
                         this.game.sound.playRoll();
                         this.bga.actions.performAction('actRoll', {});
                     }, 'alert');
@@ -374,10 +393,14 @@ export class Game {
 
     setup(gamedatas) {
         this.racers = gamedatas.all_racers || {};
+        this.qualifyingBoard = gamedatas.qualifying_board || {};
+        this.qualifyingActive = gamedatas.qualifying_active;
         this.initDom();
         this.initBoardScaler();
         this.renderBoard();
         this.renderRacers(this.racers);
+        this.renderQualifyingBoard(this.qualifyingBoard, this.qualifyingActive);
+        this.updatePlayerPanels();
         this.setupNotifications();
     }
 
@@ -513,6 +536,92 @@ export class Game {
         diceTray.id = 'gp_dice_tray';
         diceTray.className = 'gp_dice_tray';
         boardEl.appendChild(diceTray);
+
+        // Qualifying Leaderboard overlay (left side during qualifying)
+        const qualPanel = document.createElement('div');
+        qualPanel.id = 'gp_qualifying_panel';
+        qualPanel.className = 'gp_qualifying_panel';
+        boardEl.appendChild(qualPanel);
+    }
+
+    renderQualifyingBoard(boardData, active = true) {
+        const panel = document.getElementById('gp_qualifying_panel');
+        if (!panel) return;
+
+        if (!active || !boardData || Object.keys(boardData).length === 0) {
+            panel.style.display = 'none';
+            return;
+        }
+
+        panel.style.display = 'block';
+
+        // Sort: highest score first; ties broken by player_id
+        const entries = Object.values(boardData);
+        entries.sort((a, b) => {
+            const scoreA = a.score || 0;
+            const scoreB = b.score || 0;
+            if (scoreB !== scoreA) return scoreB - scoreA;
+            return a.player_id - b.player_id;
+        });
+
+        const activeId = this.getActivePlayerId();
+
+        let rowsHtml = '';
+        entries.forEach((item, idx) => {
+            const rank = idx + 1;
+            const medal = rank === 1 ? '🥇 P1' : (rank === 2 ? '🥈 P2' : (rank === 3 ? '🥉 P3' : `#${rank}`));
+            const isRolling = item.player_id == activeId || item.status === 'rolling';
+
+            let dicePipsHtml = '';
+            if (item.dice && item.dice.length > 0) {
+                dicePipsHtml = item.dice.map(d => `<span class="gp_qual_die gp_die_${d}">${d}</span>`).join('');
+            } else if (isRolling) {
+                dicePipsHtml = '<span class="gp_qual_status_tag gp_qual_tag_rolling">🎲 Rolling...</span>';
+            } else {
+                dicePipsHtml = '<span class="gp_qual_status_tag gp_qual_tag_waiting">⏳ Waiting</span>';
+            }
+
+            let scoreBadge = '';
+            if (item.status === 'locked') {
+                scoreBadge = `<span class="gp_qual_score gp_score_locked">🌟 ${item.score} pts</span>`;
+            } else if (item.status === 'busted') {
+                scoreBadge = '<span class="gp_qual_score gp_score_busted">😭 0 pts</span>';
+            } else if (isRolling) {
+                scoreBadge = `<span class="gp_qual_score gp_score_rolling">⚡ ${item.score} pts</span>`;
+            } else {
+                scoreBadge = '<span class="gp_qual_score gp_score_waiting">—</span>';
+            }
+
+            const activeRowClass = isRolling ? 'gp_qual_row_active' : '';
+
+            rowsHtml += `
+                <div class="gp_qual_row ${activeRowClass}">
+                    <div class="gp_qual_rank">${medal}</div>
+                    <div class="gp_qual_player_info">
+                        <div class="gp_qual_name_row">
+                            <span class="gp_qual_car_dot gp_color_${item.car_color}"></span>
+                            <span class="gp_qual_player_name">${item.player_name}</span>
+                        </div>
+                        <div class="gp_qual_dice_row">
+                            ${dicePipsHtml}
+                        </div>
+                    </div>
+                    <div class="gp_qual_score_col">
+                        ${scoreBadge}
+                    </div>
+                </div>
+            `;
+        });
+
+        panel.innerHTML = `
+            <div class="gp_qual_header">
+                <span class="gp_qual_icon">🏁</span>
+                <span class="gp_qual_title">QUALIFYING GRID</span>
+            </div>
+            <div class="gp_qual_list">
+                ${rowsHtml}
+            </div>
+        `;
     }
 
     renderRacers(racers) {
@@ -523,6 +632,71 @@ export class Game {
         Object.values(racers).forEach(r => {
             const carEl = this.createCarElement(r);
             layer.appendChild(carEl);
+        });
+        this.updatePlayerPanels();
+    }
+
+    updatePlayerPanels() {
+        if (!this.racers) return;
+        Object.entries(this.racers).forEach(([pIdStr, racer]) => {
+            const pId = parseInt(pIdStr, 10);
+            let panel = null;
+            if (this.bga?.playerPanels && typeof this.bga.playerPanels.getElement === 'function') {
+                panel = this.bga.playerPanels.getElement(pId);
+            }
+            if (!panel) return;
+
+            let panelInfo = document.getElementById(`gp_panel_info_${pId}`);
+            if (!panelInfo) {
+                panelInfo = document.createElement('div');
+                panelInfo.id = `gp_panel_info_${pId}`;
+                panelInfo.className = 'gp_panel_info';
+                panel.appendChild(panelInfo);
+            }
+
+            const diceAvailable = racer.dice_available ?? 6;
+            const lostDice = Math.max(0, 6 - diceAvailable);
+            const laps = racer.laps_completed ?? 0;
+            const isBellyUp = racer.is_belly_up;
+            const finished = racer.finish_rank > 0;
+
+            let pipsHtml = '';
+            for (let i = 0; i < diceAvailable; i++) {
+                pipsHtml += '<span class="gp_panel_pip gp_pip_active" title="Available die">🎲</span>';
+            }
+            for (let i = 0; i < lostDice; i++) {
+                pipsHtml += '<span class="gp_panel_pip gp_pip_lost" title="Lost die in pit box">❌</span>';
+            }
+
+            let statusHtml = '';
+            if (finished) {
+                statusHtml = `<span class="gp_panel_tag gp_tag_finished">🏁 Finished (#${racer.finish_rank})</span>`;
+            } else if (isBellyUp) {
+                statusHtml = '<span class="gp_panel_tag gp_tag_belly_up">💥 Belly-Up</span>';
+            } else {
+                statusHtml = '<span class="gp_panel_tag gp_tag_racing">🏎️ Racing</span>';
+            }
+
+            const shortcutHtml = racer.shortcut_used
+                ? '<span class="gp_panel_shortcut gp_shortcut_used" title="Shortcut already used this race">⚡ Shortcut: Used</span>'
+                : '<span class="gp_panel_shortcut gp_shortcut_avail" title="Shortcut available from space 8">⚡ Shortcut: Ready</span>';
+
+            panelInfo.innerHTML = `
+                <div class="gp_panel_row">
+                    <span class="gp_panel_label">🎲 Dice Pool:</span>
+                    <strong class="gp_panel_val">${diceAvailable} / 6</strong>
+                    <div class="gp_panel_pips_row">${pipsHtml}</div>
+                </div>
+                <div class="gp_panel_row">
+                    <span class="gp_panel_label">🏁 Lap:</span>
+                    <strong class="gp_panel_val">${Math.min(3, laps + 1)} / 3</strong>
+                    <span class="gp_panel_sub">(${racer.discs_remaining ?? (3 - laps)} discs left)</span>
+                </div>
+                <div class="gp_panel_row gp_panel_status_row">
+                    ${statusHtml}
+                    ${shortcutHtml}
+                </div>
+            `;
         });
     }
 
@@ -1008,7 +1182,7 @@ export class Game {
         carEl.classList.remove('gp_car_crashing');
     }
 
-    renderDiceTray(dice) {
+    renderDiceTray(dice, playerId = null, isCorner = null, isQualifying = false) {
         const tray = document.getElementById('gp_dice_tray');
         if (!tray) return;
 
@@ -1021,12 +1195,45 @@ export class Game {
         tray.style.display = 'flex';
         tray.innerHTML = '';
 
+        const pId = playerId || this.getActivePlayerId() || this.bga?.players?.getCurrentPlayerId?.();
+        const racer = pId ? this.racers?.[pId] : null;
+        const available = isQualifying ? 6 : (racer?.dice_available ?? 6);
+        const diceLeft = Math.max(0, available - dice.length);
+
+        if (isCorner === null && racer) {
+            isCorner = this.isCorner(racer.space_id);
+        }
+
+        // Header showing total dice stats
+        const header = document.createElement('div');
+        header.className = 'gp_dice_tray_header';
+        header.innerHTML = `🎲 <strong>Dice Pool:</strong> ${dice.length} / ${available} rolled (${diceLeft} remaining to roll)`;
+        tray.appendChild(header);
+
+        // Row of rolled dice
+        const diceRow = document.createElement('div');
+        diceRow.className = 'gp_dice_tray_row';
         dice.forEach(d => {
             const dieEl = document.createElement('div');
             dieEl.className = `gp_die gp_die_${d}`;
             dieEl.innerText = d;
-            tray.appendChild(dieEl);
+            diceRow.appendChild(dieEl);
         });
+        tray.appendChild(diceRow);
+
+        // Contextual hazard / rule reminder banner
+        const banner = document.createElement('div');
+        if (isQualifying) {
+            banner.className = 'gp_tray_warning gp_tray_safe';
+            banner.innerText = '⏱️ QUALIFYING: Duplicate roll = 0 pts (bust)';
+        } else if (isCorner) {
+            banner.className = 'gp_tray_warning gp_tray_danger';
+            banner.innerText = '⚠️ IN CORNER: Duplicate roll = CRASH + lose 1 die!';
+        } else {
+            banner.className = 'gp_tray_warning gp_tray_safe';
+            banner.innerText = '🛡️ ON STRAIGHT: Duplicate roll = engine stalls (safe)';
+        }
+        tray.appendChild(banner);
     }
 
     _getNotifArgs(notif) {
@@ -1059,7 +1266,10 @@ export class Game {
         const args = this._getNotifArgs(notif);
         this.clearHighlights();
         this.sound.playRoll();
-        this.renderDiceTray(args.all_dice);
+        this.renderDiceTray(args.all_dice, args.player_id, false, true);
+        if (args.qualifying_board) {
+            this.renderQualifyingBoard(args.qualifying_board, true);
+        }
 
         if (!this.currentArgs) {
             this.currentArgs = {};
@@ -1075,7 +1285,10 @@ export class Game {
         const args = this._getNotifArgs(notif);
         this.clearHighlights();
         this.sound.playSadBust();
-        this.renderDiceTray(args.all_dice);
+        this.renderDiceTray(args.all_dice, args.player_id, false, true);
+        if (args.qualifying_board) {
+            this.renderQualifyingBoard(args.qualifying_board, true);
+        }
         this.clearActionButtons();
 
         const pId = args.player_id;
@@ -1094,7 +1307,10 @@ export class Game {
         const args = this._getNotifArgs(notif);
         this.clearHighlights();
         this.clearActionButtons();
-        this.renderDiceTray(args.all_dice);
+        this.renderDiceTray(args.all_dice, args.player_id, false, true);
+        if (args.qualifying_board) {
+            this.renderQualifyingBoard(args.qualifying_board, true);
+        }
     }
 
     notif_raceStarting(notif) {
@@ -1102,26 +1318,33 @@ export class Game {
         this.clearHighlights();
         this.sound.playLapFanfare();
         this.renderDiceTray([]);
+        this.renderQualifyingBoard(null, false);
         this.clearActionButtons();
         if (args.all_racers) {
             this.racers = args.all_racers;
             this.renderRacers(args.all_racers);
         }
+        this.updatePlayerPanels();
     }
 
     notif_raceRoll(notif) {
         const args = this._getNotifArgs(notif);
         this.sound.playRoll();
-        this.renderDiceTray(args.all_dice);
+
+        const pId = args.player_id || this.getActivePlayerId();
+        const racer = (pId && this.racers) ? this.racers[pId] : this.currentArgs?.racer;
+        const isCorner = racer ? this.isCorner(racer.space_id) : false;
+        this.renderDiceTray(args.all_dice, pId, isCorner, false);
 
         if (!this.currentArgs) {
             this.currentArgs = {};
         }
         this.currentArgs.rolled_dice = args.all_dice || [];
         this.currentArgs.current_mp = args.total_mp || 0;
-        const racer = (args.player_id && this.racers) ? this.racers[args.player_id] : this.currentArgs.racer;
         const availableDice = racer ? (racer.dice_available ?? 6) : 6;
         this.currentArgs.dice_remaining = availableDice - (args.all_dice || []).length;
+        this.currentArgs.dice_available = availableDice;
+        this.currentArgs.is_corner = isCorner;
         if (racer) {
             this.currentArgs.can_use_shortcut = (racer.space_id == 8 && !racer.shortcut_used);
         }
@@ -1135,7 +1358,7 @@ export class Game {
         const args = this._getNotifArgs(notif);
         this.clearHighlights();
         this.sound.playCrash();
-        this.renderDiceTray(args.all_dice);
+        this.renderDiceTray(args.all_dice, args.player_id, true, false);
         if (args.racer && this.racers) {
             this.racers[args.player_id] = args.racer;
         }
@@ -1154,13 +1377,14 @@ export class Game {
             }, 450);
         }
         this.clearActionButtons();
+        this.updatePlayerPanels();
     }
 
     notif_raceStall(notif) {
         const args = this._getNotifArgs(notif);
         this.clearHighlights();
         this.sound.playSadBust();
-        this.renderDiceTray(args.all_dice);
+        this.renderDiceTray(args.all_dice, args.player_id, false, false);
         this.clearActionButtons();
 
         const pId = args.player_id;
@@ -1196,6 +1420,7 @@ export class Game {
                 this.updateCarPosition(carEl, args.final_space, args.racer.facing_direction);
             }
         }
+        this.updatePlayerPanels();
     }
 
     async notif_carBumped(notif) {
@@ -1212,6 +1437,7 @@ export class Game {
                 this.updateCarPosition(carEl, args.to_space, 270);
             }
         }
+        this.updatePlayerPanels();
     }
 
     async notif_cornerCollisionCrash(notif) {
@@ -1228,6 +1454,7 @@ export class Game {
                 carEl.classList.add('gp_belly_up');
             }
         }
+        this.updatePlayerPanels();
     }
 
     notif_carFlippedUpright(notif) {
@@ -1240,6 +1467,7 @@ export class Game {
             carEl.classList.remove('gp_belly_up');
         }
         this.clearActionButtons();
+        this.updatePlayerPanels();
     }
 
     notif_carFixed(notif) {
@@ -1248,6 +1476,7 @@ export class Game {
             this.racers[args.player_id] = args.racer;
         }
         this.clearActionButtons();
+        this.updatePlayerPanels();
     }
 
     notif_racerFinished(notif) {
@@ -1256,11 +1485,14 @@ export class Game {
         if (args.racer && this.racers) {
             this.racers[args.player_id] = args.racer;
         }
+        this.updatePlayerPanels();
     }
 
     notif_raceEnded(notif) {
+        const args = this._getNotifArgs(notif);
         this.sound.playLapFanfare();
         this.clearActionButtons();
         this.clearHighlights();
+        this.updatePlayerPanels();
     }
 }

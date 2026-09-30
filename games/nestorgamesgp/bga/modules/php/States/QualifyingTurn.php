@@ -35,6 +35,7 @@ class QualifyingTurn extends GameState
             'dice_remaining' => 6 - count($rolledDice),
             'racer' => $racer,
             'all_racers' => $this->game->getAllRacers(),
+            'qualifying_board' => $this->game->getQualifyingBoardData(),
         ];
     }
 
@@ -52,6 +53,7 @@ class QualifyingTurn extends GameState
                 'die_value' => $res['die_value'],
                 'all_dice' => $res['all_dice'],
                 'score' => 0,
+                'qualifying_board' => $this->game->getQualifyingBoardData(),
             ]);
 
             return $this->advanceQualifying();
@@ -63,6 +65,7 @@ class QualifyingTurn extends GameState
             'die_value' => $res['die_value'],
             'all_dice' => $res['all_dice'],
             'score' => $res['score'],
+            'qualifying_board' => $this->game->getQualifyingBoardData(),
         ]);
 
         if (count($res['all_dice']) >= 6) {
@@ -91,6 +94,7 @@ class QualifyingTurn extends GameState
             'player_name' => $playerName,
             'score' => $score,
             'all_dice' => $rolledDice,
+            'qualifying_board' => $this->game->getQualifyingBoardData(),
         ]);
 
         return $this->advanceQualifying();
@@ -106,6 +110,15 @@ class QualifyingTurn extends GameState
             $this->globals->set('qualifying_current_idx', $nextIdx);
             $this->globals->set('current_roll_dice', []);
             $nextPlayerId = (int) $order[$nextIdx];
+            $rolls = $this->globals->get('qualifying_rolls', []);
+            if (!isset($rolls[$nextPlayerId])) {
+                $rolls[$nextPlayerId] = [
+                    'dice' => [],
+                    'score' => 0,
+                    'status' => 'rolling',
+                ];
+                $this->globals->set('qualifying_rolls', $rolls);
+            }
             $this->gamestate->changeActivePlayer($nextPlayerId);
             return QualifyingTurn::class;
         }

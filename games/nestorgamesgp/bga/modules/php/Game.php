@@ -134,6 +134,7 @@ class Game extends \Bga\GameFramework\Table
         $this->globals->set('qualifying_active', true);
         $this->globals->set('qualifying_order', $playerIds);
         $this->globals->set('qualifying_current_idx', 0);
+        $this->globals->set('qualifying_rolls', []);
         $this->globals->set('current_roll_dice', []);
         $this->globals->set('race_started', false);
         $this->globals->set('finish_order', []);
@@ -148,10 +149,41 @@ class Game extends \Bga\GameFramework\Table
         $result['players'] = $this->loadPlayersBasicInfos();
         $result['all_racers'] = $this->getAllRacers();
         $result['qualifying_active'] = (bool) $this->globals->get('qualifying_active', true);
+        $result['qualifying_board'] = $this->getQualifyingBoardData();
         $result['race_started'] = (bool) $this->globals->get('race_started', false);
         $result['current_roll_dice'] = $this->globals->get('current_roll_dice', []);
         $result['total_laps'] = (int) $this->globals->get('total_laps', self::DEFAULT_LAPS);
         $result['finish_order'] = $this->globals->get('finish_order', []);
+        return $result;
+    }
+
+    public function getQualifyingBoardData(): array
+    {
+        $rows = static::getObjectListFromDb("SELECT `player_id`, `car_color`, `qualifying_score` FROM `racer`");
+        $players = $this->loadPlayersBasicInfos();
+        $rolls = $this->globals->get('qualifying_rolls', []);
+        $activePlayerId = (int) $this->getActivePlayerId();
+
+        $result = [];
+        foreach ($rows as $r) {
+            $pId = (int) $r['player_id'];
+            $playerRolls = $rolls[$pId] ?? [
+                'dice' => [],
+                'status' => ($pId === $activePlayerId) ? 'rolling' : 'waiting',
+                'score' => (int) $r['qualifying_score'],
+            ];
+            if ($pId === $activePlayerId && ($playerRolls['status'] ?? '') === 'waiting') {
+                $playerRolls['status'] = 'rolling';
+            }
+            $result[$pId] = [
+                'player_id' => $pId,
+                'player_name' => $players[$pId]['player_name'] ?? ('Player ' . $pId),
+                'car_color' => $r['car_color'],
+                'dice' => $playerRolls['dice'] ?? [],
+                'score' => (int) ($playerRolls['score'] ?? $r['qualifying_score']),
+                'status' => $playerRolls['status'] ?? 'waiting',
+            ];
+        }
         return $result;
     }
 
@@ -216,6 +248,15 @@ class Game extends \Bga\GameFramework\Table
             );
         }
 
+        // Record roll history for live Qualifying Leaderboard
+        $rolls = $this->globals->get('qualifying_rolls', []);
+        $rolls[$playerId] = [
+            'dice' => $currentDice,
+            'score' => $score,
+            'status' => $bust ? 'busted' : 'rolling',
+        ];
+        $this->globals->set('qualifying_rolls', $rolls);
+
         return [
             'die_value' => $dieVal,
             'all_dice' => $currentDice,
@@ -232,6 +273,16 @@ class Game extends \Bga\GameFramework\Table
             sprintf("UPDATE `racer` SET `qualifying_score` = %d WHERE `player_id` = %d", $score, $playerId)
         );
         $this->globals->set('current_roll_dice', []);
+
+        // Record locked score for Qualifying Leaderboard
+        $rolls = $this->globals->get('qualifying_rolls', []);
+        $rolls[$playerId] = [
+            'dice' => $currentDice,
+            'score' => $score,
+            'status' => 'locked',
+        ];
+        $this->globals->set('qualifying_rolls', $rolls);
+
         return $score;
     }
 
