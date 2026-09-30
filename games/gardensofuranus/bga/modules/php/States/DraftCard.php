@@ -30,11 +30,14 @@ class DraftCard extends GameState
     public function getArgs(): array
     {
         $round = (int) $this->globals->get('draft_round', 1);
-        $playerId = (int) $this->game->getCurrentPlayerId();
+        $playerId = $this->game->getCurrentPlayerId(true);
 
-        $draftCards = $this->game->getObjectListFromDb(
-            "SELECT `card_id`, `card_type`, `color1`, `color2` FROM `card` WHERE `card_location` = 'draft_hand' AND `location_arg` = $playerId"
-        );
+        $draftCards = [];
+        if ($playerId !== null) {
+            $draftCards = $this->game->getObjectListFromDb(
+                "SELECT `card_id`, `card_type`, `color1`, `color2` FROM `card` WHERE `card_location` = 'draft_hand' AND `location_arg` = " . (int)$playerId
+            );
+        }
 
         return [
             'round' => $round,
@@ -45,7 +48,11 @@ class DraftCard extends GameState
     #[PossibleAction]
     public function actKeepCard(int $cardId): string
     {
-        $playerId = (int) $this->game->getCurrentPlayerId();
+        $playerId = $this->game->getCurrentPlayerId(true);
+        if ($playerId === null) {
+            throw new UserException(clienttranslate("You must be logged in to take this action."));
+        }
+        $playerId = (int) $playerId;
 
         $card = $this->game->getObjectFromDb(
             "SELECT `card_id` FROM `card` WHERE `card_id` = $cardId AND `card_location` = 'draft_hand' AND `location_arg` = $playerId"

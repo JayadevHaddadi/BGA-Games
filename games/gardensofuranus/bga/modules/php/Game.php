@@ -122,9 +122,8 @@ class Game extends \Bga\GameFramework\Table
 
         foreach ($playerIds as $player_id) {
             $hexColor = $default_colors[$idx % count($default_colors)];
-            $query_values[] = vsprintf("(%s, %d, '%s', '%s')", [
+            $query_values[] = vsprintf("(%s, '%s', '%s')", [
                 $player_id,
-                $idx + 1,
                 $hexColor,
                 addslashes($players[$player_id]["player_name"]),
             ]);
@@ -133,20 +132,20 @@ class Game extends \Bga\GameFramework\Table
 
         static::DbQuery(
             sprintf(
-                "INSERT INTO `player` (`player_id`, `player_no`, `player_color`, `player_name`) VALUES %s",
+                "INSERT INTO `player` (`player_id`, `player_color`, `player_name`) VALUES %s",
                 implode(",", $query_values)
             )
         );
 
         $this->reloadPlayersBasicInfos();
 
+        foreach ($playerIds as $pId) {
+            $this->playerScore->set((int)$pId, 0);
+        }
+
         // 1. Initialize stats (PlayerStats: Delta/Value 2nd, PlayerId 3rd!)
-        $this->tableStats->init('turns_number', 0);
-        $this->tableStats->init('winning_score', 0);
-        $this->playerStats->init('turns_number', 0);
-        $this->playerStats->init('flowers_planted', 0);
-        $this->playerStats->init('missions_scored', 0);
-        $this->playerStats->init('penalty_points', 0);
+        $this->tableStats->init(['turns_number', 'winning_score'], 0);
+        $this->playerStats->init(['turns_number', 'flowers_planted', 'missions_scored', 'penalty_points'], 0);
 
         // 2. Game options: Board Type (1=Hexagon, 2=Trapezoid, 3=Rhombus)
         $boardType = isset($options[100]) ? (int) $options[100] : 1;
@@ -222,8 +221,7 @@ class Game extends \Bga\GameFramework\Table
         }
 
         // 6. Setup 36 mission cards & deal 5 cards to each player for drafting
-        require_once(__DIR__ . '/../../material.inc.php');
-        $cardDeck = $this->mission_deck;
+        $cardDeck = $this->getMissionDeck();
         $cardIds = array_keys($cardDeck);
         shuffle($cardIds);
 
@@ -940,22 +938,62 @@ class Game extends \Bga\GameFramework\Table
         return null;
     }
 
-    public function getAllDatas(): array
+    protected function getAllDatas(): array
     {
         $result = [];
-        $currentPlayerId = (int) $this->getCurrentPlayerId();
-
-        $result['players'] = static::getCollectionFromDb(
-            "SELECT `player_id` as `id`, `player_name` as `name`, `player_color` as `color`, `player_score` as `score`, `player_no` as `no` FROM `player`"
-        );
+        $result['players'] = $this->loadPlayersBasicInfos();
         $result['board_type'] = (int) $this->globals->get('board_type', 1);
         $result['cells'] = $this->getGardenCells();
         $result['gardeners'] = $this->getGardeners();
         $result['all_flowers'] = $this->getAllPlayerFlowers();
-        $result['hand_cards'] = $this->getPlayerCards($currentPlayerId);
+
+        $currentPlayerId = $this->getCurrentPlayerId(true);
+        $result['hand_cards'] = ($currentPlayerId !== null) ? $this->getPlayerCards((int)$currentPlayerId) : [];
         $result['board_decks'] = $this->getBoardDecks();
         $result['special_powers'] = (int) $this->globals->get('special_powers', 1);
 
         return $result;
+    }
+
+    public function getMissionDeck(): array
+    {
+        return [
+            1 => ['type' => 'ADJACENT_PAIRS', 'color1' => 'blue', 'color2' => 'red'],
+            2 => ['type' => 'TRIANGLE', 'color1' => 'blue'],
+            3 => ['type' => 'BIGGEST_GROUP', 'color1' => 'blue'],
+            4 => ['type' => 'GROUP_COUNT', 'color1' => 'red'],
+            5 => ['type' => 'ADJACENT_PAIRS', 'color1' => 'yellow', 'color2' => 'red'],
+            6 => ['type' => 'TRIANGLE', 'color1' => 'green'],
+            7 => ['type' => 'STRAIGHT_LINE', 'color1' => 'blue'],
+            8 => ['type' => 'GROUP_COUNT', 'color1' => 'yellow'],
+            9 => ['type' => 'ADJACENT_PAIRS', 'color1' => 'yellow', 'color2' => 'purple'],
+            10 => ['type' => 'EDGE_OR_TREE', 'color1' => 'green'],
+            11 => ['type' => 'STRAIGHT_LINE', 'color1' => 'red'],
+            12 => ['type' => 'GROUP_COUNT', 'color1' => 'blue'],
+            13 => ['type' => 'ADJACENT_PAIRS', 'color1' => 'green', 'color2' => 'purple'],
+            14 => ['type' => 'EDGE_OR_TREE', 'color1' => 'red'],
+            15 => ['type' => 'STRAIGHT_LINE', 'color1' => 'yellow'],
+            16 => ['type' => 'GROUP_COUNT', 'color1' => 'green'],
+            17 => ['type' => 'ADJACENT_PAIRS', 'color1' => 'blue', 'color2' => 'purple'],
+            18 => ['type' => 'EDGE_OR_TREE', 'color1' => 'blue'],
+            19 => ['type' => 'STRAIGHT_LINE', 'color1' => 'green'],
+            20 => ['type' => 'GROUP_COUNT', 'color1' => 'purple'],
+            21 => ['type' => 'ADJACENT_PAIRS', 'color1' => 'blue', 'color2' => 'yellow'],
+            22 => ['type' => 'EDGE_OR_TREE', 'color1' => 'yellow'],
+            23 => ['type' => 'STRAIGHT_LINE', 'color1' => 'purple'],
+            24 => ['type' => 'BIGGEST_GROUP', 'color1' => 'purple'],
+            25 => ['type' => 'ADJACENT_PAIRS', 'color1' => 'green', 'color2' => 'yellow'],
+            26 => ['type' => 'EDGE_OR_TREE', 'color1' => 'purple'],
+            27 => ['type' => 'TRIANGLE', 'color1' => 'purple'],
+            28 => ['type' => 'BIGGEST_GROUP', 'color1' => 'yellow'],
+            29 => ['type' => 'ADJACENT_PAIRS', 'color1' => 'green', 'color2' => 'blue'],
+            30 => ['type' => 'ADJACENT_PAIRS', 'color1' => 'purple', 'color2' => 'red'],
+            31 => ['type' => 'TRIANGLE', 'color1' => 'yellow'],
+            32 => ['type' => 'BIGGEST_GROUP', 'color1' => 'green'],
+            33 => ['type' => 'HEXAGON', 'color1' => 'any'],
+            34 => ['type' => 'ADJACENT_PAIRS', 'color1' => 'green', 'color2' => 'red'],
+            35 => ['type' => 'TRIANGLE', 'color1' => 'red'],
+            36 => ['type' => 'BIGGEST_GROUP', 'color1' => 'red'],
+        ];
     }
 }
