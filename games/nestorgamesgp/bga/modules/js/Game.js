@@ -841,19 +841,42 @@ export class Game {
     }
 
     /* =====================================================================
-     *  🏎️ Request 1: Cute Animation along the track
+     *  🏎️ Cute Event Bursts, Hazards & Animations
      * ===================================================================== */
 
-    spawnSkidMark(x, y, angle) {
+    spawnImpactBurst(x, y, text, type = 'bump') {
         const layer = document.getElementById('gp_highlights_layer');
         if (!layer) return;
-        const skid = document.createElement('div');
-        skid.className = 'gp_skid_mark';
-        skid.style.left = `${x}px`;
-        skid.style.top = `${y}px`;
-        skid.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
-        layer.appendChild(skid);
-        setTimeout(() => skid.remove(), 1200);
+        const burst = document.createElement('div');
+        burst.className = `gp_impact_burst gp_impact_${type}`;
+        burst.style.left = `${x}px`;
+        burst.style.top = `${y}px`;
+        burst.innerHTML = text;
+        layer.appendChild(burst);
+        setTimeout(() => burst.remove(), 1400);
+    }
+
+    showCornerHazardBeacon(spaceId) {
+        this.clearCornerHazard();
+        const layer = document.getElementById('gp_highlights_layer');
+        if (!layer) return;
+        const coords = this.getSpaceCoordinates(spaceId);
+        if (!coords) return;
+
+        const beacon = document.createElement('div');
+        beacon.id = 'gp_corner_hazard_beacon';
+        beacon.className = 'gp_corner_hazard';
+        beacon.style.left = `${coords.x}px`;
+        beacon.style.top = `${coords.y}px`;
+        beacon.innerHTML = `
+            <div class="gp_corner_hazard_badge">⚠️ CORNER: CRASH RISK!</div>
+        `;
+        layer.appendChild(beacon);
+    }
+
+    clearCornerHazard() {
+        const existing = document.getElementById('gp_corner_hazard_beacon');
+        if (existing) existing.remove();
     }
 
     spawnFinishFlash(x, y) {
@@ -918,10 +941,9 @@ export class Game {
             carEl.style.top = `${coords.y}px`;
             carEl.style.transform = `translate(-50%, -50%) rotate(${currentAngle}deg)`;
 
-            // Corner tire screech + asphalt skid marks
+            // Corner tire screech
             if (coords.type === 'corner') {
                 this.sound.playTireChirp();
-                this.spawnSkidMark(coords.x, coords.y, currentAngle);
             } else {
                 this.sound.playDriveStep(i, steps.length);
             }
@@ -979,13 +1001,9 @@ export class Game {
         const carEl = document.getElementById(`gp_car_${crashedId}`);
         if (!carEl) return;
 
-        const coords = this.getSpaceCoordinates(spaceId);
         carEl.classList.add('gp_belly_up');
         carEl.classList.add('gp_car_crashing');
         this.sound.playCrash();
-        if (coords) {
-            this.spawnSkidMark(coords.x, coords.y, 0);
-        }
         await this.waitMs(350);
         carEl.classList.remove('gp_car_crashing');
     }

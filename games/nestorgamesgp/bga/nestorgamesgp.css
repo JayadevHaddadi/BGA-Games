@@ -423,6 +423,127 @@
     100% { transform: translate(-50%, -50%) rotate(0deg) scale(1); }
 }
 
+/* ⚠️ Corner Hazard Caution Beacon */
+.gp_corner_hazard {
+    position: absolute;
+    width: 52px;
+    height: 52px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 7;
+    border: 2px dashed #ff1744;
+    background: radial-gradient(circle, rgba(255, 23, 68, 0.40) 0%, rgba(255, 23, 68, 0.08) 68%, transparent 100%);
+    animation: gp_corner_pulse 0.9s infinite alternate;
+}
+
+@keyframes gp_corner_pulse {
+    0% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.65; }
+    100% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
+}
+
+.gp_corner_hazard_badge {
+    position: absolute;
+    top: -24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #d50000;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 900;
+    padding: 2px 7px;
+    border-radius: 10px;
+    border: 1px solid #ff8a80;
+    white-space: nowrap;
+    box-shadow: 0 0 10px rgba(255, 23, 68, 0.85);
+    letter-spacing: 0.5px;
+    animation: gp_badge_bob 1.0s ease-in-out infinite alternate;
+}
+
+/* 🎲 Dice Tray Contextual Hazard Banner */
+.gp_tray_warning {
+    width: 100%;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 6px;
+    margin-top: 6px;
+    white-space: nowrap;
+}
+
+.gp_tray_warning.gp_tray_danger {
+    background: rgba(213, 0, 0, 0.90);
+    color: #ffffff;
+    border: 1px solid #ff5252;
+    animation: gp_danger_flash 1.0s infinite alternate;
+}
+
+.gp_tray_warning.gp_tray_safe {
+    background: rgba(30, 136, 229, 0.80);
+    color: #ffffff;
+    border: 1px solid #64b5f6;
+}
+
+@keyframes gp_danger_flash {
+    0% { box-shadow: 0 0 4px rgba(255, 23, 68, 0.5); }
+    100% { box-shadow: 0 0 12px rgba(255, 23, 68, 0.9); }
+}
+
+/* 💥 Cute Event / Impact Bursts */
+.gp_impact_burst {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    font-size: 13px;
+    font-weight: 900;
+    padding: 4px 12px;
+    border-radius: 16px;
+    color: #ffffff;
+    pointer-events: none;
+    z-index: 55;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
+    animation: gp_impact_pop 1.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes gp_impact_pop {
+    0% { transform: translate(-50%, -50%) scale(0.3) rotate(-15deg); opacity: 0; }
+    25% { transform: translate(-50%, -80%) scale(1.25) rotate(5deg); opacity: 1; }
+    40% { transform: translate(-50%, -75%) scale(1.0) rotate(0deg); opacity: 1; }
+    80% { transform: translate(-50%, -95%) scale(1.0) rotate(0deg); opacity: 1; }
+    100% { transform: translate(-50%, -125%) scale(0.8) rotate(0deg); opacity: 0; }
+}
+
+.gp_impact_bump {
+    background: #ff9800;
+    border: 2px solid #fff;
+    box-shadow: 0 0 14px rgba(255, 152, 0, 0.85);
+}
+
+.gp_impact_crash {
+    background: #d50000;
+    border: 2px solid #ff8a80;
+    box-shadow: 0 0 16px rgba(213, 0, 0, 0.9);
+}
+
+.gp_impact_upright {
+    background: #2e7d32;
+    border: 2px solid #a5d6a7;
+    box-shadow: 0 0 14px rgba(46, 125, 50, 0.85);
+}
+
+.gp_impact_repaired {
+    background: #1976d2;
+    border: 2px solid #90caf9;
+    box-shadow: 0 0 14px rgba(25, 118, 210, 0.85);
+}
+
+.gp_impact_finished {
+    background: #fdd835;
+    color: #111 !important;
+    border: 2px solid #ffffff;
+    box-shadow: 0 0 18px rgba(253, 216, 53, 0.95);
+}
+
 /* 📱 Responsive Mobile Standard */
 @media (max-width: 600px) {
     #gp_game_container {

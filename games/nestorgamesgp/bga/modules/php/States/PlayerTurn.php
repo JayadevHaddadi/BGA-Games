@@ -41,6 +41,7 @@ class PlayerTurn extends GameState
             'can_use_shortcut' => $canUseShortcut,
             'can_fix_car' => $canFixCar,
             'is_belly_up' => $racer ? (bool) $racer['is_belly_up'] : false,
+            'is_corner' => ($racer ? Circuit::isCorner((int)$racer['space_id']) : false),
             'all_racers' => $this->game->getAllRacers(),
         ];
     }
