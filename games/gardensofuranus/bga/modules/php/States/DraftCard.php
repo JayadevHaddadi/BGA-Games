@@ -101,6 +101,17 @@ class DraftCard extends GameState
                 $this->game->notifyAllPlayers("draftRoundStarted", clienttranslate('Draft Round ${round}: Remaining cards passed to the next player!'), [
                     'round' => $round + 1,
                 ]);
+
+                foreach ($playerIds as $pId) {
+                    $cards = $this->game->getObjectListFromDb(
+                        "SELECT `card_id`, `card_type`, `color1`, `color2` FROM `card` WHERE `card_location` = 'draft_hand' AND `location_arg` = " . (int)$pId
+                    );
+                    $this->game->notifyPlayer((int)$pId, "newDraftHand", '', [
+                        'round' => $round + 1,
+                        'draft_cards' => $cards,
+                    ]);
+                }
+
                 $this->gamestate->setAllPlayersMultiactive();
                 return self::class;
             } else {
@@ -143,6 +154,20 @@ class DraftCard extends GameState
                     "UPDATE `card` SET `card_location` = 'draft_hand' WHERE `card_location` = 'draft_temp'"
                 );
                 $this->globals->set('draft_round', $round + 1);
+                $this->game->notifyAllPlayers("draftRoundStarted", clienttranslate('Draft Round ${round}: Remaining cards passed to the next player!'), [
+                    'round' => $round + 1,
+                ]);
+
+                foreach ($playerIds as $pId) {
+                    $cards = $this->game->getObjectListFromDb(
+                        "SELECT `card_id`, `card_type`, `color1`, `color2` FROM `card` WHERE `card_location` = 'draft_hand' AND `location_arg` = " . (int)$pId
+                    );
+                    $this->game->notifyPlayer((int)$pId, "newDraftHand", '', [
+                        'round' => $round + 1,
+                        'draft_cards' => $cards,
+                    ]);
+                }
+
                 $this->gamestate->setAllPlayersMultiactive();
                 return self::class;
             } else {

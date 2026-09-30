@@ -272,6 +272,66 @@ export class Game {
         }
     }
 
+    clearActionButtons() {
+        if (this.bga?.statusBar?.removeActionButtons) {
+            this.bga.statusBar.removeActionButtons();
+        }
+        if (typeof gameui !== 'undefined' && typeof gameui.removeActionButtons === 'function') {
+            gameui.removeActionButtons();
+        }
+        const container = document.getElementById('generalactions') || document.querySelector('.bga-status-bar-actions');
+        if (container) {
+            container.innerHTML = '';
+        }
+    }
+
+    getTooltipElement() {
+        let el = document.getElementById('gou_cursor_tooltip');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'gou_cursor_tooltip';
+            document.body.appendChild(el);
+            document.addEventListener('touchstart', (e) => {
+                if (!e.target.closest('.gou_card_wrapper')) {
+                    this.hideTooltip();
+                }
+            }, { passive: true });
+        }
+        return el;
+    }
+
+    showTooltip(info, clientX, clientY) {
+        const tooltip = this.getTooltipElement();
+        tooltip.innerHTML = `
+            <div class="gou_popup_title">${info.name}</div>
+            <div class="gou_popup_desc">${info.desc}</div>
+            <div class="gou_popup_tag">${info.type}</div>
+        `;
+        tooltip.classList.add('visible');
+
+        const w = 260;
+        const h = 110;
+        let left = clientX + 16;
+        let top = clientY + 12;
+
+        if (left + w > window.innerWidth - 12) {
+            left = Math.max(10, clientX - w - 16);
+        }
+        if (top + h > window.innerHeight - 12) {
+            top = Math.max(10, clientY - h - 12);
+        }
+
+        tooltip.style.left = `${left}px`;
+        tooltip.style.top = `${top}px`;
+    }
+
+    hideTooltip() {
+        const tooltip = document.getElementById('gou_cursor_tooltip');
+        if (tooltip) {
+            tooltip.classList.remove('visible');
+        }
+    }
+
     getCardInfo(cardId) {
         const id = parseInt(cardId);
         if (this.gamedatas?.mission_deck?.[id]) {
@@ -279,7 +339,8 @@ export class Game {
         }
         return {
             name: _('Mission Card #') + id,
-            desc: _('Complete the flower pattern to score points.')
+            desc: _('Complete the flower pattern to score points.'),
+            type: 'MISSION'
         };
     }
 
@@ -287,26 +348,48 @@ export class Game {
         const id = parseInt(card.card_id);
         const info = this.getCardInfo(id);
         const themeUrl = typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : '';
-        const cardEl = document.createElement('div');
-        cardEl.className = 'gou_card' + (options.selected ? ' selected' : '');
-        cardEl.dataset.cardId = id;
-        cardEl.title = `${info.name}: ${info.desc}`;
 
-        cardEl.innerHTML = `
-            <img src="${themeUrl}img/cards/card_${id}.jpg" alt="${info.name}">
-            <div class="gou_card_desc_bar">${info.name}</div>
+        const wrapper = document.createElement('div');
+        wrapper.className = 'gou_card_wrapper' + (options.selected ? ' selected' : '');
+        wrapper.dataset.cardId = id;
+
+        wrapper.innerHTML = `
+            <div class="gou_card${options.selected ? ' selected' : ''}" data-card-id="${id}">
+                <img src="${themeUrl}img/cards/card_${id}.jpg" alt="${info.name}">
+            </div>
+            <div class="gou_card_title_label">${info.name}</div>
+            <div class="gou_card_rule_label">${info.desc}</div>
         `;
 
-        if (this.bga?.tooltips?.add) {
-            this.bga.tooltips.add(cardEl, `
-                <div class="gou_card_tooltip">
-                    <div class="gou_card_tooltip_title">${info.name}</div>
-                    <div class="gou_card_tooltip_desc">${info.desc}</div>
-                </div>
-            `);
-        }
+        // Desktop mouse tracking for white rectangular tooltip to the right of mouse
+        wrapper.addEventListener('mouseenter', (e) => {
+            this.showTooltip(info, e.clientX, e.clientY);
+        });
+        wrapper.addEventListener('mousemove', (e) => {
+            this.showTooltip(info, e.clientX, e.clientY);
+        });
+        wrapper.addEventListener('mouseleave', () => {
+            this.hideTooltip();
+        });
 
-        return cardEl;
+        // Mobile touch & hold (long press) support
+        let touchTimer = null;
+        wrapper.addEventListener('touchstart', (e) => {
+            const touch = e.touches[0];
+            touchTimer = setTimeout(() => {
+                this.showTooltip(info, touch.clientX, touch.clientY);
+            }, 280);
+        }, { passive: true });
+
+        wrapper.addEventListener('touchend', () => {
+            if (touchTimer) clearTimeout(touchTimer);
+        });
+        wrapper.addEventListener('touchmove', () => {
+            if (touchTimer) clearTimeout(touchTimer);
+            this.hideTooltip();
+        });
+
+        return wrapper;
     }
 
     renderSpots() {
@@ -389,27 +472,23 @@ export class Game {
 
         container.innerHTML = '';
         this.gamedatas.hand_cards.forEach(card => {
-            const cardEl = this.createCardElement(card);
-            cardEl.addEventListener('click', () => this.onCardClicked(card.card_id));
-            container.appendChild(cardEl);
+            const wrapper = this.createCardElement(card);
+            wrapper.addEventListener('click', () => this.onCardClicked(card.card_id));
+            container.appendChild(wrapper);
         });
     }
 
     updateDraftUI(args) {
+        this.clearActionButtons();
+
         if (!this.isCurrentPlayerActive()) {
             this.bga?.statusBar?.setTitle?.(_('Draft Phase: Waiting for other players to choose a card...'));
-            if (this.bga?.statusBar?.clearActionButtons) {
-                this.bga.statusBar.clearActionButtons();
-            }
             return;
         }
 
         const cards = args?.draft_cards || this.gamedatas?.draft_cards || [];
         if (!cards.length) {
             this.bga?.statusBar?.setTitle?.(_('Draft Phase: Card chosen! Waiting for other players...'));
-            if (this.bga?.statusBar?.clearActionButtons) {
-                this.bga.statusBar.clearActionButtons();
-            }
             return;
         }
 
@@ -427,15 +506,26 @@ export class Game {
             }
         );
 
-        if (this.bga?.statusBar?.clearActionButtons) {
-            this.bga.statusBar.clearActionButtons();
-        }
         this.bga?.statusBar?.addActionButton?.(
             _('Keep Selected Card'),
             () => {
                 if (this.selectedCardId) {
                     sounds.playClick();
-                    this.bga.actions.performAction('actKeepCard', { cardId: parseInt(this.selectedCardId) });
+                    const chosenId = parseInt(this.selectedCardId);
+                    this.clearActionButtons();
+                    this.bga?.statusBar?.setTitle?.(_('Card chosen! Waiting for other players...'));
+                    const container = document.getElementById('gou_cards_container');
+                    if (container) {
+                        container.querySelectorAll('.gou_card_wrapper').forEach(w => {
+                            if (parseInt(w.dataset.cardId) === chosenId) {
+                                w.classList.add('selected');
+                            } else {
+                                w.style.opacity = '0.35';
+                                w.style.pointerEvents = 'none';
+                            }
+                        });
+                    }
+                    this.bga.actions.performAction('actKeepCard', { cardId: chosenId });
                 }
             },
             { color: 'primary' }
@@ -447,25 +537,38 @@ export class Game {
 
         cards.forEach(card => {
             const isSelected = parseInt(card.card_id) === parseInt(this.selectedCardId);
-            const cardEl = this.createCardElement(card, { selected: isSelected });
+            const wrapper = this.createCardElement(card, { selected: isSelected });
 
-            cardEl.addEventListener('click', () => {
+            wrapper.addEventListener('click', () => {
                 sounds.playClick();
                 if (parseInt(this.selectedCardId) === parseInt(card.card_id)) {
                     // Clicking already selected card confirms
-                    this.bga.actions.performAction('actKeepCard', { cardId: parseInt(card.card_id) });
+                    const chosenId = parseInt(card.card_id);
+                    this.clearActionButtons();
+                    this.bga?.statusBar?.setTitle?.(_('Card chosen! Waiting for other players...'));
+                    container.querySelectorAll('.gou_card_wrapper').forEach(w => {
+                        if (parseInt(w.dataset.cardId) === chosenId) {
+                            w.classList.add('selected');
+                        } else {
+                            w.style.opacity = '0.35';
+                            w.style.pointerEvents = 'none';
+                        }
+                    });
+                    this.bga.actions.performAction('actKeepCard', { cardId: chosenId });
                 } else {
                     this.selectedCardId = card.card_id;
                     this.updateDraftUI(args);
                 }
             });
 
-            container.appendChild(cardEl);
+            container.appendChild(wrapper);
         });
     }
 
     updateSelectMartianUI(args) {
         this.clearValidMoveHighlights();
+        this.clearActionButtons();
+
         if (!this.isCurrentPlayerActive()) {
             this.bga?.statusBar?.setTitle?.(_('Waiting for active player to select Martian and spot...'));
             return;
@@ -478,10 +581,6 @@ export class Game {
 
         this.bga?.statusBar?.setTitle?.(_('Select your Martian, then click a highlighted empty spot to place your gardener'));
 
-        // Action buttons to toggle Martian choice
-        if (this.bga?.statusBar?.clearActionButtons) {
-            this.bga.statusBar.clearActionButtons();
-        }
         available.forEach(m => {
             const label = m.toUpperCase() + (m === this.selectedMartian ? ' ✓' : '');
             this.bga?.statusBar?.addActionButton?.(label, () => {
@@ -490,7 +589,6 @@ export class Game {
             }, { color: (m === this.selectedMartian ? 'primary' : 'secondary') });
         });
 
-        // Highlight empty spots on the board
         if (args?.empty_spots) {
             args.empty_spots.forEach(sp => {
                 const el = document.getElementById(`spot_${sp.q}_${sp.r}`);
@@ -501,6 +599,7 @@ export class Game {
 
     updatePlayerTurnUI(args) {
         this.clearValidMoveHighlights();
+        this.clearActionButtons();
         this.selectedMartian = null;
         if (!this.isCurrentPlayerActive()) {
             this.bga?.statusBar?.setTitle?.(_('Waiting for active player...'));
@@ -509,7 +608,6 @@ export class Game {
 
         this.bga?.statusBar?.setTitle?.(_('Your turn: Move gardener or Score a mission card'));
 
-        // Highlight legal destinations
         if (args?.valid_moves) {
             args.valid_moves.forEach(vm => {
                 const el = document.getElementById(`spot_${vm.q}_${vm.r}`);
@@ -528,7 +626,6 @@ export class Game {
         if (!spotEl || !spotEl.classList.contains('valid_move')) return;
 
         if (this.selectedMartian) {
-            // In Martian selection phase
             this.bga.actions.performAction('actSelectMartian', {
                 martian: this.selectedMartian,
                 q: q,
@@ -538,7 +635,6 @@ export class Game {
             return;
         }
 
-        // In normal player turn
         this.bga.actions.performAction('actMoveGardener', {
             targetQ: q,
             targetR: r,
@@ -571,6 +667,7 @@ export class Game {
             dojo.subscribe('flowersSwapped', this, 'notif_flowersSwapped');
             dojo.subscribe('cardDrafted', this, 'notif_cardDrafted');
             dojo.subscribe('draftRoundStarted', this, 'notif_draftRoundStarted');
+            dojo.subscribe('newDraftHand', this, 'notif_newDraftHand');
         } else if (typeof this.bga?.notifications?.subscribe === 'function') {
             this.bga.notifications.subscribe('gardenerMoved', (notif) => this.notif_gardenerMoved(notif));
             this.bga.notifications.subscribe('missionScored', (notif) => this.notif_missionScored(notif));
@@ -580,6 +677,7 @@ export class Game {
             this.bga.notifications.subscribe('flowersSwapped', (notif) => this.notif_flowersSwapped(notif));
             this.bga.notifications.subscribe('cardDrafted', (notif) => this.notif_cardDrafted(notif));
             this.bga.notifications.subscribe('draftRoundStarted', (notif) => this.notif_draftRoundStarted(notif));
+            this.bga.notifications.subscribe('newDraftHand', (notif) => this.notif_newDraftHand(notif));
         }
     }
 
@@ -588,16 +686,21 @@ export class Game {
         const args = this._getNotifArgs(notif);
         const myId = this.bga?.players?.getCurrentPlayerId?.() || 0;
         if (parseInt(args.player_id) === parseInt(myId)) {
+            this.clearActionButtons();
             this.bga?.statusBar?.setTitle?.(_('Mission card selected! Waiting for other players...'));
-            if (this.bga?.statusBar?.clearActionButtons) {
-                this.bga.statusBar.clearActionButtons();
-            }
         }
     }
 
     notif_draftRoundStarted(notif) {
         sounds.playMove();
         this.selectedCardId = null;
+    }
+
+    notif_newDraftHand(notif) {
+        sounds.playMove();
+        const args = this._getNotifArgs(notif);
+        this.selectedCardId = null;
+        this.updateDraftUI(args);
     }
 
     notif_gardenerMoved(notif) {
