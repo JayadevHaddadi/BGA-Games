@@ -124,17 +124,8 @@ class Game extends \Bga\GameFramework\Table
         $this->reloadPlayersBasicInfos();
 
         // Initialize game stats
-        $this->tableStats->init([
-            'turns_number' => 0,
-            'laps_number' => 0,
-        ]);
-
-        $this->playerStats->init([
-            'turns_number' => 0,
-            'items_used' => 0,
-            'collisions_count' => 0,
-            'top_speed' => 0,
-        ]);
+        $this->tableStats->init(['turns_number', 'laps_number'], 0);
+        $this->playerStats->init(['turns_number', 'items_used', 'collisions_count', 'top_speed'], 0);
 
         $firstPlayerId = (int) $playerIds[0];
         $this->gamestate->changeActivePlayer($firstPlayerId);
