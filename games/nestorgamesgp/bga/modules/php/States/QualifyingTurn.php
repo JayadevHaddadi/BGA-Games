@@ -39,8 +39,9 @@ class QualifyingTurn extends GameState
     }
 
     #[PossibleAction]
-    public function actRoll(int $activePlayerId, array $args): ?string
+    public function actRoll(): ?string
     {
+        $activePlayerId = (int) $this->game->getActivePlayerId();
         $res = $this->game->rollQualifyingDie($activePlayerId);
         $playerName = $this->game->loadPlayersBasicInfos()[$activePlayerId]['player_name'];
 
@@ -74,8 +75,9 @@ class QualifyingTurn extends GameState
     }
 
     #[PossibleAction]
-    public function actStop(int $activePlayerId, array $args): string
+    public function actStop(): string
     {
+        $activePlayerId = (int) $this->game->getActivePlayerId();
         $rolledDice = $this->globals->get('current_roll_dice', []);
         if (empty($rolledDice)) {
             throw new UserException(clienttranslate("You must roll at least one die."));

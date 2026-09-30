@@ -46,8 +46,9 @@ class PlayerTurn extends GameState
     }
 
     #[PossibleAction]
-    public function actFlipCar(int $activePlayerId, array $args): string
+    public function actFlipCar(): string
     {
+        $activePlayerId = (int) $this->game->getActivePlayerId();
         $racer = $this->game->getRacer($activePlayerId);
         if (!$racer || !$racer['is_belly_up']) {
             throw new UserException(clienttranslate("Your car is not crashed."));
@@ -66,8 +67,9 @@ class PlayerTurn extends GameState
     }
 
     #[PossibleAction]
-    public function actFixCar(int $activePlayerId, array $args): string
+    public function actFixCar(): string
     {
+        $activePlayerId = (int) $this->game->getActivePlayerId();
         $racer = $this->game->getRacer($activePlayerId);
         if (!$racer) {
             throw new UserException("Racer not found.");
@@ -99,8 +101,9 @@ class PlayerTurn extends GameState
     }
 
     #[PossibleAction]
-    public function actRoll(int $activePlayerId, array $args): ?string
+    public function actRoll(): ?string
     {
+        $activePlayerId = (int) $this->game->getActivePlayerId();
         $racer = $this->game->getRacer($activePlayerId);
         if (!$racer) {
             throw new UserException("Racer not found.");
@@ -146,8 +149,10 @@ class PlayerTurn extends GameState
     }
 
     #[PossibleAction]
-    public function actStop(bool $useShortcut = false, int $activePlayerId = 0, array $args = []): string
+    public function actStop(mixed $useShortcut = false): string
     {
+        $activePlayerId = (int) $this->game->getActivePlayerId();
+        $useShortcut = filter_var($useShortcut, FILTER_VALIDATE_BOOLEAN);
         $rolledDice = $this->globals->get('current_roll_dice', []);
         if (empty($rolledDice)) {
             throw new UserException(clienttranslate("You must roll at least one die before moving."));

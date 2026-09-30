@@ -105,6 +105,8 @@ class QualifyingTurnState {
     }
 
     onEnteringState(args) {
+        this.game.currentArgs = args;
+        this.game.renderDiceTray(args?.rolled_dice || []);
         const active = this.game.isCurrentPlayerActive();
         this.updateControls(args, active);
     }
@@ -115,7 +117,7 @@ class QualifyingTurnState {
         if (active) {
             const rolled = args?.rolled_dice || [];
             const score = args?.current_score || 0;
-            const diceLeft = args?.dice_remaining ?? 6;
+            const diceLeft = args?.dice_remaining ?? (6 - rolled.length);
 
             if (rolled.length === 0) {
                 this.bga.statusBar.setTitle(_('${you} must roll to qualify for pole position!'));
@@ -130,13 +132,13 @@ class QualifyingTurnState {
                 );
 
                 if (diceLeft > 0) {
-                    this.game.addActionButton('btnRollQualAgain', _('🎲 Roll Again (${diceLeft} dice left)'), () => {
+                    this.game.addActionButton('btnRollQualAgain', _('🎲 Roll Again') + ` (${diceLeft} left)`, () => {
                         this.game.sound.playRoll();
                         this.bga.actions.performAction('actRoll', {});
                     }, 'primary');
                 }
 
-                this.game.addActionButton('btnStopQual', _('🛑 Stop & Lock ${score} pts'), () => {
+                this.game.addActionButton('btnStopQual', _('🛑 Stop & Lock') + ` (${score} pts)`, () => {
                     this.bga.actions.performAction('actStop', {});
                 }, 'alert');
             }
@@ -157,6 +159,8 @@ class PlayerTurnState {
     }
 
     onEnteringState(args) {
+        this.game.currentArgs = args;
+        this.game.renderDiceTray(args?.rolled_dice || []);
         const active = this.game.isCurrentPlayerActive();
         this.updateControls(args, active);
     }
@@ -201,19 +205,27 @@ class PlayerTurnState {
 
                 const diceLeft = args?.dice_remaining ?? 0;
                 if (diceLeft > 0) {
-                    this.game.addActionButton('btnRollMore', _('🎲 Push Luck: Roll Again'), () => {
+                    this.game.addActionButton('btnRollMore', _('🎲 Push Luck: Roll Again') + ` (${diceLeft} left)`, () => {
                         this.game.sound.playRoll();
                         this.bga.actions.performAction('actRoll', {});
-                    }, 'primary');
+                    }, 'secondary');
                 }
 
-                this.game.addActionButton('btnDrive', _('🏁 Drive ${mp} Spaces'), () => {
+                const driveLabel = currentMp === 1
+                    ? _('🏁 Drive 1 Space')
+                    : _('🏁 Drive ${mp} Spaces').replace('${mp}', currentMp);
+
+                this.game.addActionButton('btnDrive', driveLabel, () => {
                     this.game.sound.playEngineRev();
                     this.bga.actions.performAction('actStop', { useShortcut: false });
-                }, 'alert');
+                }, 'primary');
 
                 if (canShortcut) {
-                    this.game.addActionButton('btnShortcut', _('⚡ Take Shortcut (${mp} Spaces)'), () => {
+                    const shortcutLabel = currentMp === 1
+                        ? _('⚡ Take Shortcut (1 Space)')
+                        : _('⚡ Take Shortcut (${mp} Spaces)').replace('${mp}', currentMp);
+
+                    this.game.addActionButton('btnShortcut', shortcutLabel, () => {
                         this.game.sound.playEngineRev();
                         this.bga.actions.performAction('actStop', { useShortcut: true });
                     }, 'secondary');
@@ -233,6 +245,7 @@ export class Game {
     constructor(bga) {
         this.bga = bga;
         this.sound = new RetroAudioController();
+        this.currentArgs = null;
 
         this.BOARD_WIDTH = 988;
         this.BOARD_HEIGHT = 515;
@@ -297,7 +310,23 @@ export class Game {
         return null;
     }
 
+    getCurrentPlayerId() {
+        if (this.bga?.players && typeof this.bga.players.getCurrentPlayerId === 'function') {
+            return this.bga.players.getCurrentPlayerId();
+        }
+        if (typeof gameui !== 'undefined' && gameui.player_id) {
+            return gameui.player_id;
+        }
+        return null;
+    }
+
     clearActionButtons() {
+        if (typeof this.bga?.statusBar?.removeActionButtons === 'function') {
+            this.bga.statusBar.removeActionButtons();
+        }
+        if (typeof this.bga?.statusBar?.clearActionButtons === 'function') {
+            this.bga.statusBar.clearActionButtons();
+        }
         const bar = document.getElementById('generalactions') || document.querySelector('.bga-status-bar__actions');
         if (bar) {
             bar.innerHTML = '';
@@ -305,9 +334,25 @@ export class Game {
     }
 
     addActionButton(id, text, callback, color = 'primary') {
-        if (this.bga?.statusBar?.addActionButton) {
-            this.bga.statusBar.addActionButton(text, callback, { id: id, color: color });
+        const existing = document.getElementById(id);
+        if (existing) {
+            existing.remove();
         }
+        if (!this.bga?.statusBar?.addActionButton) return null;
+        let btn = null;
+        try {
+            btn = this.bga.statusBar.addActionButton(text, callback, { color: color, id: id });
+        } catch (e) {
+            try {
+                btn = this.bga.statusBar.addActionButton(id, text, callback, color);
+            } catch (e2) {
+                console.warn('Could not add action button:', e2);
+            }
+        }
+        if (btn && btn instanceof HTMLElement && !btn.id) {
+            btn.id = id;
+        }
+        return btn;
     }
 
     initBoardScaler() {
@@ -527,14 +572,19 @@ export class Game {
             this.bga.notifications.setupPromiseNotifications();
         } else if (typeof this.notifications?.setupPromiseNotifications === 'function') {
             this.notifications.setupPromiseNotifications();
-        } else if (typeof dojo !== 'undefined' && typeof dojo.subscribe === 'function') {
+        }
+        if (typeof dojo !== 'undefined' && typeof dojo.subscribe === 'function') {
             const notifs = [
-                'qualifyingRoll', 'qualifyingBust', 'raceStarting',
+                'qualifyingRoll', 'qualifyingBust', 'qualifyingFinished', 'raceStarting',
                 'raceRoll', 'raceCrash', 'raceStall', 'carMoved',
                 'carBumped', 'cornerCollisionCrash', 'carFlippedUpright',
-                'racerFinished', 'raceEnded'
+                'carFixed', 'racerFinished', 'raceEnded'
             ];
-            notifs.forEach(n => dojo.subscribe(n, this, `notif_${n}`));
+            notifs.forEach(n => {
+                try {
+                    dojo.subscribe(n, this, `notif_${n}`);
+                } catch (e) {}
+            });
         }
     }
 
@@ -542,11 +592,27 @@ export class Game {
         const args = this._getNotifArgs(notif);
         this.sound.playRoll();
         this.renderDiceTray(args.all_dice);
+
+        if (!this.currentArgs) {
+            this.currentArgs = {};
+        }
+        this.currentArgs.rolled_dice = args.all_dice || [];
+        this.currentArgs.current_score = args.score || 0;
+        this.currentArgs.dice_remaining = 6 - (args.all_dice || []).length;
+
+        this.qualifyingTurn.updateControls(this.currentArgs, this.isCurrentPlayerActive());
     }
 
     notif_qualifyingBust(notif) {
         const args = this._getNotifArgs(notif);
         this.sound.playCrash();
+        this.renderDiceTray(args.all_dice);
+        this.clearActionButtons();
+    }
+
+    notif_qualifyingFinished(notif) {
+        const args = this._getNotifArgs(notif);
+        this.clearActionButtons();
         this.renderDiceTray(args.all_dice);
     }
 
@@ -554,7 +620,9 @@ export class Game {
         const args = this._getNotifArgs(notif);
         this.sound.playLapFanfare();
         this.renderDiceTray([]);
+        this.clearActionButtons();
         if (args.all_racers) {
+            this.racers = args.all_racers;
             this.renderRacers(args.all_racers);
         }
     }
@@ -563,42 +631,70 @@ export class Game {
         const args = this._getNotifArgs(notif);
         this.sound.playRoll();
         this.renderDiceTray(args.all_dice);
+
+        if (!this.currentArgs) {
+            this.currentArgs = {};
+        }
+        this.currentArgs.rolled_dice = args.all_dice || [];
+        this.currentArgs.current_mp = args.total_mp || 0;
+        const racer = (args.player_id && this.racers) ? this.racers[args.player_id] : this.currentArgs.racer;
+        const availableDice = racer ? (racer.dice_available ?? 6) : 6;
+        this.currentArgs.dice_remaining = availableDice - (args.all_dice || []).length;
+        if (racer) {
+            this.currentArgs.can_use_shortcut = (racer.space_id === 8 && !racer.shortcut_used);
+        }
+
+        this.playerTurn.updateControls(this.currentArgs, this.isCurrentPlayerActive());
     }
 
     notif_raceCrash(notif) {
         const args = this._getNotifArgs(notif);
         this.sound.playCrash();
         this.renderDiceTray(args.all_dice);
+        if (args.racer && this.racers) {
+            this.racers[args.player_id] = args.racer;
+        }
         const carEl = document.getElementById(`gp_car_${args.player_id}`);
         if (carEl) {
             carEl.classList.add('gp_belly_up');
         }
+        this.clearActionButtons();
     }
 
     notif_raceStall(notif) {
         const args = this._getNotifArgs(notif);
         this.sound.playScreech();
         this.renderDiceTray(args.all_dice);
+        this.clearActionButtons();
     }
 
     notif_carMoved(notif) {
         const args = this._getNotifArgs(notif);
         this.sound.playEngineRev();
         this.renderDiceTray([]);
-        const carEl = document.getElementById(`gp_car_${args.player_id}`);
-        if (carEl && args.racer) {
-            this.updateCarPosition(carEl, args.final_space, args.racer.facing_direction);
+        this.clearActionButtons();
+        if (args.racer && this.racers) {
+            this.racers[args.player_id] = args.racer;
         }
         if (args.all_racers) {
+            this.racers = args.all_racers;
             this.renderRacers(args.all_racers);
+        } else {
+            const carEl = document.getElementById(`gp_car_${args.player_id}`);
+            if (carEl && args.racer) {
+                this.updateCarPosition(carEl, args.final_space, args.racer.facing_direction);
+            }
         }
     }
 
     notif_carBumped(notif) {
         const args = this._getNotifArgs(notif);
+        this.sound.playScreech();
+        if (this.racers && this.racers[args.bumped_id]) {
+            this.racers[args.bumped_id].space_id = args.to_space;
+        }
         const carEl = document.getElementById(`gp_car_${args.bumped_id}`);
         if (carEl) {
-            this.sound.playScreech();
             this.updateCarPosition(carEl, args.to_space, 270);
         }
     }
@@ -606,6 +702,9 @@ export class Game {
     notif_cornerCollisionCrash(notif) {
         const args = this._getNotifArgs(notif);
         this.sound.playCrash();
+        if (this.racers && this.racers[args.player_id]) {
+            this.racers[args.player_id].is_belly_up = 1;
+        }
         const carEl = document.getElementById(`gp_car_${args.player_id}`);
         if (carEl) {
             carEl.classList.add('gp_belly_up');
@@ -614,17 +713,34 @@ export class Game {
 
     notif_carFlippedUpright(notif) {
         const args = this._getNotifArgs(notif);
+        if (args.racer && this.racers) {
+            this.racers[args.player_id] = args.racer;
+        }
         const carEl = document.getElementById(`gp_car_${args.player_id}`);
         if (carEl) {
             carEl.classList.remove('gp_belly_up');
         }
+        this.clearActionButtons();
+    }
+
+    notif_carFixed(notif) {
+        const args = this._getNotifArgs(notif);
+        if (args.racer && this.racers) {
+            this.racers[args.player_id] = args.racer;
+        }
+        this.clearActionButtons();
     }
 
     notif_racerFinished(notif) {
+        const args = this._getNotifArgs(notif);
         this.sound.playLapFanfare();
+        if (args.racer && this.racers) {
+            this.racers[args.player_id] = args.racer;
+        }
     }
 
     notif_raceEnded(notif) {
         this.sound.playLapFanfare();
+        this.clearActionButtons();
     }
 }
