@@ -7,6 +7,8 @@
  *------
  */
 
+const _ = (str) => (typeof window !== 'undefined' && typeof window._ === 'function' ? window._(str) : (typeof globalThis !== 'undefined' && typeof globalThis._ === 'function' ? globalThis._(str) : str));
+
 class SoundController {
     constructor() {
         this.ctx = null;
@@ -139,7 +141,7 @@ export class EndScore {
     }
 
     onEnteringState(args) {
-        this.game.bga?.statusBar?.setTitle?.(clienttranslate('Game Over! Final scores calculated.'));
+        this.game.bga?.statusBar?.setTitle?.(_('Game Over! Final scores calculated.'));
     }
 }
 
@@ -326,10 +328,10 @@ export class Game {
 
     updateDraftUI(args) {
         if (!this.isCurrentPlayerActive()) {
-            this.bga?.statusBar?.setTitle?.(clienttranslate('Draft Phase: Waiting for other players to choose a card...'));
+            this.bga?.statusBar?.setTitle?.(_('Draft Phase: Waiting for other players to choose a card...'));
             return;
         }
-        this.bga?.statusBar?.setTitle?.(clienttranslate('Draft Phase: Choose 1 mission card to keep in your hand'));
+        this.bga?.statusBar?.setTitle?.(_('Draft Phase: Choose 1 mission card to keep in your hand'));
 
         const container = document.getElementById('gou_cards_container');
         if (!container) return;
@@ -357,7 +359,7 @@ export class Game {
     updateSelectMartianUI(args) {
         this.clearValidMoveHighlights();
         if (!this.isCurrentPlayerActive()) {
-            this.bga?.statusBar?.setTitle?.(clienttranslate('Waiting for active player to select Martian and spot...'));
+            this.bga?.statusBar?.setTitle?.(_('Waiting for active player to select Martian and spot...'));
             return;
         }
 
@@ -366,7 +368,7 @@ export class Game {
             this.selectedMartian = available[0];
         }
 
-        this.bga?.statusBar?.setTitle?.(clienttranslate('Select your Martian, then click a highlighted empty spot to place your gardener'));
+        this.bga?.statusBar?.setTitle?.(_('Select your Martian, then click a highlighted empty spot to place your gardener'));
 
         // Action buttons to toggle Martian choice
         if (this.bga?.statusBar?.clearActionButtons) {
@@ -393,11 +395,11 @@ export class Game {
         this.clearValidMoveHighlights();
         this.selectedMartian = null;
         if (!this.isCurrentPlayerActive()) {
-            this.bga?.statusBar?.setTitle?.(clienttranslate('Waiting for active player...'));
+            this.bga?.statusBar?.setTitle?.(_('Waiting for active player...'));
             return;
         }
 
-        this.bga?.statusBar?.setTitle?.(clienttranslate('Your turn: Move gardener or Score a mission card'));
+        this.bga?.statusBar?.setTitle?.(_('Your turn: Move gardener or Score a mission card'));
 
         // Highlight legal destinations
         if (args?.valid_moves) {
