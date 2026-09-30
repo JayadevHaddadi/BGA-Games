@@ -702,6 +702,93 @@ export class Game {
         });
     }
 
+    getCarSvg(model = 'chibi_kart') {
+        const models = {
+            chibi_kart: `
+                <svg viewBox="0 0 40 40" class="gp_car_svg">
+                    <!-- Rear wheels (chubby rounded) -->
+                    <rect x="2" y="24" width="7" height="11" rx="3.5" fill="#1e232a"/>
+                    <rect x="3.5" y="27" width="4" height="5" rx="2" fill="#4a5568"/>
+                    <rect x="31" y="24" width="7" height="11" rx="3.5" fill="#1e232a"/>
+                    <rect x="32.5" y="27" width="4" height="5" rx="2" fill="#4a5568"/>
+                    <!-- Front wheels -->
+                    <rect x="3" y="7" width="6" height="9" rx="3" fill="#1e232a"/>
+                    <rect x="4.5" y="9" width="3" height="5" rx="1.5" fill="#4a5568"/>
+                    <rect x="31" y="7" width="6" height="9" rx="3" fill="#1e232a"/>
+                    <rect x="32.5" y="9" width="3" height="5" rx="1.5" fill="#4a5568"/>
+                    <!-- Rear curved wing -->
+                    <rect x="5" y="32" width="30" height="5" rx="2.5" fill="#2d3748"/>
+                    <rect x="7" y="33" width="26" height="3" rx="1.5" fill="currentColor"/>
+                    <!-- Main rounded body pod -->
+                    <rect x="10" y="8" width="20" height="23" rx="8" fill="currentColor"/>
+                    <ellipse cx="20" cy="8" rx="8" ry="4" fill="currentColor"/>
+                    <!-- Cockpit -->
+                    <ellipse cx="20" cy="18" rx="6" ry="7" fill="#1a202c"/>
+                    <!-- Helmet & Visor -->
+                    <circle cx="20" cy="17" r="4.2" fill="#ffffff"/>
+                    <path d="M17,15.5 Q20,13.5 23,15.5 Q20,17 17,15.5 Z" fill="#3182ce"/>
+                    <circle cx="21.5" cy="15" r="0.9" fill="#ffffff" opacity="0.9"/>
+                    <!-- Hood highlight stripe -->
+                    <path d="M19,5 L21,5 L21,11 L19,11 Z" fill="#ffffff" opacity="0.6"/>
+                </svg>
+            `,
+            retro_beetle: `
+                <svg viewBox="0 0 40 40" class="gp_car_svg">
+                    <rect x="3" y="6" width="5.5" height="10" rx="2.75" fill="#1e232a"/>
+                    <rect x="31.5" y="6" width="5.5" height="10" rx="2.75" fill="#1e232a"/>
+                    <rect x="2" y="23" width="6" height="11" rx="3" fill="#1e232a"/>
+                    <rect x="32" y="23" width="6" height="11" rx="3" fill="#1e232a"/>
+                    <path d="M20,4 C27,4 31,9 31,16 C31,24 29,35 20,36 C11,35 9,24 9,16 C9,9 13,4 20,4 Z" fill="currentColor"/>
+                    <circle cx="14" cy="7" r="2.8" fill="#fef08a" stroke="#475569" stroke-width="0.8"/>
+                    <circle cx="26" cy="7" r="2.8" fill="#fef08a" stroke="#475569" stroke-width="0.8"/>
+                    <circle cx="13.5" cy="6.5" r="0.8" fill="#fff"/>
+                    <circle cx="25.5" cy="6.5" r="0.8" fill="#fff"/>
+                    <ellipse cx="20" cy="18" rx="6.5" ry="6" fill="#38bdf8" opacity="0.85"/>
+                    <path d="M16,15 Q20,13 24,15" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+                    <circle cx="20" cy="19" r="3.2" fill="#f8fafc"/>
+                    <ellipse cx="20" cy="18.5" rx="2.5" ry="1.2" fill="#0f172a"/>
+                    <rect x="11" y="34.5" width="18" height="2.5" rx="1.25" fill="#94a3b8"/>
+                </svg>
+            `,
+            chibi_f1: `
+                <svg viewBox="0 0 40 40" class="gp_car_svg">
+                    <path d="M5,7 Q20,3 35,7 Q20,5 5,7 Z" fill="#334155"/>
+                    <path d="M7,7 Q20,4 33,7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+                    <rect x="2" y="7" width="6" height="9" rx="3" fill="#0f172a"/>
+                    <circle cx="5" cy="11.5" r="1.5" fill="#64748b"/>
+                    <rect x="32" y="7" width="6" height="9" rx="3" fill="#0f172a"/>
+                    <circle cx="35" cy="11.5" r="1.5" fill="#64748b"/>
+                    <path d="M17,6 Q20,3 23,6 L24,19 Q28,21 28,28 Q28,32 23,32 L17,32 Q12,32 12,28 Q12,21 16,19 Z" fill="currentColor"/>
+                    <ellipse cx="20" cy="18" rx="4.5" ry="5.5" fill="#0f172a"/>
+                    <circle cx="20" cy="17.5" r="3.6" fill="#facc15"/>
+                    <path d="M17.5,16 Q20,14.5 22.5,16 Q20,17.2 17.5,16 Z" fill="#0284c7"/>
+                    <circle cx="21" cy="15.5" r="0.7" fill="#fff"/>
+                    <rect x="1" y="23" width="7.5" height="11" rx="3.5" fill="#0f172a"/>
+                    <circle cx="4.75" cy="28.5" r="1.8" fill="#64748b"/>
+                    <rect x="31.5" y="23" width="7.5" height="11" rx="3.5" fill="#0f172a"/>
+                    <circle cx="35.25" cy="28.5" r="1.8" fill="#64748b"/>
+                    <rect x="6" y="32.5" width="28" height="4.5" rx="2.25" fill="#334155"/>
+                    <rect x="8" y="33.5" width="24" height="2.5" rx="1.25" fill="currentColor"/>
+                </svg>
+            `,
+            bumper_buggy: `
+                <svg viewBox="0 0 40 40" class="gp_car_svg">
+                    <rect x="5" y="4" width="30" height="32" rx="14" fill="#1e293b"/>
+                    <rect x="8" y="7" width="24" height="26" rx="11" fill="currentColor"/>
+                    <circle cx="14" cy="9" r="2.2" fill="#fef08a"/>
+                    <circle cx="26" cy="9" r="2.2" fill="#fef08a"/>
+                    <circle cx="20" cy="20" r="6.5" fill="#0f172a"/>
+                    <circle cx="20" cy="19.5" r="4.8" fill="#f8fafc"/>
+                    <ellipse cx="20" cy="18.5" rx="3.5" ry="1.8" fill="#0284c7"/>
+                    <circle cx="21" cy="17.8" r="0.7" fill="#ffffff"/>
+                    <rect x="12" y="28" width="3.5" height="3.5" rx="1.5" fill="#94a3b8"/>
+                    <rect x="24.5" y="28" width="3.5" height="3.5" rx="1.5" fill="#94a3b8"/>
+                </svg>
+            `
+        };
+        return models[model] || models.chibi_kart;
+    }
+
     createCarElement(racer) {
         const el = document.createElement('div');
         el.id = `gp_car_${racer.player_id}`;
@@ -709,28 +796,8 @@ export class Game {
         el.title = `Player ${racer.player_id} (${racer.car_color})`;
         el.dataset.angle = racer.facing_direction ?? 270;
 
-        // Vector SVG racecar (arcade top-down view)
-        el.innerHTML = `
-            <svg viewBox="0 0 40 40" class="gp_car_svg">
-                <!-- Front Wing -->
-                <rect x="6" y="4" width="28" height="6" rx="2" fill="#222" />
-                <rect x="8" y="5" width="24" height="4" rx="1" fill="currentColor" />
-                <!-- Front Wheels -->
-                <rect x="2" y="8" width="6" height="9" rx="2" fill="#111" />
-                <rect x="32" y="8" width="6" height="9" rx="2" fill="#111" />
-                <!-- Car Body Chassis -->
-                <path d="M12,10 L28,10 L26,30 L14,30 Z" fill="currentColor" />
-                <!-- Cockpit / Driver Helmet -->
-                <ellipse cx="20" cy="20" rx="4" ry="5" fill="#111" />
-                <circle cx="20" cy="19" r="2.5" fill="#f0c040" />
-                <!-- Rear Wheels -->
-                <rect x="1" y="24" width="7" height="11" rx="2" fill="#111" />
-                <rect x="32" y="24" width="7" height="11" rx="2" fill="#111" />
-                <!-- Rear Wing -->
-                <rect x="4" y="32" width="32" height="6" rx="2" fill="#222" />
-                <rect x="6" y="33" width="28" height="4" rx="1" fill="currentColor" />
-            </svg>
-        `;
+        // Cute rounded vector SVG racecar
+        el.innerHTML = this.getCarSvg('chibi_kart');
 
         this.updateCarPosition(el, racer.space_id, racer.facing_direction);
         return el;
