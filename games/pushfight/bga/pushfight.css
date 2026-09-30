@@ -115,14 +115,14 @@
     pointer-events: none;
 }
 
-/* Cells — consistent rounded wooden tiles with 3D elevation */
+/* Cells — warm honey-wood tiles with dark routed groove borders */
 .pft-cell {
     width: 64px;
     height: 64px;
-    background: linear-gradient(135deg, #ffffff 0%, #f6ecd8 100%);
+    background: linear-gradient(135deg, #dfbe91 0%, #ceaa77 100%);
     border-radius: 8px;
-    box-shadow: 0 3px 6px rgba(60, 35, 10, 0.18), inset 0 1px 2px rgba(255, 255, 255, 0.95), inset 0 -1px 2px rgba(160, 130, 95, 0.15);
-    border: 2px solid #c8af88;
+    box-shadow: 0 3px 6px rgba(50, 30, 10, 0.2), inset 0 1px 2px rgba(255, 245, 220, 0.7), inset 0 -1px 2px rgba(120, 80, 40, 0.25);
+    border: 2px solid #8e6236;
     position: relative;
     display: flex;
     align-items: center;
@@ -141,7 +141,7 @@
     bottom: 2px;
     right: 4px;
     font-size: 9px;
-    color: rgba(130, 95, 60, 0.35);
+    color: rgba(75, 45, 15, 0.55);
     font-weight: 700;
     pointer-events: none;
 }
@@ -180,17 +180,17 @@
     z-index: 2;
 }
 
-/* White / Light Ivory Team — pearlescent highlight with crisp rim */
+/* White / Light Birch Team — crisp ivory block with dark wooden border for high contrast */
 .pft-piece.team-white {
-    background: radial-gradient(circle at 35% 30%, #ffffff 0%, #ffffff 50%, #f6efe3 80%, #e6d7be 100%);
-    border: 2px solid #ecd8bf;
-    color: #3b2310;
-    box-shadow: 0 5px 12px rgba(60, 35, 10, 0.28), inset 0 2px 4px #ffffff, inset 0 -2px 3px rgba(180, 150, 110, 0.35);
-    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9);
+    background: radial-gradient(circle at 35% 30%, #ffffff 0%, #fffdf8 45%, #f7ede0 80%, #ebe0ce 100%);
+    border: 2.5px solid #4a2810;
+    color: #301505;
+    box-shadow: 0 6px 14px rgba(35, 18, 5, 0.45), inset 0 2px 3px rgba(255, 255, 255, 0.95), inset 0 -2px 3px rgba(160, 125, 85, 0.35);
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .pft-piece.team-white .pft-piece-icon {
-    filter: drop-shadow(0 1px 1px rgba(255, 255, 255, 0.8));
+    filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.9));
 }
 
 /* Brown / Dark Walnut Team */
