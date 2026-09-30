@@ -30,6 +30,17 @@
     background-size: contain;
 }
 
+/* 🎯 Highlights Layer (under racers, above track) */
+.gp_highlights_layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 6;
+}
+
 .gp_racers_layer {
     position: absolute;
     top: 0;
@@ -37,6 +48,7 @@
     width: 100%;
     height: 100%;
     pointer-events: none;
+    z-index: 10;
 }
 
 /* 🏎️ Vector Formula Racecars */
@@ -45,9 +57,9 @@
     width: 34px;
     height: 34px;
     pointer-events: none;
-    transition: left 0.45s cubic-bezier(0.25, 1, 0.5, 1),
-                top 0.45s cubic-bezier(0.25, 1, 0.5, 1),
-                transform 0.35s ease;
+    transition: left 0.35s ease,
+                top 0.35s ease,
+                transform 0.30s ease;
     z-index: 10;
 }
 
@@ -55,6 +67,52 @@
     width: 100%;
     height: 100%;
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+}
+
+/* 🏎️ Active Driving State */
+.gp_car.gp_driving {
+    z-index: 35 !important;
+    filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.75)) brightness(1.15);
+    animation: gp_drive_wobble 0.12s infinite alternate;
+}
+
+@keyframes gp_drive_wobble {
+    0% { margin-top: -1px; }
+    100% { margin-top: 1px; }
+}
+
+/* Arrival Bounce */
+.gp_car.gp_car_arrive {
+    animation: gp_arrive_bounce 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes gp_arrive_bounce {
+    0% { transform: translate(-50%, -50%) scale(1.18, 0.88); }
+    50% { transform: translate(-50%, -50%) scale(0.92, 1.08); }
+    100% { transform: translate(-50%, -50%) scale(1, 1); }
+}
+
+/* Bumped Car Shiver */
+.gp_car.gp_car_bumped {
+    animation: gp_bump_shake 0.35s ease;
+}
+
+@keyframes gp_bump_shake {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    25% { transform: translate(-50%, -50%) rotate(-15deg) scale(1.12); }
+    50% { transform: translate(-50%, -50%) rotate(15deg) scale(1.05); }
+    100% { transform: translate(-50%, -50%) rotate(0deg) scale(1); }
+}
+
+/* Crashing Tumble */
+.gp_car.gp_car_crashing {
+    animation: gp_crash_tumble 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+@keyframes gp_crash_tumble {
+    0% { transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+    50% { transform: translate(-50%, -50%) scale(1.35) rotate(180deg); }
+    100% { transform: translate(-50%, -50%) scale(1) rotate(360deg); }
 }
 
 /* 💥 Crashed Belly-up State */
@@ -81,6 +139,192 @@
 .gp_color_orange { color: #fb8c00; }
 .gp_color_cyan { color: #00acc1; }
 .gp_color_indigo { color: #3949ab; }
+
+/* 🏁 Destination Highlight Marker */
+.gp_dest_marker {
+    position: absolute;
+    width: 52px;
+    height: 52px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.gp_dest_marker.gp_dest_clickable {
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+.gp_dest_marker.gp_dest_clickable:hover {
+    filter: brightness(1.25);
+}
+
+.gp_dest_beacon {
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    right: -4px;
+    bottom: -4px;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    background: radial-gradient(circle, currentColor 0%, transparent 68%);
+    opacity: 0.35;
+    animation: gp_dest_pulse 1.3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes gp_dest_pulse {
+    0% { transform: scale(0.85); opacity: 0.6; }
+    50% { transform: scale(1.18); opacity: 0.15; }
+    100% { transform: scale(0.85); opacity: 0.6; }
+}
+
+.gp_dest_reticle {
+    width: 44px;
+    height: 44px;
+    z-index: 2;
+    filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.7));
+    animation: gp_reticle_spin 10s linear infinite;
+}
+
+@keyframes gp_reticle_spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.gp_dest_svg {
+    width: 100%;
+    height: 100%;
+}
+
+.gp_dest_badge {
+    position: absolute;
+    top: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(18, 18, 24, 0.95);
+    color: #fdfdfd;
+    border: 1.5px solid currentColor;
+    border-radius: 12px;
+    padding: 2px 7px;
+    font-size: 11px;
+    font-weight: 800;
+    white-space: nowrap;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    z-index: 10;
+    pointer-events: none;
+    animation: gp_badge_bob 1.3s ease-in-out infinite alternate;
+}
+
+@keyframes gp_badge_bob {
+    0% { transform: translateX(-50%) translateY(0); }
+    100% { transform: translateX(-50%) translateY(-3px); }
+}
+
+/* Alert varieties for crash, bump, shortcut */
+.gp_dest_marker.gp_dest_crash {
+    color: #ff3333 !important;
+}
+.gp_dest_marker.gp_dest_crash .gp_dest_badge {
+    background: #b71c1c;
+    border-color: #ff5252;
+    color: #ffffff;
+    animation: gp_crash_alert 0.6s infinite alternate;
+}
+
+@keyframes gp_crash_alert {
+    0% { transform: translateX(-50%) scale(1); box-shadow: 0 0 4px #ff1744; }
+    100% { transform: translateX(-50%) scale(1.1); box-shadow: 0 0 14px #ff1744; }
+}
+
+.gp_dest_marker.gp_dest_bump {
+    color: #ff9800 !important;
+}
+.gp_dest_marker.gp_dest_bump .gp_dest_badge {
+    background: #e65100;
+    border-color: #ffb74d;
+    color: #ffffff;
+}
+
+.gp_dest_marker.gp_dest_shortcut {
+    color: #00e5ff !important;
+}
+.gp_dest_marker.gp_dest_shortcut .gp_dest_badge {
+    background: #006064;
+    border-color: #00e5ff;
+    color: #ffffff;
+}
+
+/* 🟢 Path Breadcrumb Dots */
+.gp_path_dot {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    background: currentColor;
+    box-shadow: 0 0 6px currentColor;
+    pointer-events: none;
+    z-index: 7;
+    animation: gp_dot_stream 1s ease-in-out infinite alternate;
+}
+
+.gp_path_dot.gp_dot_shortcut {
+    color: #00e5ff !important;
+}
+
+@keyframes gp_dot_stream {
+    0% { transform: translate(-50%, -50%) scale(0.75); opacity: 0.45; }
+    100% { transform: translate(-50%, -50%) scale(1.15); opacity: 0.95; }
+}
+
+/* 🏁 Skid Marks on Asphalt */
+.gp_skid_mark {
+    position: absolute;
+    width: 26px;
+    height: 14px;
+    pointer-events: none;
+    border-top: 3px solid rgba(25, 25, 25, 0.55);
+    border-bottom: 3px solid rgba(25, 25, 25, 0.55);
+    border-radius: 2px;
+    z-index: 5;
+    animation: gp_skid_fade 1.2s forwards;
+}
+
+@keyframes gp_skid_fade {
+    0% { opacity: 0.85; transform: translate(-50%, -50%) scale(1); }
+    70% { opacity: 0.6; }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
+}
+
+/* 🏁 Lap Finish Banner */
+.gp_lap_flash {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    background: #fdd835;
+    color: #111;
+    font-size: 13px;
+    font-weight: 900;
+    padding: 3px 10px;
+    border-radius: 12px;
+    border: 2px solid #fff;
+    box-shadow: 0 0 14px rgba(253, 216, 53, 0.9);
+    pointer-events: none;
+    z-index: 40;
+    animation: gp_lap_float 1s ease-out forwards;
+}
+
+@keyframes gp_lap_float {
+    0% { opacity: 1; transform: translate(-50%, -50%) scale(0.6); }
+    40% { transform: translate(-50%, -70%) scale(1.2); }
+    100% { opacity: 0; transform: translate(-50%, -100%) scale(1); }
+}
 
 /* 🎲 Push-Your-Luck Dice Tray */
 .gp_dice_tray {

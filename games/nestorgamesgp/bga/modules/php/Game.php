@@ -359,6 +359,7 @@ class Game extends \Bga\GameFramework\Table
 
         return [
             'player_id' => $playerId,
+            'start_space' => $startSpace,
             'steps' => $steps,
             'final_space' => $currentSpace,
             'laps_completed' => $lapsCompleted,

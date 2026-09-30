@@ -165,6 +165,7 @@ class PlayerTurn extends GameState
             'player_id' => $activePlayerId,
             'player_name' => $playerName,
             'movement_points' => $movementPoints,
+            'start_space' => $res['start_space'],
             'steps' => $res['steps'],
             'final_space' => $res['final_space'],
             'laps_completed' => $res['laps_completed'],
@@ -179,9 +180,12 @@ class PlayerTurn extends GameState
                 if ($evt['type'] === 'bump') {
                     $bName = $this->game->loadPlayersBasicInfos()[$evt['bumped_id']]['player_name'];
                     $this->game->notifyAllPlayers('carBumped', clienttranslate('${bumped_name} was bumped forward into space ${to_space}!'), [
+                        'bumper_id' => $evt['bumper_id'],
                         'bumped_id' => $evt['bumped_id'],
                         'bumped_name' => $bName,
+                        'from_space' => $evt['from_space'],
                         'to_space' => $evt['to_space'],
+                        'all_racers' => $this->game->getAllRacers(),
                     ]);
                 } elseif ($evt['type'] === 'corner_crash' || $evt['type'] === 'bump_into_corner_crash') {
                     $cName = $this->game->loadPlayersBasicInfos()[$evt['player_id']]['player_name'];
@@ -189,6 +193,7 @@ class PlayerTurn extends GameState
                         'player_id' => $evt['player_id'],
                         'player_name' => $cName,
                         'space_id' => $evt['space_id'],
+                        'all_racers' => $this->game->getAllRacers(),
                     ]);
                 }
             }
