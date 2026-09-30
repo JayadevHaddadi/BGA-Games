@@ -137,6 +137,7 @@ class Game extends \Bga\GameFramework\Table
         $this->globals->set('qualifying_rolls', []);
         $this->globals->set('current_roll_dice', []);
         $this->globals->set('race_started', false);
+        $this->globals->set('racers_started', []);
         $this->globals->set('finish_order', []);
         $this->globals->set('total_laps', $totalLaps);
 
@@ -346,6 +347,9 @@ class Game extends \Bga\GameFramework\Table
         $discsRemaining = $racer['discs_remaining'];
         $shortcutUsed = $racer['shortcut_used'];
 
+        $racersStarted = $this->globals->get('racers_started', []);
+        $hasStarted = !empty($racersStarted[$playerId]);
+
         if ($useShortcut && !$shortcutUsed && $currentSpace === 8) {
             $shortcutUsed = true;
         }
@@ -355,14 +359,29 @@ class Game extends \Bga\GameFramework\Table
 
             // Check if finish line was crossed
             if (Circuit::isFinishLineCrossed($currentSpace, $nextSpace)) {
-                $lapsCompleted++;
-                if ($discsRemaining > 0) {
-                    $discsRemaining--;
+                if (!$hasStarted) {
+                    // First crossing is leaving the starting grid pit bay into the circuit.
+                    // Official rules: "the first time does not count as it is the start of the race"
+                    $hasStarted = true;
+                    $racersStarted[$playerId] = true;
+                    $this->globals->set('racers_started', $racersStarted);
+                } else {
+                    $lapsCompleted++;
+                    if ($discsRemaining > 0) {
+                        $discsRemaining--;
+                    }
                 }
             }
 
             $currentSpace = $nextSpace;
             $steps[] = $currentSpace;
+        }
+
+        // Safety fallback: if car moved into the circuit without crossing 74->1
+        if (!$hasStarted && !Circuit::isPitLane($currentSpace)) {
+            $hasStarted = true;
+            $racersStarted[$playerId] = true;
+            $this->globals->set('racers_started', $racersStarted);
         }
 
         $finalSpaceInfo = Circuit::getSpace($currentSpace);

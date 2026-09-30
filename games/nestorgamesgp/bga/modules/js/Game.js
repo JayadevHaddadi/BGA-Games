@@ -393,6 +393,7 @@ export class Game {
 
     setup(gamedatas) {
         this.racers = gamedatas.all_racers || {};
+        this.totalLaps = gamedatas.total_laps || 3;
         this.qualifyingBoard = gamedatas.qualifying_board || {};
         this.qualifyingActive = gamedatas.qualifying_active;
         this.initDom();
@@ -681,6 +682,7 @@ export class Game {
                 ? '<span class="gp_panel_shortcut gp_shortcut_used" title="Shortcut already used this race">⚡ Shortcut: Used</span>'
                 : '<span class="gp_panel_shortcut gp_shortcut_avail" title="Shortcut available from space 8">⚡ Shortcut: Ready</span>';
 
+            const totalLaps = this.totalLaps || 3;
             panelInfo.innerHTML = `
                 <div class="gp_panel_row">
                     <span class="gp_panel_label">🎲 Dice Pool:</span>
@@ -689,8 +691,8 @@ export class Game {
                 </div>
                 <div class="gp_panel_row">
                     <span class="gp_panel_label">🏁 Lap:</span>
-                    <strong class="gp_panel_val">${Math.min(3, laps + 1)} / 3</strong>
-                    <span class="gp_panel_sub">(${racer.discs_remaining ?? (3 - laps)} discs left)</span>
+                    <strong class="gp_panel_val">${Math.min(totalLaps, laps + 1)} / ${totalLaps}</strong>
+                    <span class="gp_panel_sub">(${racer.discs_remaining ?? Math.max(0, totalLaps - laps)} discs left)</span>
                 </div>
                 <div class="gp_panel_row gp_panel_status_row">
                     ${statusHtml}

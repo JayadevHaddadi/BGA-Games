@@ -52,5 +52,19 @@
             }
         },
         "default": 3
+    },
+    "103": {
+        "name": "Special Items & Hazards",
+        "values": {
+            "1": {
+                "name": "Disabled (Classic)",
+                "description": "Pure push-your-luck racing without weapons or hazards (recommended for beginners)."
+            },
+            "2": {
+                "name": "Enabled (Arcade Battle GP)",
+                "description": "Race with Rockets, Turbo Boosts, Wrenches, Mines, and Oil Spills!"
+            }
+        },
+        "default": 1
     }
 }
