@@ -117,9 +117,22 @@ export class DraftCard {
         this.bga = bga;
     }
 
-    onEnteringState(args) {
-        this.game.updateDraftUI(args);
+    onEnteringState(args, isCurrentPlayerActive) {
+        this.game.updateDraftUI(args, isCurrentPlayerActive);
     }
+
+    onUpdateActionButtons(args, isCurrentPlayerActive) {
+        this.game.updateDraftUI(args, isCurrentPlayerActive);
+    }
+}
+
+export class NextDraftRound {
+    constructor(game, bga) {
+        this.game = game;
+        this.bga = bga;
+    }
+
+    onEnteringState(args) {}
 }
 
 export class SelectMartian {
@@ -358,7 +371,6 @@ export class Game {
                 <img src="${themeUrl}img/cards/card_${id}.jpg" alt="${info.name}">
             </div>
             <div class="gou_card_title_label">${info.name}</div>
-            <div class="gou_card_rule_label">${info.desc}</div>
         `;
 
         // Desktop mouse tracking for white rectangular tooltip to the right of mouse
@@ -478,11 +490,20 @@ export class Game {
         });
     }
 
-    updateDraftUI(args) {
+    updateDraftUI(args, isCurrentPlayerActive) {
         this.clearActionButtons();
 
-        if (!this.isCurrentPlayerActive()) {
+        const active = (isCurrentPlayerActive !== undefined) ? isCurrentPlayerActive : this.isCurrentPlayerActive();
+
+        if (!active) {
             this.bga?.statusBar?.setTitle?.(_('Draft Phase: Waiting for other players to choose a card...'));
+            const container = document.getElementById('gou_cards_container');
+            if (container) {
+                container.querySelectorAll('.gou_card_wrapper').forEach(w => {
+                    w.style.pointerEvents = 'none';
+                    w.style.cursor = 'default';
+                });
+            }
             return;
         }
 
@@ -517,11 +538,11 @@ export class Game {
                     const container = document.getElementById('gou_cards_container');
                     if (container) {
                         container.querySelectorAll('.gou_card_wrapper').forEach(w => {
+                            w.style.pointerEvents = 'none';
                             if (parseInt(w.dataset.cardId) === chosenId) {
                                 w.classList.add('selected');
                             } else {
                                 w.style.opacity = '0.35';
-                                w.style.pointerEvents = 'none';
                             }
                         });
                     }
@@ -541,24 +562,8 @@ export class Game {
 
             wrapper.addEventListener('click', () => {
                 sounds.playClick();
-                if (parseInt(this.selectedCardId) === parseInt(card.card_id)) {
-                    // Clicking already selected card confirms
-                    const chosenId = parseInt(card.card_id);
-                    this.clearActionButtons();
-                    this.bga?.statusBar?.setTitle?.(_('Card chosen! Waiting for other players...'));
-                    container.querySelectorAll('.gou_card_wrapper').forEach(w => {
-                        if (parseInt(w.dataset.cardId) === chosenId) {
-                            w.classList.add('selected');
-                        } else {
-                            w.style.opacity = '0.35';
-                            w.style.pointerEvents = 'none';
-                        }
-                    });
-                    this.bga.actions.performAction('actKeepCard', { cardId: chosenId });
-                } else {
-                    this.selectedCardId = card.card_id;
-                    this.updateDraftUI(args);
-                }
+                this.selectedCardId = card.card_id;
+                this.updateDraftUI(args, true);
             });
 
             container.appendChild(wrapper);
@@ -694,13 +699,20 @@ export class Game {
     notif_draftRoundStarted(notif) {
         sounds.playMove();
         this.selectedCardId = null;
+        const args = this._getNotifArgs(notif);
+        if (args?.round) {
+            this.gamedatas.draft_round = args.round;
+        }
     }
 
     notif_newDraftHand(notif) {
         sounds.playMove();
         const args = this._getNotifArgs(notif);
         this.selectedCardId = null;
-        this.updateDraftUI(args);
+        if (args?.draft_cards) {
+            this.gamedatas.draft_cards = args.draft_cards;
+        }
+        this.updateDraftUI(args, true);
     }
 
     notif_gardenerMoved(notif) {
