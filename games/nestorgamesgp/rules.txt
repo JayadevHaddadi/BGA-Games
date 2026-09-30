@@ -1,0 +1,289 @@
+HOW TO RACE (BASIC RULES)
+The player that qualified best starts.
+On your turn, if your car is belly up (you crashed on your previous
+turn) flip it over and pass the turn. You car doesn’t move.
+
+A racing board game for 2 to 8 players by
+Néstor Romeral Andrés
+
+Otherwise, roll your dice the same way as in the qualifying round.
+One of these three things can happen:
+- You’ve rolled the same number twice but your car is not on a
+corner. Your car does not move.
+
+INTRODUCTION
+Example: Yellow has rolled a second 5. Yellow doesn’t move.
+
+nestorgames GP is a fast and furious racing game for 2 to 8
+players, derived from TOP SPEED by the same designer, that
+simplifies many aspects of its predecessor and also adds some fun
+twists such as special items or shortcuts. It is a tribute to the
+arcade racing games of the 80’s, such as SuperSprint or Nitro.
+
+- You’re rolled the same number twice and your car is on a corner.
+You’ve crashed! Apply the Crashing rule (see below). Your car
+does not move.
+
+MATERIAL (BASE GAME)
+
+- You’ve stopped rolling so you don’t have repeated results: Add
+up all the values of the rolled dice and move your car forward
+exactly that many spaces along the track. Other cars don’t block
+your movement.
+
+- Board with racing track
+- One racing car, one cylinder, 3 discs and 6 dice for each of the 8
+colors.
+- 2 turbines (turbo boost).
+- 2 rockets
+- 2 bombs
+- 2 wrenches
+- 4 oil spills
+- One large tube for storage
+
+SETUP
+Place the board (circuit) in the middle of the playing surface. Set
+the special items (gray) and the oil spills aside.
+
+Example: Red moves 12 spaces (2+6+1+3)
+
+Each player chooses a color and takes all items and dice of that
+color (oil spills are black, but are not related to the black car).
+
+If your car moves and ends its movement on a space occupied by
+another car, you bump into it:
+
+Determine a starting player for the qualifying round by any
+peaceful means.
+
+- If the space is a corner, you’ve crashed into all cars on that
+corner. Apply Crashing to all those cars.
+
+Each player, in counterclockwise order, does the following on her
+turn:
+
+- If the space is not a corner, move the car you bumped into one
+space forward. If, as a result, that car bumps into another car
+repeat the process. If any bumped car moves into a corner, it
+crashes (apply Crashing to it). If there was another car (or more)
+on that corner then all of them crash on that corner.
+
+Roll one of your dice. Then you can opt to stop rolling dice or roll
+another one, and so on until you’ve either stopped rolling dice or
+you’ve rolled the same number twice. Notice that you can’t roll
+more than 6 dice.
+- If you have stopped rolling (you don’t have any repeated result)
+add up all the values of your rolled dice. This is your qualifying
+value.
+- If you’ve rolled the same number twice instead, your qualifying
+value is zero.
+The player with the highest qualifying value goes first in the pit
+lane, with the rest of the players going in the same order as they
+are sitting and counterclockwise. Ties are resolved by additional
+rounds.
+Place the cars accordingly in the pit lane. Place the 3 discs of each
+player on the ‘box’ adjacent to the square that their cars are.
+Those are the lap counters. Some boards include additional
+counters for longer races.
+
+In general, cars on corners can’t move forward as a result of a
+bump. They crash instead. As a result, there can be several cars
+on a corner, but not or square spaces.
+CRASHING
+When a car crashes, flip it over belly-up, take one of its dice and
+place it on its ‘box’ by the side of the pit lane. You won’t be able to
+use the dice that are in your ‘box’ unless you Fix the car (see
+below).
+In general, cars only crash on corners. And every time a car
+crashes it gets flipped over belly-up and loses a die.
+CROSSING THE FINISH LINE
+If as a result of the movement, your car has crossed the finish
+line (after completing a lap; the first time does not count as it is the
+start of the race), then take one of your discs from your ‘box’. If
+you’ve taken your 3rd disc you have ended the race (can agree on
+longer races). If you’ve been the first player taking all your 3 discs
+you’ve won the race! The rest of the players can continue racing
+until they finish.
+FIXING YOUR CAR
+
+Setup example for 4 players. Red won the qualifying round.
+
+Instead of taking any action on your turn, you can recover one die
+from you ‘box’, if any. Your car doesn’t move this turn.
+
+nestorgamesGP rules, art and rulebook © 2021 Néstor Romeral Andrés
+
+SPECIAL TRACK FEATURES
+
+the finish line. If there is a car on the destination space just apply
+the bumping rule. It is forbidden to place an item on a ‘T’ space.
+
+The availability of these features depends on which track you’re
+using.
+THE SHORTCUT
+Once per race, your car can take the shortcut instead of making a
+full lap. This lap counts as a full lap for lap counting purposes.
+
+THE SPECIAL ITEMS (UPDATED)
+* These rules replace all previous editions. The tray is no longer
+used. You can invent a rule for it.
+If you take the shortcut, place your cylinder in your ‘box’. This is to
+indicate that you can’t use the shortcut anymore.
+Note: The small ‘triangles’ along the shortcut are not considered
+‘spaces’.
+
+Players can agree on using the ‘special items’ rules and which
+items to use before playing the game.
+Before the race starts, the last player in the pit lane places up to 4
+oil spills on empty spaces of the race track.
+Then, this same player places each special item on an empty
+space of the race track. Bombs are placed facing up (active).
+PICKING UP ITEMS
+If, during the race, you car ends its movement on the square
+occupied an item (except oil spills or bombs), take that item.
+
+THE LOOP
+The loop square must be crossed in a straight line (without
+turning). If you stop on this square, leave the car pointing in the
+correct direction so you know where to move on your next turn.
+When bumping into a car on this cell, bumping rules are applied as
+usual, but this means a car can be bumped away from its legal
+path. In this case, the bumped car must continue racing in the new
+direction on its next turn (indicated by the arrows). Notice that a
+bump might result on the bumped car losing or gaining advantage.
+
+HOW TO USE THE ITEMS YOU’VE PICKED UP
+You can use one of your items before playing your normal turn.
+- Rocket: Count the number of spaces in a straight line too the car
+right in front of yours (if there is a corner in-between you can’t fire
+the rocket). Roll one die. If the result is equal to or higher than the
+distance to your target car, you hit it with the rocket and all the cars
+in that space crash with all the consequences (belly-up, die lost).
+Notice that you can make many cars crash at once if they’re all in
+the same corner.
+- Wrench: Recover all lost dice at once, flip your car over if it was
+belly up, and then play the normal turn.
+- Turbo boost: Play the turn as usual, but when moving, count
+your highest die twice. Notice that if you can’t move (you’ve rolled
+the same value twice) you lose the turbo boost.
+
+THE GATE
+During the setup phase, place the gate on the ‘Gate location’. It is
+forbidden to place an item on a ‘Gate switch’ space (see images
+below).
+
+Example: Red uses the 6 twice, for a total of 18 movement points.
+
+If your car moves and ends its movement on a ‘gate switch’ space
+do the following:
+- If the gate is placed on the ‘gate location’, remove it and set it
+aside (the gate opens). Pass the turn to the next player.
+- If the gate is set aside, place it on the ‘gate location’ (the gate
+closes). Pass the turn to the next player.
+If the gate is ‘open’, cars can take the gate shortcut when moving
+(do not spend the shortcut cylinder).
+
+A gate switch space.
+
+Once used, place the item on the first unoccupied space behind
+your car so it becomes available again.
+BOMBS AND OIL SPILLS
+- Bomb: If any car crosses or ends its movement on a space with
+a bomb, roll one die. If the die scores 1, 2 or 3 the car crashes on
+the bomb space. (belly-up, die lost) and the bomb is removed.
+- Oil spill: If any car ends its movement in a space with an oil
+spill the car slides in a straight line until it reaches a corner and
+crashes (belly-up, die lost), together with all cars on that space if
+any. Oil spills remain on the board for the duration of the race.
+
+The gate location.
+
+The turns on both sides of the gate are not considered ‘corners’
+for collision purposes.
+
+The Red car ends it movement on a spill, slides and crashes.
+
+THE TELEPORT
+If your car moves and ends it movement on a ‘T’ space move it to
+the other ‘T’ space. By doing so, the car is not considered to cross
+nestorgamesGP rules, art and rulebook © 2021 Néstor Romeral Andrés
+
+CHAMPIONSHIP RULES
+
+WET RACE
+
+A championship consists of several races. Determine the winning
+score for the championship (Recommended score is 3 times the
+number of cars).
+
+Place 4 oil spills exactly as shown in the pictures depending on the
+track.
+
+Being ‘n’ the number of cars in the race, the winner of a race
+scores ‘n’ points, the second scores ‘n-1’ points and so on.
+After each race, players add their scores to their accumulated
+score for the championship. If at least one player reaches or
+surpasses the winning score for the championship, the player with
+the highest accumulated score becomes the world champion. Ties
+are broken by the number of wins. If ties persist play a tie-breaker
+race.
+
+TEAMS
+This variant can be played with an even number of players. Every
+2 players form one team. Teams must be arranged before the
+qualifying round. Racing order is irrelevant (just qualify as usual).
+TEAM WINNING
+Add up the race scores for all cars of each team to determine the
+winning team. Ties are broken by the highest ranked car.
+
+ADVANCED RULES
+You can agree on using these rules (or some of them) before the
+race starts.
+ADDITIONAL SPECIAL ITEMS
+You can use an extra set of special items.
+SAFETY CAR
+Whenever a player rolls a double six when in a curve or crashes
+into a car already in a curve, a severe accident happens and the
+involved cars lose all their dice (that they can recover in further
+turns).
+The virtual safety car is deployed. For 3 rounds straight apply the
+following:
+- The leading car can only roll one die.
+- It is forbidden to overtake non-crashed cars or bump into any
+car. This is, any movement that would result in overtaking noncrashed cars or bumping into any car must not be executed. It is
+legal to overtake crashed cars, though.
+- If a car has an accident during the safety car, a new safety car is
+deployed and the 3-rounds count is re-started.
+FASTEST TURN
+Keeping track of the fastest lap requires some bookkeeping and it
+makes the game slower and cumbersome. But you can keep track
+of the fastest turn instead. Simply write down the highest roll
+whenever it happens. At the end of the race, the player that
+executed the highest roll wins half a point for the championship
+(0.5 points).
+Example: A player rolls 9 movement points and gets the fastest
+turn. Later on during the game, a player rolls 12 movement points
+and becomes the new record holder.
+
+NOTES FROM THE DESIGNER
+Prior to GP, I considered TOP SPEED to be my best multiplayer
+game. It was bashed and trolled on Boardgamegeek because it
+includes a mechanism used in another game (Incan Gold). As
+using existing mechanisms is something usual in game design and
+I enjoy this one so much, I’ve decided to use it again in GP.
+However, I’m using dice instead of cards to simplify the
+manufacturing and game play.
+Notice that the maximum movement points seem to be 21, but
+there is a way to move up to 28 spaces on your turn. And even
+more! Can you see how?
+The boards are so big because it’s possible for several cars to
+collide on the same corner, so the track spaces are much larger
+than the cars. Also I’ve opted for a minimalist design because I like
+it.
+I’ve updated the rules because the players always used the special
+items variant (all items on the board), and I’ve also made the bomb
+more dangerous.
+
+nestorgamesGP rules, art and rulebook © 2021 Néstor Romeral Andrés
+
+

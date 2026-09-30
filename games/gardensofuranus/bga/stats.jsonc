@@ -22,9 +22,14 @@
             "name": "Flowers planted",
             "type": "int"
         },
-        "largest_garden_size": {
+        "missions_scored": {
             "id": 12,
-            "name": "Largest garden size",
+            "name": "Missions scored",
+            "type": "int"
+        },
+        "penalty_points": {
+            "id": 13,
+            "name": "Flower penalty points",
             "type": "int"
         }
     }

@@ -5,7 +5,7 @@
     "publisher_bgg_id": 9976,
     "bgg_id": null,
 
-    "players": [2, 3, 4],
+    "players": [2, 3, 4, 5],
     "suggest_player_number": 3,
     "not_recommend_player_number": null,
 
@@ -24,7 +24,7 @@
     "strategy": 4,
     "diplomacy": 1,
 
-    "player_colors": ["4caf50", "e91e63", "2196f3", "ff9800"],
+    "player_colors": ["4caf50", "e91e63", "2196f3", "ff9800", "9c27b0"],
     "favorite_colors": ["4caf50", "e91e63"],
 
     "custom_buy_button": {
