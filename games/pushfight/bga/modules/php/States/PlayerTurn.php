@@ -142,6 +142,7 @@ class PlayerTurn extends GameState
 
         $fromCoord = "{$fromR}.{$fromC}";
         $toCoord = "{$target_r}.{$target_c}";
+        $turnArgs = $this->getArgs();
 
         $this->notify->all('pieceMoved', clienttranslate('${player_name} slides ${piece_type} from ${from_coord} to ${to_coord}'), [
             'player_id' => $activePlayerId,

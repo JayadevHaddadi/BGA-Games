@@ -246,10 +246,11 @@ When clicking **"Request PRIVATE ALPHA status"** on BGA Studio (`https://studio.
 - **"There is no registered licence linked to the BGG id"**: Normal for Private Alpha development. The publisher signs the digital agreement on `boardgamearena.com/gamepublishers` before public Beta.
 - **"The game has 1 tags set..."**: Informational message.
 
-### C. Clean Codebase Deployment Checklist (Linter Rules)
+### C. Clean Codebase Deployment Checklist (Linter & Strict PHP Rules)
 - **Never use `gameui.ajaxcall`**: Use `this.bga.actions.performAction(...)`.
 - **Never access `this.scoreCtrl`**: Use `this.bga.playerPanels.getScoreCounter(pId).toValue(...)`.
 - **Never access `document.getElementById('player_board_${pId}')`**: Use `this.bga.playerPanels.getElement(pId)`.
+- **Always audit notification payload variables**: On BGA production (PHP 8 strict mode), referencing an unassigned variable (e.g. `'turn_args' => $turnArgs` where `$turnArgs = $this->getArgs();` was omitted) throws a fatal `ErrorException`, immediately failing the player action. Always verify every variable in `$this->notify->all(...)` before release.
 
 
 

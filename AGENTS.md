@@ -111,6 +111,15 @@ Every change should be committed and pushed to `main`. The GitHub Actions deploy
 * **What happens**: BGA setup fails with: `Key column '<column>' doesn't exist in table`.
 * **The Rule**: Never put inline `--` or `/* */` comments on column definition lines in `dbmodel.sql`. BGA's Studio preprocessor regex strips the entire line if it contains an inline comment, dropping the column definition completely. Only use comments on their own separate lines.
 
+### ❌ Mistake 10: Undefined Local Variables in Action Handlers / Notifications (PHP 8 Strict Mode)
+* **What happens**: Fatal server error:
+  > `Fatal error: Uncaught ErrorException: Undefined variable $<var> in .../modules/php/States/<State>.php on line <line>`
+  In PHP 8.x on BGA production, PHP runs in strict error mode and converts undefined variable warnings into fatal `ErrorException`, immediately aborting the action and presenting "Server syntax error / Everything I do shows server error" to players.
+* **The Rule**:
+  1. Whenever editing PHP action handlers or refactoring notification payloads, **strictly audit every variable passed in `$this->notify->all(...)`**.
+  2. If passing `'turn_args' => $turnArgs`, ensure `$turnArgs = $this->getArgs();` is called immediately before.
+  3. Never rely on basic `php -l` alone to catch scoping errors: `php -l` only checks syntax (tokens/semicolons), NOT variable initialization.
+
 ---
 
 ## 📱 4. User Experience & Adaptive Design Standards (Official BGA UX Guidelines: https://bga.li/mRdx)
