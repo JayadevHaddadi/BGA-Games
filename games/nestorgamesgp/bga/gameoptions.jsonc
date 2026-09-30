@@ -1,0 +1,56 @@
+{
+    "100": {
+        "name": "Track Circuit",
+        "values": {
+            "1": {
+                "name": "Circuit 1 (Standard with Shortcut & Loop)",
+                "description": "The classic nestorgames GP circuit featuring the high-speed shortcut and looping crossover."
+            },
+            "2": {
+                "name": "Circuit 2 (Triple Loop)",
+                "description": "A technical circuit with three intersecting loops."
+            },
+            "3": {
+                "name": "Circuit 3 (Gate and Teleport)",
+                "description": "Advanced track with interactive switch gates and quantum teleport pads."
+            }
+        },
+        "default": 1
+    },
+    "101": {
+        "name": "Qualifying Round",
+        "values": {
+            "1": {
+                "name": "Enabled",
+                "description": "Each player rolls push-your-luck dice before the race to determine pit lane starting grid position."
+            },
+            "2": {
+                "name": "Disabled",
+                "description": "Standard table seating order determines starting grid positions."
+            }
+        },
+        "default": 1
+    },
+    "102": {
+        "name": "Race Length",
+        "values": {
+            "2": {
+                "name": "2 Laps (Sprint)",
+                "description": "Quick sprint race."
+            },
+            "3": {
+                "name": "3 Laps (Standard)",
+                "description": "Official standard championship distance."
+            },
+            "4": {
+                "name": "4 Laps (Grand Prix)",
+                "description": "Extended tactical race."
+            },
+            "5": {
+                "name": "5 Laps (Endurance)",
+                "description": "Long-distance endurance race."
+            }
+        },
+        "default": 3
+    }
+}
