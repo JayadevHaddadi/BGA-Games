@@ -288,7 +288,8 @@ class Game extends \Bga\GameFramework\Table
             throw new UserException("Racer not found.");
         }
 
-        $currentSpace = $racer['space_id'];
+        $startSpace = (int) $racer['space_id'];
+        $currentSpace = $startSpace;
         $steps = [];
         $lapsCompleted = $racer['laps_completed'];
         $discsRemaining = $racer['discs_remaining'];
