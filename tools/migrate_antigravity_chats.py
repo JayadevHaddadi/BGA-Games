@@ -46,47 +46,108 @@ def find_antigravity_dir():
         return os.path.join(os.environ.get("USERPROFILE", ""), ".gemini", "antigravity")
     return os.path.join(str(Path.home()), ".gemini", "antigravity")
 
-def export_chats(output_zip, source_dir=None):
+def export_chats(output_zip, source_dir=None, workspace_filter="Mandala-helper", conversation_id=None, export_all=False):
     source_dir = source_dir or find_antigravity_dir()
     if not os.path.exists(source_dir):
         print(f"Error: Antigravity directory not found at: {source_dir}")
         sys.exit(1)
 
     print(f"=== Antigravity Chat Exporter ===")
-    print(f"Source Directory: {source_dir}")
-    print(f"Output Archive:   {output_zip}\n")
+    print(f"Source Directory:  {source_dir}")
+    print(f"Output Archive:    {output_zip}")
+    if conversation_id:
+        print(f"Target Chat ID:    {conversation_id}")
+    elif export_all:
+        print(f"Filter:            ALL conversations")
+    else:
+        print(f"Workspace Filter:  {workspace_filter}\n")
 
     conversations_dir = os.path.join(source_dir, "conversations")
     brain_dir = os.path.join(source_dir, "brain")
     db_file = os.path.join(source_dir, "conversation_summaries.db")
 
-    with zipfile.ZipFile(output_zip, "w", zipfile.ZIP_DEFLATED) as zf:
-        if os.path.exists(db_file):
-            print("Packing conversation_summaries.db...")
-            zf.write(db_file, "conversation_summaries.db")
+    target_conv_ids = set()
+    temp_db_path = None
+
+    # Filter conversation IDs from conversation_summaries.db if filtering
+    if os.path.exists(db_file):
+        conn = sqlite3.connect(db_file)
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        
+        if conversation_id:
+            rows = cur.execute("SELECT * FROM conversation_summaries WHERE conversation_id = ?", (conversation_id,)).fetchall()
+        elif export_all:
+            rows = cur.execute("SELECT * FROM conversation_summaries").fetchall()
+        elif workspace_filter:
+            # Match workspace uri case-insensitively
+            rows = cur.execute("SELECT * FROM conversation_summaries WHERE LOWER(workspace_uris) LIKE ?", (f"%{workspace_filter.lower()}%",)).fetchall()
         else:
-            print("Warning: conversation_summaries.db not found!")
+            rows = cur.execute("SELECT * FROM conversation_summaries").fetchall()
+
+        target_conv_ids = {r["conversation_id"] for r in rows}
+        print(f"Selected {len(target_conv_ids)} conversation(s) to export:")
+        for r in rows:
+            print(f" - [{r['conversation_id'][:8]}...] {r['title'] or '(Untitled)'}")
+        print()
+
+        # Create a filtered copy of conversation_summaries.db for the zip
+        temp_db_path = os.path.join(source_dir, "_temp_export_summaries.db")
+        if os.path.exists(temp_db_path):
+            os.remove(temp_db_path)
+        out_conn = sqlite3.connect(temp_db_path)
+        schema = cur.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='conversation_summaries'").fetchone()
+        if schema and schema[0]:
+            out_conn.execute(schema[0])
+            for r in rows:
+                col_names = ", ".join([f"`{c}`" for c in r.keys()])
+                placeholders = ", ".join(["?" for _ in r.keys()])
+                out_conn.execute(f"INSERT INTO conversation_summaries ({col_names}) VALUES ({placeholders})", list(r))
+            out_conn.commit()
+        out_conn.close()
+        conn.close()
+
+    with zipfile.ZipFile(output_zip, "w", zipfile.ZIP_DEFLATED) as zf:
+        if temp_db_path and os.path.exists(temp_db_path):
+            print("Packing filtered conversation_summaries.db...")
+            zf.write(temp_db_path, "conversation_summaries.db")
+        elif os.path.exists(db_file):
+            print("Packing full conversation_summaries.db...")
+            zf.write(db_file, "conversation_summaries.db")
 
         if os.path.exists(conversations_dir):
-            conv_files = glob.glob(os.path.join(conversations_dir, "*"))
-            print(f"Packing {len(conv_files)} conversation state file(s)...")
-            for f in conv_files:
-                rel = os.path.relpath(f, source_dir)
-                zf.write(f, rel)
+            packed_convs = 0
+            for item in os.listdir(conversations_dir):
+                cid = os.path.splitext(item)[0]
+                if not target_conv_ids or cid in target_conv_ids:
+                    f = os.path.join(conversations_dir, item)
+                    zf.write(f, os.path.join("conversations", item))
+                    packed_convs += 1
+            print(f"Packed {packed_convs} conversation database file(s).")
 
         if os.path.exists(brain_dir):
-            print("Packing brain transcripts & artifacts...")
-            count = 0
-            for root, dirs, files in os.walk(brain_dir):
-                for file in files:
-                    full_p = os.path.join(root, file)
-                    rel = os.path.relpath(full_p, source_dir)
-                    zf.write(full_p, rel)
-                    count += 1
-            print(f"Packed {count} artifact/transcript file(s).")
+            packed_artifacts = 0
+            for item in os.listdir(brain_dir):
+                if not target_conv_ids or item in target_conv_ids:
+                    item_path = os.path.join(brain_dir, item)
+                    if os.path.isdir(item_path):
+                        for root, _, files in os.walk(item_path):
+                            for file in files:
+                                full_p = os.path.join(root, file)
+                                rel = os.path.relpath(full_p, source_dir)
+                                zf.write(full_p, rel)
+                                packed_artifacts += 1
+                    else:
+                        zf.write(item_path, os.path.join("brain", item))
+                        packed_artifacts += 1
+            print(f"Packed {packed_artifacts} brain transcript/artifact file(s).")
+
+    if temp_db_path and os.path.exists(temp_db_path):
+        os.remove(temp_db_path)
 
     print(f"\n[SUCCESS] Successfully exported to: {output_zip}")
-    print("Transfer this zip file to your target computer.")
+    print(f"Archive size: {os.path.getsize(output_zip) / (1024*1024):.2f} MB")
+    print("Transfer this zip file to your target computer or push to GitHub.")
 
 def import_chats(input_zip, target_dir=None, target_workspace_uri=None):
     target_dir = target_dir or find_antigravity_dir()
@@ -202,6 +263,9 @@ def main():
     export_parser = subparsers.add_parser("export", help="Export conversations to a zip file")
     export_parser.add_argument("-o", "--output", default="antigravity_chats_export.zip", help="Path to output zip file")
     export_parser.add_argument("-s", "--source", default=None, help="Custom Antigravity app data source path")
+    export_parser.add_argument("-p", "--project", default="Mandala-helper", help="Filter by workspace/project name (default: Mandala-helper)")
+    export_parser.add_argument("-c", "--conversation-id", default=None, help="Export only a specific conversation ID")
+    export_parser.add_argument("--all", action="store_true", help="Export all conversations without filtering")
 
     import_parser = subparsers.add_parser("import", help="Import conversations from an exported zip file")
     import_parser.add_argument("archive", help="Path to exported zip file")
@@ -210,7 +274,7 @@ def main():
 
     args = parser.parse_args()
     if args.command == "export":
-        export_chats(args.output, args.source)
+        export_chats(args.output, args.source, workspace_filter=args.project, conversation_id=args.conversation_id, export_all=args.all)
     elif args.command == "import":
         import_chats(args.archive, args.target, args.workspace)
 

@@ -26,42 +26,45 @@ On both platforms, Google Antigravity stores session data under the `.gemini` pr
 
 A migration script is provided in the repository at `tools/migrate_antigravity_chats.py`.
 
-### Step 1: On Your Windows Machine (Export)
+### Step 1: Export on Windows
 
-Open PowerShell or Command Prompt in the repository folder:
+The script automatically filters by the current repository/workspace (`Mandala-helper`) so that other unrelated projects are not included:
 
 ```powershell
+# Export all 8 Mandala-helper project chats (Push Fight, BGA Games, Yavalath, Omega, Lords of Scotland, Mandala, KILN, Sugar Gliders):
 python tools\migrate_antigravity_chats.py export
+
+# OR export ONLY this specific chat (BGA Games / Licensing & Coordination):
+python tools\migrate_antigravity_chats.py export -c 6761547d-bdfe-4178-bcce-26cf431fb3c3 -o this_chat_export.zip
 ```
 
-This will automatically locate your Antigravity folder and create a single archive:
-`antigravity_chats_export.zip`.
+### Step 2: Transfer or Git Pull on Linux
 
-*(If your Antigravity folder is in a custom path, you can specify it with `-s "C:\Path\To\.gemini\antigravity"`).*
+Since the zip archives are pushed directly to GitHub:
+```bash
+# On your Ubuntu / Linux machine:
+cd ~/GitHub/Mandala-helper
+git pull origin main
+```
 
-### Step 2: Transfer the Zip File to the Linux Machine
-
-Copy `antigravity_chats_export.zip` to the Linux server using any method:
-* **SCP / SFTP**:
-  ```bash
-  scp antigravity_chats_export.zip jayadevhaddadi@<server-ip>:~/GitHub/Mandala-helper/
-  ```
-* Or upload it via Google Drive, Dropbox, local network share, or USB.
-
-### Step 3: On This Linux Machine (Import & Merge)
+### Step 3: Import & Merge on Linux
 
 In the repository on Linux, run:
 
 ```bash
+# To import all project chats:
 python3 tools/migrate_antigravity_chats.py import antigravity_chats_export.zip
+
+# OR to import only this specific chat:
+python3 tools/migrate_antigravity_chats.py import this_chat_export.zip
 ```
 
 The script will:
-1. Copy all conversation databases (`conversations/*.db`) without overwriting existing ones.
+1. Copy the conversation databases (`conversations/*.db`) without overwriting existing ones.
 2. Copy all brain transcripts, artifacts, and scratch directories.
 3. Merge records in `conversation_summaries.db`, updating `workspace_uris` to `file:///home/jayadevhaddadi/GitHub/Mandala-helper` and `app_data_dir` to `/home/jayadevhaddadi/.gemini/antigravity`.
 
-Restart Antigravity Desktop or Antigravity CLI (`agy`), and all your chats from Windows will appear in your project sidebar!
+Restart Antigravity Desktop or Antigravity CLI (`agy`), and your chats from Windows will appear in your project sidebar on Linux!
 
 ---
 
