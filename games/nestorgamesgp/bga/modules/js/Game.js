@@ -248,9 +248,6 @@ export class Game {
 
         this.bga.states.register('QualifyingTurn', this.qualifyingTurn);
         this.bga.states.register('PlayerTurn', this.playerTurn);
-
-        // Register Notifications
-        this.setupNotifications();
     }
 
     setup(gamedatas) {
@@ -259,6 +256,7 @@ export class Game {
         this.initBoardScaler();
         this.renderBoard();
         this.renderRacers(this.racers);
+        this.setupNotifications();
     }
 
     initDom() {
@@ -519,65 +517,114 @@ export class Game {
         });
     }
 
+    _getNotifArgs(notif) {
+        if (!notif) return {};
+        return (notif.args !== undefined) ? notif.args : notif;
+    }
+
     setupNotifications() {
-        this.bga.notifications.subscribe('qualifyingRoll', notif => {
-            this.sound.playRoll();
-            this.renderDiceTray(notif.args.all_dice);
-        });
+        if (this.bga?.notifications?.setupPromiseNotifications) {
+            this.bga.notifications.setupPromiseNotifications();
+        } else if (typeof this.notifications?.setupPromiseNotifications === 'function') {
+            this.notifications.setupPromiseNotifications();
+        } else if (typeof dojo !== 'undefined' && typeof dojo.subscribe === 'function') {
+            const notifs = [
+                'qualifyingRoll', 'qualifyingBust', 'raceStarting',
+                'raceRoll', 'raceCrash', 'raceStall', 'carMoved',
+                'carBumped', 'cornerCollisionCrash', 'carFlippedUpright',
+                'racerFinished', 'raceEnded'
+            ];
+            notifs.forEach(n => dojo.subscribe(n, this, `notif_${n}`));
+        }
+    }
 
-        this.bga.notifications.subscribe('qualifyingBust', notif => {
-            this.sound.playCrash();
-            this.renderDiceTray(notif.args.all_dice);
-        });
+    notif_qualifyingRoll(notif) {
+        const args = this._getNotifArgs(notif);
+        this.sound.playRoll();
+        this.renderDiceTray(args.all_dice);
+    }
 
-        this.bga.notifications.subscribe('raceStarting', notif => {
-            this.sound.playLapFanfare();
-            this.renderDiceTray([]);
-            if (notif.args.all_racers) {
-                this.renderRacers(notif.args.all_racers);
-            }
-        });
+    notif_qualifyingBust(notif) {
+        const args = this._getNotifArgs(notif);
+        this.sound.playCrash();
+        this.renderDiceTray(args.all_dice);
+    }
 
-        this.bga.notifications.subscribe('raceRoll', notif => {
-            this.sound.playRoll();
-            this.renderDiceTray(notif.args.all_dice);
-        });
+    notif_raceStarting(notif) {
+        const args = this._getNotifArgs(notif);
+        this.sound.playLapFanfare();
+        this.renderDiceTray([]);
+        if (args.all_racers) {
+            this.renderRacers(args.all_racers);
+        }
+    }
 
-        this.bga.notifications.subscribe('raceCrash', notif => {
-            this.sound.playCrash();
-            this.renderDiceTray(notif.args.all_dice);
-            const carEl = document.getElementById(`gp_car_${notif.args.player_id}`);
-            if (carEl) {
-                carEl.classList.add('gp_belly_up');
-            }
-        });
+    notif_raceRoll(notif) {
+        const args = this._getNotifArgs(notif);
+        this.sound.playRoll();
+        this.renderDiceTray(args.all_dice);
+    }
 
-        this.bga.notifications.subscribe('raceStall', notif => {
+    notif_raceCrash(notif) {
+        const args = this._getNotifArgs(notif);
+        this.sound.playCrash();
+        this.renderDiceTray(args.all_dice);
+        const carEl = document.getElementById(`gp_car_${args.player_id}`);
+        if (carEl) {
+            carEl.classList.add('gp_belly_up');
+        }
+    }
+
+    notif_raceStall(notif) {
+        const args = this._getNotifArgs(notif);
+        this.sound.playScreech();
+        this.renderDiceTray(args.all_dice);
+    }
+
+    notif_carMoved(notif) {
+        const args = this._getNotifArgs(notif);
+        this.sound.playEngineRev();
+        this.renderDiceTray([]);
+        const carEl = document.getElementById(`gp_car_${args.player_id}`);
+        if (carEl && args.racer) {
+            this.updateCarPosition(carEl, args.final_space, args.racer.facing_direction);
+        }
+        if (args.all_racers) {
+            this.renderRacers(args.all_racers);
+        }
+    }
+
+    notif_carBumped(notif) {
+        const args = this._getNotifArgs(notif);
+        const carEl = document.getElementById(`gp_car_${args.bumped_id}`);
+        if (carEl) {
             this.sound.playScreech();
-            this.renderDiceTray(notif.args.all_dice);
-        });
+            this.updateCarPosition(carEl, args.to_space, 270);
+        }
+    }
 
-        this.bga.notifications.subscribe('carMoved', notif => {
-            this.sound.playEngineRev();
-            this.renderDiceTray([]);
-            const carEl = document.getElementById(`gp_car_${notif.args.player_id}`);
-            if (carEl && notif.args.racer) {
-                this.updateCarPosition(carEl, notif.args.final_space, notif.args.racer.facing_direction);
-            }
-            if (notif.args.all_racers) {
-                this.renderRacers(notif.args.all_racers);
-            }
-        });
+    notif_cornerCollisionCrash(notif) {
+        const args = this._getNotifArgs(notif);
+        this.sound.playCrash();
+        const carEl = document.getElementById(`gp_car_${args.player_id}`);
+        if (carEl) {
+            carEl.classList.add('gp_belly_up');
+        }
+    }
 
-        this.bga.notifications.subscribe('carFlippedUpright', notif => {
-            const carEl = document.getElementById(`gp_car_${notif.args.player_id}`);
-            if (carEl) {
-                carEl.classList.remove('gp_belly_up');
-            }
-        });
+    notif_carFlippedUpright(notif) {
+        const args = this._getNotifArgs(notif);
+        const carEl = document.getElementById(`gp_car_${args.player_id}`);
+        if (carEl) {
+            carEl.classList.remove('gp_belly_up');
+        }
+    }
 
-        this.bga.notifications.subscribe('racerFinished', notif => {
-            this.sound.playLapFanfare();
-        });
+    notif_racerFinished(notif) {
+        this.sound.playLapFanfare();
+    }
+
+    notif_raceEnded(notif) {
+        this.sound.playLapFanfare();
     }
 }
