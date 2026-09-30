@@ -8,6 +8,8 @@ use Bga\GameFramework\StateType;
 use Bga\GameFramework\States\GameState;
 use Bga\Games\nestorgamesgp\Game;
 
+const ST_END_GAME = 99;
+
 class EndScore extends GameState
 {
     public function __construct(
@@ -15,12 +17,12 @@ class EndScore extends GameState
     ) {
         parent::__construct(
             $game,
-            id: 99,
+            id: 98,
             type: StateType::GAME,
         );
     }
 
-    public function executeState(): string
+    public function onEnteringState(): int
     {
         $racers = $this->game->getAllRacers();
         $totalPlayers = count($racers);
@@ -58,6 +60,6 @@ class EndScore extends GameState
             'all_racers' => $this->game->getAllRacers(),
         ]);
 
-        return "";
+        return ST_END_GAME;
     }
 }

@@ -20,7 +20,7 @@ class NextPlayer extends GameState
         );
     }
 
-    public function executeState(): string
+    public function onEnteringState(): string
     {
         $racers = $this->game->getAllRacers();
         $totalPlayers = count($racers);
@@ -34,7 +34,6 @@ class NextPlayer extends GameState
         }
 
         // If at most 1 player left unfinished (or 0), race is over!
-        // In BGA racing games, once only 1 car is left running, their position is locked as last place.
         if (count($unfinished) <= 1 && count($racers) > 1) {
             if (count($unfinished) === 1) {
                 $lastPlayerId = $unfinished[0];
