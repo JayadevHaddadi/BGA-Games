@@ -201,9 +201,11 @@ class PlayerTurn extends GameState
         }
 
         if ($res['finished']) {
-            $this->game->notifyAllPlayers('racerFinished', clienttranslate('🏁 ${player_name} has completed 3 laps and finished the race!'), [
+            $totalLaps = (int) $this->globals->get('total_laps', 3);
+            $this->game->notifyAllPlayers('racerFinished', clienttranslate('🏁 ${player_name} has completed ${total_laps} laps and finished the race!'), [
                 'player_id' => $activePlayerId,
                 'player_name' => $playerName,
+                'total_laps' => $totalLaps,
                 'racer' => $this->game->getRacer($activePlayerId),
             ]);
         }

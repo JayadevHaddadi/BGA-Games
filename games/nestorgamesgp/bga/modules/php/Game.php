@@ -423,9 +423,7 @@ class Game extends \Bga\GameFramework\Table
             $finishOrder[] = $playerId;
             $this->globals->set('finish_order', $finishOrder);
 
-            static::DbQuery(
-                sprintf("UPDATE `racer` SET `finish_rank` = %d WHERE `player_id` = %d", $newRank, $playerId)
-            );
+            $this->setRacerFinishRank($playerId, $newRank);
         }
 
         return [
@@ -583,5 +581,12 @@ class Game extends \Bga\GameFramework\Table
         if ($firstPlayerId !== null) {
             $this->gamestate->changeActivePlayer($firstPlayerId);
         }
+    }
+
+    public function setRacerFinishRank(int $playerId, int $rank): void
+    {
+        static::DbQuery(
+            sprintf("UPDATE `racer` SET `finish_rank` = %d WHERE `player_id` = %d", $rank, $playerId)
+        );
     }
 }

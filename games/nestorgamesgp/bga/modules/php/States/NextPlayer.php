@@ -42,9 +42,7 @@ class NextPlayer extends GameState
                 $finishOrder[] = $lastPlayerId;
                 $this->globals->set('finish_order', $finishOrder);
 
-                static::DbQuery(
-                    sprintf("UPDATE `racer` SET `finish_rank` = %d WHERE `player_id` = %d", $lastRank, $lastPlayerId)
-                );
+                $this->game->setRacerFinishRank($lastPlayerId, $lastRank);
             }
             return EndScore::class;
         }
