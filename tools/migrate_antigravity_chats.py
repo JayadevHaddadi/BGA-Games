@@ -215,9 +215,11 @@ def import_chats(input_zip, target_dir=None, target_workspace_uri=None):
                 src_conn.row_factory = sqlite3.Row
 
                 # Ensure target table exists with same schema
-                schema = src_conn.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='conversation_summaries'").fetchone()
-                if schema and schema[0]:
-                    dst_conn.execute(schema[0])
+                table_exists = dst_conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='conversation_summaries'").fetchone()
+                if not table_exists:
+                    schema = src_conn.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='conversation_summaries'").fetchone()
+                    if schema and schema[0]:
+                        dst_conn.execute(schema[0])
 
                 rows = src_conn.execute("SELECT * FROM conversation_summaries").fetchall()
                 print(f"Merging {len(rows)} conversation summary rows...")
