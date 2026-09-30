@@ -90,7 +90,7 @@ class SoundController {
 
 const sounds = new SoundController();
 
-class DraftCard {
+export class DraftCard {
     constructor(game, bga) {
         this.game = game;
         this.bga = bga;
@@ -101,7 +101,7 @@ class DraftCard {
     }
 }
 
-class SelectMartian {
+export class SelectMartian {
     constructor(game, bga) {
         this.game = game;
         this.bga = bga;
@@ -112,7 +112,7 @@ class SelectMartian {
     }
 }
 
-class PlayerTurn {
+export class PlayerTurn {
     constructor(game, bga) {
         this.game = game;
         this.bga = bga;
@@ -123,12 +123,42 @@ class PlayerTurn {
     }
 }
 
-class Game {
+export class NextPlayer {
+    constructor(game, bga) {
+        this.game = game;
+        this.bga = bga;
+    }
+
+    onEnteringState(args) {}
+}
+
+export class EndScore {
+    constructor(game, bga) {
+        this.game = game;
+        this.bga = bga;
+    }
+
+    onEnteringState(args) {
+        this.game.bga?.statusBar?.setTitle?.(clienttranslate('Game Over! Final scores calculated.'));
+    }
+}
+
+export class Game {
     constructor(bga) {
         this.bga = bga;
         this.selectedCardId = null;
         this.selectedTargetMove = null;
-        this.selectedPlantColor = null;
+        this.selectedPlantColor = 'blue';
+        this.selectedMartian = null;
+
+        // Register State Handlers with BGA
+        if (this.bga?.states && typeof this.bga.states.register === 'function') {
+            this.bga.states.register('DraftCard', new DraftCard(this, bga));
+            this.bga.states.register('SelectMartian', new SelectMartian(this, bga));
+            this.bga.states.register('PlayerTurn', new PlayerTurn(this, bga));
+            this.bga.states.register('NextPlayer', new NextPlayer(this, bga));
+            this.bga.states.register('EndScore', new EndScore(this, bga));
+        }
     }
 
     setup(gamedatas) {
@@ -169,7 +199,10 @@ class Game {
     }
 
     createBoardDOM() {
-        const area = document.getElementById('game_play_area');
+        const area = (this.bga?.gameArea?.getElement && this.bga.gameArea.getElement()) ||
+                     document.getElementById('game_play_area') ||
+                     document.getElementById('game_area') ||
+                     document.body;
         if (!area) return;
 
         area.innerHTML = `
@@ -299,17 +332,73 @@ class Game {
     }
 
     updateDraftUI(args) {
-        if (!this.isCurrentPlayerActive()) return;
+        if (!this.isCurrentPlayerActive()) {
+            this.bga?.statusBar?.setTitle?.(clienttranslate('Draft Phase: Waiting for other players to choose a card...'));
+            return;
+        }
         this.bga?.statusBar?.setTitle?.(clienttranslate('Draft Phase: Choose 1 mission card to keep in your hand'));
+
+        const container = document.getElementById('gou_cards_container');
+        if (!container) return;
+        container.innerHTML = '';
+        const themeUrl = typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : '';
+        const cards = args?.draft_cards || [];
+        cards.forEach(card => {
+            const cardEl = document.createElement('div');
+            cardEl.className = 'gou_card';
+            cardEl.dataset.cardId = card.card_id;
+            cardEl.style.cursor = 'pointer';
+            cardEl.innerHTML = `
+                <img src="${themeUrl}img/cards/card_${card.card_id}.jpg" alt="${card.card_type}" style="width:100%; height:100%; border-radius:8px; display:block; object-fit:cover;">
+                <div style="text-align:center; margin-top:6px;">
+                    <button class="bgabutton bgabutton_blue" style="padding:4px 10px; font-size:12px; font-weight:700; border-radius:12px; cursor:pointer;">Keep</button>
+                </div>
+            `;
+            cardEl.addEventListener('click', () => {
+                this.bga.actions.performAction('actKeepCard', { cardId: card.card_id });
+            });
+            container.appendChild(cardEl);
+        });
     }
 
     updateSelectMartianUI(args) {
-        if (!this.isCurrentPlayerActive()) return;
-        this.bga?.statusBar?.setTitle?.(clienttranslate('Choose your Martian character and starting garden spot'));
+        this.clearValidMoveHighlights();
+        if (!this.isCurrentPlayerActive()) {
+            this.bga?.statusBar?.setTitle?.(clienttranslate('Waiting for active player to select Martian and spot...'));
+            return;
+        }
+
+        const available = args?.available_martians || ['bot', 'ali', 'marty', 'bob', 'robby'];
+        if (!this.selectedMartian || !available.includes(this.selectedMartian)) {
+            this.selectedMartian = available[0];
+        }
+
+        this.bga?.statusBar?.setTitle?.(clienttranslate('Select your Martian, then click a highlighted empty spot to place your gardener'));
+
+        // Action buttons to toggle Martian choice
+        if (this.bga?.statusBar?.clearActionButtons) {
+            this.bga.statusBar.clearActionButtons();
+        }
+        available.forEach(m => {
+            const label = m.toUpperCase() + (m === this.selectedMartian ? ' ✓' : '');
+            this.bga?.statusBar?.addActionButton?.(label, () => {
+                this.selectedMartian = m;
+                this.updateSelectMartianUI(args);
+            }, { color: (m === this.selectedMartian ? 'primary' : 'secondary') });
+        });
+
+        // Highlight empty spots on the board
+        if (args?.empty_spots) {
+            args.empty_spots.forEach(sp => {
+                const el = document.getElementById(`spot_${sp.q}_${sp.r}`);
+                if (el) el.classList.add('valid_move');
+            });
+        }
     }
 
     updatePlayerTurnUI(args) {
         this.clearValidMoveHighlights();
+        this.selectedMartian = null;
         if (!this.isCurrentPlayerActive()) {
             this.bga?.statusBar?.setTitle?.(clienttranslate('Waiting for active player...'));
             return;
@@ -335,7 +424,18 @@ class Game {
         const spotEl = document.getElementById(`spot_${q}_${r}`);
         if (!spotEl || !spotEl.classList.contains('valid_move')) return;
 
-        // Perform move action
+        if (this.selectedMartian) {
+            // In Martian selection phase
+            this.bga.actions.performAction('actSelectMartian', {
+                martian: this.selectedMartian,
+                q: q,
+                r: r,
+            });
+            this.selectedMartian = null;
+            return;
+        }
+
+        // In normal player turn
         this.bga.actions.performAction('actMoveGardener', {
             targetQ: q,
             targetR: r,
