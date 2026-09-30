@@ -23,7 +23,7 @@ class Game extends \Bga\GameFramework\Table
     public function getGameProgression(): int
     {
         // Calculate progression based on laps completed by the leader
-        $lapsTarget = (int) $this->getGameStateValue('102', self::DEFAULT_LAPS);
+        $lapsTarget = (int) $this->globals->get('total_laps', self::DEFAULT_LAPS);
         if ($lapsTarget <= 0) {
             $lapsTarget = self::DEFAULT_LAPS;
         }
@@ -78,7 +78,7 @@ class Game extends \Bga\GameFramework\Table
         $player_idx = 0;
         $playerIds = array_keys($players);
 
-        $totalLaps = isset($options[102]) ? (int) $options[102] : (int) $this->getGameStateValue('102', self::DEFAULT_LAPS);
+        $totalLaps = isset($options[102]) ? (int) $options[102] : self::DEFAULT_LAPS;
         if ($totalLaps < 1 || $totalLaps > 5) {
             $totalLaps = self::DEFAULT_LAPS;
         }
