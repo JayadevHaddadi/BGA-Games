@@ -1461,22 +1461,48 @@ export class Game {
 
         const isMultiplayer = Object.keys(this.gamedatas.players || {}).length > 2;
         const baseWidth = isMultiplayer ? 1020 : 720;
-        const baseHeight = 840;
+        const baseHeight = 980;
 
         const updateScale = () => {
-            const availableWidth = scalerWrapper.clientWidth || window.innerWidth;
-            const availableHeight = window.innerHeight - 140;
+            const parent = scalerWrapper.parentElement || document.getElementById('game_play_area') || document.body;
+            const containerWidth = parent.clientWidth || window.innerWidth;
+            const availableWidth = Math.max(280, containerWidth - 16);
+            const availableHeight = window.innerHeight - 130;
 
-            let scale = availableWidth / baseWidth;
-            if (window.innerWidth > window.innerHeight && scale * baseHeight > availableHeight) {
-                scale = availableHeight / baseHeight;
+            const isMobile = document.body.classList.contains('mobile_version') ||
+                             document.body.classList.contains('touch-device') ||
+                             (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) ||
+                             (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ||
+                             ('ontouchstart' in window);
+
+            const unscaledW = Math.max(baseWidth, boardEl.offsetWidth || 0);
+            const unscaledH = Math.max(baseHeight, boardEl.offsetHeight || 0, boardEl.scrollHeight || 0);
+
+            let scale = availableWidth / unscaledW;
+
+            if (!isMobile) {
+                // Desktop: cap at 1.0 (crisp layout); constrain by viewport height if landscape window is short
+                scale = Math.min(1.0, scale);
+                if (availableHeight > 250 && scale * unscaledH > availableHeight) {
+                    scale = Math.min(scale, availableHeight / unscaledH);
+                }
+            } else {
+                // Mobile: in landscape, constrain scale by available viewport height so board fits vertically
+                if (window.innerWidth > window.innerHeight && availableHeight > 180) {
+                    const heightScale = availableHeight / unscaledH;
+                    scale = Math.min(scale, heightScale);
+                }
+                scale = Math.min(1.15, scale);
             }
-            scale = Math.min(1.0, Math.max(0.32, scale));
+            scale = Math.max(0.30, scale);
+
+            const scaledW = Math.ceil(unscaledW * scale);
+            const scaledH = Math.ceil(unscaledH * scale);
 
             boardEl.style.transform = `scale(${scale})`;
             boardEl.style.transformOrigin = 'top left';
-            scalerWrapper.style.width = `${Math.ceil(baseWidth * scale)}px`;
-            scalerWrapper.style.height = `${Math.ceil(baseHeight * scale)}px`;
+            scalerWrapper.style.width = `${scaledW}px`;
+            scalerWrapper.style.height = `${scaledH}px`;
         };
 
         window.addEventListener('resize', updateScale);
@@ -1484,6 +1510,8 @@ export class Game {
             new ResizeObserver(updateScale).observe(scalerWrapper.parentElement || document.body);
         }
         setTimeout(updateScale, 40);
+        setTimeout(updateScale, 150);
+        setTimeout(updateScale, 500);
     }
 
     _getNotifArgs(notif) {

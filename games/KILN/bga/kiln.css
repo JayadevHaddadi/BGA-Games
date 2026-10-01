@@ -25,7 +25,7 @@
 /* Scaler container pattern (AGENTS.md standard) */
 .kiln_scaler_container {
     position: relative;
-    margin: 10px auto;
+    margin: 10px auto 25px auto;
     overflow: visible;
 }
 
@@ -387,7 +387,7 @@
 }
 
 .kiln_slot_bottom {
-    min-height: 185px;
+    min-height: 250px;
     width: 100%;
 }
 
