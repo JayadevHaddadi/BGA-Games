@@ -126,8 +126,15 @@ class QualifyingTurn extends GameState
         // All players have qualified!
         $this->game->setupRaceGridAfterQualifying();
 
+        $activeRacerId = (int) $this->globals->get('active_racer_id', 1);
+        $firstRacer = $this->game->getRacer($activeRacerId);
+        $firstPlayerId = (int) ($firstRacer['player_id'] ?? 0);
+
         $this->game->notifyAllPlayers('raceStarting', clienttranslate('Qualifying is complete! The starting grid has been set and the race begins!'), [
             'all_racers' => $this->game->getAllRacers(),
+            'active_racer_id' => $activeRacerId,
+            'active_player_id' => $firstPlayerId,
+            'car_turn_order' => $this->globals->get('car_turn_order', []),
         ]);
 
         return PlayerTurn::class;

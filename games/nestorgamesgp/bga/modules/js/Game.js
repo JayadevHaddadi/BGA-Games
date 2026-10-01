@@ -263,6 +263,9 @@ class PlayerTurnState {
 
     onEnteringState(args) {
         this.game.currentArgs = args;
+        if (args?.car_turn_order) {
+            this.game.carTurnOrder = args.car_turn_order;
+        }
         if (args?.active_racer_id) {
             this.game.activeRacerId = args.active_racer_id;
             this.game.updateActiveCarHighlight();
@@ -295,11 +298,15 @@ class PlayerTurnState {
             const isBellyUp = args?.is_belly_up || (racer ? !!racer.is_belly_up : false);
             const canFix = args?.can_fix_car || false;
             const canShortcut = args?.can_use_shortcut || false;
-            const carLabel = racer?.car_name ? ` (${racer.car_name})` : '';
+            const carName = racer?.car_name || ('Car #' + activeRId);
+            const turnPos = (this.game.carTurnOrder && this.game.carTurnOrder.length > 0)
+                ? (this.game.carTurnOrder.indexOf(activeRId) + 1)
+                : null;
+            const posLabel = turnPos > 0 ? ` (Box ${turnPos})` : '';
 
             if (isBellyUp) {
                 this.game.clearHighlights();
-                this.bga.statusBar.setTitle(_('${you}${car} crashed! Flip your car upright to pass turn.').replace('${car}', carLabel));
+                this.bga.statusBar.setTitle(_('${you} (${car}${pos}): Crashed! Flip your car upright to pass turn.').replace('${car}', carName).replace('${pos}', posLabel));
                 this.game.addActionButton('btnFlipUpright', _('🔄 Flip Car Upright (Pass)'), () => {
                     this.bga.actions.performAction('actFlipCar', {});
                 }, 'alert');
@@ -312,9 +319,9 @@ class PlayerTurnState {
                 const turboActive = args?.turbo_active || false;
                 const rocketTargets = args?.rocket_targets || [];
 
-                let title = _('${you}${car}: Roll your dice to drive, or use an item / repair.').replace('${car}', carLabel);
+                let title = _('${you} (${car}${pos}): Roll your dice to drive, or use an item / repair.').replace('${car}', carName).replace('${pos}', posLabel);
                 if (turboActive) {
-                    title = _('⚡ Turbo Boost active! Roll dice (highest die counts 2x)!');
+                    title = _('⚡ Turbo Boost active for ${car}! Roll dice (highest die counts 2x)!').replace('${car}', carName);
                 }
                 this.bga.statusBar.setTitle(title);
 
@@ -412,7 +419,10 @@ class PlayerTurnState {
                 }
             }
         } else {
-            this.bga.statusBar.setTitle(_('${actplayer} is taking their racing turn...'));
+            const activeRId = args?.active_racer_id || this.game.activeRacerId;
+            const racer = this.game.getRacerData(activeRId);
+            const carName = racer?.car_name ? ` (${racer.car_name})` : '';
+            this.bga.statusBar.setTitle(_('${actplayer}${car} is taking their racing turn...').replace('${car}', carName));
         }
     }
 
@@ -449,6 +459,7 @@ export class Game {
         this.totalLaps = gamedatas.total_laps || 3;
         this.isTeamMode = !!gamedatas.is_team_mode;
         this.activeRacerId = gamedatas.active_racer_id;
+        this.carTurnOrder = gamedatas.car_turn_order || [];
         this.qualifyingBoard = gamedatas.qualifying_board || {};
         this.qualifyingActive = gamedatas.qualifying_active;
         this.trackItems = gamedatas.track_items || [];
@@ -963,7 +974,15 @@ export class Game {
                     ${soloCarItems}
                 `;
             } else {
-                // Team Mode: Render each car in the team fleet
+                // Team Mode: Render each car in the team fleet sorted by pitlane turn order
+                if (this.carTurnOrder && this.carTurnOrder.length > 0) {
+                    cars.sort((a, b) => {
+                        const idxA = this.carTurnOrder.indexOf(a.racer_id ?? a.player_id);
+                        const idxB = this.carTurnOrder.indexOf(b.racer_id ?? b.player_id);
+                        return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
+                    });
+                }
+
                 let carsHtml = '';
                 cars.forEach(racer => {
                     const rId = racer.racer_id ?? racer.player_id;
@@ -998,20 +1017,29 @@ export class Game {
                         }
                     }
 
+                    const turnPos = (this.carTurnOrder && this.carTurnOrder.length > 0)
+                        ? (this.carTurnOrder.indexOf(rId) + 1)
+                        : null;
+                    const turnBadge = turnPos > 0
+                        ? `<span class="gp_turn_pos_badge" title="Starts in Pit Box ${turnPos} · Moves #${turnPos} in round">Box ${turnPos} (#${turnPos})</span>`
+                        : '';
+
                     carsHtml += `
                         <div class="gp_team_car_row ${isActiveCar ? 'active_turn' : ''}" id="gp_team_car_row_${rId}">
                             <div class="gp_team_car_icon gp_mini_car_svg gp_color_${racer.car_color}">
                                 ${this.getCarSvg('chibi_kart')}
                             </div>
                             <div class="gp_team_car_info">
-                                <div style="display: flex; align-items: center; gap: 4px;">
+                                <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
                                     <span class="gp_team_car_name">${racer.car_name || ('Car ' + rId)}</span>
                                     <span class="gp_color_badge gp_bg_${racer.car_color}" style="font-size: 8px; padding: 0 4px;">${racer.car_color}</span>
+                                    ${turnBadge}
                                 </div>
                                 <span class="gp_team_car_pips">${carPips}</span>
                                 ${carItemsHtml}
                             </div>
                             <div class="gp_team_car_status">
+                                ${isActiveCar ? '<span class="gp_team_car_tag active_driving">▶ TURN</span>' : ''}
                                 ${carStatus}
                             </div>
                         </div>
@@ -1751,6 +1779,12 @@ export class Game {
         this.renderDiceTray([]);
         this.renderQualifyingBoard(null, false);
         this.clearActionButtons();
+        if (args.car_turn_order) {
+            this.carTurnOrder = args.car_turn_order;
+        }
+        if (args.active_racer_id) {
+            this.activeRacerId = args.active_racer_id;
+        }
         if (args.all_racers) {
             this.racers = args.all_racers;
             this.renderRacers(args.all_racers);

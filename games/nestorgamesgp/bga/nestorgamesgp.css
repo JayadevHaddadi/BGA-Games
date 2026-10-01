@@ -1227,4 +1227,24 @@
     border: 1px solid #29b6f6;
 }
 
+.gp_team_car_tag.active_driving {
+    background: #eab308;
+    color: #0f172a;
+    border: 1px solid #fde047;
+    font-weight: 800;
+    animation: gp_status_pulse 1.2s infinite;
+}
+
+.gp_turn_pos_badge {
+    display: inline-block;
+    padding: 0 4px;
+    border-radius: 3px;
+    font-size: 8px;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.15);
+    color: #e2e8f0;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    letter-spacing: 0.3px;
+}
+
 

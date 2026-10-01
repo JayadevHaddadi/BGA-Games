@@ -227,6 +227,7 @@ class Game extends \Bga\GameFramework\Table
         $result['track_items'] = $this->getTrackItems();
         $result['player_inventory'] = $this->getPlayerInventories();
         $result['racer_inventory'] = $this->getRacerInventories();
+        $result['car_turn_order'] = $this->globals->get('car_turn_order', []);
         $result['items_enabled'] = ((int) $this->tableOptions->get(103, 1) === 2);
         return $result;
     }

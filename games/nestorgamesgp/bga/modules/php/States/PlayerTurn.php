@@ -77,6 +77,7 @@ class PlayerTurn extends GameState
             'track_items' => $this->game->getTrackItems(),
             'player_inventory' => $this->game->getPlayerInventories(),
             'racer_inventory' => $this->game->getRacerInventories(),
+            'car_turn_order' => $this->globals->get('car_turn_order', []),
             'is_team_mode' => (bool) $this->globals->get('is_team_mode', false),
         ];
     }
