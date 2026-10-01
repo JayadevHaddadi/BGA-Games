@@ -756,28 +756,28 @@ export class Game {
 
         wrapper.innerHTML = `
             <div id="kiln_main_layout" class="kiln_main_layout">
-                <!-- Left: Score Track (Cut after goal score) -->
-                <div class="kiln_track_panel">
-                    <div class="kiln_panel_header">
-                        <span>🏆 ${_('Score Track')}</span>
-                    </div>
-                    <div id="kiln_score_track" class="kiln_score_track"></div>
-                    ${Number(this.variantBonusSpaces) === 1 ? `
-                        <div class="kiln_track_legend" title="${_('Spaces 5, 8, 14, 17, 19, 23, 26 award an extra turn in the Heating up the Kiln variant')}">
-                            <span class="kiln_legend_stripe"></span>
-                            <span>${_('Striped = Bonus Space')}</span>
-                        </div>
-                    ` : ''}
-                </div>
-
                 <!-- Center: Arena Table Layout (Oriented per Nestor Romeral Andrés) -->
                 <div class="kiln_arena_container" id="kiln_arena_container">
                     <!-- Top Slot: Opponent across the table (180°) -->
                     <div class="kiln_arena_slot kiln_slot_top" id="kiln_slot_top"></div>
 
-                    <!-- Middle: Left Player (90°), The Kiln (6x6), Right Player (270°) -->
-                    <div class="kiln_arena_middle">
+                    <!-- Middle: Left Player (90°), Score Track, The Kiln (6x6), Right Player (270°) -->
+                    <div class="kiln_arena_middle" id="kiln_arena_middle">
                         <div class="kiln_arena_slot kiln_slot_left" id="kiln_slot_left"></div>
+
+                        <!-- Score Track directly to the left of the game board in the middle -->
+                        <div class="kiln_track_panel" id="kiln_track_panel">
+                            <div class="kiln_panel_header">
+                                <span>🏆 ${_('Score Track')}</span>
+                            </div>
+                            <div id="kiln_score_track" class="kiln_score_track"></div>
+                            ${Number(this.variantBonusSpaces) === 1 ? `
+                                <div class="kiln_track_legend" title="${_('Spaces 5, 8, 14, 17, 19, 23, 26 award an extra turn in the Heating up the Kiln variant')}">
+                                    <span class="kiln_legend_stripe"></span>
+                                    <span>${_('Striped = Bonus Space')}</span>
+                                </div>
+                            ` : ''}
+                        </div>
 
                         <div class="kiln_center_panel" id="kiln_center_panel">
                             <div id="kiln_oven_wrapper" class="kiln_oven_wrapper" style="transform: rotate(${this.mySeat * 90}deg); transform-origin: center center;">
@@ -1460,8 +1460,8 @@ export class Game {
         if (!scalerWrapper || !boardEl) return;
 
         const isMultiplayer = Object.keys(this.gamedatas.players || {}).length > 2;
-        const baseWidth = isMultiplayer ? 1020 : 720;
-        const baseHeight = 980;
+        const baseWidth = isMultiplayer ? 1280 : 860;
+        const baseHeight = 1200;
 
         const updateScale = () => {
             const parent = scalerWrapper.parentElement || document.getElementById('game_play_area') || document.body;
@@ -1481,11 +1481,8 @@ export class Game {
             let scale = availableWidth / unscaledW;
 
             if (!isMobile) {
-                // Desktop: cap at 1.0 (crisp layout); constrain by viewport height if landscape window is short
+                // Desktop: cap at 1.0 (natural crisp large layout)
                 scale = Math.min(1.0, scale);
-                if (availableHeight > 250 && scale * unscaledH > availableHeight) {
-                    scale = Math.min(scale, availableHeight / unscaledH);
-                }
             } else {
                 // Mobile: in landscape, constrain scale by available viewport height so board fits vertically
                 if (window.innerWidth > window.innerHeight && availableHeight > 180) {
@@ -1494,7 +1491,7 @@ export class Game {
                 }
                 scale = Math.min(1.15, scale);
             }
-            scale = Math.max(0.30, scale);
+            scale = Math.max(0.28, scale);
 
             const scaledW = Math.ceil(unscaledW * scale);
             const scaledH = Math.ceil(unscaledH * scale);
