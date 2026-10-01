@@ -508,6 +508,7 @@ class Game extends \Bga\GameFramework\Table
             $this->globals->set('racers_started', $racersStarted);
         }
 
+        $slidFromOil = false;
         if (!$crashedFromMine) {
             // Check oil spill slide at final landing space
             $spillItem = $this->getObjectFromDb(
@@ -541,6 +542,9 @@ class Game extends \Bga\GameFramework\Table
                     'player_id' => $playerId,
                     'racer_id' => $rId,
                 ];
+                $slidFromOil = true;
+            }
+        }
         $finalSpaceInfo = Circuit::getSpace($currentSpace);
         $facingDir = $finalSpaceInfo['dir'] ?? 270;
 
