@@ -4,6 +4,16 @@ This file is the single source of truth for all AI agents working in this reposi
 
 ---
 
+## ⚡ Agent Communication Standard: Ultra-Concise & Action-Oriented
+
+The user wants clear, minimal updates. **DO NOT write long essays, internal design discussions, or verbose code explanations.**
+Every response must follow this strict structure:
+1. **What was fixed/changed**: Short bullet points so the user knows what to test.
+2. **Action items or decisions for the user**: Highlighted clearly in **bold** or callout boxes.
+3. **What is pending**: Brief list (if anything is blocked or waiting).
+
+---
+
 ## 🚀 1. Deployment Workflow: Commit & Push
 
 Every change should be committed and pushed to `main`. The GitHub Actions deployer (`.github/workflows/bga-deploy.yml`) will automatically detect modified game directories and deploy them to BGA Studio over SFTP.

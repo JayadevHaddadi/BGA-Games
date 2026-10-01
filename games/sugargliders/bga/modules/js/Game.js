@@ -297,8 +297,10 @@ export class Game {
 
         const updateScale = () => {
             const availW = Math.max(300, container.clientWidth - 16);
+            const availH = Math.max(400, (window.innerHeight || 800) - 140);
             const baseW = 640;
-            const scale = Math.min(1.0, availW / baseW);
+            const maxScale = (window.innerWidth > 960) ? 1.35 : 1.0;
+            const scale = Math.max(0.45, Math.min(maxScale, availW / baseW, availH / baseW));
 
             scaler.style.transform = `scale(${scale})`;
             scaler.style.transformOrigin = 'top center';
@@ -413,20 +415,55 @@ export class Game {
     }
 
     renderGliderSvg(x, y, playerId, colorName, inTorpor) {
-        const p = "M 22.00 6.44 C 22.00 6.76 21.83 7.04 21.58 7.20 C 21.55 7.22 21.50 7.25 21.43 7.27 C 21.40 7.28 21.37 7.29 21.33 7.30 C 21.32 7.31 21.30 7.31 21.28 7.31 C 20.40 7.54 18.02 7.69 17.11 7.37 C 16.54 7.24 15.99 7.01 15.58 6.67 C 14.45 5.74 12.85 5.56 12.85 5.56 C 12.85 5.56 11.56 5.25 11.59 7.20 C 11.63 9.31 12.51 9.27 13.02 9.50 C 13.40 9.67 14.98 9.61 14.98 9.61 L 15.71 11.47 L 10.70 11.47 C 10.70 11.47 7.93 11.06 5.95 8.69 C 3.96 6.33 2.48 6.27 2.48 6.27 C 2.48 6.27 1.70 7.99 -0.29 7.76 C -0.29 7.76 -0.32 8.97 0.66 9.31 C 1.45 9.58 3.09 9.53 3.09 9.53 L 4.27 11.47 L -1.27 11.47 L -3.59 9.25 C -3.59 9.25 -4.16 10.74 -5.86 11.47 L -10.40 11.47 C -22.00 5.05 -15.67 -9.42 -9.47 -11.16 L -9.83 -9.50 C -9.83 -9.50 -7.06 -11.47 -2.87 -10.54 L -3.48 -9.05 C -3.48 -9.05 -1.27 -8.79 0.99 -9.89 C 0.99 -9.89 -0.10 -5.26 -3.37 -4.11 C -6.64 -2.95 -9.44 -4.04 -9.44 -4.04 C -9.44 -4.04 -12.43 -1.29 -12.15 3.10 C -11.87 7.48 -8.21 9.27 -7.34 7.99 C -6.79 7.17 -6.64 6.09 -6.68 5.12 C -6.78 2.36 -5.21 -0.38 -3.04 -2.01 C -1.58 -3.09 0.20 -3.71 2.01 -3.80 C 4.02 -3.90 5.78 -3.24 7.45 -2.16 C 7.55 -2.10 7.63 -2.05 7.72 -1.99 C 10.89 -0.01 12.14 -0.17 12.14 -0.17 C 11.55 -1.44 11.22 -3.03 13.04 -3.27 C 14.86 -3.50 15.25 -0.51 15.25 -0.51 C 15.25 -0.51 18.33 0.20 19.35 1.00 C 19.35 1.00 19.36 1.00 19.36 1.00 C 19.82 1.27 20.14 1.74 20.21 2.28 L 20.24 2.23 C 20.24 2.23 20.31 2.85 20.49 3.52 C 20.50 3.56 20.51 3.60 20.52 3.64 C 20.62 3.95 20.75 4.30 20.91 4.64 C 20.91 4.65 20.91 4.66 20.92 4.66 C 20.93 4.70 20.95 4.74 20.97 4.77 C 21.12 5.08 21.31 5.37 21.52 5.62 C 21.58 5.68 21.65 5.73 21.71 5.78 C 22.00 6.00 22.00 6.17 22.00 6.44";
+        const wingPath = "M 0,-16 C 6,-16 10,-10 10,-6 C 18,-6 23,0 23,8 C 23,16 16,18 12,19 C 7,24 2,25 0,25 C -2,25 -7,24 -12,19 C -16,18 -23,16 -23,8 C -23,0 -18,-6 -10,-6 C -10,-10 -6,-16 0,-16 Z";
+        const bellyPath = "M 0,-10 C 4,-10 8,-4 8,2 C 8,10 5,14 0,16 C -5,14 -8,10 -8,2 C -8,-4 -4,-10 0,-10 Z";
+        const tailPath = "M 0,16 C 4,18 5,26 2,29 C -1,32 -6,30 -4,24 C -3,20 -1,17 0,16 Z";
 
-        const restOffsetY = -9;
+        const eyesSvg = inTorpor ? `
+            <path d="M -5.5,-10 Q -3.5,-8 -1.5,-10" stroke="#111" stroke-width="1.3" fill="none" stroke-linecap="round" />
+            <path d="M 1.5,-10 Q 3.5,-8 5.5,-10" stroke="#111" stroke-width="1.3" fill="none" stroke-linecap="round" />
+        ` : `
+            <ellipse cx="-3.5" cy="-11" rx="2.2" ry="2.5" fill="#111111" />
+            <circle cx="-4" cy="-12" r="0.8" fill="#ffffff" />
+            <ellipse cx="3.5" cy="-11" rx="2.2" ry="2.5" fill="#111111" />
+            <circle cx="3" cy="-12" r="0.8" fill="#ffffff" />
+        `;
+
+        const restOffsetY = -6;
         return `
-            <g class="sg-glider-piece" id="sg_glider_${playerId}" data-player-id="${playerId}" transform="translate(${x}, ${y + restOffsetY})">
+            <g class="sg-glider-piece ${inTorpor ? 'in-torpor' : ''}" id="sg_glider_${playerId}" data-player-id="${playerId}" transform="translate(${x}, ${y + restOffsetY})">
                 <!-- Large hover capture area over the cell -->
                 <circle cx="0" cy="${-restOffsetY}" r="28" fill="transparent" />
                 <g class="sg-glider-inner">
-                    <!-- Drop shadow -->
-                    <path d="${p}" fill="rgba(0,0,0,0.4)" transform="translate(0, 3)" />
-                    <!-- Glider Wood Meeple -->
-                    <path d="${p}" class="sg-glider-body color-${colorName}" stroke="#1b1b1b" stroke-width="1.3" stroke-linejoin="round" />
-                    <!-- Torpor Sleep Indicator -->
-                    ${inTorpor ? `<text x="12" y="-12" class="sg-torpor-zzz">&#128164;</text>` : ''}
+                    <!-- Sleeping Aura / Halo if in Torpor -->
+                    ${inTorpor ? `<circle cx="0" cy="4" r="28" class="sg-torpor-aura" />` : ''}
+
+                    <!-- Outstretched Patagium (Gliding wings) -->
+                    <path d="${wingPath}" class="sg-glider-wings color-${colorName}" stroke-width="1.4" stroke-linejoin="round" />
+
+                    <!-- Belly fur -->
+                    <path d="${bellyPath}" class="sg-glider-belly color-${colorName}" />
+
+                    <!-- Bushy Tail -->
+                    <path d="${tailPath}" class="sg-glider-tail color-${colorName}" stroke-width="1" />
+
+                    <!-- Ears -->
+                    <circle cx="-7" cy="-16" r="3.8" class="sg-glider-ear color-${colorName}" />
+                    <circle cx="-7" cy="-16" r="2.1" fill="#ff80ab" />
+                    <circle cx="7" cy="-16" r="3.8" class="sg-glider-ear color-${colorName}" />
+                    <circle cx="7" cy="-16" r="2.1" fill="#ff80ab" />
+
+                    <!-- Head -->
+                    <ellipse cx="0" cy="-11" rx="7.5" ry="6" class="sg-glider-head color-${colorName}" stroke-width="1.2" />
+
+                    <!-- Eyes -->
+                    ${eyesSvg}
+
+                    <!-- Pink Nose -->
+                    <polygon points="-1,-7.5 1,-7.5 0,-6.3" fill="#ff4081" />
+
+                    <!-- Torpor Sleep Floating ZZZ -->
+                    ${inTorpor ? `<text x="14" y="-14" class="sg-torpor-zzz">&#128164; Zzz</text>` : ''}
                 </g>
             </g>
         `;
@@ -487,10 +524,16 @@ export class Game {
     setupPlayerTurnInteraction(args) {
         this.clearActionButtons();
 
-        // 1. Add Torpor Button
-        this.addActionButton('sg_torpor_btn', _('Enter Torpor (Rest & Bank Fruit)'), () => {
+        // 1. Add Torpor Button with end-game warning if applicable
+        const willEnd = !!args.will_end_on_torpor;
+        const torporLabel = willEnd
+            ? _('⚠️ ENTER TORPOR (WILL END GAME)')
+            : _('Enter Torpor (Rest & Bank Fruit)');
+        const torporColor = willEnd ? 'alert' : 'secondary';
+
+        this.addActionButton('sg_torpor_btn', torporLabel, () => {
             this.onTorpor();
-        }, 'secondary');
+        }, torporColor);
 
         // 2. Check if glider has jumping tile
         if (args.jumping_tile !== null) {
@@ -605,16 +648,23 @@ export class Game {
     updateTurnStatus(active, args) {
         if (!this.bga?.statusBar) return;
         if (active) {
+            let statusText = '';
             if (args.jumping_tile !== null) {
                 const val = args.jumping_tile.value;
-                this.bga.statusBar.setTitle(_('${you} must Jump ${val} space(s) or enter Torpor').replace('${val}', val));
+                statusText = _('${you} must Jump ${val} space(s)').replace('${val}', val);
             } else {
                 if (args.is_center) {
-                    this.bga.statusBar.setTitle(_('${you} are on the Center Nest! Spend any reserve fruit to glide anywhere, or enter Torpor'));
+                    statusText = _('${you} are on Center Nest: spend any reserve fruit to glide anywhere');
                 } else {
-                    this.bga.statusBar.setTitle(_('${you} must spend a reserve fruit to Jump, or enter Torpor'));
+                    statusText = _('${you} must spend a reserve fruit to Jump');
                 }
             }
+            if (args.will_end_on_torpor) {
+                statusText += _(' — ⚠️ Entering Torpor will END the game!');
+            } else {
+                statusText += _(', or enter Torpor');
+            }
+            this.bga.statusBar.setTitle(statusText);
         } else {
             this.bga.statusBar.setTitle(_('${actplayer} is taking their turn...'));
         }
@@ -667,19 +717,24 @@ export class Game {
                 }
             }
 
-            let jumpingText = jumping ? `Fruit: ${jumping.value} pt(s)` : 'Empty (needs reserve)';
-            let reserveHtml = '';
+            let jumpingText = jumping ? `${jumping.value} pt(s)` : 'None (spend reserve to jump)';
+
+            // Group reserves into compact counts: 1:3, 2:0, 3:5, 4:2, 5:2
+            const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
             reserves.forEach(t => {
-                reserveHtml += `<span class="sg_mini_fruit val-${t.value}">${t.value}</span>`;
+                if (counts[t.value] !== undefined) counts[t.value]++;
             });
-            if (reserves.length === 0) reserveHtml = '<em style="color:#888;">(None)</em>';
+
+            const reserveHtml = [1, 2, 3, 4, 5].map(v =>
+                `<span class="sg_res_badge val-${v}"><strong>${v}</strong>: ${counts[v]}</span>`
+            ).join(' ');
 
             inv.innerHTML = `
                 <div class="sg_panel_jumping">
-                    <span>&#129438; Launch:</span> <strong>${jumpingText}</strong>
+                    <span>&#129438; Tile Underneath:</span> <strong>${jumpingText}</strong>
                 </div>
                 <div class="sg_panel_reserves">
-                    <span>&#127822; Reserve:</span> ${reserveHtml}
+                    <span>&#127822; Reserve:</span> <div class="sg_res_badges_container">${reserveHtml}</div>
                 </div>
             `;
         }

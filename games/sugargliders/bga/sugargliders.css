@@ -272,10 +272,11 @@
     }
 }
 
-/* Food Tile SVG Styling (Placeholders ready to swap with image tags) */
+/* Food Tile SVG Styling */
 .sg-food-tile {
     pointer-events: none;
     transition: transform 0.25s ease;
+    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.8)) drop-shadow(0 3px 6px rgba(0, 0, 0, 0.45));
 }
 
 .sg-tile-bg-green {
@@ -307,7 +308,7 @@
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
 }
 
-/* Sugar Glider Pawns */
+/* Sugar Glider Pawns - Top-down Soaring View */
 .sg-glider-piece {
     pointer-events: all;
     cursor: pointer;
@@ -321,50 +322,68 @@
     filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.45));
 }
 
-/* Hover lift effect: glider hops up 16px to reveal 100% of underlying tile */
+/* Hover lift effect: glider hops up 18px to reveal underlying tile */
 .sg-glider-piece:hover .sg-glider-inner {
-    transform: translateY(-16px) scale(1.08);
-    filter: drop-shadow(0 12px 14px rgba(0, 0, 0, 0.6));
+    transform: translateY(-18px) scale(1.08);
+    filter: drop-shadow(0 14px 16px rgba(0, 0, 0, 0.65));
 }
 
-.sg-glider-body.color-white {
-    fill: #ffffff;
-    stroke: #b0bec5;
-    stroke-width: 1.5;
+/* Player Colors for Top-down Glider Pieces */
+/* White */
+.sg-glider-wings.color-white, .sg-glider-head.color-white { fill: #ffffff; stroke: #b0bec5; }
+.sg-glider-belly.color-white { fill: #eceff1; opacity: 0.9; }
+.sg-glider-tail.color-white, .sg-glider-ear.color-white { fill: #cfd8dc; stroke: #90a4ae; }
+
+/* Black */
+.sg-glider-wings.color-black, .sg-glider-head.color-black { fill: #263238; stroke: #455a64; }
+.sg-glider-belly.color-black { fill: #546e7a; opacity: 0.85; }
+.sg-glider-tail.color-black, .sg-glider-ear.color-black { fill: #1c252a; stroke: #37474f; }
+
+/* Red */
+.sg-glider-wings.color-red, .sg-glider-head.color-red { fill: #e53935; stroke: #b71c1c; }
+.sg-glider-belly.color-red { fill: #ffcdd2; opacity: 0.85; }
+.sg-glider-tail.color-red, .sg-glider-ear.color-red { fill: #c62828; stroke: #8e0000; }
+
+/* Blue */
+.sg-glider-wings.color-blue, .sg-glider-head.color-blue { fill: #1e88e5; stroke: #0d47a1; }
+.sg-glider-belly.color-blue { fill: #bbdefb; opacity: 0.85; }
+.sg-glider-tail.color-blue, .sg-glider-ear.color-blue { fill: #1565c0; stroke: #0a3875; }
+
+/* Yellow */
+.sg-glider-wings.color-yellow, .sg-glider-head.color-yellow { fill: #fbc02d; stroke: #f57f17; }
+.sg-glider-belly.color-yellow { fill: #fff9c4; opacity: 0.85; }
+.sg-glider-tail.color-yellow, .sg-glider-ear.color-yellow { fill: #f9a825; stroke: #c17900; }
+
+/* Green */
+.sg-glider-wings.color-green, .sg-glider-head.color-green { fill: #43a047; stroke: #1b5e20; }
+.sg-glider-belly.color-green { fill: #c8e6c9; opacity: 0.85; }
+.sg-glider-tail.color-green, .sg-glider-ear.color-green { fill: #2e7d32; stroke: #0f3b14; }
+
+/* Torpor Sleeping Visuals */
+.sg-glider-piece.in-torpor .sg-glider-inner {
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4)) saturate(0.85);
 }
 
-.sg-glider-body.color-black {
-    fill: #263238;
-    stroke: #78909c;
-    stroke-width: 1.5;
+.sg-torpor-aura {
+    fill: rgba(33, 150, 243, 0.22);
+    stroke: #64b5f6;
+    stroke-width: 2;
+    stroke-dasharray: 4, 3;
+    animation: sg_aura_pulse 2.2s infinite ease-in-out;
 }
 
-.sg-glider-body.color-red {
-    fill: #e53935;
-    stroke: #ffcdd2;
-    stroke-width: 1.5;
-}
-
-.sg-glider-body.color-blue {
-    fill: #1e88e5;
-    stroke: #bbdefb;
-    stroke-width: 1.5;
-}
-
-.sg-glider-body.color-yellow {
-    fill: #fbc02d;
-    stroke: #fff9c4;
-    stroke-width: 1.5;
-}
-
-.sg-glider-body.color-green {
-    fill: #43a047;
-    stroke: #c8e6c9;
-    stroke-width: 1.5;
+@keyframes sg_aura_pulse {
+    0% { transform: scale(0.94); opacity: 0.45; }
+    50% { transform: scale(1.06); opacity: 0.9; }
+    100% { transform: scale(0.94); opacity: 0.45; }
 }
 
 .sg-torpor-zzz {
-    font-size: 16px;
+    font-size: 13px;
+    font-weight: 800;
+    fill: #ffeb3b;
+    stroke: #333333;
+    stroke-width: 0.4;
     animation: sg_zzz_float 1.8s infinite ease-in-out;
 }
 
@@ -378,8 +397,8 @@
 .sg_panel_inventory {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    padding: 6px;
+    gap: 5px;
+    padding: 8px;
     margin-top: 6px;
     background: rgba(0, 0, 0, 0.04);
     border-radius: 8px;
@@ -395,29 +414,52 @@
 
 .sg_panel_reserves {
     display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.sg_res_badges_container {
+    display: inline-flex;
     flex-wrap: wrap;
-    align-items: center;
     gap: 4px;
 }
 
-.sg_mini_fruit {
+.sg_res_badge {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    min-width: 20px;
-    height: 20px;
-    padding: 0 4px;
+    padding: 1px 6px;
     border-radius: 10px;
     font-size: 11px;
-    font-weight: 800;
+    font-weight: 700;
     color: #ffffff;
     background: #4caf50;
     border: 1px solid #2e7d32;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
-.sg_mini_fruit.val-5 {
-    background: #8e24aa;
-    border-color: #ffd54f;
+.sg_res_badge.val-1 {
+    background: #43a047;
+    border-color: #2e7d32;
+}
+
+.sg_res_badge.val-2 {
+    background: #e65100;
+    border-color: #bf360c;
+}
+
+.sg_res_badge.val-3 {
+    background: #2e7d32;
+    border-color: #1b5e20;
+}
+
+.sg_res_badge.val-4 {
+    background: #0288d1;
+    border-color: #01579b;
+}
+
+.sg_res_badge.val-5 {
+    background: #7b1fa2;
+    border-color: #4a148c;
 }
 
 #sg_attribution {

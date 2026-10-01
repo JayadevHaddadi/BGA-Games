@@ -77,6 +77,9 @@ class PlayerTurn extends GameState
         );
 
         $isCenter = ($glider['q'] === 0 && $glider['r'] === 0);
+        $consecutiveTorpor = (int) $this->globals->get('consecutive_torpor', 0);
+        $playerCount = count(array_keys($this->game->loadPlayersBasicInfos()));
+        $willEndOnTorpor = ($consecutiveTorpor + 1 >= $playerCount);
 
         return [
             'glider_q' => $glider['q'],
@@ -86,6 +89,8 @@ class PlayerTurn extends GameState
             'legal_jumps' => $legalJumps,
             'can_torpor' => true,
             'is_center' => $isCenter,
+            'consecutive_torpor' => $consecutiveTorpor,
+            'will_end_on_torpor' => $willEndOnTorpor,
         ];
     }
 

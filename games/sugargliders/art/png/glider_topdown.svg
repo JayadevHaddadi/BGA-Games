@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="-30 -30 60 60">
+  <!-- Drop shadow -->
+  <g opacity="0.4" transform="translate(0, 3)">
+    <path d="M 0,-18 C 6,-18 10,-12 10,-8 C 16,-8 22,-2 22,6 C 22,14 16,16 12,18 C 8,24 2,26 0,26 C -2,26 -8,24 -12,18 C -16,16 -22,14 -22,6 C -22,-2 -16,-8 -10,-8 C -10,-12 -6,-18 0,-18 Z" fill="#000000" />
+  </g>
+  
+  <!-- Outstretched Patagium (Gliding wings) -->
+  <path d="M 0,-16 C 6,-16 10,-10 10,-6 C 18,-6 23,0 23,8 C 23,16 16,18 12,19 C 7,24 2,25 0,25 C -2,25 -7,24 -12,19 C -16,18 -23,16 -23,8 C -23,0 -18,-6 -10,-6 C -10,-10 -6,-16 0,-16 Z" fill="#1e88e5" stroke="#1565c0" stroke-width="1.5" stroke-linejoin="round" />
+
+  <!-- Inner glider wings / belly fur -->
+  <path d="M 0,-10 C 4,-10 8,-4 8,2 C 8,10 5,14 0,16 C -5,14 -8,10 -8,2 C -8,-4 -4,-10 0,-10 Z" fill="#e3f2fd" opacity="0.6" />
+
+  <!-- Bushy Tail -->
+  <path d="M 0,16 C 4,18 5,26 2,29 C -1,32 -6,30 -4,24 C -3,20 -1,17 0,16 Z" fill="#1565c0" stroke="#0d47a1" stroke-width="1" />
+
+  <!-- Rounded Ears -->
+  <circle cx="-7" cy="-16" r="4" fill="#1565c0" stroke="#0d47a1" stroke-width="1" />
+  <circle cx="-7" cy="-16" r="2.2" fill="#ff80ab" />
+  <circle cx="7" cy="-16" r="4" fill="#1565c0" stroke="#0d47a1" stroke-width="1" />
+  <circle cx="7" cy="-16" r="2.2" fill="#ff80ab" />
+
+  <!-- Glider Head -->
+  <ellipse cx="0" cy="-11" rx="7.5" ry="6" fill="#1e88e5" stroke="#1565c0" stroke-width="1.2" />
+
+  <!-- Cute Big Eyes -->
+  <ellipse cx="-3.5" cy="-11" rx="2.2" ry="2.5" fill="#111111" />
+  <circle cx="-4" cy="-12" r="0.8" fill="#ffffff" />
+  <ellipse cx="3.5" cy="-11" rx="2.2" ry="2.5" fill="#111111" />
+  <circle cx="3" cy="-12" r="0.8" fill="#ffffff" />
+
+  <!-- Pink Nose -->
+  <polygon points="-1,-7.5 1,-7.5 0,-6.3" fill="#ff4081" />
+</svg>
