@@ -62,6 +62,10 @@ class Game extends \Bga\GameFramework\Table
                     static::DbQuery("ALTER TABLE `racer` ADD COLUMN `car_name` varchar(32) NOT NULL DEFAULT '' AFTER `player_id`");
                 }
             }
+            $invCols = static::getObjectListFromDb("SHOW COLUMNS FROM `player_inventory` LIKE 'racer_id'");
+            if (empty($invCols)) {
+                static::DbQuery("ALTER TABLE `player_inventory` ADD COLUMN `racer_id` int(10) unsigned NOT NULL DEFAULT 0 AFTER `inventory_id`, ADD KEY `idx_racer` (`racer_id`)");
+            }
         } catch (\Exception $e) {
             // Defensive fallback
         }
@@ -90,8 +94,10 @@ class Game extends \Bga\GameFramework\Table
             $totalLaps = self::DEFAULT_LAPS;
         }
 
-        $modeOption = isset($options[104]) ? (int) $options[104] : (int) $this->tableOptions->get(104, 1);
-        $isTeamMode = ($modeOption === 2 && $numPlayers >= 2 && $numPlayers <= 4);
+        $fleetSizeOption = isset($options[104]) ? (int) $options[104] : (int) $this->tableOptions->get(104, 1);
+        $carsPerPlayer = max(1, min(4, $fleetSizeOption));
+        $totalCars = min(8, $numPlayers * $carsPerPlayer);
+        $isTeamMode = ($carsPerPlayer > 1);
 
         $query_values = [];
         $racer_values = [];
@@ -114,102 +120,43 @@ class Game extends \Bga\GameFramework\Table
             )
         );
 
-        if ($isTeamMode && $numPlayers === 2) {
-            // 2 Players: 4 cars each (8 cars total)
-            $p1 = $playerIds[0];
-            $p2 = $playerIds[1];
-            $p1Name = addslashes($players[$p1]["player_name"]);
-            $p2Name = addslashes($players[$p2]["player_name"]);
+        if ($isTeamMode) {
+            for ($bay = 1; $bay <= $totalCars; $bay++) {
+                $playerIdx = ($bay - 1) % $numPlayers;
+                $pId = $playerIds[$playerIdx];
+                $carNum = (int) floor(($bay - 1) / $numPlayers) + 1;
+                $color = $color_names[($bay - 1) % count($color_names)];
+                $carName = addslashes($players[$pId]["player_name"]) . " #{$carNum} (" . ucfirst($color) . ")";
+                $space = Circuit::getPitBaySpaceId($bay);
+                $racerId = $bay;
 
-            $teamConfigs = [
-                ['racer_id' => 1, 'player_id' => $p1, 'bay' => 1, 'color' => 'red', 'name' => $p1Name . ' #1'],
-                ['racer_id' => 2, 'player_id' => $p2, 'bay' => 2, 'color' => 'blue', 'name' => $p2Name . ' #1'],
-                ['racer_id' => 3, 'player_id' => $p1, 'bay' => 3, 'color' => 'green', 'name' => $p1Name . ' #2'],
-                ['racer_id' => 4, 'player_id' => $p2, 'bay' => 4, 'color' => 'yellow', 'name' => $p2Name . ' #2'],
-                ['racer_id' => 5, 'player_id' => $p1, 'bay' => 5, 'color' => 'purple', 'name' => $p1Name . ' #3'],
-                ['racer_id' => 6, 'player_id' => $p2, 'bay' => 6, 'color' => 'orange', 'name' => $p2Name . ' #3'],
-                ['racer_id' => 7, 'player_id' => $p1, 'bay' => 7, 'color' => 'cyan', 'name' => $p1Name . ' #4'],
-                ['racer_id' => 8, 'player_id' => $p2, 'bay' => 8, 'color' => 'indigo', 'name' => $p2Name . ' #4'],
-            ];
-
-            foreach ($teamConfigs as $tc) {
-                $space = Circuit::getPitBaySpaceId($tc['bay']);
                 $racer_values[] = vsprintf("(%d, %d, '%s', '%s', %d, 0, 6, 0, %d, 0, 270, 0, 0)", [
-                    $tc['racer_id'],
-                    $tc['player_id'],
-                    $tc['name'],
-                    $tc['color'],
+                    $racerId,
+                    $pId,
+                    $carName,
+                    $color,
                     $space,
                     $totalLaps,
                 ]);
-                $carTurnOrder[] = $tc['racer_id'];
-            }
-        } elseif ($isTeamMode && $numPlayers === 3) {
-            // 3 Players: 2 cars each (6 cars total)
-            $p1 = $playerIds[0];
-            $p2 = $playerIds[1];
-            $p3 = $playerIds[2];
-            $teamConfigs = [
-                ['racer_id' => 1, 'player_id' => $p1, 'bay' => 1, 'color' => 'red', 'name' => addslashes($players[$p1]["player_name"]) . ' #1'],
-                ['racer_id' => 2, 'player_id' => $p2, 'bay' => 2, 'color' => 'blue', 'name' => addslashes($players[$p2]["player_name"]) . ' #1'],
-                ['racer_id' => 3, 'player_id' => $p3, 'bay' => 3, 'color' => 'green', 'name' => addslashes($players[$p3]["player_name"]) . ' #1'],
-                ['racer_id' => 4, 'player_id' => $p1, 'bay' => 4, 'color' => 'yellow', 'name' => addslashes($players[$p1]["player_name"]) . ' #2'],
-                ['racer_id' => 5, 'player_id' => $p2, 'bay' => 5, 'color' => 'purple', 'name' => addslashes($players[$p2]["player_name"]) . ' #2'],
-                ['racer_id' => 6, 'player_id' => $p3, 'bay' => 6, 'color' => 'orange', 'name' => addslashes($players[$p3]["player_name"]) . ' #2'],
-            ];
-            foreach ($teamConfigs as $tc) {
-                $space = Circuit::getPitBaySpaceId($tc['bay']);
-                $racer_values[] = vsprintf("(%d, %d, '%s', '%s', %d, 0, 6, 0, %d, 0, 270, 0, 0)", [
-                    $tc['racer_id'],
-                    $tc['player_id'],
-                    $tc['name'],
-                    $tc['color'],
-                    $space,
-                    $totalLaps,
-                ]);
-                $carTurnOrder[] = $tc['racer_id'];
-            }
-        } elseif ($isTeamMode && $numPlayers === 4) {
-            // 4 Players: 2 cars each (8 cars total)
-            $teamConfigs = [
-                ['racer_id' => 1, 'player_id' => $playerIds[0], 'bay' => 1, 'color' => 'red', 'name' => addslashes($players[$playerIds[0]]["player_name"]) . ' #1'],
-                ['racer_id' => 2, 'player_id' => $playerIds[1], 'bay' => 2, 'color' => 'blue', 'name' => addslashes($players[$playerIds[1]]["player_name"]) . ' #1'],
-                ['racer_id' => 3, 'player_id' => $playerIds[2], 'bay' => 3, 'color' => 'green', 'name' => addslashes($players[$playerIds[2]]["player_name"]) . ' #1'],
-                ['racer_id' => 4, 'player_id' => $playerIds[3], 'bay' => 4, 'color' => 'yellow', 'name' => addslashes($players[$playerIds[3]]["player_name"]) . ' #1'],
-                ['racer_id' => 5, 'player_id' => $playerIds[0], 'bay' => 5, 'color' => 'purple', 'name' => addslashes($players[$playerIds[0]]["player_name"]) . ' #2'],
-                ['racer_id' => 6, 'player_id' => $playerIds[1], 'bay' => 6, 'color' => 'orange', 'name' => addslashes($players[$playerIds[1]]["player_name"]) . ' #2'],
-                ['racer_id' => 7, 'player_id' => $playerIds[2], 'bay' => 7, 'color' => 'cyan', 'name' => addslashes($players[$playerIds[2]]["player_name"]) . ' #2'],
-                ['racer_id' => 8, 'player_id' => $playerIds[3], 'bay' => 8, 'color' => 'indigo', 'name' => addslashes($players[$playerIds[3]]["player_name"]) . ' #2'],
-            ];
-            foreach ($teamConfigs as $tc) {
-                $space = Circuit::getPitBaySpaceId($tc['bay']);
-                $racer_values[] = vsprintf("(%d, %d, '%s', '%s', %d, 0, 6, 0, %d, 0, 270, 0, 0)", [
-                    $tc['racer_id'],
-                    $tc['player_id'],
-                    $tc['name'],
-                    $tc['color'],
-                    $space,
-                    $totalLaps,
-                ]);
-                $carTurnOrder[] = $tc['racer_id'];
+                $carTurnOrder[] = $racerId;
             }
         } else {
             // Standard Solo: 1 car per player
             foreach ($playerIds as $idx => $pId) {
-                $colName = $color_names[$idx % count($color_names)];
-                $initialSpace = Circuit::getPitBaySpaceId($idx + 1);
+                $color = $color_names[$idx % count($color_names)];
+                $space = Circuit::getPitBaySpaceId($idx + 1);
                 $pName = addslashes($players[$pId]["player_name"]);
-                $racer_id = $idx + 1;
+                $racerId = $idx + 1;
 
                 $racer_values[] = vsprintf("(%d, %d, '%s', '%s', %d, 0, 6, 0, %d, 0, 270, 0, 0)", [
-                    $racer_id,
+                    $racerId,
                     $pId,
-                    $pName,
-                    $colName,
-                    $initialSpace,
+                    $pName . ' (' . ucfirst($color) . ')',
+                    $color,
+                    $space,
                     $totalLaps,
                 ]);
-                $carTurnOrder[] = $racer_id;
+                $carTurnOrder[] = $racerId;
             }
         }
 
@@ -237,6 +184,7 @@ class Game extends \Bga\GameFramework\Table
 
         // Global variables setup
         $this->globals->set('is_team_mode', $isTeamMode);
+        $this->globals->set('cars_per_player', $carsPerPlayer);
         $this->globals->set('car_turn_order', $carTurnOrder);
         $this->globals->set('active_racer_id', $firstRacerId);
         $this->globals->set('qualifying_active', $qualifyingEnabled);
@@ -278,6 +226,7 @@ class Game extends \Bga\GameFramework\Table
         $result['finish_order'] = $this->globals->get('finish_order', []);
         $result['track_items'] = $this->getTrackItems();
         $result['player_inventory'] = $this->getPlayerInventories();
+        $result['racer_inventory'] = $this->getRacerInventories();
         $result['items_enabled'] = ((int) $this->tableOptions->get(103, 1) === 2);
         return $result;
     }
@@ -591,34 +540,10 @@ class Game extends \Bga\GameFramework\Table
                     'player_id' => $playerId,
                     'racer_id' => $rId,
                 ];
-            } else {
-                // Check collectible item pickup (rocket, wrench, turboboost)
-                $itemOnSpace = $this->getObjectFromDb(
-                    "SELECT `item_id`, `item_type` FROM `track_item` WHERE `space_id` = $currentSpace AND `item_type` IN ('rocket', 'wrench', 'turboboost')"
-                );
-                if ($itemOnSpace) {
-                    static::DbQuery(
-                        sprintf("INSERT INTO `player_inventory` (`player_id`, `item_type`) VALUES (%d, '%s')", $playerId, $itemOnSpace['item_type'])
-                    );
-                    static::DbQuery("DELETE FROM `track_item` WHERE `item_id` = " . (int)$itemOnSpace['item_id']);
-                    $bumpEvents[] = [
-                        'type' => 'item_pickup',
-                        'space_id' => $currentSpace,
-                        'item_type' => $itemOnSpace['item_type'],
-                        'player_id' => $playerId,
-                        'racer_id' => $rId,
-                    ];
-                }
-
-                // Resolve normal collisions & bumps at final space
-                $bumpEvents = array_merge($bumpEvents, $this->resolveBump($currentSpace, $rId));
-            }
-        }
-
         $finalSpaceInfo = Circuit::getSpace($currentSpace);
         $facingDir = $finalSpaceInfo['dir'] ?? 270;
 
-        // Update racer position
+        // Update racer position first so DB reflects true state for bump resolution
         static::DbQuery(
             sprintf(
                 "UPDATE `racer` SET `space_id` = %d, `laps_completed` = %d, `discs_remaining` = %d, `shortcut_used` = %d, `facing_direction` = %d WHERE `racer_id` = %d",
@@ -630,6 +555,29 @@ class Game extends \Bga\GameFramework\Table
                 $rId
             )
         );
+
+        if (!$crashedFromMine && !$slidFromOil) {
+            // Check collectible item pickup (rocket, wrench, turboboost)
+            $itemOnSpace = $this->getObjectFromDb(
+                "SELECT `item_id`, `item_type` FROM `track_item` WHERE `space_id` = $currentSpace AND `item_type` IN ('rocket', 'wrench', 'turboboost')"
+            );
+            if ($itemOnSpace) {
+                static::DbQuery(
+                    sprintf("INSERT INTO `player_inventory` (`racer_id`, `player_id`, `item_type`) VALUES (%d, %d, '%s')", $rId, $playerId, $itemOnSpace['item_type'])
+                );
+                static::DbQuery("DELETE FROM `track_item` WHERE `item_id` = " . (int)$itemOnSpace['item_id']);
+                $bumpEvents[] = [
+                    'type' => 'item_pickup',
+                    'space_id' => $currentSpace,
+                    'item_type' => $itemOnSpace['item_type'],
+                    'player_id' => $playerId,
+                    'racer_id' => $rId,
+                ];
+            }
+
+            // Resolve normal collisions & bumps at final space
+            $bumpEvents = array_merge($bumpEvents, $this->resolveBump($currentSpace, $rId));
+        }
 
         // Update stats (Delta is 2nd, PlayerId is 3rd!)
         $this->playerStats->inc('turns_number', 1, $playerId);
@@ -666,6 +614,7 @@ class Game extends \Bga\GameFramework\Table
             'finished' => $finished,
             'track_items' => $this->getTrackItems(),
             'player_inventory' => $this->getPlayerInventories(),
+            'racer_inventory' => $this->getRacerInventories(),
         ];
     }
 
@@ -701,7 +650,7 @@ class Game extends \Bga\GameFramework\Table
                 ];
             }
         } else {
-            // Straight space: Bump! Occupying car is pushed 1 space forward
+            // Straight space: Bump! Occupying car(s) are pushed 1 space forward
             foreach ($others as $bumpedRId) {
                 $nextSpace = Circuit::getNextSpace($targetSpaceId, false);
                 $nextSpaceInfo = Circuit::getSpace($nextSpace);
@@ -735,11 +684,26 @@ class Game extends \Bga\GameFramework\Table
                         'player_id' => $rInfo['player_id'] ?? $bumpedRId,
                         'space_id' => $nextSpace,
                     ];
+                    // Also crash any other cars on this corner
+                    $cornerOccupants = array_values(array_diff($this->getRacersOnSpace($nextSpace), [$bumpedRId]));
+                    foreach ($cornerOccupants as $cRId) {
+                        $cRInfo = $this->getRacer($cRId);
+                        if ($cRInfo && !$cRInfo['is_belly_up']) {
+                            $this->applyCrash($cRId, $nextSpace);
+                            $events[] = [
+                                'type' => 'corner_crash',
+                                'racer_id' => $cRId,
+                                'player_id' => $cRInfo['player_id'] ?? $cRId,
+                                'space_id' => $nextSpace,
+                            ];
+                        }
+                    }
+                    // Cars on corners cannot be pushed forward per rules
+                } else {
+                    // Straight space: recursively check if nextSpace also has a car to cascade
+                    $subEvents = $this->resolveBump($nextSpace, $bumpedRId);
+                    $events = array_merge($events, $subEvents);
                 }
-
-                // Recursive check on new space
-                $subEvents = $this->resolveBump($nextSpace, $bumpedRId);
-                $events = array_merge($events, $subEvents);
             }
         }
 
@@ -798,7 +762,8 @@ class Game extends \Bga\GameFramework\Table
         $isTeamMode = (bool) $this->globals->get('is_team_mode', false);
         $racers = $this->getAllRacers();
 
-        if ($isTeamMode) {
+        $carsPerPlayer = (int) $this->globals->get('cars_per_player', 1);
+        if ($isTeamMode || $carsPerPlayer > 1) {
             $rolls = $this->globals->get('qualifying_rolls', []);
             $playerScores = [];
             foreach ($this->loadPlayersBasicInfos() as $pId => $info) {
@@ -808,40 +773,15 @@ class Game extends \Bga\GameFramework\Table
             $rankedPlayerIds = array_keys($playerScores);
 
             $carTurnOrder = [];
-            $numPlayers = count($rankedPlayerIds);
-
-            if ($numPlayers === 2) {
-                $p1 = $rankedPlayerIds[0];
-                $p2 = $rankedPlayerIds[1];
-                $p1Cars = array_values(array_filter($racers, fn($r) => $r['player_id'] === $p1));
-                $p2Cars = array_values(array_filter($racers, fn($r) => $r['player_id'] === $p2));
-
-                $bay = 1;
-                for ($i = 0; $i < 4; $i++) {
-                    if (isset($p1Cars[$i])) {
+            $bay = 1;
+            for ($carIdx = 0; $carIdx < $carsPerPlayer; $carIdx++) {
+                foreach ($rankedPlayerIds as $pId) {
+                    $pCars = array_values(array_filter($racers, fn($r) => $r['player_id'] === $pId));
+                    if (isset($pCars[$carIdx])) {
                         $space = Circuit::getPitBaySpaceId($bay);
-                        static::DbQuery(sprintf("UPDATE `racer` SET `space_id` = %d WHERE `racer_id` = %d", $space, $p1Cars[$i]['racer_id']));
-                        $carTurnOrder[] = $p1Cars[$i]['racer_id'];
+                        static::DbQuery(sprintf("UPDATE `racer` SET `space_id` = %d WHERE `racer_id` = %d", $space, $pCars[$carIdx]['racer_id']));
+                        $carTurnOrder[] = $pCars[$carIdx]['racer_id'];
                         $bay++;
-                    }
-                    if (isset($p2Cars[$i])) {
-                        $space = Circuit::getPitBaySpaceId($bay);
-                        static::DbQuery(sprintf("UPDATE `racer` SET `space_id` = %d WHERE `racer_id` = %d", $space, $p2Cars[$i]['racer_id']));
-                        $carTurnOrder[] = $p2Cars[$i]['racer_id'];
-                        $bay++;
-                    }
-                }
-            } else {
-                $bay = 1;
-                for ($carIdx = 0; $carIdx < 2; $carIdx++) {
-                    foreach ($rankedPlayerIds as $pId) {
-                        $pCars = array_values(array_filter($racers, fn($r) => $r['player_id'] === $pId));
-                        if (isset($pCars[$carIdx])) {
-                            $space = Circuit::getPitBaySpaceId($bay);
-                            static::DbQuery(sprintf("UPDATE `racer` SET `space_id` = %d WHERE `racer_id` = %d", $space, $pCars[$carIdx]['racer_id']));
-                            $carTurnOrder[] = $pCars[$carIdx]['racer_id'];
-                            $bay++;
-                        }
                     }
                 }
             }
@@ -924,6 +864,26 @@ class Game extends \Bga\GameFramework\Table
     {
         $all = $this->getPlayerInventories();
         return $all[$playerId] ?? [];
+    }
+
+    public function getRacerInventories(): array
+    {
+        $rows = static::getObjectListFromDb("SELECT `inventory_id`, `racer_id`, `player_id`, `item_type` FROM `player_inventory`");
+        $result = [];
+        foreach ($rows as $r) {
+            $rId = (int) ($r['racer_id'] ?? 0);
+            if (!isset($result[$rId])) {
+                $result[$rId] = [];
+            }
+            $result[$rId][] = $r['item_type'];
+        }
+        return $result;
+    }
+
+    public function getRacerInventory(int $racerId): array
+    {
+        $all = $this->getRacerInventories();
+        return $all[$racerId] ?? [];
     }
 
     public function setupTrackItems(): void

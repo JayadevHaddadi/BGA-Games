@@ -64,15 +64,23 @@
         "default": 1
     },
     "104": {
-        "name": "Game Mode",
+        "name": "Cars per Player (Fleet Size)",
         "values": {
             "1": {
-                "name": "Standard Solo (1 car per player)",
+                "name": "1 car per player (Standard Solo)",
                 "description": "Standard individual race where each player controls 1 car."
             },
             "2": {
-                "name": "Team Grand Prix (Multiple cars per player)",
-                "description": "Each player controls a team of cars (2 players = 4 cars each; 3-4 players = 2 cars each). Teams score combined points."
+                "name": "2 cars per player (Team GP)",
+                "description": "Each player controls a team of 2 cars. Teams score combined championship points."
+            },
+            "3": {
+                "name": "3 cars per player (Team GP)",
+                "description": "Each player controls a team of 3 cars (e.g. 6 cars total in 2-player games)."
+            },
+            "4": {
+                "name": "4 cars per player (Team GP)",
+                "description": "Each player controls a team of 4 cars (8 cars total in 2-player games)."
             }
         },
         "default": 1

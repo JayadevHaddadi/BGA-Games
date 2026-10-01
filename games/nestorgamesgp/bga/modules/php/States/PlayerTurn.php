@@ -34,7 +34,7 @@ class PlayerTurn extends GameState
         $canFixCar = ($racer && $racer['dice_available'] < 6 && empty($rolledDice) && !$racer['is_belly_up']);
 
         $itemsOption = (int) $this->tableOptions->get(103, 1);
-        $inventory = ($itemsOption === 2) ? $this->game->getPlayerInventory($activePlayerId) : [];
+        $inventory = ($itemsOption === 2) ? $this->game->getRacerInventory($activeRacerId) : [];
         $turboActive = (bool) $this->globals->get('turbo_active', false);
 
         // Calculate potential rocket targets in line of sight
@@ -76,6 +76,7 @@ class PlayerTurn extends GameState
             'items_enabled' => ($itemsOption === 2),
             'track_items' => $this->game->getTrackItems(),
             'player_inventory' => $this->game->getPlayerInventories(),
+            'racer_inventory' => $this->game->getRacerInventories(),
             'is_team_mode' => (bool) $this->globals->get('is_team_mode', false),
         ];
     }
@@ -214,13 +215,13 @@ class PlayerTurn extends GameState
             throw new UserException(clienttranslate("You can only use items before rolling dice."));
         }
 
-        $inv = $this->game->getPlayerInventory($activePlayerId);
+        $inv = $this->game->getRacerInventory($activeRacerId);
         if (!in_array('wrench', $inv, true)) {
             throw new UserException(clienttranslate("You do not have a Wrench."));
         }
 
         // Consume 1 wrench
-        Game::DbQuery("DELETE FROM `player_inventory` WHERE `player_id` = $activePlayerId AND `item_type` = 'wrench' LIMIT 1");
+        Game::DbQuery("DELETE FROM `player_inventory` WHERE `racer_id` = $activeRacerId AND `item_type` = 'wrench' LIMIT 1");
 
         // Restore dice to 6 and flip upright
         $this->game->fixCar($activeRacerId);
@@ -240,6 +241,7 @@ class PlayerTurn extends GameState
             'recycled_space' => $recycledSpace,
             'track_items' => $this->game->getTrackItems(),
             'player_inventory' => $this->game->getPlayerInventories(),
+            'racer_inventory' => $this->game->getRacerInventories(),
             'all_racers' => $this->game->getAllRacers(),
         ]);
 
@@ -256,12 +258,12 @@ class PlayerTurn extends GameState
             throw new UserException(clienttranslate("You can only use items before rolling dice."));
         }
 
-        $inv = $this->game->getPlayerInventory($activePlayerId);
+        $inv = $this->game->getRacerInventory($activeRacerId);
         if (!in_array('turboboost', $inv, true)) {
             throw new UserException(clienttranslate("You do not have a Turbo Boost."));
         }
 
-        Game::DbQuery("DELETE FROM `player_inventory` WHERE `player_id` = $activePlayerId AND `item_type` = 'turboboost' LIMIT 1");
+        Game::DbQuery("DELETE FROM `player_inventory` WHERE `racer_id` = $activeRacerId AND `item_type` = 'turboboost' LIMIT 1");
         $this->globals->set('turbo_active', true);
 
         $racer = $this->game->getRacer($activeRacerId);
@@ -277,6 +279,7 @@ class PlayerTurn extends GameState
             'recycled_space' => $recycledSpace,
             'track_items' => $this->game->getTrackItems(),
             'player_inventory' => $this->game->getPlayerInventories(),
+            'racer_inventory' => $this->game->getRacerInventories(),
             'all_racers' => $this->game->getAllRacers(),
         ]);
 
@@ -293,7 +296,7 @@ class PlayerTurn extends GameState
             throw new UserException(clienttranslate("You can only use items before rolling dice."));
         }
 
-        $inv = $this->game->getPlayerInventory($activePlayerId);
+        $inv = $this->game->getRacerInventory($activeRacerId);
         if (!in_array('rocket', $inv, true)) {
             throw new UserException(clienttranslate("You do not have a Rocket."));
         }
@@ -313,7 +316,7 @@ class PlayerTurn extends GameState
         $distance = $idx + 1;
 
         // Consume rocket
-        Game::DbQuery("DELETE FROM `player_inventory` WHERE `player_id` = $activePlayerId AND `item_type` = 'rocket' LIMIT 1");
+        Game::DbQuery("DELETE FROM `player_inventory` WHERE `racer_id` = $activeRacerId AND `item_type` = 'rocket' LIMIT 1");
         $recycledSpace = $this->game->recycleItem('rocket', (int)$racer['space_id']);
 
         $roll = random_int(1, 6);
@@ -345,6 +348,7 @@ class PlayerTurn extends GameState
                 'recycled_space' => $recycledSpace,
                 'track_items' => $this->game->getTrackItems(),
                 'player_inventory' => $this->game->getPlayerInventories(),
+                'racer_inventory' => $this->game->getRacerInventories(),
             ]);
         } else {
             $this->game->notifyAllPlayers('rocketMiss', clienttranslate('🚀 ${player_name} fired a Rocket at ${target_car} (dist ${distance})! Rolled ${roll} — MISSED!'), [
@@ -359,6 +363,7 @@ class PlayerTurn extends GameState
                 'recycled_space' => $recycledSpace,
                 'track_items' => $this->game->getTrackItems(),
                 'player_inventory' => $this->game->getPlayerInventories(),
+                'racer_inventory' => $this->game->getRacerInventories(),
                 'all_racers' => $this->game->getAllRacers(),
             ]);
         }
@@ -404,6 +409,7 @@ class PlayerTurn extends GameState
             'all_racers' => $this->game->getAllRacers(),
             'track_items' => $res['track_items'] ?? $this->game->getTrackItems(),
             'player_inventory' => $res['player_inventory'] ?? $this->game->getPlayerInventories(),
+            'racer_inventory' => $res['racer_inventory'] ?? $this->game->getRacerInventories(),
         ]);
 
         if (!empty($res['bump_events'])) {
@@ -458,11 +464,18 @@ class PlayerTurn extends GameState
                         'all_racers' => $this->game->getAllRacers(),
                     ]);
                 } elseif ($evt['type'] === 'item_pickup') {
-                    $this->game->notifyAllPlayers('itemPickedUp', clienttranslate('🎁 ${player_name} picked up a ${item_type}!'), [
+                    $pCar = $this->game->getRacer($evt['racer_id'] ?? $activeRacerId);
+                    $carLabel = ($pCar['car_name'] ?? '') ?: $carName;
+                    $this->game->notifyAllPlayers('itemPickedUp', clienttranslate('🎁 ${car_name} (${player_name}) picked up a ${item_type}!'), [
                         'player_id' => $activePlayerId,
+                        'racer_id' => $evt['racer_id'] ?? $activeRacerId,
+                        'car_name' => $carLabel,
                         'player_name' => $playerName,
                         'item_type' => $evt['item_type'],
                         'space_id' => $evt['space_id'],
+                        'track_items' => $this->game->getTrackItems(),
+                        'player_inventory' => $this->game->getPlayerInventories(),
+                        'racer_inventory' => $this->game->getRacerInventories(),
                     ]);
                 }
             }

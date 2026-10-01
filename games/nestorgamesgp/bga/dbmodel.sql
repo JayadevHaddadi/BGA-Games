@@ -32,9 +32,12 @@ CREATE TABLE IF NOT EXISTS `track_item` (
 DROP TABLE IF EXISTS `player_inventory`;
 CREATE TABLE IF NOT EXISTS `player_inventory` (
     `inventory_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+    `racer_id` int(10) unsigned NOT NULL DEFAULT 0,
     `player_id` int(10) unsigned NOT NULL,
     `item_type` varchar(16) NOT NULL,
-    PRIMARY KEY (`inventory_id`)
+    PRIMARY KEY (`inventory_id`),
+    KEY `idx_racer` (`racer_id`),
+    KEY `idx_player` (`player_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 DROP TABLE IF EXISTS `global_variables`;

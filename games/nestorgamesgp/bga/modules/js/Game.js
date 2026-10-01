@@ -171,6 +171,16 @@ class RetroAudioController {
         });
     }
 
+    playChime() {
+        if (this.muted) return;
+        try {
+            const notes = [659.25, 880.00];
+            notes.forEach((freq, idx) => {
+                setTimeout(() => this.playTone(freq, 'sine', 0.14, 0.04), idx * 80);
+            });
+        } catch (e) {}
+    }
+
     playSadBust() {
         const notes = [
             { f: 330, d: 0.14 },
@@ -443,6 +453,7 @@ export class Game {
         this.qualifyingActive = gamedatas.qualifying_active;
         this.trackItems = gamedatas.track_items || [];
         this.playerInventories = gamedatas.player_inventory || {};
+        this.racerInventories = gamedatas.racer_inventory || {};
         this.itemsEnabled = !!gamedatas.items_enabled;
         this.racersStarted = gamedatas.racers_started || {};
         try {
@@ -708,12 +719,13 @@ export class Game {
     }
 
     getItemHtml(type) {
+        const urlPrefix = (typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : '');
         const icons = {
-            spill: '<img src="img/spill.png" alt="Oil Spill" class="gp_item_img gp_item_spill" />',
-            mine: '<img src="img/mine.png" alt="Mine" class="gp_item_img gp_item_mine" />',
-            rocket: '<img src="img/rocket.png" alt="Rocket" class="gp_item_img gp_item_rocket" />',
-            wrench: '<img src="img/wrench.png" alt="Wrench" class="gp_item_img gp_item_wrench" />',
-            turboboost: '<img src="img/turboboost.png" alt="Turbo Boost" class="gp_item_img gp_item_turbo" />',
+            spill: `<img src="${urlPrefix}img/spill.png" alt="Oil Spill" class="gp_item_img gp_item_spill" onerror="this.outerHTML='<span class=\\'gp_item_fallback\\'>🛢️</span>'" />`,
+            mine: `<img src="${urlPrefix}img/mine.png" alt="Mine" class="gp_item_img gp_item_mine" onerror="this.outerHTML='<span class=\\'gp_item_fallback\\'>💣</span>'" />`,
+            rocket: `<img src="${urlPrefix}img/rocket.png" alt="Rocket" class="gp_item_img gp_item_rocket" onerror="this.outerHTML='<span class=\\'gp_item_fallback\\'>🚀</span>'" />`,
+            wrench: `<img src="${urlPrefix}img/wrench.png" alt="Wrench" class="gp_item_img gp_item_wrench" onerror="this.outerHTML='<span class=\\'gp_item_fallback\\'>🔧</span>'" />`,
+            turboboost: `<img src="${urlPrefix}img/turboboost.png" alt="Turbo Boost" class="gp_item_img gp_item_turbo" onerror="this.outerHTML='<span class=\\'gp_item_fallback\\'>⚡</span>'" />`,
         };
         return icons[type] || '';
     }
@@ -877,6 +889,7 @@ export class Game {
             if (cars.length === 1) {
                 // Solo Mode
                 const racer = cars[0];
+                const rId = racer.racer_id ?? racer.player_id;
                 const diceAvailable = racer.dice_available ?? 6;
                 const lostDice = Math.max(0, 6 - diceAvailable);
                 const laps = racer.laps_completed ?? 0;
@@ -904,7 +917,35 @@ export class Game {
                     ? '<span class="gp_panel_shortcut gp_shortcut_used" title="Shortcut already used this race">⚡ Shortcut: Used</span>'
                     : '<span class="gp_panel_shortcut gp_shortcut_avail" title="Shortcut available from space 8">⚡ Shortcut: Ready</span>';
 
+                let soloCarItems = '';
+                if (this.itemsEnabled) {
+                    const carInv = (this.racerInventories && this.racerInventories[rId]) || (this.playerInventories && this.playerInventories[pId]) || [];
+                    if (carInv.length > 0) {
+                        const itemBadges = carInv.map(type => {
+                            return `<span class="gp_inv_badge" title="${this.getItemName(type)}">${this.getItemIcon(type)}</span>`;
+                        }).join(' ');
+                        soloCarItems = `
+                            <div class="gp_panel_row gp_panel_inv_row">
+                                <span class="gp_panel_label">🎒 Items:</span>
+                                <div class="gp_inv_list">${itemBadges}</div>
+                            </div>
+                        `;
+                    } else {
+                        soloCarItems = `
+                            <div class="gp_panel_row gp_panel_inv_row">
+                                <span class="gp_panel_label">🎒 Items:</span>
+                                <span class="gp_inv_empty">None</span>
+                            </div>
+                        `;
+                    }
+                }
+
                 panelInfo.innerHTML = `
+                    <div class="gp_panel_row gp_panel_color_row">
+                        <span class="gp_panel_label">Car:</span>
+                        <span class="gp_mini_car_svg gp_color_${racer.car_color}">${this.getCarSvg('chibi_kart')}</span>
+                        <span class="gp_color_badge gp_bg_${racer.car_color}">${(racer.car_color || '').toUpperCase()}</span>
+                    </div>
                     <div class="gp_panel_row">
                         <span class="gp_panel_label">🎲 Dice Pool:</span>
                         <strong class="gp_panel_val">${diceAvailable} / 6</strong>
@@ -919,7 +960,7 @@ export class Game {
                         ${statusHtml}
                         ${shortcutHtml}
                     </div>
-                    ${inventoryHtml}
+                    ${soloCarItems}
                 `;
             } else {
                 // Team Mode: Render each car in the team fleet
@@ -946,12 +987,29 @@ export class Game {
                         carStatus = `<span class="gp_team_car_tag lap">Lap ${Math.min(totalLaps, laps + 1)}/${totalLaps}</span>`;
                     }
 
+                    let carItemsHtml = '';
+                    if (this.itemsEnabled) {
+                        const carInv = (this.racerInventories && this.racerInventories[rId]) || [];
+                        if (carInv.length > 0) {
+                            const itemBadges = carInv.map(type => {
+                                return `<span class="gp_car_item_badge" title="${this.getItemName(type)}">${this.getItemIcon(type)}</span>`;
+                            }).join(' ');
+                            carItemsHtml = `<div class="gp_car_items_row">${itemBadges}</div>`;
+                        }
+                    }
+
                     carsHtml += `
                         <div class="gp_team_car_row ${isActiveCar ? 'active_turn' : ''}" id="gp_team_car_row_${rId}">
-                            <div class="gp_team_car_icon gp_color_${racer.car_color}">🏎️</div>
+                            <div class="gp_team_car_icon gp_mini_car_svg gp_color_${racer.car_color}">
+                                ${this.getCarSvg('chibi_kart')}
+                            </div>
                             <div class="gp_team_car_info">
-                                <span class="gp_team_car_name">${racer.car_name || ('Car ' + rId)}</span>
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <span class="gp_team_car_name">${racer.car_name || ('Car ' + rId)}</span>
+                                    <span class="gp_color_badge gp_bg_${racer.car_color}" style="font-size: 8px; padding: 0 4px;">${racer.car_color}</span>
+                                </div>
                                 <span class="gp_team_car_pips">${carPips}</span>
+                                ${carItemsHtml}
                             </div>
                             <div class="gp_team_car_status">
                                 ${carStatus}
@@ -967,7 +1025,6 @@ export class Game {
                     <div class="gp_team_cars_list">
                         ${carsHtml}
                     </div>
-                    ${inventoryHtml}
                 `;
             }
         });
@@ -1792,6 +1849,9 @@ export class Game {
         if (args.player_inventory) {
             this.playerInventories = args.player_inventory;
         }
+        if (args.racer_inventory) {
+            this.racerInventories = args.racer_inventory;
+        }
 
         if (args.all_racers) {
             this.racers = args.all_racers;
@@ -1816,13 +1876,12 @@ export class Game {
 
         if (args.all_racers) {
             this.racers = args.all_racers;
-            this.renderRacers(args.all_racers);
         } else if (this.racers && this.racers[bumpedId]) {
             this.racers[bumpedId].space_id = args.to_space;
-            const carEl = this.getCarElement(bumpedId);
-            if (carEl) {
-                this.updateCarPosition(carEl, args.to_space, 270);
-            }
+        }
+        const carEl = this.getCarElement(bumpedId);
+        if (carEl) {
+            this.updateCarPosition(carEl, args.to_space, 270);
         }
         this.updatePlayerPanels();
     }
@@ -1834,13 +1893,12 @@ export class Game {
 
         if (args.all_racers) {
             this.racers = args.all_racers;
-            this.renderRacers(args.all_racers);
         } else if (this.racers && this.racers[rId]) {
             this.racers[rId].is_belly_up = 1;
-            const carEl = this.getCarElement(rId);
-            if (carEl) {
-                carEl.classList.add('gp_belly_up');
-            }
+        }
+        const carEl = this.getCarElement(rId);
+        if (carEl) {
+            carEl.classList.add('gp_belly_up');
         }
         this.updatePlayerPanels();
     }
@@ -1899,10 +1957,14 @@ export class Game {
             carEl.classList.remove('gp_belly_up');
         }
         if (args.track_items) {
+            this.trackItems = args.track_items;
             this.renderTrackItems(args.track_items);
         }
         if (args.player_inventory) {
             this.playerInventories = args.player_inventory;
+        }
+        if (args.racer_inventory) {
+            this.racerInventories = args.racer_inventory;
         }
         const space = args.racer?.space_id ?? 1;
         this.spawnBustBadge(space, '🔧 FULL REPAIR! (6 🎲)', 'stall');
@@ -1913,10 +1975,14 @@ export class Game {
         const args = this._getNotifArgs(notif);
         this.sound.playRoll();
         if (args.track_items) {
+            this.trackItems = args.track_items;
             this.renderTrackItems(args.track_items);
         }
         if (args.player_inventory) {
             this.playerInventories = args.player_inventory;
+        }
+        if (args.racer_inventory) {
+            this.racerInventories = args.racer_inventory;
         }
         const rId = args.racer_id ?? args.player_id;
         const racer = this.getRacerData(rId);
@@ -1933,10 +1999,14 @@ export class Game {
             this.renderRacers(args.all_racers);
         }
         if (args.track_items) {
+            this.trackItems = args.track_items;
             this.renderTrackItems(args.track_items);
         }
         if (args.player_inventory) {
             this.playerInventories = args.player_inventory;
+        }
+        if (args.racer_inventory) {
+            this.racerInventories = args.racer_inventory;
         }
         this.spawnBustBadge(args.space_id, `🚀 BOOM! Roll ${args.roll} (Hit!)`, 'crash');
         const targetId = args.target_id;
@@ -1955,10 +2025,14 @@ export class Game {
         const args = this._getNotifArgs(notif);
         this.sound.playSadBust();
         if (args.track_items) {
+            this.trackItems = args.track_items;
             this.renderTrackItems(args.track_items);
         }
         if (args.player_inventory) {
             this.playerInventories = args.player_inventory;
+        }
+        if (args.racer_inventory) {
+            this.racerInventories = args.racer_inventory;
         }
         const rId = args.racer_id ?? args.player_id;
         const racer = this.getRacerData(rId);
@@ -1989,7 +2063,9 @@ export class Game {
 
     notif_mineSafe(notif) {
         const args = this._getNotifArgs(notif);
-        this.sound.playChime();
+        if (this.sound && typeof this.sound.playChime === 'function') {
+            this.sound.playChime();
+        }
         this.spawnBustBadge(args.space_id, `🛡️ MINE SAFE! (Roll ${args.roll})`, 'stall');
     }
 
@@ -2017,8 +2093,23 @@ export class Game {
 
     notif_itemPickedUp(notif) {
         const args = this._getNotifArgs(notif);
-        this.sound.playChime();
+        if (this.sound && typeof this.sound.playChime === 'function') {
+            this.sound.playChime();
+        }
         this.spawnBustBadge(args.space_id, `🎁 +1 ${this.getItemName(args.item_type)}`, 'stall');
+        if (args.track_items) {
+            this.trackItems = args.track_items;
+            this.renderTrackItems(args.track_items);
+        } else if (args.space_id && this.trackItems) {
+            this.trackItems = this.trackItems.filter(it => it.space_id != args.space_id);
+            this.renderTrackItems(this.trackItems);
+        }
+        if (args.player_inventory) {
+            this.playerInventories = args.player_inventory;
+        }
+        if (args.racer_inventory) {
+            this.racerInventories = args.racer_inventory;
+        }
         this.updatePlayerPanels();
     }
 }
