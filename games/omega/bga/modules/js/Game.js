@@ -414,9 +414,6 @@ export class Game {
                         <svg id="omega_board_svg"></svg>
                     </div>
                 </div>
-                <div id="omega_attribution">
-                    Designed by <strong>Néstor Romeral Andrés</strong> &bull; Published by <strong>nestorgames</strong>
-                </div>
             </div>
         `;
     }
