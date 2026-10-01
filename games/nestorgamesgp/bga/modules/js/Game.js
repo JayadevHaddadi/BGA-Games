@@ -253,15 +253,20 @@ class PlayerTurnState {
 
     onEnteringState(args) {
         this.game.currentArgs = args;
+        if (args?.active_racer_id) {
+            this.game.activeRacerId = args.active_racer_id;
+            this.game.updateActiveCarHighlight();
+            this.game.updatePlayerPanels();
+        }
         this.game.renderDiceTray(args?.rolled_dice || [], args?.active_player_id, args?.is_corner, false);
         const active = this.game.isCurrentPlayerActive();
 
-        const activeId = args?.active_player_id || this.game.getActivePlayerId();
+        const activeRId = args?.active_racer_id || this.game.activeRacerId || args?.active_player_id || this.game.getActivePlayerId();
         const currentMp = args?.current_mp || 0;
         const canShortcut = args?.can_use_shortcut || false;
 
-        if (currentMp > 0 && activeId) {
-            this.game.updateMovePreview(activeId, currentMp, canShortcut);
+        if (currentMp > 0 && activeRId) {
+            this.game.updateMovePreview(activeRId, currentMp, canShortcut);
         } else {
             this.game.clearHighlights();
         }
@@ -273,17 +278,18 @@ class PlayerTurnState {
         this.game.clearActionButtons();
 
         if (active) {
-            const racer = args?.racer;
+            const activeRId = args?.active_racer_id || this.game.activeRacerId;
+            const racer = args?.racer || this.game.getRacerData(activeRId);
             const rolled = args?.rolled_dice || [];
             const currentMp = args?.current_mp || 0;
-            const isBellyUp = args?.is_belly_up || false;
+            const isBellyUp = args?.is_belly_up || (racer ? !!racer.is_belly_up : false);
             const canFix = args?.can_fix_car || false;
             const canShortcut = args?.can_use_shortcut || false;
-            const activeId = args?.active_player_id || this.game.getActivePlayerId();
+            const carLabel = racer?.car_name ? ` (${racer.car_name})` : '';
 
             if (isBellyUp) {
                 this.game.clearHighlights();
-                this.bga.statusBar.setTitle(_('${you} crashed! Flip your car upright to pass turn.'));
+                this.bga.statusBar.setTitle(_('${you}${car} crashed! Flip your car upright to pass turn.').replace('${car}', carLabel));
                 this.game.addActionButton('btnFlipUpright', _('🔄 Flip Car Upright (Pass)'), () => {
                     this.bga.actions.performAction('actFlipCar', {});
                 }, 'alert');
@@ -296,7 +302,7 @@ class PlayerTurnState {
                 const turboActive = args?.turbo_active || false;
                 const rocketTargets = args?.rocket_targets || [];
 
-                let title = _('${you}: Roll your dice to drive, or use an item / repair.');
+                let title = _('${you}${car}: Roll your dice to drive, or use an item / repair.').replace('${car}', carLabel);
                 if (turboActive) {
                     title = _('⚡ Turbo Boost active! Roll dice (highest die counts 2x)!');
                 }
@@ -322,11 +328,13 @@ class PlayerTurnState {
                 if (inv.includes('rocket')) {
                     if (rocketTargets.length > 0) {
                         rocketTargets.slice(0, 2).forEach(target => {
+                            const tId = target.racer_id ?? target.player_id;
+                            const tName = target.car_name || target.player_name;
                             this.game.addActionButton(
-                                `btnRocket_${target.player_id}`,
-                                _('🚀 Rocket ${name} (${dist} sp)').replace('${name}', target.player_name).replace('${dist}', target.distance),
+                                `btnRocket_${tId}`,
+                                _('🚀 Rocket ${name} (${dist} sp)').replace('${name}', tName).replace('${dist}', target.distance),
                                 () => {
-                                    this.bga.actions.performAction('actFireRocket', { targetPlayerId: target.player_id });
+                                    this.bga.actions.performAction('actFireRocket', { targetPlayerId: tId });
                                 },
                                 'alert'
                             );
@@ -355,8 +363,8 @@ class PlayerTurnState {
                     );
                 }
 
-                if (currentMp > 0 && activeId) {
-                    this.game.updateMovePreview(activeId, currentMp, canShortcut);
+                if (currentMp > 0 && activeRId) {
+                    this.game.updateMovePreview(activeRId, currentMp, canShortcut);
                 }
 
                 const diceLeft = args?.dice_remaining ?? 0;
@@ -429,6 +437,8 @@ export class Game {
     setup(gamedatas) {
         this.racers = gamedatas.all_racers || {};
         this.totalLaps = gamedatas.total_laps || 3;
+        this.isTeamMode = !!gamedatas.is_team_mode;
+        this.activeRacerId = gamedatas.active_racer_id;
         this.qualifyingBoard = gamedatas.qualifying_board || {};
         this.qualifyingActive = gamedatas.qualifying_active;
         this.trackItems = gamedatas.track_items || [];
@@ -446,6 +456,7 @@ export class Game {
         this.renderTrackItems();
         this.renderRacers(this.racers);
         this.renderQualifyingBoard(this.qualifyingBoard, this.qualifyingActive);
+        this.updateActiveCarHighlight();
         this.updatePlayerPanels();
         this.setupNotifications();
     }
@@ -489,8 +500,9 @@ export class Game {
         } catch (e) {}
 
         if (this.racers) {
-            Object.keys(this.racers).forEach(pId => {
-                const carEl = document.getElementById(`gp_car_${pId}`);
+            Object.values(this.racers).forEach(racer => {
+                const rId = racer.racer_id ?? racer.player_id;
+                const carEl = this.getCarElement(rId);
                 if (carEl) {
                     carEl.innerHTML = this.getCarSvg(this.currentCarModel);
                 }
@@ -500,6 +512,35 @@ export class Game {
         document.querySelectorAll('.gp_model_btn').forEach(btn => {
             btn.classList.toggle('active', btn.getAttribute('data-model') === modelName);
         });
+    }
+
+    getRacerData(id) {
+        if (!this.racers || id === undefined || id === null) return null;
+        if (this.racers[id]) return this.racers[id];
+        return Object.values(this.racers).find(r => r.racer_id == id || r.player_id == id) || null;
+    }
+
+    getCarElement(id) {
+        if (id === undefined || id === null) return null;
+        let el = document.getElementById(`gp_car_${id}`);
+        if (!el && this.racers) {
+            const racer = Object.values(this.racers).find(r => (r.racer_id == id || r.player_id == id));
+            if (racer) {
+                const rId = racer.racer_id ?? racer.player_id;
+                el = document.getElementById(`gp_car_${rId}`) || document.getElementById(`gp_car_${racer.player_id}`);
+            }
+        }
+        return el;
+    }
+
+    updateActiveCarHighlight() {
+        document.querySelectorAll('.gp_car_active').forEach(el => el.classList.remove('gp_car_active'));
+        if (this.activeRacerId) {
+            const activeCar = this.getCarElement(this.activeRacerId);
+            if (activeCar) {
+                activeCar.classList.add('gp_car_active');
+            }
+        }
     }
 
     isCurrentPlayerActive() {
@@ -777,12 +818,24 @@ export class Game {
             const carEl = this.createCarElement(r);
             layer.appendChild(carEl);
         });
+        this.updateActiveCarHighlight();
         this.updatePlayerPanels();
     }
 
     updatePlayerPanels() {
         if (!this.racers) return;
-        Object.entries(this.racers).forEach(([pIdStr, racer]) => {
+
+        // Group racers by player_id
+        const playersRacers = {};
+        Object.values(this.racers).forEach(racer => {
+            const pId = racer.player_id;
+            if (!playersRacers[pId]) playersRacers[pId] = [];
+            playersRacers[pId].push(racer);
+        });
+
+        const totalLaps = this.totalLaps || 3;
+
+        Object.entries(playersRacers).forEach(([pIdStr, cars]) => {
             const pId = parseInt(pIdStr, 10);
             let panel = null;
             if (this.bga?.playerPanels && typeof this.bga.playerPanels.getElement === 'function') {
@@ -797,33 +850,6 @@ export class Game {
                 panelInfo.className = 'gp_panel_info';
                 panel.appendChild(panelInfo);
             }
-
-            const diceAvailable = racer.dice_available ?? 6;
-            const lostDice = Math.max(0, 6 - diceAvailable);
-            const laps = racer.laps_completed ?? 0;
-            const isBellyUp = racer.is_belly_up;
-            const finished = racer.finish_rank > 0;
-
-            let pipsHtml = '';
-            for (let i = 0; i < diceAvailable; i++) {
-                pipsHtml += '<span class="gp_panel_pip gp_pip_active" title="Available die">🎲</span>';
-            }
-            for (let i = 0; i < lostDice; i++) {
-                pipsHtml += '<span class="gp_panel_pip gp_pip_lost" title="Lost die in pit box">❌</span>';
-            }
-
-            let statusHtml = '';
-            if (finished) {
-                statusHtml = `<span class="gp_panel_tag gp_tag_finished">🏁 Finished (#${racer.finish_rank})</span>`;
-            } else if (isBellyUp) {
-                statusHtml = '<span class="gp_panel_tag gp_tag_belly_up">💥 Belly-Up</span>';
-            } else {
-                statusHtml = '<span class="gp_panel_tag gp_tag_racing">🏎️ Racing</span>';
-            }
-
-            const shortcutHtml = racer.shortcut_used
-                ? '<span class="gp_panel_shortcut gp_shortcut_used" title="Shortcut already used this race">⚡ Shortcut: Used</span>'
-                : '<span class="gp_panel_shortcut gp_shortcut_avail" title="Shortcut available from space 8">⚡ Shortcut: Ready</span>';
 
             let inventoryHtml = '';
             if (this.itemsEnabled) {
@@ -848,24 +874,102 @@ export class Game {
                 }
             }
 
-            const totalLaps = this.totalLaps || 3;
-            panelInfo.innerHTML = `
-                <div class="gp_panel_row">
-                    <span class="gp_panel_label">🎲 Dice Pool:</span>
-                    <strong class="gp_panel_val">${diceAvailable} / 6</strong>
-                    <div class="gp_panel_pips_row">${pipsHtml}</div>
-                </div>
-                <div class="gp_panel_row">
-                    <span class="gp_panel_label">🏁 Lap:</span>
-                    <strong class="gp_panel_val">${Math.min(totalLaps, laps + 1)} / ${totalLaps}</strong>
-                    <span class="gp_panel_sub">(${racer.discs_remaining ?? Math.max(0, totalLaps - laps)} discs left)</span>
-                </div>
-                <div class="gp_panel_row gp_panel_status_row">
-                    ${statusHtml}
-                    ${shortcutHtml}
-                </div>
-                ${inventoryHtml}
-            `;
+            if (cars.length === 1) {
+                // Solo Mode
+                const racer = cars[0];
+                const diceAvailable = racer.dice_available ?? 6;
+                const lostDice = Math.max(0, 6 - diceAvailable);
+                const laps = racer.laps_completed ?? 0;
+                const isBellyUp = racer.is_belly_up;
+                const finished = racer.finish_rank > 0;
+
+                let pipsHtml = '';
+                for (let i = 0; i < diceAvailable; i++) {
+                    pipsHtml += '<span class="gp_panel_pip gp_pip_active" title="Available die">🎲</span>';
+                }
+                for (let i = 0; i < lostDice; i++) {
+                    pipsHtml += '<span class="gp_panel_pip gp_pip_lost" title="Lost die in pit box">❌</span>';
+                }
+
+                let statusHtml = '';
+                if (finished) {
+                    statusHtml = `<span class="gp_panel_tag gp_tag_finished">🏁 Finished (#${racer.finish_rank})</span>`;
+                } else if (isBellyUp) {
+                    statusHtml = '<span class="gp_panel_tag gp_tag_belly_up">💥 Belly-Up</span>';
+                } else {
+                    statusHtml = '<span class="gp_panel_tag gp_tag_racing">🏎️ Racing</span>';
+                }
+
+                const shortcutHtml = racer.shortcut_used
+                    ? '<span class="gp_panel_shortcut gp_shortcut_used" title="Shortcut already used this race">⚡ Shortcut: Used</span>'
+                    : '<span class="gp_panel_shortcut gp_shortcut_avail" title="Shortcut available from space 8">⚡ Shortcut: Ready</span>';
+
+                panelInfo.innerHTML = `
+                    <div class="gp_panel_row">
+                        <span class="gp_panel_label">🎲 Dice Pool:</span>
+                        <strong class="gp_panel_val">${diceAvailable} / 6</strong>
+                        <div class="gp_panel_pips_row">${pipsHtml}</div>
+                    </div>
+                    <div class="gp_panel_row">
+                        <span class="gp_panel_label">🏁 Lap:</span>
+                        <strong class="gp_panel_val">${Math.min(totalLaps, laps + 1)} / ${totalLaps}</strong>
+                        <span class="gp_panel_sub">(${racer.discs_remaining ?? Math.max(0, totalLaps - laps)} discs left)</span>
+                    </div>
+                    <div class="gp_panel_row gp_panel_status_row">
+                        ${statusHtml}
+                        ${shortcutHtml}
+                    </div>
+                    ${inventoryHtml}
+                `;
+            } else {
+                // Team Mode: Render each car in the team fleet
+                let carsHtml = '';
+                cars.forEach(racer => {
+                    const rId = racer.racer_id ?? racer.player_id;
+                    const isActiveCar = (this.activeRacerId == rId);
+                    const diceAvailable = racer.dice_available ?? 6;
+                    const lostDice = Math.max(0, 6 - diceAvailable);
+                    const laps = racer.laps_completed ?? 0;
+                    const isBellyUp = racer.is_belly_up;
+                    const finished = racer.finish_rank > 0;
+
+                    let carPips = '';
+                    for (let i = 0; i < diceAvailable; i++) carPips += '🎲';
+                    for (let i = 0; i < lostDice; i++) carPips += '❌';
+
+                    let carStatus = '';
+                    if (finished) {
+                        carStatus = `<span class="gp_team_car_tag finished">🏁 P${racer.finish_rank}</span>`;
+                    } else if (isBellyUp) {
+                        carStatus = `<span class="gp_team_car_tag belly_up">💥 Flip</span>`;
+                    } else {
+                        carStatus = `<span class="gp_team_car_tag lap">Lap ${Math.min(totalLaps, laps + 1)}/${totalLaps}</span>`;
+                    }
+
+                    carsHtml += `
+                        <div class="gp_team_car_row ${isActiveCar ? 'active_turn' : ''}" id="gp_team_car_row_${rId}">
+                            <div class="gp_team_car_icon gp_color_${racer.car_color}">🏎️</div>
+                            <div class="gp_team_car_info">
+                                <span class="gp_team_car_name">${racer.car_name || ('Car ' + rId)}</span>
+                                <span class="gp_team_car_pips">${carPips}</span>
+                            </div>
+                            <div class="gp_team_car_status">
+                                ${carStatus}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                panelInfo.innerHTML = `
+                    <div class="gp_team_header">
+                        <span class="gp_team_title">🏎️ Team Fleet (${cars.length} Cars)</span>
+                    </div>
+                    <div class="gp_team_cars_list">
+                        ${carsHtml}
+                    </div>
+                    ${inventoryHtml}
+                `;
+            }
         });
     }
 
@@ -958,9 +1062,12 @@ export class Game {
 
     createCarElement(racer) {
         const el = document.createElement('div');
-        el.id = `gp_car_${racer.player_id}`;
+        const rId = racer.racer_id ?? racer.player_id;
+        el.id = `gp_car_${rId}`;
         el.className = `gp_car gp_color_${racer.car_color} ${racer.is_belly_up ? 'gp_belly_up' : ''}`;
-        el.title = `Player ${racer.player_id} (${racer.car_color})`;
+        el.title = `${racer.car_name || ('Car #' + rId)} (${racer.car_color})`;
+        el.dataset.racerId = rId;
+        el.dataset.playerId = racer.player_id;
         el.dataset.angle = racer.facing_direction ?? 270;
 
         // Cute rounded vector SVG racecar
@@ -1127,12 +1234,12 @@ export class Game {
         this.clearHighlights();
         if (!activePlayerId || !mp || mp <= 0) return;
 
-        const racer = this.racers ? this.racers[activePlayerId] : null;
+        const racer = this.getRacerData(activePlayerId);
         if (!racer || !racer.space_id) return;
 
         const startSpace = parseInt(racer.space_id, 10);
         const playerColor = racer.car_color || 'red';
-        const isCurrentActive = this.isCurrentPlayerActive() && (this.getActivePlayerId() == activePlayerId);
+        const isCurrentActive = this.isCurrentPlayerActive() && (this.getActivePlayerId() == (racer.player_id ?? activePlayerId));
 
         // 1. Normal path preview
         const normalSteps = this.getMovementPath(startSpace, mp, false);
@@ -1326,10 +1433,10 @@ export class Game {
         setTimeout(() => badge.remove(), 1600);
     }
 
-    async animateCarDrive(playerId, steps, finalSpace, racerData) {
-        const carEl = document.getElementById(`gp_car_${playerId}`);
+    async animateCarDrive(racerId, steps, finalSpace, racerData) {
+        const carEl = this.getCarElement(racerId);
         if (!carEl) {
-            if (this.racers && racerData) this.racers[playerId] = racerData;
+            if (this.racers && racerData) this.racers[racerId] = racerData;
             return;
         }
 
@@ -1372,9 +1479,9 @@ export class Game {
 
             // Finish line crossing check
             if (prevSpace === 74 && spId === 1) {
-                if (!this.racersStarted?.[playerId]) {
+                if (!this.racersStarted?.[racerId]) {
                     if (!this.racersStarted) this.racersStarted = {};
-                    this.racersStarted[playerId] = true;
+                    this.racersStarted[racerId] = true;
                     this.sound.playRoll();
                     this.spawnStartFlash(coords.x, coords.y);
                 } else {
@@ -1405,7 +1512,7 @@ export class Game {
     }
 
     async animateCarBump(bumpedId, fromSpace, toSpace) {
-        const carEl = document.getElementById(`gp_car_${bumpedId}`);
+        const carEl = this.getCarElement(bumpedId);
         if (!carEl) return;
 
         const coords = this.getSpaceCoordinates(toSpace);
@@ -1427,7 +1534,7 @@ export class Game {
     }
 
     async animateCarCrash(crashedId, spaceId) {
-        const carEl = document.getElementById(`gp_car_${crashedId}`);
+        const carEl = this.getCarElement(crashedId);
         if (!carEl) return;
 
         carEl.classList.add('gp_belly_up');
@@ -1505,7 +1612,7 @@ export class Game {
         if (typeof dojo !== 'undefined' && typeof dojo.subscribe === 'function') {
             const notifs = [
                 'qualifyingRoll', 'qualifyingBust', 'qualifyingFinished', 'raceStarting',
-                'raceRoll', 'raceCrash', 'raceStall', 'carMoved',
+                'activeRacerChanged', 'raceRoll', 'raceCrash', 'raceStall', 'carMoved',
                 'carBumped', 'cornerCollisionCrash', 'carFlippedUpright',
                 'carFixed', 'racerFinished', 'raceEnded',
                 'wrenchUsed', 'turboActivated', 'rocketHit', 'rocketMiss',
@@ -1516,6 +1623,16 @@ export class Game {
                     dojo.subscribe(n, this, `notif_${n}`);
                 } catch (e) {}
             });
+        }
+    }
+
+    notif_activeRacerChanged(notif) {
+        const args = this._getNotifArgs(notif);
+        const rId = args.active_racer_id || args.racer_id;
+        if (rId) {
+            this.activeRacerId = rId;
+            this.updateActiveCarHighlight();
+            this.updatePlayerPanels();
         }
     }
 
@@ -1549,11 +1666,11 @@ export class Game {
         this.clearActionButtons();
 
         const pId = args.player_id;
-        const racer = this.racers?.[pId];
+        const racer = this.getRacerData(pId);
         const spaceId = racer?.space_id ?? 74;
         this.spawnBustBadge(spaceId, '😭 BUSTED! (0 pts)', 'bust');
 
-        const carEl = document.getElementById(`gp_car_${pId}`);
+        const carEl = this.getCarElement(pId);
         if (carEl) {
             carEl.classList.add('gp_car_sad_wobble');
             setTimeout(() => carEl.classList.remove('gp_car_sad_wobble'), 950);
@@ -1581,6 +1698,7 @@ export class Game {
             this.racers = args.all_racers;
             this.renderRacers(args.all_racers);
         }
+        this.updateActiveCarHighlight();
         this.updatePlayerPanels();
     }
 
@@ -1588,14 +1706,15 @@ export class Game {
         const args = this._getNotifArgs(notif);
         this.sound.playRoll();
 
-        const pId = args.player_id || this.getActivePlayerId();
-        const racer = (pId && this.racers) ? this.racers[pId] : this.currentArgs?.racer;
+        const rId = args.racer_id ?? args.player_id ?? this.activeRacerId;
+        const racer = this.getRacerData(rId) || this.currentArgs?.racer;
         const isCorner = racer ? this.isCorner(racer.space_id) : false;
-        this.renderDiceTray(args.all_dice, pId, isCorner, false);
+        this.renderDiceTray(args.all_dice, args.player_id, isCorner, false);
 
         if (!this.currentArgs) {
             this.currentArgs = {};
         }
+        this.currentArgs.active_racer_id = rId;
         this.currentArgs.rolled_dice = args.all_dice || [];
         this.currentArgs.current_mp = args.total_mp || 0;
         const availableDice = racer ? (racer.dice_available ?? 6) : 6;
@@ -1606,8 +1725,7 @@ export class Game {
             this.currentArgs.can_use_shortcut = (racer.space_id == 8 && !racer.shortcut_used);
         }
 
-        const activeId = args.player_id || this.getActivePlayerId();
-        this.updateMovePreview(activeId, args.total_mp, this.currentArgs.can_use_shortcut);
+        this.updateMovePreview(rId, args.total_mp, this.currentArgs.can_use_shortcut);
         this.playerTurn.updateControls(this.currentArgs, this.isCurrentPlayerActive());
     }
 
@@ -1616,16 +1734,17 @@ export class Game {
         this.clearHighlights();
         this.sound.playCrash();
         this.renderDiceTray(args.all_dice, args.player_id, true, false);
+
+        const rId = args.racer_id ?? args.player_id;
         if (args.racer && this.racers) {
-            this.racers[args.player_id] = args.racer;
+            this.racers[rId] = args.racer;
         }
 
-        const pId = args.player_id;
-        const racer = this.racers?.[pId];
+        const racer = this.getRacerData(rId);
         const spaceId = racer?.space_id ?? 1;
         this.spawnBustBadge(spaceId, '💥 CRASH! -1 🎲', 'crash');
 
-        const carEl = document.getElementById(`gp_car_${args.player_id}`);
+        const carEl = this.getCarElement(rId);
         if (carEl) {
             carEl.classList.add('gp_car_crashing');
             setTimeout(() => {
@@ -1644,12 +1763,12 @@ export class Game {
         this.renderDiceTray(args.all_dice, args.player_id, false, false);
         this.clearActionButtons();
 
-        const pId = args.player_id;
-        const racer = this.racers?.[pId];
+        const rId = args.racer_id ?? args.player_id;
+        const racer = this.getRacerData(rId);
         const spaceId = racer?.space_id ?? 1;
         this.spawnBustBadge(spaceId, '💨 STALLED! 😵', 'stall');
 
-        const carEl = document.getElementById(`gp_car_${pId}`);
+        const carEl = this.getCarElement(rId);
         if (carEl) {
             carEl.classList.add('gp_car_sad_wobble');
             setTimeout(() => carEl.classList.remove('gp_car_sad_wobble'), 950);
@@ -1662,8 +1781,9 @@ export class Game {
         this.renderDiceTray([]);
         this.clearActionButtons();
 
+        const rId = args.racer_id ?? args.player_id;
         // 🏎️ Cute animated drive through track spaces
-        await this.animateCarDrive(args.player_id, args.steps, args.final_space, args.racer);
+        await this.animateCarDrive(rId, args.steps, args.final_space, args.racer);
 
         if (args.track_items) {
             this.trackItems = args.track_items;
@@ -1673,31 +1793,33 @@ export class Game {
             this.playerInventories = args.player_inventory;
         }
 
-        if (args.racer && this.racers) {
-            this.racers[args.player_id] = args.racer;
-        }
         if (args.all_racers) {
             this.racers = args.all_racers;
             this.renderRacers(args.all_racers);
         } else {
-            const carEl = document.getElementById(`gp_car_${args.player_id}`);
+            if (args.racer && this.racers) {
+                this.racers[rId] = args.racer;
+            }
+            const carEl = this.getCarElement(rId);
             if (carEl && args.racer) {
                 this.updateCarPosition(carEl, args.final_space, args.racer.facing_direction);
             }
         }
+        this.updateActiveCarHighlight();
         this.updatePlayerPanels();
     }
 
     async notif_carBumped(notif) {
         const args = this._getNotifArgs(notif);
-        await this.animateCarBump(args.bumped_id, args.from_space, args.to_space);
+        const bumpedId = args.bumped_id;
+        await this.animateCarBump(bumpedId, args.from_space, args.to_space);
 
         if (args.all_racers) {
             this.racers = args.all_racers;
             this.renderRacers(args.all_racers);
-        } else if (this.racers && this.racers[args.bumped_id]) {
-            this.racers[args.bumped_id].space_id = args.to_space;
-            const carEl = document.getElementById(`gp_car_${args.bumped_id}`);
+        } else if (this.racers && this.racers[bumpedId]) {
+            this.racers[bumpedId].space_id = args.to_space;
+            const carEl = this.getCarElement(bumpedId);
             if (carEl) {
                 this.updateCarPosition(carEl, args.to_space, 270);
             }
@@ -1707,14 +1829,15 @@ export class Game {
 
     async notif_cornerCollisionCrash(notif) {
         const args = this._getNotifArgs(notif);
-        await this.animateCarCrash(args.player_id, args.space_id);
+        const rId = args.racer_id ?? args.player_id;
+        await this.animateCarCrash(rId, args.space_id);
 
         if (args.all_racers) {
             this.racers = args.all_racers;
             this.renderRacers(args.all_racers);
-        } else if (this.racers && this.racers[args.player_id]) {
-            this.racers[args.player_id].is_belly_up = 1;
-            const carEl = document.getElementById(`gp_car_${args.player_id}`);
+        } else if (this.racers && this.racers[rId]) {
+            this.racers[rId].is_belly_up = 1;
+            const carEl = this.getCarElement(rId);
             if (carEl) {
                 carEl.classList.add('gp_belly_up');
             }
@@ -1724,10 +1847,11 @@ export class Game {
 
     notif_carFlippedUpright(notif) {
         const args = this._getNotifArgs(notif);
+        const rId = args.racer_id ?? args.player_id;
         if (args.racer && this.racers) {
-            this.racers[args.player_id] = args.racer;
+            this.racers[rId] = args.racer;
         }
-        const carEl = document.getElementById(`gp_car_${args.player_id}`);
+        const carEl = this.getCarElement(rId);
         if (carEl) {
             carEl.classList.remove('gp_belly_up');
         }
@@ -1737,8 +1861,9 @@ export class Game {
 
     notif_carFixed(notif) {
         const args = this._getNotifArgs(notif);
+        const rId = args.racer_id ?? args.player_id;
         if (args.racer && this.racers) {
-            this.racers[args.player_id] = args.racer;
+            this.racers[rId] = args.racer;
         }
         this.clearActionButtons();
         this.updatePlayerPanels();
@@ -1746,9 +1871,10 @@ export class Game {
 
     notif_racerFinished(notif) {
         const args = this._getNotifArgs(notif);
+        const rId = args.racer_id ?? args.player_id;
         this.sound.playLapFanfare();
         if (args.racer && this.racers) {
-            this.racers[args.player_id] = args.racer;
+            this.racers[rId] = args.racer;
         }
         this.updatePlayerPanels();
     }
@@ -1763,11 +1889,12 @@ export class Game {
 
     notif_wrenchUsed(notif) {
         const args = this._getNotifArgs(notif);
+        const rId = args.racer_id ?? args.player_id;
         this.sound.playChime();
         if (args.racer && this.racers) {
-            this.racers[args.player_id] = args.racer;
+            this.racers[rId] = args.racer;
         }
-        const carEl = document.getElementById(`gp_car_${args.player_id}`);
+        const carEl = this.getCarElement(rId);
         if (carEl) {
             carEl.classList.remove('gp_belly_up');
         }
@@ -1791,8 +1918,8 @@ export class Game {
         if (args.player_inventory) {
             this.playerInventories = args.player_inventory;
         }
-        const pId = args.player_id;
-        const racer = this.racers?.[pId];
+        const rId = args.racer_id ?? args.player_id;
+        const racer = this.getRacerData(rId);
         const space = racer?.space_id ?? 1;
         this.spawnBustBadge(space, '⚡ TURBO BOOST! (2x)', 'stall');
         this.updatePlayerPanels();
@@ -1812,7 +1939,8 @@ export class Game {
             this.playerInventories = args.player_inventory;
         }
         this.spawnBustBadge(args.space_id, `🚀 BOOM! Roll ${args.roll} (Hit!)`, 'crash');
-        const targetCar = document.getElementById(`gp_car_${args.target_id}`);
+        const targetId = args.target_id;
+        const targetCar = this.getCarElement(targetId);
         if (targetCar) {
             targetCar.classList.add('gp_car_crashing');
             setTimeout(() => {
@@ -1832,8 +1960,8 @@ export class Game {
         if (args.player_inventory) {
             this.playerInventories = args.player_inventory;
         }
-        const pId = args.player_id;
-        const racer = this.racers?.[pId];
+        const rId = args.racer_id ?? args.player_id;
+        const racer = this.getRacerData(rId);
         const space = racer?.space_id ?? 1;
         this.spawnBustBadge(space, `🚀 MISSED! Roll ${args.roll} < Dist ${args.distance}`, 'stall');
         this.updatePlayerPanels();
@@ -1847,7 +1975,8 @@ export class Game {
             this.renderRacers(args.all_racers);
         }
         this.spawnBustBadge(args.space_id, `💣 BOOM! Roll ${args.roll}`, 'crash');
-        const carEl = document.getElementById(`gp_car_${args.player_id}`);
+        const rId = args.racer_id ?? args.player_id;
+        const carEl = this.getCarElement(rId);
         if (carEl) {
             carEl.classList.add('gp_car_crashing');
             setTimeout(() => {
@@ -1874,7 +2003,8 @@ export class Game {
             this.renderRacers(args.all_racers);
         }
         this.spawnBustBadge(args.to_space, '🛢️ SLIP & CRASH!', 'crash');
-        const carEl = document.getElementById(`gp_car_${args.player_id}`);
+        const rId = args.racer_id ?? args.player_id;
+        const carEl = this.getCarElement(rId);
         if (carEl) {
             carEl.classList.add('gp_car_crashing');
             setTimeout(() => {

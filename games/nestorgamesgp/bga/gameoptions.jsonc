@@ -62,5 +62,19 @@
             }
         },
         "default": 1
+    },
+    "104": {
+        "name": "Game Mode",
+        "values": {
+            "1": {
+                "name": "Standard Solo (1 car per player)",
+                "description": "Standard individual race where each player controls 1 car."
+            },
+            "2": {
+                "name": "Team Grand Prix (Multiple cars per player)",
+                "description": "Each player controls a team of cars (2 players = 4 cars each; 3-4 players = 2 cars each). Teams score combined points."
+            }
+        },
+        "default": 1
     }
 }

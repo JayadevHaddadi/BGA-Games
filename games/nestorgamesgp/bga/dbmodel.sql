@@ -3,7 +3,9 @@
 
 DROP TABLE IF EXISTS `racer`;
 CREATE TABLE IF NOT EXISTS `racer` (
+    `racer_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
     `player_id` int(10) unsigned NOT NULL,
+    `car_name` varchar(32) NOT NULL DEFAULT '',
     `car_color` varchar(16) NOT NULL,
     `space_id` smallint(5) NOT NULL DEFAULT 0,
     `is_belly_up` tinyint(1) NOT NULL DEFAULT 0,
@@ -14,7 +16,8 @@ CREATE TABLE IF NOT EXISTS `racer` (
     `facing_direction` smallint(5) NOT NULL DEFAULT 0,
     `finish_rank` tinyint(3) unsigned NOT NULL DEFAULT 0,
     `qualifying_score` smallint(5) NOT NULL DEFAULT 0,
-    PRIMARY KEY (`player_id`)
+    PRIMARY KEY (`racer_id`),
+    KEY `idx_player` (`player_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 DROP TABLE IF EXISTS `track_item`;

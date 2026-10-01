@@ -980,4 +980,137 @@
     font-style: italic;
 }
 
+/* 🌟 Active Car Glowing Pulsing Turn Aura */
+.gp_car.gp_car_active {
+    z-index: 25;
+}
+
+.gp_car.gp_car_active::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 0 3px #facc15, 0 0 15px 4px rgba(250, 204, 21, 0.7);
+    pointer-events: none;
+    animation: gp_active_car_pulse 1.4s infinite ease-in-out;
+}
+
+@keyframes gp_active_car_pulse {
+    0%, 100% {
+        transform: translate(-50%, -50%) scale(0.92);
+        opacity: 0.75;
+        box-shadow: 0 0 0 2px #facc15, 0 0 10px 2px rgba(250, 204, 21, 0.6);
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.15);
+        opacity: 1;
+        box-shadow: 0 0 0 3.5px #fef08a, 0 0 18px 6px rgba(254, 240, 138, 0.9);
+    }
+}
+
+/* 🏎️ Team Mode Player Panel Fleet */
+.gp_team_header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.gp_team_title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #ffd54f;
+}
+
+.gp_team_cars_list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.gp_team_car_row {
+    display: flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 3px 6px;
+    transition: all 0.2s ease;
+}
+
+.gp_team_car_row.active_turn {
+    background: rgba(250, 204, 21, 0.18);
+    border-color: #facc15;
+    box-shadow: 0 0 8px rgba(250, 204, 21, 0.35);
+}
+
+.gp_team_car_icon {
+    font-size: 14px;
+    margin-right: 6px;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+}
+
+.gp_team_car_info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.gp_team_car_name {
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #f8fafc;
+}
+
+.gp_team_car_pips {
+    font-size: 10px;
+    letter-spacing: -1px;
+    opacity: 0.9;
+}
+
+.gp_team_car_status {
+    margin-left: 6px;
+    font-size: 10px;
+}
+
+.gp_team_car_tag {
+    display: inline-block;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 9px;
+    text-transform: uppercase;
+}
+
+.gp_team_car_tag.finished {
+    background: #1b5e20;
+    color: #c8e6c9;
+    border: 1px solid #4caf50;
+}
+
+.gp_team_car_tag.belly_up {
+    background: #b71c1c;
+    color: #ffcdd2;
+    border: 1px solid #f44336;
+    animation: gp_status_pulse 1.2s infinite;
+}
+
+.gp_team_car_tag.lap {
+    background: #0277bd;
+    color: #b3e5fc;
+    border: 1px solid #29b6f6;
+}
+
 

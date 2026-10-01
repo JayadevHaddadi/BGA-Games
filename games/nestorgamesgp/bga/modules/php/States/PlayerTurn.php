@@ -26,8 +26,9 @@ class PlayerTurn extends GameState
     public function getArgs(): array
     {
         $activePlayerId = (int) $this->game->getActivePlayerId();
+        $activeRacerId = (int) $this->globals->get('active_racer_id', $activePlayerId);
         $rolledDice = $this->globals->get('current_roll_dice', []);
-        $racer = $this->game->getRacer($activePlayerId);
+        $racer = $this->game->getRacer($activeRacerId);
 
         $canUseShortcut = ($racer && $racer['space_id'] === 8 && !$racer['shortcut_used']);
         $canFixCar = ($racer && $racer['dice_available'] < 6 && empty($rolledDice) && !$racer['is_belly_up']);
@@ -42,12 +43,14 @@ class PlayerTurn extends GameState
             $straightSpaces = Circuit::getStraightLineAhead((int)$racer['space_id']);
             $allRacers = $this->game->getAllRacers();
             $infos = $this->game->loadPlayersBasicInfos();
-            foreach ($allRacers as $pId => $otherRacer) {
-                if ($pId !== $activePlayerId && in_array((int)$otherRacer['space_id'], $straightSpaces, true)) {
+            foreach ($allRacers as $rId => $otherRacer) {
+                if ($otherRacer['player_id'] !== $activePlayerId && in_array((int)$otherRacer['space_id'], $straightSpaces, true)) {
                     $dist = array_search((int)$otherRacer['space_id'], $straightSpaces, true) + 1;
                     $rocketTargets[] = [
-                        'player_id' => $pId,
-                        'player_name' => $infos[$pId]['player_name'] ?? ('Player ' . $pId),
+                        'racer_id' => $rId,
+                        'player_id' => (int)$otherRacer['player_id'],
+                        'player_name' => $infos[$otherRacer['player_id']]['player_name'] ?? ('Player ' . $otherRacer['player_id']),
+                        'car_name' => $otherRacer['car_name'] ?: $otherRacer['car_color'],
                         'space_id' => (int)$otherRacer['space_id'],
                         'distance' => $dist,
                     ];
@@ -57,6 +60,7 @@ class PlayerTurn extends GameState
 
         return [
             'active_player_id' => $activePlayerId,
+            'active_racer_id' => $activeRacerId,
             'racer' => $racer,
             'rolled_dice' => $rolledDice,
             'current_mp' => array_sum($rolledDice) + ($turboActive && !empty($rolledDice) ? max($rolledDice) : 0),
@@ -72,6 +76,7 @@ class PlayerTurn extends GameState
             'items_enabled' => ($itemsOption === 2),
             'track_items' => $this->game->getTrackItems(),
             'player_inventory' => $this->game->getPlayerInventories(),
+            'is_team_mode' => (bool) $this->globals->get('is_team_mode', false),
         ];
     }
 
@@ -79,18 +84,22 @@ class PlayerTurn extends GameState
     public function actFlipCar(): string
     {
         $activePlayerId = (int) $this->game->getActivePlayerId();
-        $racer = $this->game->getRacer($activePlayerId);
+        $activeRacerId = (int) $this->globals->get('active_racer_id', $activePlayerId);
+        $racer = $this->game->getRacer($activeRacerId);
         if (!$racer || !$racer['is_belly_up']) {
             throw new UserException(clienttranslate("Your car is not crashed."));
         }
 
-        $this->game->flipCarUpright($activePlayerId);
+        $this->game->flipCarUpright($activeRacerId);
         $playerName = $this->game->loadPlayersBasicInfos()[$activePlayerId]['player_name'];
 
-        $this->game->notifyAllPlayers('carFlippedUpright', clienttranslate('${player_name} spent their turn flipping their car upright!'), [
+        $this->game->notifyAllPlayers('carFlippedUpright', clienttranslate('${player_name} spent their turn flipping ${car_name} upright!'), [
             'player_id' => $activePlayerId,
+            'racer_id' => $activeRacerId,
+            'car_name' => $racer['car_name'] ?: $racer['car_color'],
             'player_name' => $playerName,
-            'racer' => $this->game->getRacer($activePlayerId),
+            'racer' => $this->game->getRacer($activeRacerId),
+            'all_racers' => $this->game->getAllRacers(),
         ]);
 
         return NextPlayer::class;
@@ -100,7 +109,8 @@ class PlayerTurn extends GameState
     public function actFixCar(): string
     {
         $activePlayerId = (int) $this->game->getActivePlayerId();
-        $racer = $this->game->getRacer($activePlayerId);
+        $activeRacerId = (int) $this->globals->get('active_racer_id', $activePlayerId);
+        $racer = $this->game->getRacer($activeRacerId);
         if (!$racer) {
             throw new UserException("Racer not found.");
         }
@@ -118,13 +128,16 @@ class PlayerTurn extends GameState
             throw new UserException(clienttranslate("You cannot fix your car after rolling dice."));
         }
 
-        $this->game->fixCar($activePlayerId);
+        $this->game->fixCar($activeRacerId);
         $playerName = $this->game->loadPlayersBasicInfos()[$activePlayerId]['player_name'];
 
-        $this->game->notifyAllPlayers('carFixed', clienttranslate('${player_name} took a pit stop to repair their car and recovered 1 die!'), [
+        $this->game->notifyAllPlayers('carFixed', clienttranslate('${player_name} took a pit stop to repair ${car_name} and recovered all dice!'), [
             'player_id' => $activePlayerId,
+            'racer_id' => $activeRacerId,
+            'car_name' => $racer['car_name'] ?: $racer['car_color'],
             'player_name' => $playerName,
-            'racer' => $this->game->getRacer($activePlayerId),
+            'racer' => $this->game->getRacer($activeRacerId),
+            'all_racers' => $this->game->getAllRacers(),
         ]);
 
         return NextPlayer::class;
@@ -134,7 +147,8 @@ class PlayerTurn extends GameState
     public function actRoll(): ?string
     {
         $activePlayerId = (int) $this->game->getActivePlayerId();
-        $racer = $this->game->getRacer($activePlayerId);
+        $activeRacerId = (int) $this->globals->get('active_racer_id', $activePlayerId);
+        $racer = $this->game->getRacer($activeRacerId);
         if (!$racer) {
             throw new UserException("Racer not found.");
         }
@@ -143,22 +157,28 @@ class PlayerTurn extends GameState
             throw new UserException(clienttranslate("Your car is crashed. You must flip it upright first."));
         }
 
-        $res = $this->game->rollRaceDie($activePlayerId);
+        $res = $this->game->rollRaceDie($activeRacerId);
         $playerName = $this->game->loadPlayersBasicInfos()[$activePlayerId]['player_name'];
+        $carName = $racer['car_name'] ?: $racer['car_color'];
 
         if ($res['bust']) {
             $this->globals->set('turbo_active', false);
             if ($res['crashed']) {
-                $this->game->notifyAllPlayers('raceCrash', clienttranslate('${player_name} rolled a duplicate ${die_value} on a corner and CRASHED! (Car flipped belly-up, lost 1 die)'), [
+                $this->game->notifyAllPlayers('raceCrash', clienttranslate('${player_name} rolled a duplicate ${die_value} on a corner and CRASHED ${car_name}! (Car flipped belly-up, lost 1 die)'), [
                     'player_id' => $activePlayerId,
+                    'racer_id' => $activeRacerId,
+                    'car_name' => $carName,
                     'player_name' => $playerName,
                     'die_value' => $res['die_value'],
                     'all_dice' => $res['all_dice'],
-                    'racer' => $this->game->getRacer($activePlayerId),
+                    'racer' => $this->game->getRacer($activeRacerId),
+                    'all_racers' => $this->game->getAllRacers(),
                 ]);
             } else {
-                $this->game->notifyAllPlayers('raceStall', clienttranslate('${player_name} rolled a duplicate ${die_value} on a straight and stalled! No movement this turn.'), [
+                $this->game->notifyAllPlayers('raceStall', clienttranslate('${player_name} rolled a duplicate ${die_value} on a straight and stalled ${car_name}! No movement this turn.'), [
                     'player_id' => $activePlayerId,
+                    'racer_id' => $activeRacerId,
+                    'car_name' => $carName,
                     'player_name' => $playerName,
                     'die_value' => $res['die_value'],
                     'all_dice' => $res['all_dice'],
@@ -171,8 +191,10 @@ class PlayerTurn extends GameState
         $turboActive = (bool) $this->globals->get('turbo_active', false);
         $totalMp = $res['total_mp'] + ($turboActive ? max($res['all_dice']) : 0);
 
-        $this->game->notifyAllPlayers('raceRoll', clienttranslate('${player_name} rolled ${die_value} (total movement: ${total_mp} spaces)'), [
+        $this->game->notifyAllPlayers('raceRoll', clienttranslate('${player_name} rolled ${die_value} for ${car_name} (total movement: ${total_mp} spaces)'), [
             'player_id' => $activePlayerId,
+            'racer_id' => $activeRacerId,
+            'car_name' => $carName,
             'player_name' => $playerName,
             'die_value' => $res['die_value'],
             'all_dice' => $res['all_dice'],
@@ -186,6 +208,7 @@ class PlayerTurn extends GameState
     public function actUseWrench(): string
     {
         $activePlayerId = (int) $this->game->getActivePlayerId();
+        $activeRacerId = (int) $this->globals->get('active_racer_id', $activePlayerId);
         $rolledDice = $this->globals->get('current_roll_dice', []);
         if (!empty($rolledDice)) {
             throw new UserException(clienttranslate("You can only use items before rolling dice."));
@@ -200,19 +223,24 @@ class PlayerTurn extends GameState
         Game::DbQuery("DELETE FROM `player_inventory` WHERE `player_id` = $activePlayerId AND `item_type` = 'wrench' LIMIT 1");
 
         // Restore dice to 6 and flip upright
-        Game::DbQuery("UPDATE `racer` SET `dice_available` = 6, `is_belly_up` = 0 WHERE `player_id` = $activePlayerId");
+        $this->game->fixCar($activeRacerId);
+        $this->game->flipCarUpright($activeRacerId);
 
-        $racer = $this->game->getRacer($activePlayerId);
+        $racer = $this->game->getRacer($activeRacerId);
         $recycledSpace = $this->game->recycleItem('wrench', (int)$racer['space_id']);
 
         $playerName = $this->game->loadPlayersBasicInfos()[$activePlayerId]['player_name'];
-        $this->game->notifyAllPlayers('wrenchUsed', clienttranslate('🔧 ${player_name} used a Wrench! All 6 dice recovered and car flipped upright!'), [
+        $carName = $racer['car_name'] ?: $racer['car_color'];
+        $this->game->notifyAllPlayers('wrenchUsed', clienttranslate('🔧 ${player_name} used a Wrench on ${car_name}! All 6 dice recovered and car flipped upright!'), [
             'player_id' => $activePlayerId,
+            'racer_id' => $activeRacerId,
+            'car_name' => $carName,
             'player_name' => $playerName,
-            'racer' => $this->game->getRacer($activePlayerId),
+            'racer' => $this->game->getRacer($activeRacerId),
             'recycled_space' => $recycledSpace,
             'track_items' => $this->game->getTrackItems(),
             'player_inventory' => $this->game->getPlayerInventories(),
+            'all_racers' => $this->game->getAllRacers(),
         ]);
 
         return PlayerTurn::class;
@@ -222,6 +250,7 @@ class PlayerTurn extends GameState
     public function actUseTurbo(): string
     {
         $activePlayerId = (int) $this->game->getActivePlayerId();
+        $activeRacerId = (int) $this->globals->get('active_racer_id', $activePlayerId);
         $rolledDice = $this->globals->get('current_roll_dice', []);
         if (!empty($rolledDice)) {
             throw new UserException(clienttranslate("You can only use items before rolling dice."));
@@ -235,16 +264,20 @@ class PlayerTurn extends GameState
         Game::DbQuery("DELETE FROM `player_inventory` WHERE `player_id` = $activePlayerId AND `item_type` = 'turboboost' LIMIT 1");
         $this->globals->set('turbo_active', true);
 
-        $racer = $this->game->getRacer($activePlayerId);
+        $racer = $this->game->getRacer($activeRacerId);
         $recycledSpace = $this->game->recycleItem('turboboost', (int)$racer['space_id']);
 
         $playerName = $this->game->loadPlayersBasicInfos()[$activePlayerId]['player_name'];
-        $this->game->notifyAllPlayers('turboActivated', clienttranslate('⚡ ${player_name} activated Turbo Boost! Highest rolled die will count twice!'), [
+        $carName = $racer['car_name'] ?: $racer['car_color'];
+        $this->game->notifyAllPlayers('turboActivated', clienttranslate('⚡ ${player_name} activated Turbo Boost for ${car_name}! Highest rolled die will count twice!'), [
             'player_id' => $activePlayerId,
+            'racer_id' => $activeRacerId,
+            'car_name' => $carName,
             'player_name' => $playerName,
             'recycled_space' => $recycledSpace,
             'track_items' => $this->game->getTrackItems(),
             'player_inventory' => $this->game->getPlayerInventories(),
+            'all_racers' => $this->game->getAllRacers(),
         ]);
 
         return PlayerTurn::class;
@@ -254,6 +287,7 @@ class PlayerTurn extends GameState
     public function actFireRocket(int $targetPlayerId): string
     {
         $activePlayerId = (int) $this->game->getActivePlayerId();
+        $activeRacerId = (int) $this->globals->get('active_racer_id', $activePlayerId);
         $rolledDice = $this->globals->get('current_roll_dice', []);
         if (!empty($rolledDice)) {
             throw new UserException(clienttranslate("You can only use items before rolling dice."));
@@ -264,7 +298,7 @@ class PlayerTurn extends GameState
             throw new UserException(clienttranslate("You do not have a Rocket."));
         }
 
-        $racer = $this->game->getRacer($activePlayerId);
+        $racer = $this->game->getRacer($activeRacerId);
         $targetRacer = $this->game->getRacer($targetPlayerId);
         if (!$targetRacer) {
             throw new UserException(clienttranslate("Target racer not found."));
@@ -286,20 +320,24 @@ class PlayerTurn extends GameState
         $hit = ($roll >= $distance);
 
         $playerName = $this->game->loadPlayersBasicInfos()[$activePlayerId]['player_name'];
-        $targetName = $this->game->loadPlayersBasicInfos()[$targetPlayerId]['player_name'];
+        $targetName = $this->game->loadPlayersBasicInfos()[$targetRacer['player_id']]['player_name'];
+        $targetCarName = $targetRacer['car_name'] ?: $targetRacer['car_color'];
 
         if ($hit) {
             // Target & all cars on target space crash!
             $targetSpace = (int)$targetRacer['space_id'];
-            Game::DbQuery(
-                sprintf("UPDATE `racer` SET `is_belly_up` = 1, `dice_available` = GREATEST(1, `dice_available` - 1) WHERE `space_id` = %d", $targetSpace)
-            );
+            $occupants = $this->game->getRacersOnSpace($targetSpace);
+            foreach ($occupants as $crashedRId) {
+                $this->game->applyCrash($crashedRId, $targetSpace);
+            }
 
-            $this->game->notifyAllPlayers('rocketHit', clienttranslate('🚀 ${player_name} fired a Rocket at ${target_name} (dist ${distance})! Rolled ${roll} — DIRECT HIT! Car(s) crashed!'), [
+            $this->game->notifyAllPlayers('rocketHit', clienttranslate('🚀 ${player_name} fired a Rocket at ${target_car} (dist ${distance})! Rolled ${roll} — DIRECT HIT! Car(s) crashed!'), [
                 'player_id' => $activePlayerId,
+                'racer_id' => $activeRacerId,
                 'player_name' => $playerName,
-                'target_id' => $targetPlayerId,
+                'target_id' => $targetRacer['racer_id'],
                 'target_name' => $targetName,
+                'target_car' => $targetCarName,
                 'distance' => $distance,
                 'roll' => $roll,
                 'space_id' => $targetSpace,
@@ -309,16 +347,19 @@ class PlayerTurn extends GameState
                 'player_inventory' => $this->game->getPlayerInventories(),
             ]);
         } else {
-            $this->game->notifyAllPlayers('rocketMiss', clienttranslate('🚀 ${player_name} fired a Rocket at ${target_name} (dist ${distance})! Rolled ${roll} — MISSED!'), [
+            $this->game->notifyAllPlayers('rocketMiss', clienttranslate('🚀 ${player_name} fired a Rocket at ${target_car} (dist ${distance})! Rolled ${roll} — MISSED!'), [
                 'player_id' => $activePlayerId,
+                'racer_id' => $activeRacerId,
                 'player_name' => $playerName,
-                'target_id' => $targetPlayerId,
+                'target_id' => $targetRacer['racer_id'],
                 'target_name' => $targetName,
+                'target_car' => $targetCarName,
                 'distance' => $distance,
                 'roll' => $roll,
                 'recycled_space' => $recycledSpace,
                 'track_items' => $this->game->getTrackItems(),
                 'player_inventory' => $this->game->getPlayerInventories(),
+                'all_racers' => $this->game->getAllRacers(),
             ]);
         }
 
@@ -329,6 +370,7 @@ class PlayerTurn extends GameState
     public function actStop(bool $useShortcut = false): string
     {
         $activePlayerId = (int) $this->game->getActivePlayerId();
+        $activeRacerId = (int) $this->globals->get('active_racer_id', $activePlayerId);
         $rolledDice = $this->globals->get('current_roll_dice', []);
         if (empty($rolledDice)) {
             throw new UserException(clienttranslate("You must roll at least one die before moving."));
@@ -341,11 +383,15 @@ class PlayerTurn extends GameState
             $this->globals->set('turbo_active', false);
         }
 
-        $res = $this->game->executeMovement($activePlayerId, $movementPoints, $useShortcut);
+        $res = $this->game->executeMovement($activeRacerId, $movementPoints, $useShortcut);
+        $racer = $this->game->getRacer($activeRacerId);
         $playerName = $this->game->loadPlayersBasicInfos()[$activePlayerId]['player_name'];
+        $carName = $racer['car_name'] ?: $racer['car_color'];
 
-        $this->game->notifyAllPlayers('carMoved', clienttranslate('${player_name} drove ${movement_points} spaces to space ${final_space}!'), [
+        $this->game->notifyAllPlayers('carMoved', clienttranslate('${player_name} drove ${car_name} ${movement_points} spaces to space ${final_space}!'), [
             'player_id' => $activePlayerId,
+            'racer_id' => $activeRacerId,
+            'car_name' => $carName,
             'player_name' => $playerName,
             'movement_points' => $movementPoints,
             'start_space' => $res['start_space'],
@@ -354,28 +400,36 @@ class PlayerTurn extends GameState
             'laps_completed' => $res['laps_completed'],
             'discs_remaining' => $res['discs_remaining'],
             'bump_events' => $res['bump_events'],
-            'racer' => $this->game->getRacer($activePlayerId),
+            'racer' => $racer,
             'all_racers' => $this->game->getAllRacers(),
             'track_items' => $res['track_items'] ?? $this->game->getTrackItems(),
             'player_inventory' => $res['player_inventory'] ?? $this->game->getPlayerInventories(),
         ]);
 
         if (!empty($res['bump_events'])) {
+            $playersInfos = $this->game->loadPlayersBasicInfos();
             foreach ($res['bump_events'] as $evt) {
                 if ($evt['type'] === 'bump') {
-                    $bName = $this->game->loadPlayersBasicInfos()[$evt['bumped_id']]['player_name'];
+                    $bumpedRId = $evt['bumped_id'];
+                    $bRacer = $this->game->getRacer($bumpedRId);
+                    $bOwnerId = $bRacer['player_id'] ?? $bumpedRId;
+                    $bName = ($bRacer['car_name'] ?? '') ?: ($playersInfos[$bOwnerId]['player_name'] ?? 'Car #' . $bumpedRId);
                     $this->game->notifyAllPlayers('carBumped', clienttranslate('${bumped_name} was bumped forward into space ${to_space}!'), [
                         'bumper_id' => $evt['bumper_id'],
-                        'bumped_id' => $evt['bumped_id'],
+                        'bumped_id' => $bumpedRId,
                         'bumped_name' => $bName,
                         'from_space' => $evt['from_space'],
                         'to_space' => $evt['to_space'],
                         'all_racers' => $this->game->getAllRacers(),
                     ]);
                 } elseif ($evt['type'] === 'corner_crash' || $evt['type'] === 'bump_into_corner_crash') {
-                    $cName = $this->game->loadPlayersBasicInfos()[$evt['player_id']]['player_name'];
+                    $cRacerId = $evt['racer_id'] ?? $evt['player_id'];
+                    $cRacer = $this->game->getRacer($cRacerId);
+                    $cOwnerId = $cRacer['player_id'] ?? $evt['player_id'];
+                    $cName = ($cRacer['car_name'] ?? '') ?: ($playersInfos[$cOwnerId]['player_name'] ?? 'Car #' . $cRacerId);
                     $this->game->notifyAllPlayers('cornerCollisionCrash', clienttranslate('${player_name} crashed in the corner! (Lost 1 die, flipped belly-up)'), [
-                        'player_id' => $evt['player_id'],
+                        'racer_id' => $cRacerId,
+                        'player_id' => $cOwnerId,
                         'player_name' => $cName,
                         'space_id' => $evt['space_id'],
                         'all_racers' => $this->game->getAllRacers(),
@@ -416,11 +470,14 @@ class PlayerTurn extends GameState
 
         if ($res['finished']) {
             $totalLaps = (int) $this->globals->get('total_laps', 3);
-            $this->game->notifyAllPlayers('racerFinished', clienttranslate('🏁 ${player_name} has completed ${total_laps} laps and finished the race!'), [
+            $this->game->notifyAllPlayers('racerFinished', clienttranslate('🏁 ${car_name} (${player_name}) has completed ${total_laps} laps and finished the race!'), [
                 'player_id' => $activePlayerId,
+                'racer_id' => $activeRacerId,
+                'car_name' => $carName,
                 'player_name' => $playerName,
                 'total_laps' => $totalLaps,
-                'racer' => $this->game->getRacer($activePlayerId),
+                'racer' => $this->game->getRacer($activeRacerId),
+                'all_racers' => $this->game->getAllRacers(),
             ]);
         }
 
