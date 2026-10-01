@@ -222,7 +222,7 @@ class Game extends \Bga\GameFramework\Table
      */
     public function getBoardTiles(): array
     {
-        $rows = static::getObjectListFromDb("SELECT `tile_id`, `tile_value`, `coord_q`, `coord_r` FROM `board_tile` WHERE `location` = 'board'");
+        $rows = static::getObjectListFromDb("SELECT `tile_id`, `tile_value`, `coord_q`, `coord_r` FROM `board_tile` WHERE `location` IN ('board', 'jumping') AND `coord_q` IS NOT NULL AND `coord_r` IS NOT NULL");
         $tiles = [];
         foreach ($rows as $r) {
             $key = "{$r['coord_q']}_{$r['coord_r']}";

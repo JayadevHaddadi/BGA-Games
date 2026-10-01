@@ -1,13 +1,15 @@
-# Board Game Arena (BGA) Studio Multi-Game Workspace 🎲
+# Board Game Arena (BGA) Studio Multi-Game Workspace (`BGA-Games`) 🎲
 
 A structured, modular multi-game repository for developing, testing, and deploying games to [Board Game Arena (BGA) Studio](https://studio.boardgamearena.com).
+* **GitHub Repository**: `https://github.com/JayadevHaddadi/BGA-Games`
+* **Local Directory**: `Mandala-helper/` (preserved for workspace/chat persistence)
 
 ---
 
 ## 📁 Repository Structure
 
 ```
-Mandala-helper/
+BGA-Games/ (local folder: Mandala-helper/)
 │
 ├── README.md                           # Master workspace overview (this file)
 ├── BGA_DEVELOPER_CHEAT_SHEET.md        # Central developer reference & gotchas

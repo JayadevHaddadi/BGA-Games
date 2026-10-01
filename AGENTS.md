@@ -16,6 +16,10 @@ Every response must follow this strict structure:
 
 ## 🚀 1. Deployment Workflow: Commit & Push
 
+* **Repository Identity**:
+  * **Remote Repository**: `https://github.com/JayadevHaddadi/BGA-Games`
+  * **Local Directory Path**: Keep as `Mandala-helper` (`/home/jayadevhaddadi/GitHub/Mandala-helper` or `d:\GitHub\Mandala-helper`). **Do NOT rename the local folder**, so that all active Antigravity conversation IDs, SQLite indices, and workspace URI bindings stay synchronized.
+
 Every change should be committed and pushed to `main`. The GitHub Actions deployer (`.github/workflows/bga-deploy.yml`) will automatically detect modified game directories and deploy them to BGA Studio over SFTP.
 
 * **Commit & Push**:

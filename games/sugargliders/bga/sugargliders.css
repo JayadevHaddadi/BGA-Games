@@ -181,6 +181,13 @@
     transform: scale(1.16);
 }
 
+/* Alternate Tile Style in Tray */
+.sg_tray_tile_btn.style-alt.val-1 { background-image: url('img/tile_alt_1.png'); }
+.sg_tray_tile_btn.style-alt.val-2 { background-image: url('img/tile_alt_2.png'); }
+.sg_tray_tile_btn.style-alt.val-3 { background-image: url('img/tile_alt_3.png'); }
+.sg_tray_tile_btn.style-alt.val-4 { background-image: url('img/tile_alt_4.png'); }
+.sg_tray_tile_btn.style-alt.val-5 { background-image: url('img/tile_alt_5.png'); }
+
 /* Scaler & Responsive Board */
 .game-board-scaler {
     position: relative;
@@ -190,13 +197,6 @@
     margin: 0 auto;
     border-radius: 28px;
     box-shadow: 0 14px 38px rgba(0, 0, 0, 0.22), 0 3px 10px rgba(0, 0, 0, 0.12);
-    background: #18371b url('img/board_full.jpg') no-repeat center center;
-    background-size: cover;
-    transition: transform 0.1s ease-out;
-}
-
-.game-board-scaler.compact-tree {
-    background-image: url('img/board_compact.jpg');
 }
 
 #sg_board_wrapper {
@@ -205,6 +205,13 @@
     left: 0;
     width: 640px;
     height: 640px;
+    background: #18371b url('img/board_full.jpg') no-repeat center center;
+    background-size: 100% 100%;
+    transform-origin: top left;
+}
+
+#sg_board_wrapper.compact-tree {
+    background-image: url('img/board_compact.jpg');
 }
 
 #sg_board_svg {

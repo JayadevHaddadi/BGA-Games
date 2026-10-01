@@ -181,6 +181,7 @@ export class Game {
         this.scores = {};
         this.selectedReserveTileId = null;
         this.currentArgs = null;
+        this.tileStyle = localStorage.getItem('sg_tile_style') || 'classic';
 
         // Register State Handlers
         if (this.bga?.states && typeof this.bga.states.register === 'function') {
@@ -259,6 +260,9 @@ export class Game {
                     <span id="sg_remaining_tiles_badge" class="sg_badge sg_tiles_badge">
                         Tiles in Tree: ${Object.keys(this.boardTiles).length}
                     </span>
+                    <button id="sg_style_toggle" class="sg_ctrl_btn" type="button">
+                        ${this.tileStyle === 'alt' ? '🎨 Tiles: Alt' : '🎨 Tiles: Classic'}
+                    </button>
                     <button id="sg_sound_toggle" class="sg_ctrl_btn" type="button">
                         ${sounds.muted ? '&#128263; Muted' : '&#128266; Sound'}
                     </button>
@@ -269,8 +273,8 @@ export class Game {
                     <div id="sg_tray_tiles_container" class="sg_tray_tiles"></div>
                 </div>
 
-                <div id="sg_board_scaler" class="game-board-scaler ${this.HEX_RADIUS === 3 ? 'compact-tree' : ''}">
-                    <div id="sg_board_wrapper">
+                <div id="sg_board_scaler" class="game-board-scaler">
+                    <div id="sg_board_wrapper" class="${this.HEX_RADIUS === 3 ? 'compact-tree' : ''}">
                         <svg id="sg_board_svg"></svg>
                     </div>
                 </div>
@@ -288,12 +292,26 @@ export class Game {
                 soundBtn.innerHTML = muted ? '&#128263; Muted' : '&#128266; Sound';
             });
         }
+
+        const styleBtn = document.getElementById('sg_style_toggle');
+        if (styleBtn) {
+            styleBtn.addEventListener('click', () => {
+                this.tileStyle = (this.tileStyle === 'classic') ? 'alt' : 'classic';
+                localStorage.setItem('sg_tile_style', this.tileStyle);
+                styleBtn.innerHTML = (this.tileStyle === 'alt') ? '🎨 Tiles: Alt' : '🎨 Tiles: Classic';
+                this.renderBoard();
+                if (this.currentArgs && this.currentArgs.jumping_tile === null && this.isCurrentPlayerActive()) {
+                    this.showReserveTray(this.currentArgs);
+                }
+            });
+        }
     }
 
     initScaler() {
         const scaler = document.getElementById('sg_board_scaler');
+        const wrapper = document.getElementById('sg_board_wrapper');
         const container = document.getElementById('sg_container');
-        if (!scaler || !container) return;
+        if (!scaler || !wrapper || !container) return;
 
         const updateScale = () => {
             const availW = Math.max(300, container.clientWidth - 16);
@@ -302,9 +320,10 @@ export class Game {
             const maxScale = (window.innerWidth > 960) ? 1.35 : 1.0;
             const scale = Math.max(0.45, Math.min(maxScale, availW / baseW, availH / baseW));
 
-            scaler.style.transform = `scale(${scale})`;
-            scaler.style.transformOrigin = 'top center';
-            scaler.style.height = `${baseW * scale}px`;
+            scaler.style.width = `${Math.round(baseW * scale)}px`;
+            scaler.style.height = `${Math.round(baseW * scale)}px`;
+            wrapper.style.transform = `scale(${scale})`;
+            wrapper.style.transformOrigin = 'top left';
         };
 
         if (window.ResizeObserver) {
@@ -340,8 +359,8 @@ export class Game {
         const size = 35.5;
         this.HEX_SIZE = size;
         const svgDim = 640;
-        const cx = svgDim / 2;
-        const cy = svgDim / 2;
+        const cx = 317;
+        const cy = 313;
 
         svg.setAttribute('viewBox', `0 0 ${svgDim} ${svgDim}`);
         svg.setAttribute('width', `${svgDim}`);
@@ -403,7 +422,8 @@ export class Game {
 
     renderFoodTileSvg(x, y, value, tileId, cellKey) {
         const themeUrl = typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : '';
-        const tileImg = `${themeUrl}img/tile_${value}.png`;
+        const prefix = (this.tileStyle === 'alt') ? 'tile_alt_' : 'tile_';
+        const tileImg = `${themeUrl}img/${prefix}${value}.png`;
         const w = 50;
         const h = 46;
 
@@ -598,7 +618,7 @@ export class Game {
         sortedVals.forEach((val, idx) => {
             const tileId = uniqueValues[val];
             const btn = document.createElement('button');
-            btn.className = `sg_tray_tile_btn val-${val} ${idx === 0 ? 'selected' : ''}`;
+            btn.className = `sg_tray_tile_btn ${this.tileStyle === 'alt' ? 'style-alt' : ''} val-${val} ${idx === 0 ? 'selected' : ''}`;
             btn.innerHTML = `${val}`;
             btn.type = 'button';
             btn.setAttribute('title', `Spend tile worth ${val} pt(s)`);
@@ -756,11 +776,72 @@ export class Game {
         }
     }
 
+    animateGliderJump(playerId, fromQ, fromR, toQ, toR, callback) {
+        const gliderEl = document.getElementById(`sg_glider_${playerId}`);
+        if (!gliderEl || fromQ === undefined || fromR === undefined || toQ === undefined || toR === undefined) {
+            if (callback) callback();
+            return;
+        }
+
+        const size = this.HEX_SIZE;
+        const cx = 317;
+        const cy = 313;
+        const fromPos = this.axialToPixel(fromQ, fromR, cx, cy, size);
+        const toPos = this.axialToPixel(toQ, toR, cx, cy, size);
+        const restOffsetY = -6;
+
+        sounds.playJump();
+
+        const dist = Math.hypot(toPos.x - fromPos.x, toPos.y - fromPos.y);
+        const duration = Math.min(800, Math.max(450, dist * 2.2));
+        const midX = (fromPos.x + toPos.x) / 2;
+        const midY = (fromPos.y + toPos.y) / 2 - Math.max(32, dist * 0.28);
+
+        // Bring glider to front of layer while leaping
+        if (gliderEl.parentNode) {
+            gliderEl.parentNode.appendChild(gliderEl);
+        }
+
+        const keyframes = [
+            {
+                transform: `translate(${fromPos.x}px, ${fromPos.y + restOffsetY}px) scale(1)`,
+                offset: 0
+            },
+            {
+                transform: `translate(${midX}px, ${midY + restOffsetY}px) scale(1.36)`,
+                offset: 0.5
+            },
+            {
+                transform: `translate(${toPos.x}px, ${toPos.y + restOffsetY + 4}px) scale(1.08, 0.92)`,
+                offset: 0.88
+            },
+            {
+                transform: `translate(${toPos.x}px, ${toPos.y + restOffsetY}px) scale(1, 1)`,
+                offset: 1.0
+            }
+        ];
+
+        if (typeof gliderEl.animate === 'function') {
+            const anim = gliderEl.animate(keyframes, {
+                duration: duration,
+                easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
+                fill: 'forwards'
+            });
+
+            anim.onfinish = () => {
+                anim.cancel();
+                if (callback) callback();
+            };
+        } else {
+            if (callback) callback();
+        }
+    }
+
     notif_gliderPlaced(notif) {
         const { player_id, coord_q, coord_r, tile_id } = this._getNotifArgs(notif);
         this.gliders[player_id] = { player_id, q: coord_q, r: coord_r, in_torpor: false };
         this.jumpingTiles[player_id] = { tile_id, value: 1 };
-        delete this.boardTiles[`${coord_q}_${coord_r}`];
+        // The tile at coord_q, coord_r remains on the board underneath the glider!
 
         sounds.playHarvest();
         this.renderBoard();
@@ -768,46 +849,58 @@ export class Game {
     }
 
     notif_sugarGliderJumped(notif) {
-        const { player_id, to_q, to_r, collected_tile, discarded_tile, new_jumping_tile, current_score } = this._getNotifArgs(notif);
+        const { player_id, from_q, from_r, to_q, to_r, collected_tile, discarded_tile, new_jumping_tile, current_score } = this._getNotifArgs(notif);
 
-        if (!this.gliders[player_id]) {
-            this.gliders[player_id] = { player_id, q: to_q, r: to_r, in_torpor: false };
-        } else {
-            this.gliders[player_id].q = to_q;
-            this.gliders[player_id].r = to_r;
-            this.gliders[player_id].in_torpor = false;
+        // 1. Remove the tile left behind from the takeoff space
+        if (from_q !== undefined && from_r !== undefined) {
+            delete this.boardTiles[`${from_q}_${from_r}`];
         }
 
+        // 2. The landed tile stays on the board under the glider! (Do NOT delete this.boardTiles[`${to_q}_${to_r}`])
+
+        // 3. Update reserves and jumping tile
         if (collected_tile) {
             this.playerReserves[player_id] = this.playerReserves[player_id] || [];
             this.playerReserves[player_id].push(collected_tile);
-            sounds.playHarvest();
         } else if (discarded_tile) {
             const list = this.playerReserves[player_id] || [];
             const idx = list.findIndex(t => t.tile_id === discarded_tile.tile_id);
             if (idx !== -1) list.splice(idx, 1);
         }
 
-        delete this.boardTiles[`${to_q}_${to_r}`];
         this.jumpingTiles[player_id] = new_jumping_tile;
         this.scores[player_id] = current_score;
 
-        sounds.playJump();
-        this.renderBoard();
-        this.updatePlayerPanels();
+        // 4. Animate glider flight to the target spot
+        this.animateGliderJump(player_id, from_q, from_r, to_q, to_r, () => {
+            if (!this.gliders[player_id]) {
+                this.gliders[player_id] = { player_id, q: to_q, r: to_r, in_torpor: false };
+            } else {
+                this.gliders[player_id].q = to_q;
+                this.gliders[player_id].r = to_r;
+                this.gliders[player_id].in_torpor = false;
+            }
 
-        const remBadge = document.getElementById('sg_remaining_tiles_badge');
-        if (remBadge) {
-            remBadge.innerHTML = `Tiles in Tree: ${Object.keys(this.boardTiles).length}`;
-        }
-        const torpBadge = document.getElementById('sg_consecutive_torpor_badge');
-        if (torpBadge) {
-            torpBadge.innerHTML = `Torpor: 0 / ${Object.keys(this.gamedatas.players).length}`;
-        }
+            if (collected_tile) {
+                sounds.playHarvest();
+            }
+
+            this.renderBoard();
+            this.updatePlayerPanels();
+
+            const remBadge = document.getElementById('sg_remaining_tiles_badge');
+            if (remBadge) {
+                remBadge.innerHTML = `Tiles in Tree: ${Object.keys(this.boardTiles).length}`;
+            }
+            const torpBadge = document.getElementById('sg_consecutive_torpor_badge');
+            if (torpBadge) {
+                torpBadge.innerHTML = `Torpor: 0 / ${Object.keys(this.gamedatas.players).length}`;
+            }
+        });
     }
 
     notif_sugarGliderTorpor(notif) {
-        const { player_id, collected_tile, consecutive_torpor, current_score } = this._getNotifArgs(notif);
+        const { player_id, coord_q, coord_r, collected_tile, consecutive_torpor, current_score } = this._getNotifArgs(notif);
         if (this.gliders[player_id]) {
             this.gliders[player_id].in_torpor = true;
         }
@@ -816,6 +909,10 @@ export class Game {
             this.playerReserves[player_id] = this.playerReserves[player_id] || [];
             this.playerReserves[player_id].push(collected_tile);
             this.jumpingTiles[player_id] = null;
+            // Banked the tile from the current space into reserve:
+            if (coord_q !== undefined && coord_r !== undefined) {
+                delete this.boardTiles[`${coord_q}_${coord_r}`];
+            }
             sounds.playHarvest();
         }
 

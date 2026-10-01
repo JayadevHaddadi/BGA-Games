@@ -154,7 +154,7 @@ class PlayerTurn extends GameState
         $newJumpingTile = null;
         if ($landedTile) {
             $landedTileId = (int) $landedTile['tile_id'];
-            Game::DbQuery("UPDATE `board_tile` SET `location` = 'jumping', `player_id` = {$activePlayerId}, `coord_q` = NULL, `coord_r` = NULL WHERE `tile_id` = {$landedTileId}");
+            Game::DbQuery("UPDATE `board_tile` SET `location` = 'jumping', `player_id` = {$activePlayerId}, `coord_q` = {$target_q}, `coord_r` = {$target_r} WHERE `tile_id` = {$landedTileId}");
             $newJumpingTile = [
                 'tile_id' => $landedTileId,
                 'value' => (int) $landedTile['value'],
@@ -230,6 +230,8 @@ class PlayerTurn extends GameState
         $this->game->notifyAllPlayers('sugarGliderTorpor', $msg, [
             'player_id' => $activePlayerId,
             'player_name' => $playerName,
+            'coord_q' => $args['glider_q'],
+            'coord_r' => $args['glider_r'],
             'val' => $collectedTile ? $collectedTile['value'] : 0,
             'collected_tile' => $collectedTile,
             'consecutive_torpor' => $consecutiveTorpor,
