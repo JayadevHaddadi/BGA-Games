@@ -216,15 +216,15 @@
 /* Hexagons in SVG */
 .sg-hex {
     fill: var(--sg-hex-empty);
-    stroke: var(--sg-hex-border);
-    stroke-width: 1.5;
+    stroke: rgba(255, 255, 255, 0.22);
+    stroke-width: 1.2;
     transition: fill 0.2s ease, stroke 0.2s ease;
 }
 
 .sg-hex.center-space {
-    fill: rgba(141, 110, 99, 0.28);
-    stroke: #d7ccc8;
-    stroke-width: 2.2;
+    fill: rgba(255, 255, 255, 0.04);
+    stroke: rgba(255, 255, 255, 0.7);
+    stroke-width: 2;
     stroke-dasharray: 4, 3;
 }
 
@@ -263,11 +263,11 @@
 
 @keyframes sg_landing_ring {
     0% {
-        r: 10;
-        opacity: 0.9;
+        r: 16;
+        opacity: 0.95;
     }
     100% {
-        r: 24;
+        r: 30;
         opacity: 0;
     }
 }
@@ -309,33 +309,58 @@
 
 /* Sugar Glider Pawns */
 .sg-glider-piece {
-    pointer-events: none;
+    pointer-events: all;
+    cursor: pointer;
     transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1);
-    filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.5));
+}
+
+.sg-glider-inner {
+    display: inline-block;
+    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.22s ease;
+    transform: translateY(0);
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.45));
+}
+
+/* Hover lift effect: glider hops up 16px to reveal 100% of underlying tile */
+.sg-glider-piece:hover .sg-glider-inner {
+    transform: translateY(-16px) scale(1.08);
+    filter: drop-shadow(0 12px 14px rgba(0, 0, 0, 0.6));
 }
 
 .sg-glider-body.color-white {
     fill: #ffffff;
     stroke: #b0bec5;
-    stroke-width: 2;
+    stroke-width: 1.5;
 }
 
 .sg-glider-body.color-black {
     fill: #263238;
     stroke: #78909c;
-    stroke-width: 2;
+    stroke-width: 1.5;
 }
 
 .sg-glider-body.color-red {
     fill: #e53935;
     stroke: #ffcdd2;
-    stroke-width: 2;
+    stroke-width: 1.5;
 }
 
 .sg-glider-body.color-blue {
     fill: #1e88e5;
     stroke: #bbdefb;
-    stroke-width: 2;
+    stroke-width: 1.5;
+}
+
+.sg-glider-body.color-yellow {
+    fill: #fbc02d;
+    stroke: #fff9c4;
+    stroke-width: 1.5;
+}
+
+.sg-glider-body.color-green {
+    fill: #43a047;
+    stroke: #c8e6c9;
+    stroke-width: 1.5;
 }
 
 .sg-torpor-zzz {

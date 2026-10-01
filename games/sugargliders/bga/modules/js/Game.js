@@ -314,15 +314,15 @@ export class Game {
     }
 
     axialToPixel(q, r, cx, cy, size) {
-        const x = cx + size * (Math.sqrt(3) * q + (Math.sqrt(3) / 2) * r);
-        const y = cy + size * (1.5 * r);
+        const x = cx + size * (1.5 * q);
+        const y = cy + size * (Math.sqrt(3) * (r + q / 2));
         return { x, y };
     }
 
     getHexCorners(cx, cy, size) {
         const points = [];
         for (let i = 0; i < 6; i++) {
-            const angle = (Math.PI / 180) * (60 * i - 30);
+            const angle = (Math.PI / 180) * (60 * i);
             const x = cx + size * Math.cos(angle);
             const y = cy + size * Math.sin(angle);
             points.push(`${x.toFixed(1)},${y.toFixed(1)}`);
@@ -335,7 +335,7 @@ export class Game {
         if (!svg) return;
 
         const radius = this.HEX_RADIUS;
-        const size = (radius === 3) ? 42 : 34;
+        const size = 35.5;
         this.HEX_SIZE = size;
         const svgDim = 640;
         const cx = svgDim / 2;
@@ -369,7 +369,6 @@ export class Game {
                     hexGroup += `
                         <g class="sg-hex-cell" id="sg_cell_${cellKey}" data-q="${q}" data-r="${r}">
                             <polygon class="sg-hex ${isCenter ? 'center-space' : ''}" points="${points}" />
-                            ${isCenter ? `<text x="${x}" y="${y}" fill="#d7ccc8" font-size="${radius === 3 ? 12 : 10}" font-weight="700" text-anchor="middle" dominant-baseline="central">NEST</text>` : ''}
                         </g>
                     `;
 
@@ -401,29 +400,34 @@ export class Game {
     }
 
     renderFoodTileSvg(x, y, value, tileId, cellKey) {
-        const radius = (this.HEX_RADIUS === 3) ? 22 : 18;
         const themeUrl = typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : '';
         const tileImg = `${themeUrl}img/tile_${value}.png`;
-        const d = radius * 2;
+        const w = 50;
+        const h = 46;
 
         return `
             <g class="sg-food-tile val-${value}" id="sg_tile_${cellKey}" data-tile-id="${tileId}">
-                <image href="${tileImg}" xlink:href="${tileImg}" x="${x - radius}" y="${y - radius}" width="${d}" height="${d}" preserveAspectRatio="xMidYMid meet" filter="url(#sg_shadow)" />
+                <image href="${tileImg}" xlink:href="${tileImg}" x="${x - w / 2}" y="${y - h / 2}" width="${w}" height="${h}" preserveAspectRatio="xMidYMid meet" filter="url(#sg_shadow)" />
             </g>
         `;
     }
 
     renderGliderSvg(x, y, playerId, colorName, inTorpor) {
-        const p = "M 17.00 4.98 C 17.00 5.23 16.87 5.44 16.68 5.56 C 16.65 5.58 16.61 5.60 16.56 5.62 C 16.54 5.63 16.51 5.63 16.48 5.64 C 16.47 5.64 16.46 5.65 16.45 5.65 C 15.77 5.83 13.92 5.95 13.22 5.69 C 12.78 5.59 12.36 5.41 12.04 5.16 C 11.16 4.43 9.93 4.30 9.93 4.30 C 9.93 4.30 8.93 4.05 8.96 5.56 C 8.99 7.19 9.67 7.17 10.06 7.34 C 10.35 7.47 11.58 7.43 11.58 7.43 L 12.14 8.86 L 8.27 8.86 C 8.27 8.86 6.13 8.54 4.60 6.71 C 3.06 4.89 1.92 4.84 1.92 4.84 C 1.92 4.84 1.31 6.17 -0.22 6.00 C -0.22 6.00 -0.25 6.93 0.51 7.19 C 1.12 7.40 2.39 7.37 2.39 7.37 L 3.30 8.86 L -0.98 8.86 L -2.78 7.15 C -2.78 7.15 -3.22 8.30 -4.53 8.86 L -8.03 8.86 C -17.00 3.90 -12.11 -7.28 -7.32 -8.63 L -7.59 -7.34 C -7.59 -7.34 -5.45 -8.86 -2.21 -8.14 L -2.69 -6.99 C -2.69 -6.99 -0.98 -6.79 0.77 -7.64 C 0.77 -7.64 -0.08 -4.06 -2.60 -3.17 C -5.13 -2.28 -7.29 -3.13 -7.29 -3.13 C -7.29 -3.13 -9.60 -1.00 -9.39 2.39 C -9.17 5.78 -6.34 7.16 -5.67 6.17 C -5.25 5.54 -5.13 4.70 -5.16 3.96 C -5.24 1.82 -4.03 -0.30 -2.35 -1.55 C -1.22 -2.39 0.16 -2.87 1.55 -2.93 C 3.10 -3.01 4.46 -2.51 5.76 -1.67 C 5.83 -1.63 5.90 -1.58 5.97 -1.54 C 8.41 -0.01 9.38 -0.13 9.38 -0.13 C 8.93 -1.11 8.67 -2.34 10.08 -2.52 C 11.49 -2.70 11.78 -0.39 11.78 -0.39 C 11.78 -0.39 14.17 0.15 14.95 0.77 C 14.96 0.77 14.96 0.77 14.96 0.78 C 15.31 0.98 15.56 1.34 15.62 1.76 L 15.64 1.72 C 15.64 1.72 15.70 2.21 15.83 2.72 C 15.84 2.75 15.85 2.78 15.86 2.81 C 15.93 3.05 16.03 3.32 16.16 3.59 C 16.16 3.59 16.16 3.60 16.16 3.60 C 16.17 3.63 16.19 3.66 16.20 3.69 C 16.32 3.93 16.47 4.15 16.63 4.34 C 16.67 4.39 16.73 4.43 16.78 4.47 C 17.00 4.64 17.00 4.77 17.00 4.98";
+        const p = "M 22.00 6.44 C 22.00 6.76 21.83 7.04 21.58 7.20 C 21.55 7.22 21.50 7.25 21.43 7.27 C 21.40 7.28 21.37 7.29 21.33 7.30 C 21.32 7.31 21.30 7.31 21.28 7.31 C 20.40 7.54 18.02 7.69 17.11 7.37 C 16.54 7.24 15.99 7.01 15.58 6.67 C 14.45 5.74 12.85 5.56 12.85 5.56 C 12.85 5.56 11.56 5.25 11.59 7.20 C 11.63 9.31 12.51 9.27 13.02 9.50 C 13.40 9.67 14.98 9.61 14.98 9.61 L 15.71 11.47 L 10.70 11.47 C 10.70 11.47 7.93 11.06 5.95 8.69 C 3.96 6.33 2.48 6.27 2.48 6.27 C 2.48 6.27 1.70 7.99 -0.29 7.76 C -0.29 7.76 -0.32 8.97 0.66 9.31 C 1.45 9.58 3.09 9.53 3.09 9.53 L 4.27 11.47 L -1.27 11.47 L -3.59 9.25 C -3.59 9.25 -4.16 10.74 -5.86 11.47 L -10.40 11.47 C -22.00 5.05 -15.67 -9.42 -9.47 -11.16 L -9.83 -9.50 C -9.83 -9.50 -7.06 -11.47 -2.87 -10.54 L -3.48 -9.05 C -3.48 -9.05 -1.27 -8.79 0.99 -9.89 C 0.99 -9.89 -0.10 -5.26 -3.37 -4.11 C -6.64 -2.95 -9.44 -4.04 -9.44 -4.04 C -9.44 -4.04 -12.43 -1.29 -12.15 3.10 C -11.87 7.48 -8.21 9.27 -7.34 7.99 C -6.79 7.17 -6.64 6.09 -6.68 5.12 C -6.78 2.36 -5.21 -0.38 -3.04 -2.01 C -1.58 -3.09 0.20 -3.71 2.01 -3.80 C 4.02 -3.90 5.78 -3.24 7.45 -2.16 C 7.55 -2.10 7.63 -2.05 7.72 -1.99 C 10.89 -0.01 12.14 -0.17 12.14 -0.17 C 11.55 -1.44 11.22 -3.03 13.04 -3.27 C 14.86 -3.50 15.25 -0.51 15.25 -0.51 C 15.25 -0.51 18.33 0.20 19.35 1.00 C 19.35 1.00 19.36 1.00 19.36 1.00 C 19.82 1.27 20.14 1.74 20.21 2.28 L 20.24 2.23 C 20.24 2.23 20.31 2.85 20.49 3.52 C 20.50 3.56 20.51 3.60 20.52 3.64 C 20.62 3.95 20.75 4.30 20.91 4.64 C 20.91 4.65 20.91 4.66 20.92 4.66 C 20.93 4.70 20.95 4.74 20.97 4.77 C 21.12 5.08 21.31 5.37 21.52 5.62 C 21.58 5.68 21.65 5.73 21.71 5.78 C 22.00 6.00 22.00 6.17 22.00 6.44";
 
+        const restOffsetY = -9;
         return `
-            <g class="sg-glider-piece" id="sg_glider_${playerId}" data-player-id="${playerId}" transform="translate(${x}, ${y})">
-                <!-- Drop shadow -->
-                <path d="${p}" fill="rgba(0,0,0,0.35)" transform="translate(0, 2)" />
-                <!-- Glider Wood Meeple -->
-                <path d="${p}" class="sg-glider-body color-${colorName}" stroke="#1b1b1b" stroke-width="1.2" stroke-linejoin="round" />
-                <!-- Torpor Sleep Indicator -->
-                ${inTorpor ? `<text x="9" y="-12" class="sg-torpor-zzz">&#128164;</text>` : ''}
+            <g class="sg-glider-piece" id="sg_glider_${playerId}" data-player-id="${playerId}" transform="translate(${x}, ${y + restOffsetY})">
+                <!-- Large hover capture area over the cell -->
+                <circle cx="0" cy="${-restOffsetY}" r="28" fill="transparent" />
+                <g class="sg-glider-inner">
+                    <!-- Drop shadow -->
+                    <path d="${p}" fill="rgba(0,0,0,0.4)" transform="translate(0, 3)" />
+                    <!-- Glider Wood Meeple -->
+                    <path d="${p}" class="sg-glider-body color-${colorName}" stroke="#1b1b1b" stroke-width="1.3" stroke-linejoin="round" />
+                    <!-- Torpor Sleep Indicator -->
+                    ${inTorpor ? `<text x="12" y="-12" class="sg-torpor-zzz">&#128164;</text>` : ''}
+                </g>
             </g>
         `;
     }
@@ -513,11 +517,11 @@ export class Game {
                     const marker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
                     marker.setAttribute('cx', x);
                     marker.setAttribute('cy', y);
-                    marker.setAttribute('r', (this.HEX_RADIUS === 3) ? '18' : '14');
+                    marker.setAttribute('r', '22');
                     marker.setAttribute('class', 'sg-landing-marker');
                     marker.setAttribute('fill', 'none');
                     marker.setAttribute('stroke', '#ffeb3b');
-                    marker.setAttribute('stroke-width', '2.5');
+                    marker.setAttribute('stroke-width', '3');
                     svg.appendChild(marker);
                 }
             }
