@@ -78,8 +78,8 @@ class Game extends \Bga\GameFramework\Table
         $player_idx = 0;
         $playerIds = array_keys($players);
 
-        $totalLaps = isset($options[102]) ? (int) $options[102] : self::DEFAULT_LAPS;
-        if ($totalLaps < 1 || $totalLaps > 5) {
+        $totalLaps = isset($options[102]) ? (int) $options[102] : (int) $this->tableOptions->get(102, self::DEFAULT_LAPS);
+        if ($totalLaps < 1 || $totalLaps > 3) {
             $totalLaps = self::DEFAULT_LAPS;
         }
 
@@ -130,18 +130,32 @@ class Game extends \Bga\GameFramework\Table
         $firstPlayerId = (int) $playerIds[0];
         $this->gamestate->changeActivePlayer($firstPlayerId);
 
+        // Check Option 101: Qualifying Round (1 = Enabled, 2 = Disabled)
+        $qualifyingOption = isset($options[101]) ? (int) $options[101] : (int) $this->tableOptions->get(101, 1);
+        $qualifyingEnabled = ($qualifyingOption === 1);
+
         // Global variables setup
-        $this->globals->set('qualifying_active', true);
+        $this->globals->set('qualifying_active', $qualifyingEnabled);
         $this->globals->set('qualifying_order', $playerIds);
         $this->globals->set('qualifying_current_idx', 0);
         $this->globals->set('qualifying_rolls', []);
         $this->globals->set('current_roll_dice', []);
-        $this->globals->set('race_started', false);
+        $this->globals->set('race_started', !$qualifyingEnabled);
         $this->globals->set('racers_started', []);
         $this->globals->set('finish_order', []);
         $this->globals->set('total_laps', $totalLaps);
 
-        return QualifyingTurn::class;
+        // Setup track items if Option 103 (Special Items) is enabled
+        $itemsOption = (int) $this->tableOptions->get(103, 1);
+        if ($itemsOption === 2) {
+            $this->setupTrackItems();
+        }
+
+        if ($qualifyingEnabled) {
+            return QualifyingTurn::class;
+        } else {
+            return PlayerTurn::class;
+        }
     }
 
     protected function getAllDatas(): array
@@ -152,9 +166,13 @@ class Game extends \Bga\GameFramework\Table
         $result['qualifying_active'] = (bool) $this->globals->get('qualifying_active', true);
         $result['qualifying_board'] = $this->getQualifyingBoardData();
         $result['race_started'] = (bool) $this->globals->get('race_started', false);
+        $result['racers_started'] = $this->globals->get('racers_started', []);
         $result['current_roll_dice'] = $this->globals->get('current_roll_dice', []);
         $result['total_laps'] = (int) $this->globals->get('total_laps', self::DEFAULT_LAPS);
         $result['finish_order'] = $this->globals->get('finish_order', []);
+        $result['track_items'] = $this->getTrackItems();
+        $result['player_inventory'] = $this->getPlayerInventories();
+        $result['items_enabled'] = ((int) $this->tableOptions->get(103, 1) === 2);
         return $result;
     }
 
@@ -354,6 +372,9 @@ class Game extends \Bga\GameFramework\Table
             $shortcutUsed = true;
         }
 
+        $crashedFromMine = false;
+        $bumpEvents = [];
+
         for ($i = 0; $i < $movementPoints; $i++) {
             $nextSpace = Circuit::getNextSpace($currentSpace, $useShortcut && $i === 0 && $currentSpace === 8);
 
@@ -375,6 +396,37 @@ class Game extends \Bga\GameFramework\Table
 
             $currentSpace = $nextSpace;
             $steps[] = $currentSpace;
+
+            // Check if stepped onto a space with a mine
+            $mineItem = $this->getObjectFromDb(
+                "SELECT `item_id`, `item_type`, `space_id` FROM `track_item` WHERE `item_type` = 'mine' AND `space_id` = $currentSpace"
+            );
+            if ($mineItem) {
+                $mineRoll = random_int(1, 6);
+                if ($mineRoll <= 3) {
+                    // Detonation! Car crashes on this space and stops immediately
+                    static::DbQuery("DELETE FROM `track_item` WHERE `item_id` = " . (int)$mineItem['item_id']);
+                    $racerDice = max(1, (int)$racer['dice_available'] - 1);
+                    static::DbQuery(
+                        sprintf("UPDATE `racer` SET `is_belly_up` = 1, `dice_available` = %d WHERE `player_id` = %d", $racerDice, $playerId)
+                    );
+                    $crashedFromMine = true;
+                    $bumpEvents[] = [
+                        'type' => 'mine_explosion',
+                        'space_id' => $currentSpace,
+                        'roll' => $mineRoll,
+                        'player_id' => $playerId,
+                    ];
+                    break;
+                } else {
+                    $bumpEvents[] = [
+                        'type' => 'mine_safe',
+                        'space_id' => $currentSpace,
+                        'roll' => $mineRoll,
+                        'player_id' => $playerId,
+                    ];
+                }
+            }
         }
 
         // Safety fallback: if car moved into the circuit without crossing 74->1
@@ -382,6 +434,61 @@ class Game extends \Bga\GameFramework\Table
             $hasStarted = true;
             $racersStarted[$playerId] = true;
             $this->globals->set('racers_started', $racersStarted);
+        }
+
+        if (!$crashedFromMine) {
+            // Check oil spill slide at final landing space
+            $spillItem = $this->getObjectFromDb(
+                "SELECT `item_id` FROM `track_item` WHERE `item_type` = 'spill' AND `space_id` = $currentSpace"
+            );
+            if ($spillItem) {
+                $fromSpill = $currentSpace;
+                $slideTarget = Circuit::getCornerSlideTarget($fromSpill);
+                $currSlide = $fromSpill;
+                while ($currSlide !== $slideTarget) {
+                    $currSlide = Circuit::getNextSpace($currSlide);
+                    $steps[] = $currSlide;
+                }
+                $currentSpace = $slideTarget;
+
+                // Car crashes in the corner
+                $racerDice = max(1, (int)$racer['dice_available'] - 1);
+                static::DbQuery(
+                    sprintf("UPDATE `racer` SET `is_belly_up` = 1, `dice_available` = %d WHERE `player_id` = %d", $racerDice, $playerId)
+                );
+
+                // Any other cars already in that corner also crash!
+                static::DbQuery(
+                    sprintf("UPDATE `racer` SET `is_belly_up` = 1, `dice_available` = GREATEST(1, `dice_available` - 1) WHERE `space_id` = %d AND `player_id` != %d", $currentSpace, $playerId)
+                );
+
+                $bumpEvents[] = [
+                    'type' => 'oil_slide_crash',
+                    'from_space' => $fromSpill,
+                    'to_space' => $slideTarget,
+                    'player_id' => $playerId,
+                ];
+            } else {
+                // Check collectible item pickup (rocket, wrench, turboboost)
+                $itemOnSpace = $this->getObjectFromDb(
+                    "SELECT `item_id`, `item_type` FROM `track_item` WHERE `space_id` = $currentSpace AND `item_type` IN ('rocket', 'wrench', 'turboboost')"
+                );
+                if ($itemOnSpace) {
+                    static::DbQuery(
+                        sprintf("INSERT INTO `player_inventory` (`player_id`, `item_type`) VALUES (%d, '%s')", $playerId, $itemOnSpace['item_type'])
+                    );
+                    static::DbQuery("DELETE FROM `track_item` WHERE `item_id` = " . (int)$itemOnSpace['item_id']);
+                    $bumpEvents[] = [
+                        'type' => 'item_pickup',
+                        'space_id' => $currentSpace,
+                        'item_type' => $itemOnSpace['item_type'],
+                        'player_id' => $playerId,
+                    ];
+                }
+
+                // Resolve normal collisions & bumps at final space
+                $bumpEvents = array_merge($bumpEvents, $this->resolveBump($currentSpace, $playerId));
+            }
         }
 
         $finalSpaceInfo = Circuit::getSpace($currentSpace);
@@ -409,9 +516,6 @@ class Game extends \Bga\GameFramework\Table
             $this->playerStats->set('top_speed', $movementPoints, $playerId);
         }
 
-        // Resolve collisions & bumps at final space
-        $bumpEvents = $this->resolveBump($currentSpace, $playerId);
-
         // Clear rolled dice for turn
         $this->globals->set('current_roll_dice', []);
 
@@ -435,6 +539,8 @@ class Game extends \Bga\GameFramework\Table
             'discs_remaining' => $discsRemaining,
             'bump_events' => $bumpEvents,
             'finished' => $finished,
+            'track_items' => $this->getTrackItems(),
+            'player_inventory' => $this->getPlayerInventories(),
         ];
     }
 
@@ -578,6 +684,14 @@ class Game extends \Bga\GameFramework\Table
         $this->globals->set('race_started', true);
         $this->globals->set('current_roll_dice', []);
 
+        $itemsOption = (int) $this->tableOptions->get(103, 1);
+        if ($itemsOption === 2) {
+            $count = (int) $this->getUniqueValueFromDb("SELECT COUNT(*) FROM `track_item`");
+            if ($count === 0) {
+                $this->setupTrackItems();
+            }
+        }
+
         if ($firstPlayerId !== null) {
             $this->gamestate->changeActivePlayer($firstPlayerId);
         }
@@ -588,5 +702,75 @@ class Game extends \Bga\GameFramework\Table
         static::DbQuery(
             sprintf("UPDATE `racer` SET `finish_rank` = %d WHERE `player_id` = %d", $rank, $playerId)
         );
+    }
+
+    public function getTrackItems(): array
+    {
+        return static::getObjectListFromDb("SELECT `item_id`, `item_type`, `space_id`, `placed_by` FROM `track_item`");
+    }
+
+    public function getPlayerInventories(): array
+    {
+        $rows = static::getObjectListFromDb("SELECT `inventory_id`, `player_id`, `item_type` FROM `player_inventory`");
+        $result = [];
+        foreach ($rows as $r) {
+            $pId = (int) $r['player_id'];
+            if (!isset($result[$pId])) {
+                $result[$pId] = [];
+            }
+            $result[$pId][] = $r['item_type'];
+        }
+        return $result;
+    }
+
+    public function getPlayerInventory(int $playerId): array
+    {
+        $all = $this->getPlayerInventories();
+        return $all[$playerId] ?? [];
+    }
+
+    public function setupTrackItems(): void
+    {
+        static::DbQuery("DELETE FROM `track_item`");
+        static::DbQuery("DELETE FROM `player_inventory`");
+
+        // 4 Oil Spills, 2 Mines, 2 Rockets, 2 Wrenches, 2 Turbos
+        $items = [
+            ['item_type' => 'spill', 'space_id' => 6],
+            ['item_type' => 'spill', 'space_id' => 21],
+            ['item_type' => 'spill', 'space_id' => 28],
+            ['item_type' => 'spill', 'space_id' => 42],
+            ['item_type' => 'mine', 'space_id' => 13],
+            ['item_type' => 'mine', 'space_id' => 50],
+            ['item_type' => 'rocket', 'space_id' => 19],
+            ['item_type' => 'rocket', 'space_id' => 59],
+            ['item_type' => 'wrench', 'space_id' => 26],
+            ['item_type' => 'wrench', 'space_id' => 40],
+            ['item_type' => 'turboboost', 'space_id' => 11],
+            ['item_type' => 'turboboost', 'space_id' => 58],
+        ];
+
+        $vals = [];
+        foreach ($items as $it) {
+            $vals[] = sprintf("('%s', %d)", $it['item_type'], $it['space_id']);
+        }
+        static::DbQuery("INSERT INTO `track_item` (`item_type`, `space_id`) VALUES " . implode(',', $vals));
+    }
+
+    public function recycleItem(string $itemType, int $fromSpace): ?int
+    {
+        $curr = Circuit::getPreviousSpace($fromSpace);
+        for ($i = 0; $i < 74; $i++) {
+            $hasCar = (int) $this->getUniqueValueFromDb("SELECT COUNT(*) FROM `racer` WHERE `space_id` = $curr");
+            $hasItem = (int) $this->getUniqueValueFromDb("SELECT COUNT(*) FROM `track_item` WHERE `space_id` = $curr");
+            if ($hasCar === 0 && $hasItem === 0 && !Circuit::isPitLane($curr)) {
+                static::DbQuery(
+                    sprintf("INSERT INTO `track_item` (`item_type`, `space_id`) VALUES ('%s', %d)", $itemType, $curr)
+                );
+                return $curr;
+            }
+            $curr = Circuit::getPreviousSpace($curr);
+        }
+        return null;
     }
 }

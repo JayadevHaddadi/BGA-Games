@@ -148,4 +148,36 @@ class Circuit
     {
         return ($fromSpace === 74 && $toSpace === 1);
     }
+
+    public static function getPreviousSpace(int $spaceId): int
+    {
+        return ($spaceId === 1) ? 74 : $spaceId - 1;
+    }
+
+    public static function getStraightLineAhead(int $fromSpaceId): array
+    {
+        $spaces = [];
+        $curr = $fromSpaceId;
+        for ($i = 0; $i < 15; $i++) {
+            $next = self::getNextSpace($curr);
+            $spaces[] = $next;
+            if (self::isCorner($next) || self::isPitLane($next)) {
+                break;
+            }
+            $curr = $next;
+        }
+        return $spaces;
+    }
+
+    public static function getCornerSlideTarget(int $fromSpaceId): int
+    {
+        $curr = $fromSpaceId;
+        for ($i = 0; $i < 15; $i++) {
+            if (self::isCorner($curr)) {
+                return $curr;
+            }
+            $curr = self::getNextSpace($curr);
+        }
+        return $curr;
+    }
 }

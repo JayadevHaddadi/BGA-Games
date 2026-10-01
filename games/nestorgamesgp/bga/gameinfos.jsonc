@@ -17,21 +17,9 @@
     "tie_breaker_description": "Final finish line crossing order, then least damage taken",
     "losers_not_ranked": false,
     "solo_mode_ranked": false,
-
     "is_coop": 0,
-    "complexity": 2,
-    "luck": 3,
-    "strategy": 3,
-    "diplomacy": 2,
-
     "player_colors": ["e53935", "1e88e5", "43a047", "fdd835", "8e24aa", "fb8c00", "00acc1", "3949ab"],
     "favorite_colors": ["e53935", "1e88e5"],
-
-    "custom_buy_button": {
-        "url": "https://nestorgames.com/#gp_detail",
-        "label": "Buy at nestorgames"
-    },
-
     "language_dependency": false,
     "favorite_colors_support": false,
     "disable_player_order_swap_on_rematch": false,

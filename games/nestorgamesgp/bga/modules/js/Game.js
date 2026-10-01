@@ -292,15 +292,50 @@ class PlayerTurnState {
 
             if (rolled.length === 0) {
                 this.game.clearHighlights();
-                this.bga.statusBar.setTitle(_('${you}: Roll your dice to drive, or take a pit stop to repair.'));
+                const inv = args?.inventory || [];
+                const turboActive = args?.turbo_active || false;
+                const rocketTargets = args?.rocket_targets || [];
+
+                let title = _('${you}: Roll your dice to drive, or use an item / repair.');
+                if (turboActive) {
+                    title = _('⚡ Turbo Boost active! Roll dice (highest die counts 2x)!');
+                }
+                this.bga.statusBar.setTitle(title);
 
                 this.game.addActionButton('btnRollRace', _('🏎️ Roll Die to Race'), () => {
                     this.game.sound.playRoll();
                     this.bga.actions.performAction('actRoll', {});
                 }, 'primary');
 
-                if (canFix) {
-                    this.game.addActionButton('btnFixCar', _('🔧 Fix Car (+1 Die)'), () => {
+                if (inv.includes('wrench')) {
+                    this.game.addActionButton('btnUseWrench', _('🔧 Wrench (Full Repair)'), () => {
+                        this.bga.actions.performAction('actUseWrench', {});
+                    }, 'secondary');
+                }
+
+                if (inv.includes('turboboost') && !turboActive) {
+                    this.game.addActionButton('btnUseTurbo', _('⚡ Turbo (2x Roll)'), () => {
+                        this.bga.actions.performAction('actUseTurbo', {});
+                    }, 'secondary');
+                }
+
+                if (inv.includes('rocket')) {
+                    if (rocketTargets.length > 0) {
+                        rocketTargets.slice(0, 2).forEach(target => {
+                            this.game.addActionButton(
+                                `btnRocket_${target.player_id}`,
+                                _('🚀 Rocket ${name} (${dist} sp)').replace('${name}', target.player_name).replace('${dist}', target.distance),
+                                () => {
+                                    this.bga.actions.performAction('actFireRocket', { targetPlayerId: target.player_id });
+                                },
+                                'alert'
+                            );
+                        });
+                    }
+                }
+
+                if (canFix && !inv.includes('wrench')) {
+                    this.game.addActionButton('btnFixCar', _('🛠️ Fix Car (+1 Die)'), () => {
                         this.bga.actions.performAction('actFixCar', {});
                     }, 'secondary');
                 }
@@ -396,9 +431,19 @@ export class Game {
         this.totalLaps = gamedatas.total_laps || 3;
         this.qualifyingBoard = gamedatas.qualifying_board || {};
         this.qualifyingActive = gamedatas.qualifying_active;
+        this.trackItems = gamedatas.track_items || [];
+        this.playerInventories = gamedatas.player_inventory || {};
+        this.itemsEnabled = !!gamedatas.items_enabled;
+        this.racersStarted = gamedatas.racers_started || {};
+        try {
+            this.currentCarModel = localStorage.getItem('nestorgamesgp_car_model') || 'chibi_kart';
+        } catch (e) {
+            this.currentCarModel = 'chibi_kart';
+        }
         this.initDom();
         this.initBoardScaler();
         this.renderBoard();
+        this.renderTrackItems();
         this.renderRacers(this.racers);
         this.renderQualifyingBoard(this.qualifyingBoard, this.qualifyingActive);
         this.updatePlayerPanels();
@@ -415,12 +460,46 @@ export class Game {
             container = document.createElement('div');
             container.id = 'gp_game_container';
             container.innerHTML = `
+                <div id="gp_model_selector" class="gp_model_selector">
+                    <span class="gp_model_title">🚗 Car Style:</span>
+                    <button type="button" class="gp_model_btn ${this.currentCarModel === 'chibi_kart' ? 'active' : ''}" data-model="chibi_kart" title="Chibi Go-Kart (Chubby tires & pilot)">🏎️ Chibi Kart</button>
+                    <button type="button" class="gp_model_btn ${this.currentCarModel === 'retro_beetle' ? 'active' : ''}" data-model="retro_beetle" title="Retro Beetle (Classic rounded bug)">🐞 Retro Beetle</button>
+                    <button type="button" class="gp_model_btn ${this.currentCarModel === 'chibi_f1' ? 'active' : ''}" data-model="chibi_f1" title="Chibi F1 (Cute aero racer)">🏁 Chibi F1</button>
+                    <button type="button" class="gp_model_btn ${this.currentCarModel === 'bumper_buggy' ? 'active' : ''}" data-model="bumper_buggy" title="Bumper Buggy (Super round bumper car)">🍩 Bumper Buggy</button>
+                </div>
                 <div id="gp_board_scaler">
                     <div id="gp_board"></div>
                 </div>
             `;
             main.appendChild(container);
+
+            container.querySelectorAll('.gp_model_btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const model = e.currentTarget.getAttribute('data-model');
+                    if (model) this.setCarModel(model);
+                });
+            });
         }
+    }
+
+    setCarModel(modelName) {
+        this.currentCarModel = modelName;
+        try {
+            localStorage.setItem('nestorgamesgp_car_model', modelName);
+        } catch (e) {}
+
+        if (this.racers) {
+            Object.keys(this.racers).forEach(pId => {
+                const carEl = document.getElementById(`gp_car_${pId}`);
+                if (carEl) {
+                    carEl.innerHTML = this.getCarSvg(this.currentCarModel);
+                }
+            });
+        }
+
+        document.querySelectorAll('.gp_model_btn').forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('data-model') === modelName);
+        });
     }
 
     isCurrentPlayerActive() {
@@ -526,6 +605,12 @@ export class Game {
         highlightsLayer.className = 'gp_highlights_layer';
         boardEl.appendChild(highlightsLayer);
 
+        // Track items layer (above highlights, below racers)
+        const itemsLayer = document.createElement('div');
+        itemsLayer.id = 'gp_items_layer';
+        itemsLayer.className = 'gp_items_layer';
+        boardEl.appendChild(itemsLayer);
+
         // Racers container
         const racersLayer = document.createElement('div');
         racersLayer.id = 'gp_racers_layer';
@@ -543,6 +628,64 @@ export class Game {
         qualPanel.id = 'gp_qualifying_panel';
         qualPanel.className = 'gp_qualifying_panel';
         boardEl.appendChild(qualPanel);
+    }
+
+    renderTrackItems(items = null) {
+        if (items) {
+            this.trackItems = items;
+        }
+        const layer = document.getElementById('gp_items_layer');
+        if (!layer) return;
+        layer.innerHTML = '';
+
+        if (!this.trackItems || this.trackItems.length === 0) return;
+
+        this.trackItems.forEach(item => {
+            const coords = this.getSpaceCoordinates(item.space_id);
+            if (!coords) return;
+
+            const el = document.createElement('div');
+            el.className = `gp_track_item gp_item_${item.item_type}`;
+            el.id = `gp_item_${item.item_id}`;
+            el.style.left = `${coords.x}px`;
+            el.style.top = `${coords.y}px`;
+            el.title = `${this.getItemName(item.item_type)} (Space ${item.space_id})`;
+            el.innerHTML = this.getItemHtml(item.item_type);
+            layer.appendChild(el);
+        });
+    }
+
+    getItemName(type) {
+        switch (type) {
+            case 'spill': return _('Oil Spill');
+            case 'mine': return _('Bomb / Mine');
+            case 'rocket': return _('Rocket');
+            case 'wrench': return _('Wrench');
+            case 'turboboost': return _('Turbo Boost');
+            default: return type;
+        }
+    }
+
+    getItemHtml(type) {
+        const icons = {
+            spill: '<img src="img/spill.png" alt="Oil Spill" class="gp_item_img gp_item_spill" />',
+            mine: '<img src="img/mine.png" alt="Mine" class="gp_item_img gp_item_mine" />',
+            rocket: '<img src="img/rocket.png" alt="Rocket" class="gp_item_img gp_item_rocket" />',
+            wrench: '<img src="img/wrench.png" alt="Wrench" class="gp_item_img gp_item_wrench" />',
+            turboboost: '<img src="img/turboboost.png" alt="Turbo Boost" class="gp_item_img gp_item_turbo" />',
+        };
+        return icons[type] || '';
+    }
+
+    getItemIcon(type) {
+        switch (type) {
+            case 'rocket': return '🚀';
+            case 'wrench': return '🔧';
+            case 'turboboost': return '⚡';
+            case 'mine': return '💣';
+            case 'spill': return '🛢️';
+            default: return '📦';
+        }
     }
 
     renderQualifyingBoard(boardData, active = true) {
@@ -682,6 +825,29 @@ export class Game {
                 ? '<span class="gp_panel_shortcut gp_shortcut_used" title="Shortcut already used this race">⚡ Shortcut: Used</span>'
                 : '<span class="gp_panel_shortcut gp_shortcut_avail" title="Shortcut available from space 8">⚡ Shortcut: Ready</span>';
 
+            let inventoryHtml = '';
+            if (this.itemsEnabled) {
+                const inv = (this.playerInventories && this.playerInventories[pId]) || [];
+                if (inv.length > 0) {
+                    const itemBadges = inv.map(type => {
+                        return `<span class="gp_inv_badge" title="${this.getItemName(type)}">${this.getItemIcon(type)}</span>`;
+                    }).join(' ');
+                    inventoryHtml = `
+                        <div class="gp_panel_row gp_panel_inv_row">
+                            <span class="gp_panel_label">🎒 Items:</span>
+                            <div class="gp_inv_list">${itemBadges}</div>
+                        </div>
+                    `;
+                } else {
+                    inventoryHtml = `
+                        <div class="gp_panel_row gp_panel_inv_row">
+                            <span class="gp_panel_label">🎒 Items:</span>
+                            <span class="gp_inv_empty">None</span>
+                        </div>
+                    `;
+                }
+            }
+
             const totalLaps = this.totalLaps || 3;
             panelInfo.innerHTML = `
                 <div class="gp_panel_row">
@@ -698,6 +864,7 @@ export class Game {
                     ${statusHtml}
                     ${shortcutHtml}
                 </div>
+                ${inventoryHtml}
             `;
         });
     }
@@ -797,7 +964,7 @@ export class Game {
         el.dataset.angle = racer.facing_direction ?? 270;
 
         // Cute rounded vector SVG racecar
-        el.innerHTML = this.getCarSvg('chibi_kart');
+        el.innerHTML = this.getCarSvg(this.currentCarModel || 'chibi_kart');
 
         this.updateCarPosition(el, racer.space_id, racer.facing_direction);
         return el;
@@ -1134,6 +1301,18 @@ export class Game {
         setTimeout(() => flash.remove(), 1000);
     }
 
+    spawnStartFlash(x, y) {
+        const layer = document.getElementById('gp_highlights_layer');
+        if (!layer) return;
+        const flash = document.createElement('div');
+        flash.className = 'gp_lap_flash gp_start_flash';
+        flash.style.left = `${x}px`;
+        flash.style.top = `${y}px`;
+        flash.innerHTML = '🟢 GO! RACE START!';
+        layer.appendChild(flash);
+        setTimeout(() => flash.remove(), 1000);
+    }
+
     spawnBustBadge(spaceId, text, type = 'bust') {
         const layer = document.getElementById('gp_highlights_layer');
         if (!layer) return;
@@ -1193,8 +1372,15 @@ export class Game {
 
             // Finish line crossing check
             if (prevSpace === 74 && spId === 1) {
-                this.sound.playLapFanfare();
-                this.spawnFinishFlash(coords.x, coords.y);
+                if (!this.racersStarted?.[playerId]) {
+                    if (!this.racersStarted) this.racersStarted = {};
+                    this.racersStarted[playerId] = true;
+                    this.sound.playRoll();
+                    this.spawnStartFlash(coords.x, coords.y);
+                } else {
+                    this.sound.playLapFanfare();
+                    this.spawnFinishFlash(coords.x, coords.y);
+                }
             }
 
             prevSpace = spId;
@@ -1321,7 +1507,9 @@ export class Game {
                 'qualifyingRoll', 'qualifyingBust', 'qualifyingFinished', 'raceStarting',
                 'raceRoll', 'raceCrash', 'raceStall', 'carMoved',
                 'carBumped', 'cornerCollisionCrash', 'carFlippedUpright',
-                'carFixed', 'racerFinished', 'raceEnded'
+                'carFixed', 'racerFinished', 'raceEnded',
+                'wrenchUsed', 'turboActivated', 'rocketHit', 'rocketMiss',
+                'mineExplosion', 'mineSafe', 'oilSlideCrash', 'itemPickedUp'
             ];
             notifs.forEach(n => {
                 try {
@@ -1477,6 +1665,14 @@ export class Game {
         // 🏎️ Cute animated drive through track spaces
         await this.animateCarDrive(args.player_id, args.steps, args.final_space, args.racer);
 
+        if (args.track_items) {
+            this.trackItems = args.track_items;
+            this.renderTrackItems();
+        }
+        if (args.player_inventory) {
+            this.playerInventories = args.player_inventory;
+        }
+
         if (args.racer && this.racers) {
             this.racers[args.player_id] = args.racer;
         }
@@ -1562,6 +1758,137 @@ export class Game {
         this.sound.playLapFanfare();
         this.clearActionButtons();
         this.clearHighlights();
+        this.updatePlayerPanels();
+    }
+
+    notif_wrenchUsed(notif) {
+        const args = this._getNotifArgs(notif);
+        this.sound.playChime();
+        if (args.racer && this.racers) {
+            this.racers[args.player_id] = args.racer;
+        }
+        const carEl = document.getElementById(`gp_car_${args.player_id}`);
+        if (carEl) {
+            carEl.classList.remove('gp_belly_up');
+        }
+        if (args.track_items) {
+            this.renderTrackItems(args.track_items);
+        }
+        if (args.player_inventory) {
+            this.playerInventories = args.player_inventory;
+        }
+        const space = args.racer?.space_id ?? 1;
+        this.spawnBustBadge(space, '🔧 FULL REPAIR! (6 🎲)', 'stall');
+        this.updatePlayerPanels();
+    }
+
+    notif_turboActivated(notif) {
+        const args = this._getNotifArgs(notif);
+        this.sound.playRoll();
+        if (args.track_items) {
+            this.renderTrackItems(args.track_items);
+        }
+        if (args.player_inventory) {
+            this.playerInventories = args.player_inventory;
+        }
+        const pId = args.player_id;
+        const racer = this.racers?.[pId];
+        const space = racer?.space_id ?? 1;
+        this.spawnBustBadge(space, '⚡ TURBO BOOST! (2x)', 'stall');
+        this.updatePlayerPanels();
+    }
+
+    async notif_rocketHit(notif) {
+        const args = this._getNotifArgs(notif);
+        this.sound.playCrash();
+        if (args.all_racers) {
+            this.racers = args.all_racers;
+            this.renderRacers(args.all_racers);
+        }
+        if (args.track_items) {
+            this.renderTrackItems(args.track_items);
+        }
+        if (args.player_inventory) {
+            this.playerInventories = args.player_inventory;
+        }
+        this.spawnBustBadge(args.space_id, `🚀 BOOM! Roll ${args.roll} (Hit!)`, 'crash');
+        const targetCar = document.getElementById(`gp_car_${args.target_id}`);
+        if (targetCar) {
+            targetCar.classList.add('gp_car_crashing');
+            setTimeout(() => {
+                targetCar.classList.remove('gp_car_crashing');
+                targetCar.classList.add('gp_belly_up');
+            }, 450);
+        }
+        this.updatePlayerPanels();
+    }
+
+    notif_rocketMiss(notif) {
+        const args = this._getNotifArgs(notif);
+        this.sound.playSadBust();
+        if (args.track_items) {
+            this.renderTrackItems(args.track_items);
+        }
+        if (args.player_inventory) {
+            this.playerInventories = args.player_inventory;
+        }
+        const pId = args.player_id;
+        const racer = this.racers?.[pId];
+        const space = racer?.space_id ?? 1;
+        this.spawnBustBadge(space, `🚀 MISSED! Roll ${args.roll} < Dist ${args.distance}`, 'stall');
+        this.updatePlayerPanels();
+    }
+
+    async notif_mineExplosion(notif) {
+        const args = this._getNotifArgs(notif);
+        this.sound.playCrash();
+        if (args.all_racers) {
+            this.racers = args.all_racers;
+            this.renderRacers(args.all_racers);
+        }
+        this.spawnBustBadge(args.space_id, `💣 BOOM! Roll ${args.roll}`, 'crash');
+        const carEl = document.getElementById(`gp_car_${args.player_id}`);
+        if (carEl) {
+            carEl.classList.add('gp_car_crashing');
+            setTimeout(() => {
+                carEl.classList.remove('gp_car_crashing');
+                carEl.classList.add('gp_belly_up');
+            }, 450);
+        }
+        this.updatePlayerPanels();
+    }
+
+    notif_mineSafe(notif) {
+        const args = this._getNotifArgs(notif);
+        this.sound.playChime();
+        this.spawnBustBadge(args.space_id, `🛡️ MINE SAFE! (Roll ${args.roll})`, 'stall');
+    }
+
+    async notif_oilSlideCrash(notif) {
+        const args = this._getNotifArgs(notif);
+        this.sound.playTireChirp();
+        await this.waitMs(200);
+        this.sound.playCrash();
+        if (args.all_racers) {
+            this.racers = args.all_racers;
+            this.renderRacers(args.all_racers);
+        }
+        this.spawnBustBadge(args.to_space, '🛢️ SLIP & CRASH!', 'crash');
+        const carEl = document.getElementById(`gp_car_${args.player_id}`);
+        if (carEl) {
+            carEl.classList.add('gp_car_crashing');
+            setTimeout(() => {
+                carEl.classList.remove('gp_car_crashing');
+                carEl.classList.add('gp_belly_up');
+            }, 450);
+        }
+        this.updatePlayerPanels();
+    }
+
+    notif_itemPickedUp(notif) {
+        const args = this._getNotifArgs(notif);
+        this.sound.playChime();
+        this.spawnBustBadge(args.space_id, `🎁 +1 ${this.getItemName(args.item_type)}`, 'stall');
         this.updatePlayerPanels();
     }
 }
