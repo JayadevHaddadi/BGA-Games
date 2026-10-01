@@ -80,8 +80,12 @@ def export_chats(output_zip, source_dir=None, workspace_filter="Mandala-helper",
         elif export_all:
             rows = cur.execute("SELECT * FROM conversation_summaries").fetchall()
         elif workspace_filter:
-            # Match workspace uri case-insensitively
-            rows = cur.execute("SELECT * FROM conversation_summaries WHERE LOWER(workspace_uris) LIKE ?", (f"%{workspace_filter.lower()}%",)).fetchall()
+            # Match workspace uri case-insensitively (also matches bga-games)
+            filter_query = f"%{workspace_filter.lower()}%"
+            rows = cur.execute(
+                "SELECT * FROM conversation_summaries WHERE LOWER(workspace_uris) LIKE ? OR LOWER(workspace_uris) LIKE '%bga-games%' OR LOWER(workspace_uris) LIKE '%mandala-helper%'",
+                (filter_query,)
+            ).fetchall()
         else:
             rows = cur.execute("SELECT * FROM conversation_summaries").fetchall()
 
