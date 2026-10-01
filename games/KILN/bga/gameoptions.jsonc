@@ -56,5 +56,20 @@
       }
     },
     "default": 1
+  },
+  "103": {
+    "name": "Starting Board Setup",
+    "values": {
+      "0": {
+        "name": "Fully Random (Official Rules)",
+        "description": "36 tiles randomly distributed across the 6x6 kiln"
+      },
+      "1": {
+        "name": "Balanced Sector Placement (Recommended)",
+        "description": "Tiles are evenly distributed with 1 of each color in each 2x2 sector, preventing oversized starting clusters",
+        "tmdisplay": "Balanced Board Setup"
+      }
+    },
+    "default": 1
   }
 }

@@ -59,11 +59,19 @@ class PlayerTurn extends GameState
 
         // Rule 6: If push ejected Black neutral tile, player gets an extra turn!
         if ($res['ejected_color'] === Game::NEUTRAL_COLOR) {
-            $this->game->globals->set('extra_turn_earned', true);
-            $this->notify->all('blackTileEjected', clienttranslate('The neutral black tile was ejected from the kiln! ${player_name} will take an EXTRA TURN!'), [
-                'player_id' => $activePlayerId,
-                'player_name' => $this->game->getPlayerNameById($activePlayerId),
-            ]);
+            $isInExtra = (bool) $this->game->globals->get('is_in_extra_turn', false);
+            if (!$isInExtra) {
+                $this->game->globals->set('extra_turn_earned', true);
+                $this->notify->all('blackTileEjected', clienttranslate('The neutral black tile was ejected from the kiln! ${player_name} will take an EXTRA TURN!'), [
+                    'player_id' => $activePlayerId,
+                    'player_name' => $this->game->getPlayerNameById($activePlayerId),
+                ]);
+            } else {
+                $this->notify->all('blackTileEjected', clienttranslate('The neutral black tile was ejected, but extra turns cannot chain during an extra turn.'), [
+                    'player_id' => $activePlayerId,
+                    'player_name' => $this->game->getPlayerNameById($activePlayerId),
+                ]);
+            }
         }
 
         // Identify largest group(s) of active player's color

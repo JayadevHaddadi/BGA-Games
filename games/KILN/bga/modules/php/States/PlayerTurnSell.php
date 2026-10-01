@@ -63,8 +63,20 @@ class PlayerTurnSell extends GameState
             'warehouse' => $res['warehouse'],
         ]);
 
-        if (!empty($res['bonus_landed'])) {
+        if ($res['bonus_landed'] === true) {
             $this->notify->all('bonusSpaceLanded', clienttranslate('${player_name} landed on bonus space ${score}! An EXTRA TURN is awarded ("Heating up the Kiln")!'), [
+                'player_id' => $activePlayerId,
+                'player_name' => $this->game->getPlayerNameById($activePlayerId),
+                'score' => $res['new_score'],
+            ]);
+        } elseif ($res['bonus_landed'] === 'not_cumulative') {
+            $this->notify->all('bonusSpaceLanded', clienttranslate('${player_name} landed on bonus space ${score} (extra turns are not cumulative; 1 extra turn already awarded).'), [
+                'player_id' => $activePlayerId,
+                'player_name' => $this->game->getPlayerNameById($activePlayerId),
+                'score' => $res['new_score'],
+            ]);
+        } elseif ($res['bonus_landed'] === 'no_chain') {
+            $this->notify->all('bonusSpaceLanded', clienttranslate('${player_name} landed on bonus space ${score} (extra turns cannot chain during an extra turn).'), [
                 'player_id' => $activePlayerId,
                 'player_name' => $this->game->getPlayerNameById($activePlayerId),
                 'score' => $res['new_score'],

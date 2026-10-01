@@ -163,10 +163,15 @@ class Game extends \Bga\GameFramework\Table
         // Fixing the Mess variant option (102): 0 = disabled, 1 = enabled
         $fixingMessVariant = isset($options[102]) ? (int) $options[102] : (int) $this->getGameStateValue('102', 1);
 
+        // Starting Board Setup option (103): 0 = fully random, 1 = balanced sector placement
+        $boardSetupOption = isset($options[103]) ? (int) $options[103] : (int) $this->getGameStateValue('103', 1);
+
         $this->globals->set('target_score', $targetScore);
         $this->globals->set('variant_bonus_spaces', $bonusSpacesVariant);
         $this->globals->set('variant_fixing_mess', $fixingMessVariant);
+        $this->globals->set('option_board_setup', $boardSetupOption);
         $this->globals->set('extra_turn_earned', false);
+        $this->globals->set('is_in_extra_turn', false);
         $this->globals->set('turn_count', 1);
         $this->globals->set('selected_group', []);
         $this->globals->set('candidate_groups', []);
@@ -181,20 +186,43 @@ class Game extends \Bga\GameFramework\Table
         }
 
         // Populate 36 tiles into the 6x6 Kiln: 9 Red, 9 Blue, 9 Green, 9 Yellow
-        $tiles = [];
-        foreach (self::COLORS as $c) {
-            for ($i = 0; $i < 9; $i++) {
-                $tiles[] = $c;
-            }
-        }
-        shuffle($tiles);
-
         $boardValues = [];
-        $tileIdx = 0;
-        for ($y = 0; $y < self::BOARD_SIZE; $y++) {
-            for ($x = 0; $x < self::BOARD_SIZE; $x++) {
-                $col = $tiles[$tileIdx++];
-                $boardValues[] = "({$x}, {$y}, '{$col}')";
+        if ($boardSetupOption === 1) {
+            // Balanced Placement: 9 sectors of 2x2. Each gets exactly 1 of each color, locally shuffled.
+            // Eliminates monolithic starting blobs while maintaining organic variance.
+            $grid = array_fill(0, self::BOARD_SIZE, array_fill(0, self::BOARD_SIZE, ''));
+            for ($by = 0; $by < 3; $by++) {
+                for ($bx = 0; $bx < 3; $bx++) {
+                    $sec = self::COLORS;
+                    shuffle($sec);
+                    $grid[$by * 2][$bx * 2] = $sec[0];
+                    $grid[$by * 2][$bx * 2 + 1] = $sec[1];
+                    $grid[$by * 2 + 1][$bx * 2] = $sec[2];
+                    $grid[$by * 2 + 1][$bx * 2 + 1] = $sec[3];
+                }
+            }
+            for ($y = 0; $y < self::BOARD_SIZE; $y++) {
+                for ($x = 0; $x < self::BOARD_SIZE; $x++) {
+                    $col = $grid[$y][$x];
+                    $boardValues[] = "({$x}, {$y}, '{$col}')";
+                }
+            }
+        } else {
+            // Fully Random: 9 of each color completely shuffled
+            $tiles = [];
+            foreach (self::COLORS as $c) {
+                for ($i = 0; $i < 9; $i++) {
+                    $tiles[] = $c;
+                }
+            }
+            shuffle($tiles);
+
+            $tileIdx = 0;
+            for ($y = 0; $y < self::BOARD_SIZE; $y++) {
+                for ($x = 0; $x < self::BOARD_SIZE; $x++) {
+                    $col = $tiles[$tileIdx++];
+                    $boardValues[] = "({$x}, {$y}, '{$col}')";
+                }
             }
         }
         static::DbQuery("INSERT INTO `kiln_board` (`x`, `y`, `color`) VALUES " . implode(',', $boardValues));
@@ -351,6 +379,7 @@ class Game extends \Bga\GameFramework\Table
             'outer_tile' => $this->getOuterTile(),
             'warehouse' => $this->getPlayerWarehouse($playerId),
             'extra_turn_earned' => (bool) $this->globals->get('extra_turn_earned', false),
+            'is_in_extra_turn' => (bool) $this->globals->get('is_in_extra_turn', false),
             'last_ejected_color' => $this->globals->get('last_ejected_color', ''),
         ];
         $this->globals->set('turn_snapshot', $snapshot);
@@ -380,6 +409,7 @@ class Game extends \Bga\GameFramework\Table
         }
 
         $this->globals->set('extra_turn_earned', $snapshot['extra_turn_earned']);
+        $this->globals->set('is_in_extra_turn', $snapshot['is_in_extra_turn'] ?? false);
         $this->globals->set('last_ejected_color', $snapshot['last_ejected_color']);
         $this->globals->set('selected_group', []);
         $this->globals->set('candidate_groups', []);
@@ -841,8 +871,19 @@ class Game extends \Bga\GameFramework\Table
         $bonusLanded = false;
         $variantBonus = (int) $this->globals->get('variant_bonus_spaces', 0);
         if ($variantBonus === 1 && in_array($newScore, self::BONUS_SPACES, true)) {
-            $this->globals->set('extra_turn_earned', true);
-            $bonusLanded = true;
+            $isInExtra = (bool) $this->globals->get('is_in_extra_turn', false);
+            $alreadyEarned = (bool) $this->globals->get('extra_turn_earned', false);
+
+            if (!$isInExtra && !$alreadyEarned) {
+                $this->globals->set('extra_turn_earned', true);
+                $bonusLanded = true;
+            } elseif ($isInExtra) {
+                // Landed on bonus space during an extra turn: cannot chain
+                $bonusLanded = 'no_chain';
+            } else {
+                // Already earned an extra turn this turn (e.g. black tile): not cumulative
+                $bonusLanded = 'not_cumulative';
+            }
         }
 
         return [

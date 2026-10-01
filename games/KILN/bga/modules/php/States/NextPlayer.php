@@ -25,9 +25,11 @@ class NextPlayer extends \Bga\GameFramework\States\GameState
         $this->game->giveExtraTime($activePlayerId);
 
         $extraTurn = (bool) $this->game->globals->get('extra_turn_earned', false);
+        $isInExtra = (bool) $this->game->globals->get('is_in_extra_turn', false);
 
-        if ($extraTurn) {
+        if ($extraTurn && !$isInExtra) {
             $this->game->globals->set('extra_turn_earned', false);
+            $this->game->globals->set('is_in_extra_turn', true);
             // Delta is 2nd, PlayerId is 3rd!
             $this->game->playerStats->inc('extra_turns', 1, $activePlayerId);
 
@@ -38,6 +40,10 @@ class NextPlayer extends \Bga\GameFramework\States\GameState
 
             return PlayerTurn::class;
         }
+
+        // Clean up flags when advancing to next player
+        $this->game->globals->set('extra_turn_earned', false);
+        $this->game->globals->set('is_in_extra_turn', false);
 
         $this->game->tableStats->inc('turns_number', 1);
         $this->game->playerStats->inc('turns_number', 1, $activePlayerId);
