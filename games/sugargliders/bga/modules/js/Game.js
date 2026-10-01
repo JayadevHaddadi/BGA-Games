@@ -300,6 +300,7 @@ export class Game {
                 localStorage.setItem('sg_tile_style', this.tileStyle);
                 styleBtn.innerHTML = (this.tileStyle === 'alt') ? '🎨 Tiles: Alt' : '🎨 Tiles: Classic';
                 this.renderBoard();
+                this.updatePlayerPanels();
                 if (this.currentArgs && this.currentArgs.jumping_tile === null && this.isCurrentPlayerActive()) {
                     this.showReserveTray(this.currentArgs);
                 }
@@ -356,11 +357,11 @@ export class Game {
         if (!svg) return;
 
         const radius = this.HEX_RADIUS;
-        const size = 35.5;
+        const size = (radius === 3) ? 38.0 : 34.0;
         this.HEX_SIZE = size;
         const svgDim = 640;
-        const cx = 317;
-        const cy = 313;
+        const cx = 320;
+        const cy = 320;
 
         svg.setAttribute('viewBox', `0 0 ${svgDim} ${svgDim}`);
         svg.setAttribute('width', `${svgDim}`);
@@ -424,8 +425,8 @@ export class Game {
         const themeUrl = typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : '';
         const prefix = (this.tileStyle === 'alt') ? 'tile_alt_' : 'tile_';
         const tileImg = `${themeUrl}img/${prefix}${value}.png`;
-        const w = 50;
-        const h = 46;
+        const w = (this.HEX_RADIUS === 3) ? 54 : 48;
+        const h = Math.round(w * 0.92);
 
         return `
             <g class="sg-food-tile val-${value}" id="sg_tile_${cellKey}" data-tile-id="${tileId}">
@@ -737,24 +738,33 @@ export class Game {
                 }
             }
 
-            let jumpingText = jumping ? `${jumping.value} pt(s)` : 'None (spend reserve to jump)';
+            const themeUrl = typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : '';
+            const prefix = (this.tileStyle === 'alt') ? 'tile_alt_' : 'tile_';
 
-            // Group reserves into compact counts: 1:3, 2:0, 3:5, 4:2, 5:2
+            let jumpingHtml = jumping ? `
+                <span class="sg_panel_tile_item">
+                    <img src="${themeUrl}img/${prefix}${jumping.value}.png" class="sg_panel_tile_img" alt="${jumping.value}" />
+                    <span>${jumping.value} pt(s)</span>
+                </span>
+            ` : '<em>None (spend reserve to jump)</em>';
+
+            // Group reserves into compact counts: (Image of tile):(how many of that tile)
             const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
             reserves.forEach(t => {
                 if (counts[t.value] !== undefined) counts[t.value]++;
             });
 
-            const reserveHtml = [1, 2, 3, 4, 5].map(v =>
-                `<span class="sg_res_badge val-${v}"><strong>${v}</strong>: ${counts[v]}</span>`
+            const activeValues = (this.HEX_RADIUS === 3) ? [1, 2, 3, 4] : [1, 2, 3, 4, 5];
+            const reserveHtml = activeValues.map(v =>
+                `<span class="sg_panel_tile_item"><img src="${themeUrl}img/${prefix}${v}.png" class="sg_panel_tile_img" alt="${v}" />: ${counts[v]}</span>`
             ).join(' ');
 
             inv.innerHTML = `
                 <div class="sg_panel_jumping">
-                    <span>&#129438; Tile Underneath:</span> <strong>${jumpingText}</strong>
+                    <span>&#129438; Current Tile:</span> ${jumpingHtml}
                 </div>
                 <div class="sg_panel_reserves">
-                    <span>&#127822; Reserve:</span> <div class="sg_res_badges_container">${reserveHtml}</div>
+                    <span>&#127822; Reserve:</span> <div class="sg_panel_reserves_row">${reserveHtml}</div>
                 </div>
             `;
         }
@@ -784,8 +794,8 @@ export class Game {
         }
 
         const size = this.HEX_SIZE;
-        const cx = 317;
-        const cy = 313;
+        const cx = 320;
+        const cy = 320;
         const fromPos = this.axialToPixel(fromQ, fromR, cx, cy, size);
         const toPos = this.axialToPixel(toQ, toR, cx, cy, size);
         const restOffsetY = -6;
