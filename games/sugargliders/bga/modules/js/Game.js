@@ -123,7 +123,9 @@ class SetupPlacementState {
     }
 
     onEnteringState(args, isCurrentPlayerActive) {
-        this.updateState(args, isCurrentPlayerActive);
+        const stateArgs = (args && args.args) ? args.args : (args || {});
+        const active = (isCurrentPlayerActive !== undefined) ? isCurrentPlayerActive : this.game.isCurrentPlayerActive();
+        this.updateState(stateArgs, active);
     }
 
     onPlayerActivationChange(isCurrentPlayerActive) {
@@ -154,7 +156,9 @@ class PlayerTurnState {
     }
 
     onEnteringState(args, isCurrentPlayerActive) {
-        this.updateState(args, isCurrentPlayerActive);
+        const stateArgs = (args && args.args) ? args.args : (args || {});
+        const active = (isCurrentPlayerActive !== undefined) ? isCurrentPlayerActive : this.game.isCurrentPlayerActive();
+        this.updateState(stateArgs, active);
     }
 
     onPlayerActivationChange(isCurrentPlayerActive) {
@@ -202,24 +206,10 @@ export class Game {
         this.setupPlacementState = new SetupPlacementState(this, bga);
         this.playerTurnState = new PlayerTurnState(this, bga);
 
-        // Register State Handlers (PascalCase, camelCase, and ID)
+        // Register State Handlers
         if (this.bga?.states && typeof this.bga.states.register === 'function') {
             this.bga.states.register('SetupPlacement', this.setupPlacementState);
-            this.bga.states.register('setupPlacement', this.setupPlacementState);
-            this.bga.states.register(10, this.setupPlacementState);
-
             this.bga.states.register('PlayerTurn', this.playerTurnState);
-            this.bga.states.register('playerTurn', this.playerTurnState);
-            this.bga.states.register(15, this.playerTurnState);
-        }
-    }
-
-    onEnteringState(stateName, args) {
-        const stateArgs = (args && args.args) ? args.args : args;
-        if (stateName === 'PlayerTurn' || stateName === 'playerTurn' || stateName === 15) {
-            this.playerTurnState.onEnteringState(stateArgs, this.isCurrentPlayerActive());
-        } else if (stateName === 'SetupPlacement' || stateName === 'setupPlacement' || stateName === 10) {
-            this.setupPlacementState.onEnteringState(stateArgs, this.isCurrentPlayerActive());
         }
     }
 
