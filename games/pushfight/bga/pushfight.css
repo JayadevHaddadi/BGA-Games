@@ -306,14 +306,54 @@
     top: calc(50% - 18px);
 }
 
-/* Falling Off Edge Animation */
-.pft-piece.falling-off {
-    animation: pft-tumble 0.6s forwards;
+/* Falling Off Edge Animations: Shocked Panic & Gravity Plummet */
+.pft-shock-bubble {
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%) scale(0);
+    font-size: 26px;
+    line-height: 1;
+    pointer-events: none;
+    z-index: 60;
+    animation: pft-bubble-pop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.45));
 }
 
-@keyframes pft-tumble {
-    0% { transform: scale(1) rotate(0deg); opacity: 1; }
-    100% { transform: scale(0.3) translateY(60px) rotate(180deg); opacity: 0; }
+@keyframes pft-bubble-pop {
+    0% { transform: translateX(-50%) scale(0); opacity: 0; }
+    60% { transform: translateX(-50%) scale(1.3); opacity: 1; }
+    100% { transform: translateX(-50%) scale(1); opacity: 1; }
+}
+
+.pft-piece.being-shocked {
+    animation: pft-panic-wobble 0.38s ease-in-out forwards;
+    z-index: 60 !important;
+}
+
+@keyframes pft-panic-wobble {
+    0% { transform: translate(var(--pft-out-x, 0px), var(--pft-out-y, 0px)) scale(1.05) rotate(0deg); }
+    20% { transform: translate(var(--pft-out-x, 0px), var(--pft-out-y, 0px)) scale(1.15) rotate(-14deg); }
+    40% { transform: translate(var(--pft-out-x, 0px), var(--pft-out-y, 0px)) scale(1.15) rotate(14deg); }
+    60% { transform: translate(var(--pft-out-x, 0px), var(--pft-out-y, 0px)) scale(1.12) rotate(-8deg); }
+    80% { transform: translate(var(--pft-out-x, 0px), var(--pft-out-y, 0px)) scale(1.12) rotate(8deg); }
+    100% { transform: translate(var(--pft-out-x, 0px), var(--pft-out-y, 0px)) scale(1) rotate(0deg); }
+}
+
+.pft-piece.plummeting {
+    animation: pft-plummet 0.52s cubic-bezier(0.55, 0.055, 0.675, 0.19) forwards;
+    z-index: 60 !important;
+}
+
+@keyframes pft-plummet {
+    0% {
+        transform: translate(var(--pft-out-x, 0px), var(--pft-out-y, 0px)) scale(1) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(var(--pft-out-x, 0px), calc(var(--pft-out-y, 0px) + 200px)) scale(0.1) rotate(540deg);
+        opacity: 0;
+    }
 }
 
 /* Info Bar (Top Centered) */

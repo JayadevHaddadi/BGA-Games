@@ -87,6 +87,44 @@ class SoundController {
             });
         } catch (e) {}
     }
+
+    playShock() {
+        try {
+            this.init();
+            if (!this.ctx) return;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(360, this.ctx.currentTime);
+            osc.frequency.setValueAtTime(440, this.ctx.currentTime + 0.08);
+            osc.frequency.setValueAtTime(340, this.ctx.currentTime + 0.16);
+            osc.frequency.setValueAtTime(460, this.ctx.currentTime + 0.24);
+            gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.35);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + 0.35);
+        } catch (e) {}
+    }
+
+    playFalling() {
+        try {
+            this.init();
+            if (!this.ctx) return;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(520, this.ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(70, this.ctx.currentTime + 0.52);
+            gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.52);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + 0.52);
+        } catch (e) {}
+    }
 }
 
 const sounds = new SoundController();
@@ -803,25 +841,96 @@ export class Game {
 
     async notif_pushExecuted(notif) {
         sounds.playThud();
-        setTimeout(() => sounds.playAnchor(), 220);
         const args = this._getNotifArgs(notif);
 
-        // Shift pieces
-        const shifted = args.shifted_pieces || [];
-        shifted.forEach(s => {
-            const pieceEl = document.getElementById(`pft_piece_${s.id}`);
-            if (!pieceEl) return;
+        // Derive push direction delta (dr, dc)
+        let dr = args.dr;
+        let dc = args.dc;
+        if (dr === undefined || dc === undefined) {
+            if (args.push_dir === 'up') { dr = -1; dc = 0; }
+            else if (args.push_dir === 'down') { dr = 1; dc = 0; }
+            else if (args.push_dir === 'left') { dr = 0; dc = -1; }
+            else if (args.push_dir === 'right') { dr = 0; dc = 1; }
+            else {
+                const nonFalling = (args.shifted_pieces || []).find(s => !s.falls_off && s.to_r != null && s.from_r != null);
+                if (nonFalling) {
+                    dr = nonFalling.to_r - nonFalling.from_r;
+                    dc = nonFalling.to_c - nonFalling.from_c;
+                } else {
+                    dr = 0; dc = 0;
+                }
+            }
+        }
 
-            if (s.falls_off) {
-                pieceEl.classList.add('falling-off');
-                setTimeout(() => pieceEl.remove(), 600);
-            } else {
-                const targetCell = document.getElementById(`pft_cell_${s.to_r}_${s.to_c}`);
-                if (targetCell) targetCell.appendChild(pieceEl);
+        const shifted = args.shifted_pieces || [];
+        const board = document.getElementById('pft_board');
+        const stride = 68; // 64px cell + 4px grid gap
+        const deltaX = dc * stride;
+        const deltaY = dr * stride;
+
+        // 1. Separate fallen piece from non-falling pieces
+        const fallenInfo = shifted.find(s => s.falls_off);
+        const nonFalling = shifted.filter(s => !s.falls_off);
+
+        let fallenEl = null;
+        if (fallenInfo && board) {
+            fallenEl = document.getElementById(`pft_piece_${fallenInfo.id}`);
+            if (fallenEl) {
+                // Detach from the cell and attach directly to the board container
+                // so the incoming piece behind it never shares the same DOM cell!
+                const startLeft = (fallenInfo.from_c - 1) * stride + 6;
+                const startTop = (fallenInfo.from_r - 1) * stride + 6;
+                fallenEl.style.position = 'absolute';
+                fallenEl.style.left = `${startLeft}px`;
+                fallenEl.style.top = `${startTop}px`;
+                fallenEl.style.margin = '0';
+                fallenEl.style.zIndex = '50';
+                fallenEl.style.transition = 'none';
+                fallenEl.style.transform = 'translate(0, 0)';
+                board.appendChild(fallenEl);
+            }
+        }
+
+        // 2. Position non-falling pieces in their target cells with negative offset for slide
+        const animatedPieces = [];
+        nonFalling.forEach(s => {
+            const pieceEl = document.getElementById(`pft_piece_${s.id}`);
+            const targetCell = document.getElementById(`pft_cell_${s.to_r}_${s.to_c}`);
+            if (pieceEl && targetCell) {
+                pieceEl.style.transition = 'none';
+                pieceEl.style.transform = `translate(${-deltaX}px, ${-deltaY}px)`;
+                targetCell.appendChild(pieceEl);
+                animatedPieces.push(pieceEl);
             }
         });
 
-        // Update anchor badge
+        // Force DOM reflow so initial positions are established
+        if (board) void board.offsetWidth;
+
+        // 3. Slide all pieces synchronously in the push direction
+        animatedPieces.forEach(p => {
+            p.style.transition = 'transform 0.22s cubic-bezier(0.25, 1, 0.5, 1)';
+            p.style.transform = 'translate(0, 0)';
+        });
+
+        if (fallenEl) {
+            fallenEl.style.setProperty('--pft-out-x', `${deltaX}px`);
+            fallenEl.style.setProperty('--pft-out-y', `${deltaY}px`);
+            fallenEl.style.transition = 'transform 0.22s cubic-bezier(0.25, 1, 0.5, 1)';
+            fallenEl.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+        }
+
+        // Wait for physical slide to finish
+        await new Promise(r => setTimeout(r, 220));
+
+        // Clean up sliding styles for pieces staying on the board
+        animatedPieces.forEach(p => {
+            p.style.transition = '';
+            p.style.transform = '';
+        });
+
+        // Update anchor badge on pushing king
+        setTimeout(() => sounds.playAnchor(), 50);
         document.querySelectorAll('.pft-anchor-badge').forEach(b => b.remove());
         const newAnchorEl = document.getElementById(`pft_piece_${args.anchored_piece_id}`);
         if (newAnchorEl) {
@@ -829,6 +938,29 @@ export class Game {
             b.className = 'pft-anchor-badge';
             b.textContent = '\u2693\uFE0E';
             newAnchorEl.appendChild(b);
+        }
+
+        // 4. If a piece was pushed off the board, play the shocked panic + plummet sequence
+        if (fallenEl) {
+            sounds.playShock();
+            fallenEl.classList.add('being-shocked');
+
+            const bubble = document.createElement('div');
+            bubble.className = 'pft-shock-bubble';
+            bubble.textContent = '😱';
+            fallenEl.appendChild(bubble);
+
+            // Mid-air shock wobble duration (~380ms)
+            await new Promise(r => setTimeout(r, 380));
+
+            // Gravity plummet down off the table with descending whistle
+            sounds.playFalling();
+            fallenEl.classList.remove('being-shocked');
+            fallenEl.classList.add('plummeting');
+
+            // Wait for plummet animation (~520ms)
+            await new Promise(r => setTimeout(r, 520));
+            fallenEl.remove();
         }
 
         this.clearHighlights();
