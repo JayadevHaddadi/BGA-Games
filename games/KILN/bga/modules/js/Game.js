@@ -693,7 +693,7 @@ export class Game {
         banner.className = 'kiln_cannot_fit_banner';
         banner.innerHTML = `
             <div class="kiln_cf_msg">
-                ⚠️ ${_('Largest group (%s tiles) does not fit into your warehouse!').replace('%s', size)}
+                ${_('Largest group (%s tiles) does not fit into your warehouse!').replace('%s', size)}
             </div>
             <div class="kiln_cf_actions">
                 <button type="button" class="kiln_btn_action kiln_btn_primary" id="kiln_cf_skip">
@@ -756,19 +756,18 @@ export class Game {
 
         wrapper.innerHTML = `
             <div id="kiln_main_layout" class="kiln_main_layout">
-                <!-- Center: Arena Table Layout (Oriented per Nestor Romeral Andrés) -->
                 <div class="kiln_arena_container" id="kiln_arena_container">
-                    <!-- Top Slot: Opponent across the table (180°) -->
+                    <!-- Top Slot: Opponents Area (All Opponents upright) -->
                     <div class="kiln_arena_slot kiln_slot_top" id="kiln_slot_top"></div>
 
-                    <!-- Middle: Left Player (90°), Score Track, The Kiln (6x6), Right Player (270°) -->
+                    <!-- Middle: Score Track & The Kiln (6x6) -->
                     <div class="kiln_arena_middle" id="kiln_arena_middle">
                         <div class="kiln_arena_slot kiln_slot_left" id="kiln_slot_left"></div>
 
                         <!-- Score Track directly to the left of the game board in the middle -->
                         <div class="kiln_track_panel" id="kiln_track_panel">
                             <div class="kiln_panel_header">
-                                <span>🏆 ${_('Score Track')}</span>
+                                <span class="kiln_panel_title">${_('Score Track')}</span>
                             </div>
                             <div id="kiln_score_track" class="kiln_score_track"></div>
                             ${Number(this.variantBonusSpaces) === 1 ? `
@@ -780,7 +779,7 @@ export class Game {
                         </div>
 
                         <div class="kiln_center_panel" id="kiln_center_panel">
-                            <div id="kiln_oven_wrapper" class="kiln_oven_wrapper" style="transform: rotate(${this.mySeat * 90}deg); transform-origin: center center;">
+                            <div id="kiln_oven_wrapper" class="kiln_oven_wrapper">
                                 <!-- North Arrows (0..5) -->
                                 <div id="kiln_arrows_north" class="kiln_arrow_row kiln_arrows_n"></div>
 
@@ -848,7 +847,6 @@ export class Game {
 
             let label = `${i}`;
             if (i === 0) label = 'START';
-            if (isGoal) label = `${i} 🎯`;
 
             cell.innerHTML = `
                 <span class="kiln_track_num">${label}</span>
@@ -939,33 +937,20 @@ export class Game {
             if (el) el.innerHTML = '';
         });
 
-        // Rotate kiln oven according to viewer seat
+        // Board stays stably upright (North = slots 0..5, South = slots 12..17)
         const oven = document.getElementById('kiln_oven_wrapper');
         if (oven) {
-            oven.style.transform = `rotate(${mySeat * 90}deg)`;
-            oven.style.transformOrigin = 'center center';
+            oven.style.transform = 'none';
         }
 
         Object.keys(this.gamedatas.players).forEach(pId => {
             const pInfo = this.gamedatas.players[pId];
             const pColor = this.playerColors[pId] || 'red';
             const isMe = String(pId) === String(myId);
-            const pSeat = playerSeats[pId] !== undefined ? playerSeats[pId] : 0;
-            const delta = (pSeat - mySeat + 4) % 4;
 
-            let slotId = 'kiln_slot_bottom';
-            let rotClass = 'kiln_rot_0';
-
-            if (delta === 1) {
-                slotId = 'kiln_slot_left';
-                rotClass = 'kiln_rot_90';
-            } else if (delta === 2) {
-                slotId = 'kiln_slot_top';
-                rotClass = 'kiln_rot_180';
-            } else if (delta === 3) {
-                slotId = 'kiln_slot_right';
-                rotClass = 'kiln_rot_270';
-            }
+            // 3-Tier Layout: opponents sit neatly at top, player's board at bottom
+            const slotId = isMe ? 'kiln_slot_bottom' : 'kiln_slot_top';
+            const rotClass = 'kiln_rot_0';
 
             const targetSlot = document.getElementById(slotId);
             if (!targetSlot) return;
@@ -978,8 +963,8 @@ export class Game {
                 <!-- Side Selling Table (Rule 2) -->
                 <div class="kiln_price_table" id="kiln_price_table_${pId}" title="${_('Selling Price Table: completed rows or columns sell for these points')}">
                     <div class="kiln_price_table_header">
-                        <span class="kiln_th_lines">📏 ${_('Lines')}</span>
-                        <span class="kiln_th_pts">⭐ ${_('Pts')}</span>
+                        <span class="kiln_th_lines">${_('Lines')}</span>
+                        <span class="kiln_th_pts">${_('Points')}</span>
                     </div>
                     <div class="kiln_price_row" data-lines="1"><span class="kiln_pr_num">1</span><span class="kiln_pr_pts">1</span></div>
                     <div class="kiln_price_row" data-lines="2"><span class="kiln_pr_num">2</span><span class="kiln_pr_pts">3</span></div>
@@ -1460,8 +1445,8 @@ export class Game {
         if (!scalerWrapper || !boardEl) return;
 
         const isMultiplayer = Object.keys(this.gamedatas.players || {}).length > 2;
-        const baseWidth = isMultiplayer ? 1280 : 860;
-        const baseHeight = 1200;
+        const baseWidth = isMultiplayer ? 740 : 700;
+        const baseHeight = 860;
 
         const updateScale = () => {
             const parent = scalerWrapper.parentElement || document.getElementById('game_play_area') || document.body;
