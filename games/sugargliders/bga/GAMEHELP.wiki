@@ -1,0 +1,58 @@
+= Sugar Gliders =
+
+''A strategy board game for 2 to 4 players by '''Néstor Romeral Andrés'''. Published by '''nestorgames''' and '''Grok Games'''.''
+
+== Overview & Objective ==
+Each player controls a '''Sugar Glider''' leaping through the branches of a lush tree canopy to forage for nectar and fruit. 
+The player with the highest total fruit point value in their reserve at the end of the game wins!
+
+== Components & Values ==
+* '''Tree Board''': A hexagonal grid depicting a tree canopy with 61 spaces (or 37 spaces in the 2-Player Compact variant).
+* '''Food Tiles''' in 5 types:
+** '''1 pt''' (White Seed)
+** '''2 pts''' (Yellow Seeds)
+** '''3 pts''' (Acorns)
+** '''4 pts''' (Red Berries)
+** '''5 pts''' (Purple Fruit)
+
+== Setup ==
+# The center nest space starts empty.
+# All other spaces are randomly populated face-up with 1 fruit tile each.
+# Starting with the first player, each player places their sugar glider on any available space containing a '''1-fruit tile'''. That tile remains under the glider as their initial '''jumping tile'''.
+
+== Turn Structure ==
+On your turn, you must choose exactly one of two actions: '''JUMP''' or '''TORPOR'''.
+
+=== Action 1: JUMP ===
+# '''Determine Jump Distance''':
+#* If you have a '''tile underneath''' your glider: You must move in a straight line an exact number of spaces equal to that tile's value.
+#* If you have '''no tile underneath''' your glider: You must spend and discard one tile from your reserve. You then jump in a straight line equal to the spent tile's value. (The spent reserve tile is permanently discarded and cannot be used again).
+# '''Take the Used Tile''': After leaping, collect the tile from your takeoff space and add it to your reserve (these are your points!).
+# '''Landing''':
+#* If you land on a space with a fruit tile, that tile remains on the board underneath you and becomes your new jumping tile for your next turn.
+#* If you land on an empty space, you will have no tile underneath on your next turn (requiring a reserve tile to jump).
+
+==== Jump Exceptions & Movement Rules ====
+* '''No Leaving the Tree''': Sugar gliders cannot jump off the edge of the board.
+* '''No Jumping Over Gliders (Blocking)''': A sugar glider '''cannot move through or land on another sugar glider'''. Placing your glider in front of an opponent to block their straight-line jump paths is a core strategic tactic.
+* '''Center Nest Space Exception''': A sugar glider resting on the center space can jump to '''any unoccupied space on the entire board''' by spending any tile from their reserve (ignoring straight-line and distance constraints).
+
+=== Action 2: TORPOR ===
+# Do not move your sugar glider.
+# If there is a tile underneath your glider, eat it: take it and add it to your personal reserve.
+# On your following turn, since you now have no tile underneath, you may spend any tile from your reserve to jump in any direction, or torpor again.
+
+== Game End & Scoring ==
+The game ends immediately when either:
+# '''Consecutive Torpor''': All players take the Torpor action in succession without any player making a jump (e.g. 2 consecutive torpors in a 2-player game).
+# '''Empty Tree''': All fruit tiles on the tree have been collected.
+
+=== Final Scoring ===
+Each player sums the values of all fruit tiles in their personal reserve:
+$$\text{Score} = \sum (\text{tile values in reserve})$$
+The player with the highest total score wins! In case of a tie, players share the victory.
+
+== 2-Player Compact Variant ==
+* Played on the inner board (radius 3, 37 total spaces).
+* All 5-point purple fruit tiles and 3 tiles of each other value are removed.
+* A faster, highly tactical duel.
