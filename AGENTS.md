@@ -214,4 +214,17 @@ These two fields **MUST** be filled in the BGA Studio Web Interface via the **Ga
 * **"There is no registered licence linked to the BGG id"**: Safe to ignore for Private Alpha. BGA allows developer playtesting in Private Alpha before the publisher officially signs off on `boardgamearena.com/gamepublishers`.
 * **"The game has 1 tags set..."**: Informational notification only.
 
+### D. Mandatory Metadata Image Asset Specifications (GMM & Alpha)
+Always store these promotional images in `<game>/bga/metadata_assets/` (**never** in `img/` to prevent table load delays). Produce and keep them ready for upload in the BGA Control Panel / GMM:
+
+| Asset Type | Standard Dimensions | Format & Rules |
+| :--- | :--- | :--- |
+| **Box Image** | `280x280` px | PNG or JPG. Square game box cover thumbnail. |
+| **Icon** | `50x50` px | PNG (transparent or solid). Also keep a `500x500` px high-res version. |
+| **Banner** | `1386x400` px | JPG or PNG. **CRITICAL: Must NOT contain any text or logos** (BGA dynamically overlays title & player rankings). |
+| **Publisher Logo** | `280x280` px | PNG (transparent background preferred). |
+| **Display Images** | `1000x750` px (or height 400–760px) | JPG or PNG. In-game screenshot / setup preview. Width must be $\le 1.5 \times \text{height}$. |
+| **Title Image** | `2000x2000` px | JPG or PNG. Ultra high-res hero/cover artwork for the game presentation page. |
+
+
 
