@@ -181,22 +181,15 @@
     transform: scale(1.16);
 }
 
-/* Alternate Tile Style in Tray */
-.sg_tray_tile_btn.style-alt.val-1 { background-image: url('img/tile_alt_1.png'); }
-.sg_tray_tile_btn.style-alt.val-2 { background-image: url('img/tile_alt_2.png'); }
-.sg_tray_tile_btn.style-alt.val-3 { background-image: url('img/tile_alt_3.png'); }
-.sg_tray_tile_btn.style-alt.val-4 { background-image: url('img/tile_alt_4.png'); }
-.sg_tray_tile_btn.style-alt.val-5 { background-image: url('img/tile_alt_5.png'); }
-
-/* Scaler & Responsive Board */
+/* Scaler & Responsive Board (30% larger: 832x832 base) */
 .game-board-scaler {
     position: relative;
-    width: 640px;
-    height: 640px;
+    width: 832px;
+    height: 832px;
     overflow: hidden;
     margin: 0 auto;
-    border-radius: 28px;
-    box-shadow: 0 14px 38px rgba(0, 0, 0, 0.22), 0 3px 10px rgba(0, 0, 0, 0.12);
+    border-radius: 32px;
+    box-shadow: 0 16px 42px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 #sg_board_wrapper {
@@ -329,10 +322,10 @@
     filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.45));
 }
 
-/* Hover lift effect: glider hops up 18px to reveal underlying tile */
+/* Hover lift effect: glider hops high (-46px) to fully reveal underlying tile */
 .sg-glider-piece:hover .sg-glider-inner {
-    transform: translateY(-18px) scale(1.08);
-    filter: drop-shadow(0 14px 16px rgba(0, 0, 0, 0.65));
+    transform: translateY(-46px) scale(1.18);
+    filter: drop-shadow(0 30px 24px rgba(0, 0, 0, 0.65));
 }
 
 /* Player Colors for Top-down Glider Pieces */
