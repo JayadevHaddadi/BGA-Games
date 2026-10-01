@@ -269,14 +269,14 @@ export class Game {
                     <div id="sg_tray_tiles_container" class="sg_tray_tiles"></div>
                 </div>
 
-                <div id="sg_board_scaler" class="game-board-scaler">
+                <div id="sg_board_scaler" class="game-board-scaler ${this.HEX_RADIUS === 3 ? 'compact-tree' : ''}">
                     <div id="sg_board_wrapper">
                         <svg id="sg_board_svg"></svg>
                     </div>
                 </div>
 
                 <div id="sg_attribution">
-                    <strong>Sugar Gliders</strong> &bull; Designed by <strong>Néstor Romeral Andrés</strong> &bull; Published by <strong>nestorgames</strong>
+                    <strong>Sugar Gliders</strong> &bull; Designed by <strong>Néstor Romeral Andrés</strong> &bull; Published by <strong>nestorgames</strong> &amp; <strong>Grok Games</strong>
                 </div>
             </div>
         `;
@@ -401,66 +401,29 @@ export class Game {
     }
 
     renderFoodTileSvg(x, y, value, tileId, cellKey) {
-        const radius = (this.HEX_RADIUS === 3) ? 21 : 17;
-        const isPurple = (value === 5);
-        const bgClass = isPurple ? 'sg-tile-bg-purple' : 'sg-tile-bg-green';
-
-        let innerContent = '';
-        if (isPurple) {
-            innerContent = `
-                <text x="${x}" y="${y}" class="sg-tile-text" font-size="${this.HEX_RADIUS === 3 ? 17 : 15}">5</text>
-            `;
-        } else {
-            // White pip fruit dots
-            innerContent = this.renderPipsSvg(x, y, value);
-        }
+        const radius = (this.HEX_RADIUS === 3) ? 22 : 18;
+        const themeUrl = typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : '';
+        const tileImg = `${themeUrl}img/tile_${value}.png`;
+        const d = radius * 2;
 
         return `
             <g class="sg-food-tile val-${value}" id="sg_tile_${cellKey}" data-tile-id="${tileId}">
-                <circle cx="${x}" cy="${y}" r="${radius}" class="${bgClass}" />
-                ${innerContent}
+                <image href="${tileImg}" xlink:href="${tileImg}" x="${x - radius}" y="${y - radius}" width="${d}" height="${d}" preserveAspectRatio="xMidYMid meet" filter="url(#sg_shadow)" />
             </g>
         `;
     }
 
-    renderPipsSvg(cx, cy, count) {
-        const pipR = (this.HEX_RADIUS === 3) ? 3.8 : 3;
-        const dist = (this.HEX_RADIUS === 3) ? 9 : 7;
-        let pips = '';
-
-        if (count === 1) {
-            pips += `<circle cx="${cx}" cy="${cy}" r="4" class="sg-tile-pip" />`;
-        } else if (count === 2) {
-            pips += `<circle cx="${cx - dist}" cy="${cy}" r="${pipR}" class="sg-tile-pip" />`;
-            pips += `<circle cx="${cx + dist}" cy="${cy}" r="${pipR}" class="sg-tile-pip" />`;
-        } else if (count === 3) {
-            pips += `<circle cx="${cx}" cy="${cy - dist + 1}" r="${pipR}" class="sg-tile-pip" />`;
-            pips += `<circle cx="${cx - dist}" cy="${cy + dist - 2}" r="${pipR}" class="sg-tile-pip" />`;
-            pips += `<circle cx="${cx + dist}" cy="${cy + dist - 2}" r="${pipR}" class="sg-tile-pip" />`;
-        } else if (count === 4) {
-            pips += `<circle cx="${cx - dist + 1}" cy="${cy - dist + 1}" r="${pipR}" class="sg-tile-pip" />`;
-            pips += `<circle cx="${cx + dist - 1}" cy="${cy - dist + 1}" r="${pipR}" class="sg-tile-pip" />`;
-            pips += `<circle cx="${cx - dist + 1}" cy="${cy + dist - 1}" r="${pipR}" class="sg-tile-pip" />`;
-            pips += `<circle cx="${cx + dist - 1}" cy="${cy + dist - 1}" r="${pipR}" class="sg-tile-pip" />`;
-        }
-        return pips;
-    }
-
     renderGliderSvg(x, y, playerId, colorName, inTorpor) {
+        const p = "M 17.00 4.98 C 17.00 5.23 16.87 5.44 16.68 5.56 C 16.65 5.58 16.61 5.60 16.56 5.62 C 16.54 5.63 16.51 5.63 16.48 5.64 C 16.47 5.64 16.46 5.65 16.45 5.65 C 15.77 5.83 13.92 5.95 13.22 5.69 C 12.78 5.59 12.36 5.41 12.04 5.16 C 11.16 4.43 9.93 4.30 9.93 4.30 C 9.93 4.30 8.93 4.05 8.96 5.56 C 8.99 7.19 9.67 7.17 10.06 7.34 C 10.35 7.47 11.58 7.43 11.58 7.43 L 12.14 8.86 L 8.27 8.86 C 8.27 8.86 6.13 8.54 4.60 6.71 C 3.06 4.89 1.92 4.84 1.92 4.84 C 1.92 4.84 1.31 6.17 -0.22 6.00 C -0.22 6.00 -0.25 6.93 0.51 7.19 C 1.12 7.40 2.39 7.37 2.39 7.37 L 3.30 8.86 L -0.98 8.86 L -2.78 7.15 C -2.78 7.15 -3.22 8.30 -4.53 8.86 L -8.03 8.86 C -17.00 3.90 -12.11 -7.28 -7.32 -8.63 L -7.59 -7.34 C -7.59 -7.34 -5.45 -8.86 -2.21 -8.14 L -2.69 -6.99 C -2.69 -6.99 -0.98 -6.79 0.77 -7.64 C 0.77 -7.64 -0.08 -4.06 -2.60 -3.17 C -5.13 -2.28 -7.29 -3.13 -7.29 -3.13 C -7.29 -3.13 -9.60 -1.00 -9.39 2.39 C -9.17 5.78 -6.34 7.16 -5.67 6.17 C -5.25 5.54 -5.13 4.70 -5.16 3.96 C -5.24 1.82 -4.03 -0.30 -2.35 -1.55 C -1.22 -2.39 0.16 -2.87 1.55 -2.93 C 3.10 -3.01 4.46 -2.51 5.76 -1.67 C 5.83 -1.63 5.90 -1.58 5.97 -1.54 C 8.41 -0.01 9.38 -0.13 9.38 -0.13 C 8.93 -1.11 8.67 -2.34 10.08 -2.52 C 11.49 -2.70 11.78 -0.39 11.78 -0.39 C 11.78 -0.39 14.17 0.15 14.95 0.77 C 14.96 0.77 14.96 0.77 14.96 0.78 C 15.31 0.98 15.56 1.34 15.62 1.76 L 15.64 1.72 C 15.64 1.72 15.70 2.21 15.83 2.72 C 15.84 2.75 15.85 2.78 15.86 2.81 C 15.93 3.05 16.03 3.32 16.16 3.59 C 16.16 3.59 16.16 3.60 16.16 3.60 C 16.17 3.63 16.19 3.66 16.20 3.69 C 16.32 3.93 16.47 4.15 16.63 4.34 C 16.67 4.39 16.73 4.43 16.78 4.47 C 17.00 4.64 17.00 4.77 17.00 4.98";
+
         return `
             <g class="sg-glider-piece" id="sg_glider_${playerId}" data-player-id="${playerId}" transform="translate(${x}, ${y})">
-                <!-- Glider Patagium (Wings) -->
-                <path d="M -16, -6 Q 0, -18 16, -6 Q 18, 10 12, 16 Q 0, 10 -12, 16 Q -18, 10 -16, -6 Z" class="sg-glider-body color-${colorName}" opacity="0.95" />
-                <!-- Glider Head & Ears -->
-                <circle cx="-7" cy="-12" r="4.5" class="sg-glider-body color-${colorName}" />
-                <circle cx="7" cy="-12" r="4.5" class="sg-glider-body color-${colorName}" />
-                <circle cx="0" cy="-6" r="9" class="sg-glider-body color-${colorName}" />
-                <!-- Eyes & Nose -->
-                <circle cx="-3" cy="-7" r="1.5" fill="#111111" />
-                <circle cx="3" cy="-7" r="1.5" fill="#111111" />
-                <circle cx="0" cy="-4" r="1.2" fill="#ff80ab" />
+                <!-- Drop shadow -->
+                <path d="${p}" fill="rgba(0,0,0,0.35)" transform="translate(0, 2)" />
+                <!-- Glider Wood Meeple -->
+                <path d="${p}" class="sg-glider-body color-${colorName}" stroke="#1b1b1b" stroke-width="1.2" stroke-linejoin="round" />
                 <!-- Torpor Sleep Indicator -->
-                ${inTorpor ? `<text x="9" y="-14" class="sg-torpor-zzz">&#128164;</text>` : ''}
+                ${inTorpor ? `<text x="9" y="-12" class="sg-torpor-zzz">&#128164;</text>` : ''}
             </g>
         `;
     }

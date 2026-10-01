@@ -14,6 +14,7 @@ This document tracks publisher/designer permissions, communications, contact inf
 | **Omega** | Néstor Romeral Andrés | nestorgames | 🟢 **Ready for Testing** | Built on BGA (`omegatest`) |
 | **Seven** | Néstor Romeral Andrés | nestorgames | 🟢 **Approved** (SVGs received) | Rule clarification needed |
 | **Lords of Scotland**| Richard Sivél | Z-Man Games / Asmodee | 🟡 **Pending Studio Approval** | Core Engine Ready (`lordsofscotland`) |
+| **Sugar Gliders** | Néstor Romeral Andrés | nestorgames & Grok Games (Brazil) | 🟢 **Ready for Testing** | Built on BGA (`sugargliders`) |
 | **Gardens of Uranus** | Néstor Romeral Andrés | nestorgames | 🟢 **Recommended by Nestor** | Workspace Scaffolding Ready |
 | **nestorgames GP** | Néstor Romeral Andrés | nestorgames | 🟢 **Recommended by Nestor** | Workspace Scaffolding Ready |
 | **Taiji** | Néstor Romeral Andrés | nestorgames | ⚪ Inquiry Sent | Backlog |
@@ -76,7 +77,25 @@ This document tracks publisher/designer permissions, communications, contact inf
 
 ---
 
-### 5. nestorgames Slate (Inquiry Sent)
+### 5. Sugar Gliders
+* **Designer**: Néstor Romeral Andrés
+* **Publishers**: nestorgames (Néstor Romeral Andrés) & **Grok Games** (Brazil - Brazilian edition agreement confirmed by Nestor)
+* **Status**: **Fully Approved & Complete Implementation on BGA** (`sugargliders`)
+* **Conditions / Mandatory Credits**:
+  * Credit **nestorgames** and Brazilian publisher **Grok Games**.
+  * Listed in `gameinfos.jsonc`, BGA GMM metadata, and game footer.
+* **Assets In Hand**:
+  * Rules PDF and Strategy Tips PDF.
+  * Official board vector art (`SG_board.ai` — 61-space standard canopy + 37-space compact canopy).
+  * Official illustrated food tokens (`SG_token1.ai` to `SG_token5.ai` + `SG_token_back.ai`).
+  * Official wooden sugar glider meeple silhouette (`SG_token.ai`).
+* **Next Actions**:
+  * Swap placeholder tokens with official illustrated token assets.
+  * Integrate Grok Games in BGA Studio Game Metadata Manager credits.
+
+---
+
+### 6. nestorgames Slate (Inquiry Sent)
 * **Titles**: Taiji, Game of the Amazons, ConHex.
 * **Contact**: `orders@nestorgames.com`
 * **Status**: Inquiry batched in recent reply to Nestor.
