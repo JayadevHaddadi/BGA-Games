@@ -206,7 +206,7 @@ These two fields **MUST** be filled in the BGA Studio Web Interface via the **Ga
 1. Open GMM at: `https://studio.boardgamearena.com/gamemetadatamanager?game=<game>` (or *Manage Game* $\rightarrow$ *Game Metadata Manager*).
 2. **Description**: Enter a 1–2 paragraph English description of the game, theme, and objective.
 3. **Zombie Mode Level**: Select **Level 1** (or *"Turn-based / complete support handled by game engine"*).
-4. **Characteristics**: Set sliders/values (1–5) for `Complexity`, `Luck`, `Strategy`, `Diplomacy` (also duplicate these into `gameinfos.jsonc`).
+4. **Characteristics**: Set sliders/values (1–5) for `Complexity`, `Luck`, `Strategy`, `Diplomacy` only in GMM (do NOT include these keys in `gameinfos.jsonc`, as modern BGA rejects them as deprecated).
 5. **Tags**: Add relevant tags (e.g., *Abstract strategy*, *Hexagonal grid*, *Animals*).
 6. Click **Save** in GMM, then return to *Manage Game* and click **Request PRIVATE ALPHA status**.
 
