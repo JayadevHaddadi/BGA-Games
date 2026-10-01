@@ -940,26 +940,21 @@ export class Game {
             newAnchorEl.appendChild(b);
         }
 
-        // 4. If a piece was pushed off the board, play the shocked panic + plummet sequence
+        // 4. If a piece was pushed off the board, play the shocked panic + depth plunge sequence
         if (fallenEl) {
             sounds.playShock();
             fallenEl.classList.add('being-shocked');
 
-            const bubble = document.createElement('div');
-            bubble.className = 'pft-shock-bubble';
-            bubble.textContent = '😱';
-            fallenEl.appendChild(bubble);
+            // Mid-air shock wobble duration (~360ms)
+            await new Promise(r => setTimeout(r, 360));
 
-            // Mid-air shock wobble duration (~380ms)
-            await new Promise(r => setTimeout(r, 380));
-
-            // Gravity plummet down off the table with descending whistle
+            // Top-down depth plunge: piece falls away shrinking into the depth
             sounds.playFalling();
             fallenEl.classList.remove('being-shocked');
             fallenEl.classList.add('plummeting');
 
-            // Wait for plummet animation (~520ms)
-            await new Promise(r => setTimeout(r, 520));
+            // Wait for depth fall animation (~550ms)
+            await new Promise(r => setTimeout(r, 550));
             fallenEl.remove();
         }
 
