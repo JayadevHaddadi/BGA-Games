@@ -269,9 +269,10 @@ class Game extends \Bga\GameFramework\Table
             }
         }
 
-        // 7. Activate first player
+        // 7. Activate all players for initial draft
         $firstPlayerId = $playerIds[0];
         $this->gamestate->changeActivePlayer($firstPlayerId);
+        $this->gamestate->setAllPlayersMultiactive();
 
         return DraftCard::class;
     }

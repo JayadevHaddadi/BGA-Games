@@ -44,7 +44,7 @@ class NextDraftRound extends GameState
 
             $newRound = $round + 1;
             $this->globals->set('draft_round', $newRound);
-            $this->game->notifyAllPlayers("draftRoundStarted", clienttranslate('Draft Round ${round}: Remaining cards passed to the next player!'), [
+            $this->notify->all("draftRoundStarted", clienttranslate('Draft Round ${round}: Remaining cards passed to the next player!'), [
                 'round' => $newRound,
             ]);
 
@@ -52,7 +52,7 @@ class NextDraftRound extends GameState
                 $cards = $this->game->getObjectListFromDb(
                     "SELECT `card_id`, `card_type`, `color1`, `color2` FROM `card` WHERE `card_location` = 'draft_hand' AND `location_arg` = " . (int)$pId
                 );
-                $this->game->notifyPlayer((int)$pId, "newDraftHand", '', [
+                $this->notify->player((int)$pId, "newDraftHand", '', [
                     'round' => $newRound,
                     'draft_cards' => $cards,
                 ]);

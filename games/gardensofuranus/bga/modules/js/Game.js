@@ -571,6 +571,7 @@ export class Game {
     }
 
     updateSelectMartianUI(args) {
+        document.querySelectorAll('.gou_draft_ready_badge').forEach(b => b.remove());
         this.clearValidMoveHighlights();
         this.clearActionButtons();
 
@@ -690,9 +691,31 @@ export class Game {
         sounds.playClick();
         const args = this._getNotifArgs(notif);
         const myId = this.bga?.players?.getCurrentPlayerId?.() || 0;
-        if (parseInt(args.player_id) === parseInt(myId)) {
+        const pId = parseInt(args.player_id);
+
+        // Display checkmark badge on player's sidebar panel
+        const panel = this.bga?.playerPanels?.getElement?.(pId);
+        if (panel) {
+            let badge = document.getElementById(`gou_draft_badge_${pId}`);
+            if (!badge) {
+                badge = document.createElement('div');
+                badge.id = `gou_draft_badge_${pId}`;
+                badge.className = 'gou_draft_ready_badge';
+                panel.appendChild(badge);
+            }
+            badge.innerHTML = `✓ Card Locked In`;
+            badge.style.display = 'inline-block';
+        }
+
+        if (pId === parseInt(myId)) {
             this.clearActionButtons();
-            this.bga?.statusBar?.setTitle?.(_('Mission card selected! Waiting for other players...'));
+            this.bga?.statusBar?.setTitle?.(_('✓ Card locked in! Waiting for other players to choose...'));
+        } else {
+            const container = document.getElementById('gou_cards_container');
+            const hasChosen = container?.querySelector('.gou_card_wrapper.selected');
+            if (hasChosen) {
+                this.bga?.statusBar?.setTitle?.(_('✓ Card locked in! Waiting for next draft round...'));
+            }
         }
     }
 
@@ -703,6 +726,10 @@ export class Game {
         if (args?.round) {
             this.gamedatas.draft_round = args.round;
         }
+        // Clear all ready badges for the new round
+        document.querySelectorAll('.gou_draft_ready_badge').forEach(b => {
+            b.style.display = 'none';
+        });
     }
 
     notif_newDraftHand(notif) {
@@ -712,6 +739,10 @@ export class Game {
         if (args?.draft_cards) {
             this.gamedatas.draft_cards = args.draft_cards;
         }
+        // Clear all ready badges for the new round
+        document.querySelectorAll('.gou_draft_ready_badge').forEach(b => {
+            b.style.display = 'none';
+        });
         this.updateDraftUI(args, true);
     }
 
