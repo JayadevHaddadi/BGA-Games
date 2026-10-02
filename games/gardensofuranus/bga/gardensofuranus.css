@@ -109,11 +109,23 @@
     content: '';
     position: absolute;
     inset: -5px;
-    border: 4px solid #000;
+    border: 4px solid #ffc400;
     border-radius: 50%;
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.8);
+    box-shadow: 0 0 10px 3px rgba(255, 196, 0, 0.85), 0 0 0 1px rgba(90, 61, 0, 0.7);
     z-index: 3;
     pointer-events: none;
+    animation: gou_ring_pulse 1.3s infinite ease-in-out;
+}
+
+@keyframes gou_ring_pulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 6px 2px rgba(255, 196, 0, 0.7), 0 0 0 1px rgba(90, 61, 0, 0.7);
+    }
+    50% {
+        transform: scale(1.14);
+        box-shadow: 0 0 18px 7px rgba(255, 214, 64, 1), 0 0 0 1px rgba(90, 61, 0, 0.7);
+    }
 }
 
 .gou_flower_token {
@@ -172,7 +184,7 @@
 }
 
 .gou_color_btn:hover:not(:disabled) {
-    border-color: #000;
+    border-color: #ffc400;
 }
 
 .gou_color_btn:disabled {
@@ -595,4 +607,68 @@
 
 .gou_card_vp:empty {
     display: none;
+}
+
+#gou_decks_row {
+    flex-wrap: nowrap;
+    gap: 10px;
+    width: 100%;
+    max-width: 640px;
+}
+
+.gou_deck {
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto;
+    max-width: calc(var(--gou-card-w) + 6px);
+}
+
+.gou_deck .gou_card_wrapper {
+    width: 100%;
+}
+
+.gou_deck .gou_card,
+.gou_deck .gou_deck_empty {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 124 / 188;
+}
+
+.gou_deck .gou_card_title_label {
+    max-width: 100%;
+    font-size: 10px;
+    padding: 3px 5px;
+}
+
+.gou_deck_label {
+    font-size: 10px;
+    text-align: center;
+}
+
+.gou_panel_penalty {
+    flex-basis: 100%;
+    font-size: 12px;
+    font-weight: 700;
+    color: #b71c1c;
+}
+
+.gou_panel_scored {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    margin-top: 6px;
+}
+
+.gou_panel_scored_label {
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.gou_scored_thumb {
+    width: 26px;
+    height: 39px;
+    border-radius: 3px;
+    object-fit: cover;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }

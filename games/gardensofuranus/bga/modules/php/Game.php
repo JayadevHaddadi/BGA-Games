@@ -566,9 +566,9 @@ class Game extends \Bga\GameFramework\Table
         }
         $this->playerStats->inc('missions_scored', 1, $playerId);
 
-        // Discard scored card
+        // Scored cards are shown face up to everyone (rulebook), then out of the game
         static::DbQuery(
-            "UPDATE `card` SET `card_location` = 'discard', `location_arg` = 0 WHERE `card_id` = $cardId"
+            "UPDATE `card` SET `card_location` = 'scored', `location_arg` = $playerId WHERE `card_id` = $cardId"
         );
 
         // Draw 1 replacement card from the chosen board deck (fall back to any non-empty deck)
@@ -591,9 +591,11 @@ class Game extends \Bga\GameFramework\Table
         // Scoring a card is not a gardener move: it breaks the "everyone moved without planting" streak
         $this->globals->set('non_plant_moves_streak', 0);
 
-        $this->notifyAllPlayers("missionScored", clienttranslate('${player_name} scored mission card for ${score} points!'), [
+        $this->notifyAllPlayers("missionScored", clienttranslate('${player_name} scored ${card_name} for ${score} points!'), [
+            'i18n' => ['card_name'],
             'player_id' => $playerId,
             'player_name' => $this->getPlayerNameById($playerId),
+            'card_name' => $this->getMissionDeckWithDescriptions()[$cardId]['name'] ?? ('#' . $cardId),
             'card_id' => $cardId,
             'card_type' => $card['card_type'],
             'score' => $score,
@@ -971,6 +973,12 @@ class Game extends \Bga\GameFramework\Table
             "SELECT `card_id`, `card_type`, `color1`, `color2` FROM `card` WHERE `card_location` = 'draft_hand' AND `location_arg` = " . (int)$currentPlayerId
         ) : [];
         $result['board_decks'] = $this->getBoardDecks();
+        $scoredRows = static::getObjectListFromDb("SELECT `card_id`, `location_arg` AS `player_id` FROM `card` WHERE `card_location` = 'scored'");
+        $scoredCards = [];
+        foreach ($scoredRows as $row) {
+            $scoredCards[(int) $row['player_id']][] = (int) $row['card_id'];
+        }
+        $result['scored_cards'] = $scoredCards;
         $result['card_scores'] = ($currentPlayerId !== null) ? $this->getHandScores((int)$currentPlayerId) : [];
         $result['special_powers'] = (int) $this->globals->get('special_powers', 1);
         $result['mission_deck'] = $this->getMissionDeckWithDescriptions();

@@ -68,6 +68,15 @@ class NextDraftRound extends GameState
         );
 
         $playerIds = array_keys($this->game->loadPlayersBasicInfos());
+
+        // Hands are private: send each player their own final hand and what it would score
+        foreach ($playerIds as $pId) {
+            $this->notify->player((int)$pId, 'handUpdated', '', [
+                'hand_cards' => $this->game->getPlayerCards((int)$pId),
+                'card_scores' => $this->game->getHandScores((int)$pId),
+            ]);
+        }
+
         $this->gamestate->changeActivePlayer((int)$playerIds[0]);
 
         return SelectMartian::class;

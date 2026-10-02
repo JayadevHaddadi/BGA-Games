@@ -28,14 +28,7 @@ class PlayerTurn extends GameState
 
         $validMoves = $this->game->getValidMoves($activePlayerId);
         $playerFlowers = $this->game->getPlayerFlowers($activePlayerId);
-        $playerCards = $this->game->getPlayerCards($activePlayerId);
         $boardDecks = $this->game->getBoardDecks();
-
-        // Calculate potential score for each card in hand for UI helper
-        $cardScores = [];
-        foreach ($playerCards as $c) {
-            $cardScores[$c['card_id']] = $this->game->calculateCardScore($c);
-        }
 
         $gardener = $this->game->getObjectFromDb(
             "SELECT `martian`, `coord_q` as `q`, `coord_r` as `r`, `power_used` FROM `gardener` WHERE `player_id` = $activePlayerId"
@@ -46,8 +39,6 @@ class PlayerTurn extends GameState
         return [
             'valid_moves' => $validMoves,
             'player_flowers' => $playerFlowers,
-            'player_cards' => $playerCards,
-            'card_scores' => $cardScores,
             'board_decks' => $boardDecks,
             'gardener' => $gardener,
             'can_use_power' => ($specialPowersEnabled && $gardener && (int)$gardener['power_used'] === 0),

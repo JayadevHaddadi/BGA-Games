@@ -552,11 +552,51 @@ export class Game {
                 panel.appendChild(box);
             }
             box.innerHTML = '';
+            let total = 0;
             colors.forEach(color => {
+                const n = all[pid]?.[color] || 0;
+                total += n;
                 const item = document.createElement('span');
                 item.className = 'gou_panel_flower';
-                item.innerHTML = `<img src="${this.imgUrl(`flower_${color}.png`)}" alt="${color}"><b>${all[pid]?.[color] || 0}</b>`;
+                item.innerHTML = `<img src="${this.imgUrl(`flower_${color}.png`)}" alt="${color}"><b>${n}</b>`;
                 box.appendChild(item);
+            });
+            const penalty = (total * (total + 1)) / 2;
+            const pen = document.createElement('div');
+            pen.className = 'gou_panel_penalty';
+            pen.title = _('Unused flowers cost points at the end of the game. Plant them to shrink this penalty.');
+            pen.textContent = `${total} ${_('flowers left')} → ${penalty > 0 ? '-' : ''}${penalty} VP`;
+            box.appendChild(pen);
+        });
+        this.renderScoredCards();
+    }
+
+    renderScoredCards() {
+        const scored = this.gamedatas.scored_cards || {};
+        Object.keys(this.gamedatas.all_flowers || {}).forEach(pid => {
+            const panel = this.bga?.playerPanels?.getElement?.(parseInt(pid));
+            if (!panel) return;
+            let box = document.getElementById(`gou_scored_${pid}`);
+            if (!box) {
+                box = document.createElement('div');
+                box.id = `gou_scored_${pid}`;
+                box.className = 'gou_panel_scored';
+                panel.appendChild(box);
+            }
+            const ids = scored[pid] || [];
+            box.innerHTML = '';
+            if (!ids.length) return;
+            const label = document.createElement('span');
+            label.className = 'gou_panel_scored_label';
+            label.textContent = _('Scored:');
+            box.appendChild(label);
+            ids.forEach(id => {
+                const img = document.createElement('img');
+                img.src = this.imgUrl(`cards/card_${id}.jpg`);
+                img.alt = this.getCardInfo(id).name;
+                img.title = this.getCardInfo(id).name;
+                img.className = 'gou_scored_thumb';
+                box.appendChild(img);
             });
         });
     }
@@ -805,10 +845,6 @@ export class Game {
         this.closeColorPicker();
         this.cancelScoreSelection();
         this.lastTurnArgs = args;
-        if (args?.card_scores) {
-            this.gamedatas.card_scores = args.card_scores;
-            this.updateHandScores();
-        }
         if (args?.board_decks) {
             this.gamedatas.board_decks = args.board_decks;
             this.renderBoardDecks();
@@ -877,7 +913,7 @@ export class Game {
             .forEach(el => el.classList.add('selected'));
         this.highlightChoosableDecks();
 
-        const pts = this.lastTurnArgs.card_scores?.[cardId];
+        const pts = this.gamedatas.card_scores?.[cardId];
         const msg = pts !== undefined
             ? _('Score this card for ${pts} point(s). Click a deck to draw your replacement card from.').replace('${pts}', pts)
             : _('Click a deck to draw your replacement card from.');
@@ -1022,6 +1058,12 @@ export class Game {
         if (args.board_decks) {
             this.gamedatas.board_decks = args.board_decks;
             this.renderBoardDecks();
+        }
+        if (args.card_id) {
+            if (!this.gamedatas.scored_cards) this.gamedatas.scored_cards = {};
+            if (!this.gamedatas.scored_cards[args.player_id]) this.gamedatas.scored_cards[args.player_id] = [];
+            this.gamedatas.scored_cards[args.player_id].push(parseInt(args.card_id));
+            this.renderScoredCards();
         }
         const counter = this.bga?.playerPanels?.getScoreCounter?.(args.player_id);
         if (counter && args.new_score !== undefined) {
