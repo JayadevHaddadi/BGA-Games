@@ -1039,35 +1039,75 @@
 
 .gp_track_item {
     position: absolute;
-    width: 28px;
-    height: 28px;
+    width: 34px;
+    height: 34px;
     transform: translate(-50%, -50%);
-    pointer-events: none;
-    transition: transform 0.3s ease, opacity 0.3s ease;
+    pointer-events: auto;
+    cursor: pointer;
+    transition: transform 0.2s ease;
     z-index: 8;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
 }
 
-.gp_item_img {
+.gp_track_item:hover,
+.gp_track_item.gp_item_pinned {
+    transform: translate(-50%, -50%) scale(1.25);
+    z-index: 40;
+}
+
+.gp_item_badge {
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    box-sizing: border-box;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    padding: 4px;
+    background: var(--gp-item-color, #475569);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 0 10px 2px var(--gp-item-color, #475569);
+    animation: gp_item_glow 2.2s infinite ease-in-out;
+}
+
+.gp_item_badge svg {
+    width: 100%;
+    height: 100%;
     display: block;
 }
 
-.gp_item_spill .gp_item_img {
-    width: 32px;
-    height: 32px;
-    opacity: 0.92;
+.gp_item_badge_spill { --gp-item-color: #7c3aed; }
+.gp_item_badge_mine { --gp-item-color: #ef4444; }
+.gp_item_badge_rocket { --gp-item-color: #f97316; }
+.gp_item_badge_wrench { --gp-item-color: #06b6d4; }
+.gp_item_badge_turboboost { --gp-item-color: #facc15; }
+
+@keyframes gp_item_glow {
+    0%, 100% { box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 0 6px 1px var(--gp-item-color, #475569); }
+    50% { box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 0 14px 4px var(--gp-item-color, #475569); }
 }
 
-.gp_item_mine {
-    animation: gp_mine_pulse 2s infinite ease-in-out;
+.gp_track_item::after {
+    content: attr(data-tip);
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 8px);
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: 220px;
+    padding: 6px 9px;
+    border-radius: 6px;
+    background: rgba(15, 23, 42, 0.96);
+    color: #f8fafc;
+    font-size: 12px;
+    line-height: 1.35;
+    text-align: left;
+    white-space: normal;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
 }
 
-@keyframes gp_mine_pulse {
-    0%, 100% { transform: translate(-50%, -50%) scale(1); filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5)); }
-    50% { transform: translate(-50%, -50%) scale(1.12); filter: drop-shadow(0 0 6px rgba(255, 60, 0, 0.75)); }
+.gp_track_item:hover::after,
+.gp_track_item.gp_item_pinned::after {
+    opacity: 1;
 }
 
 .gp_panel_inv_row {
@@ -1167,6 +1207,8 @@
 }
 
 .gp_team_car_icon {
+    width: 25px;
+    height: 25px;
     font-size: 14px;
     margin-right: 6px;
     filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));

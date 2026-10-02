@@ -712,8 +712,13 @@ export class Game {
             el.id = `gp_item_${item.item_id}`;
             el.style.left = `${coords.x}px`;
             el.style.top = `${coords.y}px`;
-            el.title = `${this.getItemName(item.item_type)} (Space ${item.space_id})`;
+            el.setAttribute('data-tip', `${this.getItemName(item.item_type)} - ${this.getItemDesc(item.item_type)}`);
             el.innerHTML = this.getItemHtml(item.item_type);
+            el.addEventListener('click', () => {
+                const wasPinned = el.classList.contains('gp_item_pinned');
+                layer.querySelectorAll('.gp_item_pinned').forEach(n => n.classList.remove('gp_item_pinned'));
+                if (!wasPinned) el.classList.add('gp_item_pinned');
+            });
             layer.appendChild(el);
         });
     }
@@ -729,16 +734,27 @@ export class Game {
         }
     }
 
+    getItemDesc(type) {
+        switch (type) {
+            case 'spill': return _('Stop on it and you slide to the next corner and crash.');
+            case 'mine': return _('Drive onto or over it: roll a die, 1-3 it explodes (car crashes, stops, loses a die), 4-6 you are safe.');
+            case 'rocket': return _('Stop here to pick it up. Before rolling, fire at a car in a straight line ahead (roll >= distance to hit and crash it).');
+            case 'wrench': return _('Stop here to pick it up. Use it to flip your car upright and recover all 6 dice.');
+            case 'turboboost': return _('Stop here to pick it up. Use it before moving: your highest die counts twice.');
+            default: return '';
+        }
+    }
+
     getItemHtml(type) {
-        const urlPrefix = (typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : '');
-        const icons = {
-            spill: `<img src="${urlPrefix}img/spill.png" alt="Oil Spill" class="gp_item_img gp_item_spill" onerror="this.outerHTML='<span class=\\'gp_item_fallback\\'>🛢️</span>'" />`,
-            mine: `<img src="${urlPrefix}img/mine.png" alt="Mine" class="gp_item_img gp_item_mine" onerror="this.outerHTML='<span class=\\'gp_item_fallback\\'>💣</span>'" />`,
-            rocket: `<img src="${urlPrefix}img/rocket.png" alt="Rocket" class="gp_item_img gp_item_rocket" onerror="this.outerHTML='<span class=\\'gp_item_fallback\\'>🚀</span>'" />`,
-            wrench: `<img src="${urlPrefix}img/wrench.png" alt="Wrench" class="gp_item_img gp_item_wrench" onerror="this.outerHTML='<span class=\\'gp_item_fallback\\'>🔧</span>'" />`,
-            turboboost: `<img src="${urlPrefix}img/turboboost.png" alt="Turbo Boost" class="gp_item_img gp_item_turbo" onerror="this.outerHTML='<span class=\\'gp_item_fallback\\'>⚡</span>'" />`,
+        const svgs = {
+            spill: '<svg viewBox="0 0 32 32"><path d="M16 6c4 5 8 8 8 13a8 8 0 0 1-16 0c0-5 4-8 8-13z" fill="#111827"/><ellipse cx="13" cy="17" rx="2.2" ry="3.6" fill="#a78bfa" opacity=".8" transform="rotate(20 13 17)"/><circle cx="19.5" cy="21" r="1.6" fill="#38bdf8" opacity=".7"/></svg>',
+            mine: '<svg viewBox="0 0 32 32"><g stroke="#111827" stroke-width="2.4" stroke-linecap="round"><path d="M16 4v5M16 23v5M4 16h5M23 16h5M7.5 7.5l3.5 3.5M21 21l3.5 3.5M24.5 7.5L21 11M11 21l-3.5 3.5"/></g><circle cx="16" cy="16" r="8" fill="#1f2937"/><circle cx="16" cy="16" r="3" fill="#ef4444"/><circle cx="13.5" cy="13" r="1.6" fill="#9ca3af" opacity=".7"/></svg>',
+            rocket: '<svg viewBox="0 0 32 32"><g transform="rotate(45 16 16)"><path d="M16 3c4 4 5 9 5 14v5H11v-5c0-5 1-10 5-14z" fill="#f8fafc"/><path d="M16 3c2 2 3.200 4 3.800 6h-7.600c.6-2 1.800-4 3.800-6z" fill="#dc2626"/><circle cx="16" cy="13" r="2.200" fill="#0ea5e9"/><path d="M11 17l-4 5h4zM21 17l4 5h-4z" fill="#dc2626"/><path d="M13 22h6l-3 7z" fill="#fbbf24"/></g></svg>',
+            wrench: '<svg viewBox="0 0 32 32"><path d="M23.500 5a6 6 0 0 0-5.600 8.200L6.300 24.800a2.300 2.300 0 0 0 3.300 3.300l11.600-11.600A6 6 0 0 0 28 10.500l-3.800 3.800-3.300-.7-.7-3.300L24 6.500A6 6 0 0 0 23.500 5z" fill="#f1f5f9" stroke="#334155" stroke-width="1.200" stroke-linejoin="round"/></svg>',
+            turboboost: '<svg viewBox="0 0 32 32"><path d="M18.500 3L7 18h8l-2 11 12-16h-8z" fill="#1f2937" stroke="#fff" stroke-width="1" stroke-linejoin="round"/></svg>',
         };
-        return icons[type] || '';
+        const svg = svgs[type];
+        return svg ? `<div class="gp_item_badge gp_item_badge_${type}">${svg}</div>` : '';
     }
 
     getItemIcon(type) {
@@ -841,8 +857,29 @@ export class Game {
             const carEl = this.createCarElement(r);
             layer.appendChild(carEl);
         });
+        this.layoutStackedCars();
         this.updateActiveCarHighlight();
         this.updatePlayerPanels();
+    }
+
+    layoutStackedCars() {
+        const layer = document.getElementById('gp_racers_layer');
+        if (!layer) return;
+        const groups = {};
+        layer.querySelectorAll('.gp_car').forEach(car => {
+            car.style.marginLeft = '0px';
+            car.style.marginTop = '0px';
+            const key = `${car.style.left}|${car.style.top}`;
+            (groups[key] = groups[key] || []).push(car);
+        });
+        Object.values(groups).forEach(cars => {
+            if (cars.length < 2) return;
+            cars.forEach((car, i) => {
+                const k = i - (cars.length - 1) / 2;
+                car.style.marginLeft = `${Math.round(k * 16)}px`;
+                car.style.marginTop = `${Math.round(k * 12)}px`;
+            });
+        });
     }
 
     updatePlayerPanels() {
@@ -1017,24 +1054,12 @@ export class Game {
                         }
                     }
 
-                    const turnPos = (this.carTurnOrder && this.carTurnOrder.length > 0)
-                        ? (this.carTurnOrder.indexOf(rId) + 1)
-                        : null;
-                    const turnBadge = turnPos > 0
-                        ? `<span class="gp_turn_pos_badge" title="Starts in Pit Box ${turnPos} · Moves #${turnPos} in round">Box ${turnPos} (#${turnPos})</span>`
-                        : '';
-
                     carsHtml += `
                         <div class="gp_team_car_row ${isActiveCar ? 'active_turn' : ''}" id="gp_team_car_row_${rId}">
                             <div class="gp_team_car_icon gp_mini_car_svg gp_color_${racer.car_color}">
                                 ${this.getCarSvg('chibi_kart')}
                             </div>
                             <div class="gp_team_car_info">
-                                <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
-                                    <span class="gp_team_car_name">${racer.car_name || ('Car ' + rId)}</span>
-                                    <span class="gp_color_badge gp_bg_${racer.car_color}" style="font-size: 8px; padding: 0 4px;">${racer.car_color}</span>
-                                    ${turnBadge}
-                                </div>
                                 <span class="gp_team_car_pips">${carPips}</span>
                                 ${carItemsHtml}
                             </div>
@@ -1380,7 +1405,9 @@ export class Game {
 
         // Check if finish line (74 -> 1) was crossed
         let crossedFinish = false;
-        if (pathSteps) {
+        const movingRacer = this.racers?.[this.activeRacerId];
+        const raceStarted = !!this.racersStarted?.[this.activeRacerId] || (movingRacer && movingRacer.space_id < 74);
+        if (pathSteps && raceStarted) {
             for (let i = 0; i < pathSteps.length - 1; i++) {
                 if (pathSteps[i] === 74 && pathSteps[i + 1] === 1) {
                     crossedFinish = true;
@@ -1594,6 +1621,7 @@ export class Game {
 
         await this.waitMs(200);
         carEl.classList.remove('gp_car_arrive');
+        this.layoutStackedCars();
     }
 
     async animateCarBump(bumpedId, fromSpace, toSpace) {
@@ -1616,6 +1644,7 @@ export class Game {
         this.sound.playBump();
         await this.waitMs(280);
         carEl.classList.remove('gp_car_bumped');
+        this.layoutStackedCars();
     }
 
     async animateCarCrash(crashedId, spaceId) {
@@ -1627,6 +1656,7 @@ export class Game {
         this.sound.playCrash();
         await this.waitMs(350);
         carEl.classList.remove('gp_car_crashing');
+        this.layoutStackedCars();
     }
 
     renderDiceTray(dice, playerId = null, isCorner = null, isQualifying = false) {
