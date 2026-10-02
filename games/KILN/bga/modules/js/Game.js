@@ -963,10 +963,10 @@ export class Game {
             // 2 = Opposite player (Top side of board)
             // 3 = Preceding player (Left side of board)
             const pIdx = playerIds.indexOf(String(pId));
-            const relStep = (myIdx >= 0 && pIdx >= 0) ? (pIdx - myIdx + numP) % numP : 0;
+            const ccwStep = (myIdx >= 0 && pIdx >= 0) ? (myIdx - pIdx + numP) % numP : 0;
 
             let slotId;
-            if (relStep === 0) {
+            if (ccwStep === 0) {
                 // "for each player, their mat should be at the bottom"
                 slotId = 'kiln_slot_bottom';
             } else if (numP === 2) {
@@ -975,13 +975,13 @@ export class Game {
                 // 3-Player counter-clockwise:
                 // step 1 (next): Right
                 // step 2 (previous): Top
-                slotId = (relStep === 1) ? 'kiln_slot_right' : 'kiln_slot_top';
+                slotId = (ccwStep === 1) ? 'kiln_slot_right' : 'kiln_slot_top';
             } else {
                 // 4-Player counter-clockwise:
                 // step 1 (next): Right
                 // step 2 (opposite): Top
                 // step 3 (previous): Left
-                switch (relStep) {
+                switch (ccwStep) {
                     case 1:
                         slotId = 'kiln_slot_right';
                         break;
@@ -1000,7 +1000,7 @@ export class Game {
             if (!targetSlot) return;
 
             const card = document.createElement('div');
-            card.className = `kiln_warehouse_card ${isMe ? 'kiln_my_warehouse' : 'kiln_opponent_card'}`;
+            card.className = `kiln_warehouse_card kiln_wh_${pColor} ${isMe ? 'kiln_my_warehouse' : 'kiln_opponent_card'}`;
             card.id = `kiln_warehouse_card_${pId}`;
 
             const priceTableHtml = isMe ? `
@@ -1047,7 +1047,7 @@ export class Game {
             `;
 
             let positionBadge = '';
-            if (isMultiplayer && !isMe && relStep === 1) {
+            if (isMultiplayer && !isMe && ccwStep === 1) {
                 positionBadge = `<span class="kiln_seat_badge">(${_('Next')})</span>`;
             }
 

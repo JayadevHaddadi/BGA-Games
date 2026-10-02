@@ -494,26 +494,81 @@
 }
 
 .kiln_warehouse_card {
-    background: #f8fafc;
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    padding: 10px;
+    border: 1.5px solid var(--kiln-border-color);
+    border-radius: 10px;
+    padding: 10px 14px;
     box-sizing: border-box;
-    transition: transform 0.2s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
     display: flex;
     flex-direction: column;
     align-items: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
-.kiln_my_warehouse {
-    border: 2px solid #0284c7;
-    background: #f0f9ff;
-    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.15);
+/* Color-tinted warehouse mat cards */
+.kiln_wh_red {
+    background: linear-gradient(180deg, #fff5f5 0%, #fee2e2 100%) !important;
+    border-color: #fca5a5 !important;
+}
+.kiln_wh_red .kiln_wh_grid {
+    background: #fecaca;
+}
+.kiln_wh_red .kiln_wh_title {
+    color: #991b1b;
+}
+
+.kiln_wh_blue {
+    background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%) !important;
+    border-color: #93c5fd !important;
+}
+.kiln_wh_blue .kiln_wh_grid {
+    background: #bae6fd;
+}
+.kiln_wh_blue .kiln_wh_title {
+    color: #075985;
+}
+
+.kiln_wh_green {
+    background: linear-gradient(180deg, #f0fdf4 0%, #dcfce7 100%) !important;
+    border-color: #86efac !important;
+}
+.kiln_wh_green .kiln_wh_grid {
+    background: #bbf7d0;
+}
+.kiln_wh_green .kiln_wh_title {
+    color: #166534;
+}
+
+.kiln_wh_yellow {
+    background: linear-gradient(180deg, #fefce8 0%, #fef3c7 100%) !important;
+    border-color: #fde047 !important;
+}
+.kiln_wh_yellow .kiln_wh_grid {
+    background: #fde68a;
+}
+.kiln_wh_yellow .kiln_wh_title {
+    color: #854d0e;
+}
+
+/* Highlighted styling for player's own active warehouse */
+.kiln_my_warehouse.kiln_wh_red {
+    border: 2.5px solid #dc2626 !important;
+    box-shadow: 0 4px 16px rgba(220, 38, 38, 0.25), 0 0 0 2px rgba(239, 68, 68, 0.35);
+}
+.kiln_my_warehouse.kiln_wh_blue {
+    border: 2.5px solid #0284c7 !important;
+    box-shadow: 0 4px 16px rgba(2, 132, 199, 0.25), 0 0 0 2px rgba(2, 132, 199, 0.35);
+}
+.kiln_my_warehouse.kiln_wh_green {
+    border: 2.5px solid #16a34a !important;
+    box-shadow: 0 4px 16px rgba(22, 163, 74, 0.25), 0 0 0 2px rgba(22, 163, 74, 0.35);
+}
+.kiln_my_warehouse.kiln_wh_yellow {
+    border: 2.5px solid #d97706 !important;
+    box-shadow: 0 4px 16px rgba(217, 119, 6, 0.25), 0 0 0 2px rgba(217, 119, 6, 0.35);
 }
 
 .kiln_opponent_card {
-    background: #ffffff;
-    border: 1px solid var(--kiln-border-color);
     border-radius: 8px;
     padding: 8px 12px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);

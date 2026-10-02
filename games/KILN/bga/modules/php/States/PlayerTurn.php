@@ -86,14 +86,26 @@ class PlayerTurn extends GameState
             return $this->resolveAfterPlacementSkipped($activePlayerId);
         }
 
-        if (count($largestGroups) === 1) {
-            // Single candidate group: proceed to placement (PlayerTurnPlaceShape handles Undo or Skip if it cannot fit)
+        // Check if tied groups have distinct shapes or identical shapes
+        $uniqueShapes = [];
+        $distinctCandidateGroups = [];
+        foreach ($largestGroups as $g) {
+            $norm = $this->game->normalizeShape($g);
+            $sig = implode(';', array_map(fn($c) => "{$c['dx']},{$c['dy']}", $norm));
+            if (!isset($uniqueShapes[$sig])) {
+                $uniqueShapes[$sig] = true;
+                $distinctCandidateGroups[] = $g;
+            }
+        }
+
+        if (count($uniqueShapes) === 1) {
+            // All candidate groups produce the exact same shape: auto-select automatically!
             $this->game->globals->set('selected_group', $largestGroups[0]);
             return PlayerTurnPlaceShape::class;
         }
 
-        // Multiple tied groups: player chooses which one to copy
-        $this->game->globals->set('candidate_groups', $largestGroups);
+        // Multiple distinct shapes to choose from: player selects which shape to copy
+        $this->game->globals->set('candidate_groups', $distinctCandidateGroups);
         return PlayerTurnSelectGroup::class;
     }
 
