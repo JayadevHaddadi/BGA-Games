@@ -368,7 +368,7 @@ export class Game {
         this.HEX_SIZE = size;
         const svgDim = 640;
         const cx = 317;
-        const cy = 312;
+        const cy = 319; // Shifted ~2mm down per user review
 
         svg.setAttribute('viewBox', `0 0 ${svgDim} ${svgDim}`);
         svg.setAttribute('width', `${svgDim}`);
@@ -491,8 +491,6 @@ export class Game {
         const restOffsetY = -6;
         return `
             <g class="sg-glider-piece ${inTorpor ? 'in-torpor' : ''}" id="sg_glider_${playerId}" data-player-id="${playerId}" transform="translate(${x}, ${y + restOffsetY})">
-                <!-- Large hover capture area covering original cell and lifted position -->
-                <rect x="-28" y="-52" width="56" height="82" rx="28" fill="transparent" />
                 <g class="sg-glider-inner">
                     <!-- Sleeping Aura / Halo if in Torpor -->
                     ${inTorpor ? `<circle cx="0" cy="4" r="28" class="sg-torpor-aura" />` : ''}
@@ -519,11 +517,33 @@ export class Game {
     bindCellClicks() {
         const cells = document.querySelectorAll('.sg-hex-cell');
         cells.forEach(c => {
+            const q = parseInt(c.getAttribute('data-q'), 10);
+            const r = parseInt(c.getAttribute('data-r'), 10);
+
             c.addEventListener('click', () => {
                 if (!c.classList.contains('selectable')) return;
-                const q = parseInt(c.getAttribute('data-q'), 10);
-                const r = parseInt(c.getAttribute('data-r'), 10);
                 this.onCellClicked(q, r);
+            });
+
+            // Hover lift: strictly lift the glider when hovering over the cell it currently occupies
+            c.addEventListener('mouseenter', () => {
+                for (const pId in this.gliders) {
+                    const g = this.gliders[pId];
+                    if (g && g.q === q && g.r === r) {
+                        const gliderEl = document.getElementById(`sg_glider_${pId}`);
+                        if (gliderEl) gliderEl.classList.add('sg-glider-lifted');
+                    }
+                }
+            });
+
+            c.addEventListener('mouseleave', () => {
+                for (const pId in this.gliders) {
+                    const g = this.gliders[pId];
+                    if (g && g.q === q && g.r === r) {
+                        const gliderEl = document.getElementById(`sg_glider_${pId}`);
+                        if (gliderEl) gliderEl.classList.remove('sg-glider-lifted');
+                    }
+                }
             });
         });
     }
@@ -596,7 +616,7 @@ export class Game {
         this.clearHighlights();
         const svg = document.getElementById('sg_board_svg');
         const cx = 317;
-        const cy = 312;
+        const cy = 319;
 
         legalJumps.forEach(m => {
             const cell = document.getElementById(`sg_cell_${m.target_q}_${m.target_r}`);
@@ -821,7 +841,7 @@ export class Game {
 
         const size = this.HEX_SIZE;
         const cx = 317;
-        const cy = 312;
+        const cy = 319;
         const fromPos = this.axialToPixel(fromQ, fromR, cx, cy, size);
         const toPos = this.axialToPixel(toQ, toR, cx, cy, size);
         const restOffsetY = -6;

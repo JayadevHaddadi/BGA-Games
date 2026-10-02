@@ -310,8 +310,7 @@
 
 /* Sugar Glider Pawns - Top-down Soaring View */
 .sg-glider-piece {
-    pointer-events: all;
-    cursor: pointer;
+    pointer-events: none;
     transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
@@ -322,8 +321,8 @@
     filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.45));
 }
 
-/* Hover lift effect: glider hops high (-46px) to fully reveal underlying tile */
-.sg-glider-piece:hover .sg-glider-inner {
+/* Hover lift effect: glider hops high (-46px) ONLY when its home cell is hovered */
+.sg-glider-piece.sg-glider-lifted .sg-glider-inner {
     transform: translateY(-46px) scale(1.18);
     filter: drop-shadow(0 30px 24px rgba(0, 0, 0, 0.65));
 }
