@@ -275,15 +275,19 @@ export class Game {
         main.innerHTML = `
             <div id="sg_container">
                 <div id="sg_header_info">
-                    <span id="sg_consecutive_torpor_badge" class="sg_badge sg_torpor_badge">
-                        Torpor: ${this.gamedatas.consecutive_torpor || 0} / ${Object.keys(this.gamedatas.players).length}
-                    </span>
-                    <span id="sg_remaining_tiles_badge" class="sg_badge sg_tiles_badge">
-                        Tiles in Tree: ${Object.keys(this.boardTiles).length}
-                    </span>
-                    <button id="sg_sound_toggle" class="sg_ctrl_btn" type="button">
-                        ${sounds.muted ? '&#128263; Muted' : '&#128266; Sound'}
-                    </button>
+                    <div class="sg_header_left">
+                        <span id="sg_consecutive_torpor_badge" class="sg_badge sg_torpor_badge">
+                            Torpor: ${this.gamedatas.consecutive_torpor || 0} / ${Object.keys(this.gamedatas.players).length}
+                        </span>
+                        <span id="sg_remaining_tiles_badge" class="sg_badge sg_tiles_badge">
+                            Tiles in Tree: ${Object.keys(this.boardTiles).length}
+                        </span>
+                    </div>
+                    <div class="sg_header_right">
+                        <button id="sg_sound_toggle" class="sg_ctrl_btn" type="button">
+                            ${sounds.muted ? '&#128263; Muted' : '&#128266; Sound'}
+                        </button>
+                    </div>
                 </div>
 
                 <div id="sg_reserve_tray">
@@ -487,10 +491,17 @@ export class Game {
             const maxScale = 1.30;
             const scale = Math.max(0.45, Math.min(maxScale, availW / baseDim));
 
-            scaler.style.width = `${Math.round(baseDim * scale)}px`;
-            scaler.style.height = `${Math.round(baseDim * scale)}px`;
+            const targetDim = Math.round(baseDim * scale);
+            scaler.style.width = `${targetDim}px`;
+            scaler.style.height = `${targetDim}px`;
             wrapper.style.transform = `scale(${scale})`;
             wrapper.style.transformOrigin = 'top left';
+
+            const header = document.getElementById('sg_header_info');
+            if (header) {
+                header.style.width = `${targetDim}px`;
+                header.style.maxWidth = `${targetDim}px`;
+            }
         };
 
         if (window.ResizeObserver) {
