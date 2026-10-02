@@ -228,7 +228,10 @@ class Game extends \Bga\GameFramework\Table
 
     public function isValidCoord(int $q, int $r): bool
     {
-        $radius = self::HEX_RADIUS;
+        $radius = (int) $this->globals->get('hex_radius', self::HEX_RADIUS);
+        if ($radius < 2) {
+            $radius = self::HEX_RADIUS;
+        }
         return ($q >= -$radius && $q <= $radius &&
                 $r >= -$radius && $r <= $radius &&
                 ($q + $r) >= -$radius && ($q + $r) <= $radius);
