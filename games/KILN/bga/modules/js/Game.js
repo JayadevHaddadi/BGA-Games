@@ -996,17 +996,17 @@ export class Game {
             }
             // Orient opponent warehouses so pattern orientation matches viewer's perspective:
             // - Me (Bottom): 0°
-            // - Player on Right: 90° rotated to the right
+            // - Player on Right: 270° (rotated 180° from previous 90°)
             // - Player Opposite (Top): 180°
-            // - Player on Left: 90° rotated to the left (270°)
+            // - Player on Left: 90° (rotated 180° from previous 270°)
             let rotClass = 'kiln_rot_0';
             if (!isMe) {
                 if (slotId === 'kiln_slot_right') {
-                    rotClass = 'kiln_rot_90';
+                    rotClass = 'kiln_rot_270';
                 } else if (slotId === 'kiln_slot_top') {
                     rotClass = 'kiln_rot_180';
                 } else if (slotId === 'kiln_slot_left') {
-                    rotClass = 'kiln_rot_270';
+                    rotClass = 'kiln_rot_90';
                 }
             }
 
