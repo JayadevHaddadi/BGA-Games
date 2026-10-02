@@ -31,11 +31,11 @@
 
 .kiln_main_layout {
     display: grid;
-    grid-template-columns: 180px auto;
+    grid-template-columns: 220px auto;
     grid-template-rows: auto auto auto;
     grid-template-areas:
-        "track top"
-        "track center"
+        ".     top"
+        ".     center"
         "track bottom";
     align-items: center;
     justify-items: center;
@@ -54,9 +54,13 @@
 
 #kiln_track_panel {
     grid-area: track;
+    align-self: center;
+    justify-self: end;
+    width: 210px;
 }
 #kiln_slot_top {
     grid-area: top;
+    justify-self: center;
 }
 #kiln_slot_left {
     grid-area: west;
@@ -69,6 +73,7 @@
 }
 #kiln_slot_bottom {
     grid-area: bottom;
+    justify-self: center;
 }
 
 /* In 2-player mode: hide unused west/east slots */
@@ -77,24 +82,24 @@
     display: none !important;
 }
 
-/* In 3-4 Player mode: 3x3 table with Score Track in Top-Left Corner */
+/* In 3-4 Player mode: 3x3 table with Score Track to the left of MY board */
 .kiln_main_layout.kiln_multiplayer {
-    grid-template-columns: 240px auto 310px;
+    grid-template-columns: 220px auto 220px;
     grid-template-rows: auto auto auto;
     grid-template-areas:
-        "track top    ."
+        ".     top    ."
         "west  center east"
-        ".     bottom .";
+        "track bottom .";
     gap: 14px 20px;
 }
 
-/* In 3-Player mode: right column is omitted so table is centered without blank 310px column */
+/* In 3-Player mode: right column is omitted so table is centered without blank column */
 .kiln_main_layout.kiln_3player {
-    grid-template-columns: 240px auto;
+    grid-template-columns: 220px auto;
     grid-template-areas:
-        "track top"
+        ".     top"
         "west  center"
-        ".     bottom";
+        "track bottom";
     gap: 14px 20px;
 }
 
@@ -103,9 +108,9 @@
 }
 
 .kiln_main_layout.kiln_multiplayer #kiln_track_panel {
-    align-self: start;
-    justify-self: center;
-    width: 230px;
+    align-self: center;
+    justify-self: end;
+    width: 210px;
 }
 
 .kiln_main_layout.kiln_multiplayer .kiln_score_track {
@@ -114,7 +119,7 @@
 }
 
 .kiln_main_layout.kiln_multiplayer .kiln_track_cell {
-    height: 32px;
+    height: 30px;
 }
 
 .kiln_main_layout.kiln_multiplayer .kiln_track_num {
@@ -126,16 +131,20 @@
     height: 15px;
 }
 
-.kiln_main_layout.kiln_multiplayer #kiln_slot_left,
+.kiln_main_layout.kiln_multiplayer #kiln_slot_left {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
 .kiln_main_layout.kiln_multiplayer #kiln_slot_right {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
 }
 
 .kiln_main_layout.kiln_multiplayer #kiln_slot_left:empty {
     visibility: hidden;
-    min-width: 240px;
 }
 
 .kiln_seat_badge {
@@ -584,7 +593,7 @@
 
 .kiln_opponent_card {
     border-radius: 8px;
-    padding: 8px 12px;
+    padding: 6px 10px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     box-sizing: border-box;
     display: flex;
@@ -592,18 +601,33 @@
     align-items: center;
 }
 
+.kiln_opponent_card .kiln_wh_title {
+    font-size: 13px !important;
+    margin-bottom: 6px !important;
+    gap: 6px !important;
+}
+
+.kiln_opponent_card .kiln_player_color_dot {
+    width: 14px !important;
+    height: 14px !important;
+}
+
+.kiln_opponent_card .kiln_seat_badge {
+    font-size: 11px !important;
+}
+
 .kiln_opponent_card .kiln_wh_grid {
-    grid-template-columns: repeat(5, 30px) !important;
-    grid-template-rows: repeat(5, 30px) !important;
+    grid-template-columns: repeat(5, 25px) !important;
+    grid-template-rows: repeat(5, 25px) !important;
     gap: 2px !important;
-    padding: 4px !important;
+    padding: 3px !important;
     border-radius: 6px !important;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .kiln_opponent_card .kiln_wh_cell {
-    width: 30px !important;
-    height: 30px !important;
+    width: 25px !important;
+    height: 25px !important;
     border-radius: 4px !important;
 }
 

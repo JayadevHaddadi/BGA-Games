@@ -1496,8 +1496,8 @@ export class Game {
         const numP = Object.keys(this.gamedatas.players || {}).length;
         const isMultiplayer = numP > 2;
         const is3Player = numP === 3;
-        const baseWidth = isMultiplayer ? (is3Player ? 880 : 1160) : 720;
-        const baseHeight = isMultiplayer ? 1040 : 990;
+        const baseWidth = isMultiplayer ? (is3Player ? 760 : 960) : 740;
+        const baseHeight = isMultiplayer ? 1020 : 960;
 
         const updateScale = () => {
             const parent = scalerWrapper.parentElement || document.getElementById('game_play_area') || document.body;
