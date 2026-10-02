@@ -98,11 +98,13 @@
             }
         },
         "default": 1,
-        "displaycondition": {
-            "type": "otheroption",
-            "id": 103,
-            "value": 2
-        }
+        "displaycondition": [
+            {
+                "type": "otheroption",
+                "id": 103,
+                "value": 2
+            }
+        ]
     },
     "106": {
         "name": "Track condition",
