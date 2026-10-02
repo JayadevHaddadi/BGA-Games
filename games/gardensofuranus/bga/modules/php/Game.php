@@ -140,9 +140,8 @@ class Game extends \Bga\GameFramework\Table
 
         $this->reloadPlayersBasicInfos();
 
-        foreach ($playerIds as $pId) {
-            $this->playerScore->set((int)$pId, 0);
-        }
+        // Counters must be initialized in setupNewGame so scores start at 0 instead of "-"
+        $this->playerScore->initDb(array_map('intval', $playerIds), 0);
 
         // 1. Initialize stats (PlayerStats: Delta/Value 2nd, PlayerId 3rd!)
         $this->tableStats->init(['turns_number', 'winning_score'], 0);
