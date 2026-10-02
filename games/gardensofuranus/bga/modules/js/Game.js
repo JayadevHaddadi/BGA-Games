@@ -155,6 +155,10 @@ export class PlayerTurn {
     onEnteringState(args) {
         this.game.updatePlayerTurnUI(args);
     }
+
+    onLeavingState() {
+        this.game.setMyTurnPulse(false);
+    }
 }
 
 export class NextPlayer {
@@ -513,6 +517,13 @@ export class Game {
         return token;
     }
 
+    setMyTurnPulse(on) {
+        this.myTurnPulse = !!on;
+        const myId = this.bga?.players?.getCurrentPlayerId?.() || this.player_id;
+        document.querySelectorAll('.gou_gardener_token').forEach(t => t.classList.remove('gou_my_turn'));
+        if (on) document.getElementById(`gardener_${myId}`)?.classList.add('gou_my_turn');
+    }
+
     renderGardenState() {
         const layer = document.getElementById('gou_gardeners_layer');
         if (!layer || !this.gamedatas.gardeners) return;
@@ -535,6 +546,7 @@ export class Game {
             token.appendChild(img);
             layer.appendChild(token);
         });
+        if (this.myTurnPulse) this.setMyTurnPulse(true);
     }
 
     renderPlayerFlowers() {
@@ -861,6 +873,7 @@ export class Game {
             this.gamedatas.board_decks = args.board_decks;
             this.renderBoardDecks();
         }
+        this.setMyTurnPulse(this.isCurrentPlayerActive());
         this.validMoves = args?.valid_moves || [];
         this.myFlowers = args?.player_flowers || {};
         this.clearValidMoveHighlights();

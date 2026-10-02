@@ -108,10 +108,10 @@
 .garden_spot.valid_move::after {
     content: '';
     position: absolute;
-    inset: -3px;
+    inset: -1px;
     border: 3px solid rgba(255, 196, 0, 0.75);
     border-radius: 50%;
-    box-shadow: 0 0 5px 1px rgba(255, 196, 0, 0.35);
+    box-shadow: 0 0 10px 4px rgba(255, 196, 0, 0.35);
     z-index: 3;
     pointer-events: none;
     animation: gou_ring_pulse 1.6s infinite ease-in-out;
@@ -120,11 +120,11 @@
 @keyframes gou_ring_pulse {
     0%, 100% {
         transform: scale(1);
-        box-shadow: 0 0 4px 1px rgba(255, 196, 0, 0.25);
+        box-shadow: 0 0 8px 3px rgba(255, 196, 0, 0.25);
     }
     50% {
-        transform: scale(1.07);
-        box-shadow: 0 0 9px 3px rgba(255, 210, 60, 0.5);
+        transform: scale(1.06);
+        box-shadow: 0 0 16px 7px rgba(255, 210, 60, 0.5);
     }
 }
 
@@ -676,3 +676,18 @@
 }
 
 .gou_scored_thumb { cursor: help; }
+
+.gou_gardener_token.gou_my_turn {
+    animation: gou_token_pulse 1.2s infinite ease-in-out;
+}
+
+@keyframes gou_token_pulse {
+    0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.8);
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.22);
+        box-shadow: 0 0 0 7px rgba(255, 255, 255, 0);
+    }
+}
