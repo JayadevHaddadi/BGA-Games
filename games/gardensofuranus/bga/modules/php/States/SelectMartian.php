@@ -45,6 +45,15 @@ class SelectMartian extends GameState
             }
         }
 
+        // Random mode: each player is dealt one Martian at setup
+        if ((int) $this->globals->get('martian_mode', 1) === 2) {
+            $assign = json_decode((string) $this->globals->get('martian_assign', '{}'), true) ?: [];
+            $activeId = (int) $this->game->getActivePlayerId();
+            if (isset($assign[$activeId])) {
+                $availableMartians = [$assign[$activeId]];
+            }
+        }
+
         return [
             'available_martians' => $availableMartians,
             'empty_spots' => $emptySpots,

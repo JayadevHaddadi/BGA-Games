@@ -1,32 +1,18 @@
 {
-    "100": {
-        "name": "Garden Board",
-        "values": {
-            "1": {
-                "name": "Hexagonal Board",
-                "description": "Standard board with 61 spots, 1 tree, and 4 card decks (1 face-down, 3 face-up)."
-            },
-            "2": {
-                "name": "Trapezoid Board",
-                "description": "Trapezoid board with 2 trees and 2 card decks (1 face-down, 1 face-up)."
-            },
-            "3": {
-                "name": "Rhombus Board",
-                "description": "Rhombus board with 3 trees and 3 card decks (1 face-down, 2 face-up)."
-            }
-        },
-        "default": 1
-    },
+    // Garden board: only the Hexagonal board is supported for now.
+    // TODO: Trapezoid and Rhombus boards (needs board geometry and art).
+    //
+    // TODO: Special Martian powers (rulebook advanced rule) are not implemented yet.
     "101": {
-        "name": "Special Martian Powers",
+        "name": "Martian selection",
         "values": {
             "1": {
-                "name": "Disabled",
-                "description": "Pure gardening strategy without special character powers."
+                "name": "Choose your Martian",
+                "description": "Players take turns choosing their Martian when placing their gardener."
             },
             "2": {
-                "name": "Enabled",
-                "description": "Each Martian can use their unique character power once per game."
+                "name": "Random Martian",
+                "description": "Each player is dealt a random Martian. Martians only differ in looks."
             }
         },
         "default": 1

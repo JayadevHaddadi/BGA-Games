@@ -71,7 +71,7 @@ class EndScore extends GameState
             }
         }
 
-        $highestScore = (int) $this->game->getUniqueValueFromDb("SELECT MAX(`player_score`) FROM `player`");
+        $highestScore = max(array_map(fn($pid) => (int) $this->playerScore->get((int) $pid), $playerIds));
         $this->tableStats->set('winning_score', $highestScore);
 
         return ST_END_GAME;

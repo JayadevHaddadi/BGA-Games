@@ -527,7 +527,7 @@ export class Game {
             token.style.left = `${pos.x}px`;
             token.style.top = `${pos.y}px`;
             const color = this.gamedatas.players?.[g.player_id]?.color;
-            if (color) token.style.boxShadow = `0 0 0 3px #${color}, 0 2px 6px rgba(0,0,0,0.4)`;
+            if (color) token.style.background = `#${color}`;
             const img = document.createElement('img');
             img.src = this.imgUrl(`${g.martian || 'bot'}.png`);
             img.alt = g.martian || '';
@@ -596,6 +596,10 @@ export class Game {
                 img.alt = this.getCardInfo(id).name;
                 img.title = this.getCardInfo(id).name;
                 img.className = 'gou_scored_thumb';
+                const info = this.getCardInfo(id);
+                img.addEventListener('mouseenter', (e) => this.showTooltip(info, e.clientX, e.clientY));
+                img.addEventListener('mousemove', (e) => this.showTooltip(info, e.clientX, e.clientY));
+                img.addEventListener('mouseleave', () => this.hideTooltip());
                 box.appendChild(img);
             });
         });
@@ -662,11 +666,6 @@ export class Game {
             count.className = 'gou_deck_count';
             count.textContent = d.count || 0;
             box.appendChild(count);
-            const label = document.createElement('div');
-            label.className = 'gou_deck_label';
-            label.textContent = d.is_face_down ? _('Face-down deck') : _('Face-up deck');
-            box.appendChild(label);
-
             box.addEventListener('click', () => this.onDeckClicked(parseInt(idx)));
             row.appendChild(box);
         });
@@ -719,7 +718,7 @@ export class Game {
             const label = w.querySelector('.gou_card_vp');
             if (!label) return;
             if (this.getCardInfo(id).type === 'HEXAGON') {
-                label.textContent = _('Instant win card');
+                label.textContent = scores[id] > 0 ? _('Instant win: ACTIVE') : _('Instant win: not active');
             } else if (scores[id] !== undefined) {
                 label.textContent = `${scores[id]} ${_('VP now')}`;
             } else {
@@ -821,6 +820,19 @@ export class Game {
         const available = args?.available_martians || ['bot', 'ali', 'marty', 'bob', 'robby'];
         if (!this.selectedMartian || !available.includes(this.selectedMartian)) {
             this.selectedMartian = available[0];
+        }
+
+        if (available.length === 1) {
+            this.selectedMartian = available[0];
+            this.bga?.statusBar?.setTitle?.(
+                _('You are ${martian}. Click a highlighted empty spot to place your gardener').replace('${martian}', available[0].toUpperCase())
+            );
+            if (args?.empty_spots) {
+                args.empty_spots.forEach(sp => {
+                    document.getElementById(`spot_${sp.q}_${sp.r}`)?.classList.add('valid_move');
+                });
+            }
+            return;
         }
 
         this.bga?.statusBar?.setTitle?.(_('Select your Martian, then click a highlighted empty spot to place your gardener'));

@@ -154,8 +154,17 @@ class Game extends \Bga\GameFramework\Table
             $boardType = 1;
         }
 
-        // Special Powers (1=Disabled, 2=Enabled)
-        $specialPowers = isset($options[101]) ? (int) $options[101] : 1;
+        // Martian selection (1=players pick, 2=random). Special powers are not implemented yet (TODO).
+        $martianMode = isset($options[101]) && (int) $options[101] === 2 ? 2 : 1;
+        $specialPowers = 1;
+        $martians = ['ali', 'bob', 'bot', 'marty', 'robby'];
+        shuffle($martians);
+        $assign = [];
+        foreach ($playerIds as $i => $pId) {
+            $assign[(int) $pId] = $martians[$i % count($martians)];
+        }
+        $this->globals->set('martian_mode', $martianMode);
+        $this->globals->set('martian_assign', json_encode($assign));
 
         $this->globals->set('board_type', $boardType);
         $this->globals->set('special_powers', $specialPowers);
@@ -376,7 +385,10 @@ class Game extends \Bga\GameFramework\Table
     {
         $scores = [];
         foreach ($this->getPlayerCards($playerId) as $c) {
-            $scores[(int) $c['card_id']] = $this->calculateCardScore($c);
+            // Hexagon is an instant-win card: 1 = condition currently met, 0 = not active
+            $scores[(int) $c['card_id']] = ($c['card_type'] === 'HEXAGON')
+                ? ($this->checkHexagonInstantWin() ? 1 : 0)
+                : $this->calculateCardScore($c);
         }
         return $scores;
     }
@@ -600,7 +612,7 @@ class Game extends \Bga\GameFramework\Table
             'card_type' => $card['card_type'],
             'score' => $score,
             'draw_deck' => $drawDeckIdx,
-            'new_score' => (int) $this->getUniqueValueFromDb("SELECT `player_score` FROM `player` WHERE `player_id` = $playerId"),
+            'new_score' => (int) $this->playerScore->get($playerId),
             'board_decks' => $this->getBoardDecks(),
         ]);
 
@@ -980,6 +992,7 @@ class Game extends \Bga\GameFramework\Table
         }
         $result['scored_cards'] = $scoredCards;
         $result['card_scores'] = ($currentPlayerId !== null) ? $this->getHandScores((int)$currentPlayerId) : [];
+        $result['martian_mode'] = (int) $this->globals->get('martian_mode', 1);
         $result['special_powers'] = (int) $this->globals->get('special_powers', 1);
         $result['mission_deck'] = $this->getMissionDeckWithDescriptions();
 
