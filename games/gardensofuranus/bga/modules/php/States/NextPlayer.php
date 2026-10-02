@@ -24,6 +24,9 @@ class NextPlayer extends GameState
     {
         $activePlayerId = (int) $this->game->getActivePlayerId();
 
+        // Reward the player who just acted with extra thinking time
+        $this->game->giveExtraTime($activePlayerId);
+
         // Increment stats (Delta 2nd, PlayerId 3rd!)
         $this->tableStats->inc('turns_number', 1);
         $this->playerStats->inc('turns_number', 1, $activePlayerId);

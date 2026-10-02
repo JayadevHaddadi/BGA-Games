@@ -90,6 +90,8 @@ class SelectMartian extends GameState
             $r
         ));
 
+        $this->game->giveExtraTime($playerId);
+
         $this->game->notifyAllPlayers("martianSelected", clienttranslate('${player_name} chose ${martian_name} and placed their gardener'), [
             'player_id' => $playerId,
             'player_name' => $this->game->getPlayerNameById($playerId),
