@@ -403,20 +403,8 @@ class PlayerTurnState {
                 this.game.addActionButton('btnDrive', driveLabel, () => {
                     this.game.sound.playEngineRev();
                     this.game.clearHighlights();
-                    this.bga.actions.performAction('actStop', { useShortcut: false });
+                    this.bga.actions.performAction('actStop', {});
                 }, 'primary');
-
-                if (canShortcut) {
-                    const shortcutLabel = currentMp === 1
-                        ? _('⚡ Take Shortcut (1 Space)')
-                        : _('⚡ Take Shortcut (${mp} Spaces)').replace('${mp}', currentMp);
-
-                    this.game.addActionButton('btnShortcut', shortcutLabel, () => {
-                        this.game.sound.playEngineRev();
-                        this.game.clearHighlights();
-                        this.bga.actions.performAction('actStop', { useShortcut: true });
-                    }, 'secondary');
-                }
             }
         } else {
             const activeRId = args?.active_racer_id || this.game.activeRacerId;
@@ -467,11 +455,7 @@ export class Game {
         this.racerInventories = gamedatas.racer_inventory || {};
         this.itemsEnabled = !!gamedatas.items_enabled;
         this.racersStarted = gamedatas.racers_started || {};
-        try {
-            this.currentCarModel = localStorage.getItem('nestorgamesgp_car_model') || 'chibi_kart';
-        } catch (e) {
-            this.currentCarModel = 'chibi_kart';
-        }
+        this.currentCarModel = (this.bga?.userPreferences?.get?.(100) == 2) ? 'chibi_f1' : 'chibi_kart';
         this.initDom();
         this.initBoardScaler();
         this.renderBoard();
@@ -493,47 +477,13 @@ export class Game {
             container = document.createElement('div');
             container.id = 'gp_game_container';
             container.innerHTML = `
-                <div id="gp_model_selector" class="gp_model_selector">
-                    <span class="gp_model_title">🚗 Car Style:</span>
-                    <button type="button" class="gp_model_btn ${this.currentCarModel === 'chibi_kart' ? 'active' : ''}" data-model="chibi_kart" title="Chibi Go-Kart (Chubby tires & pilot)">🏎️ Chibi Kart</button>
-                    <button type="button" class="gp_model_btn ${this.currentCarModel === 'retro_beetle' ? 'active' : ''}" data-model="retro_beetle" title="Retro Beetle (Classic rounded bug)">🐞 Retro Beetle</button>
-                    <button type="button" class="gp_model_btn ${this.currentCarModel === 'chibi_f1' ? 'active' : ''}" data-model="chibi_f1" title="Chibi F1 (Cute aero racer)">🏁 Chibi F1</button>
-                    <button type="button" class="gp_model_btn ${this.currentCarModel === 'bumper_buggy' ? 'active' : ''}" data-model="bumper_buggy" title="Bumper Buggy (Super round bumper car)">🍩 Bumper Buggy</button>
-                </div>
                 <div id="gp_board_scaler">
                     <div id="gp_board"></div>
                 </div>
             `;
             main.appendChild(container);
 
-            container.querySelectorAll('.gp_model_btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const model = e.currentTarget.getAttribute('data-model');
-                    if (model) this.setCarModel(model);
-                });
-            });
         }
-    }
-
-    setCarModel(modelName) {
-        this.currentCarModel = modelName;
-        try {
-            localStorage.setItem('nestorgamesgp_car_model', modelName);
-        } catch (e) {}
-
-        if (this.racers) {
-            Object.values(this.racers).forEach(racer => {
-                const rId = racer.racer_id ?? racer.player_id;
-                const carEl = this.getCarElement(rId);
-                if (carEl) {
-                    carEl.innerHTML = this.getCarSvg(this.currentCarModel);
-                }
-            });
-        }
-
-        document.querySelectorAll('.gp_model_btn').forEach(btn => {
-            btn.classList.toggle('active', btn.getAttribute('data-model') === modelName);
-        });
     }
 
     getRacerData(id) {
@@ -673,6 +623,23 @@ export class Game {
         itemsLayer.id = 'gp_items_layer';
         itemsLayer.className = 'gp_items_layer';
         boardEl.appendChild(itemsLayer);
+
+        // Shortcut sign on space 8 (hoverable info)
+        const signsLayer = document.createElement('div');
+        signsLayer.id = 'gp_signs_layer';
+        signsLayer.className = 'gp_items_layer gp_signs_layer';
+        boardEl.appendChild(signsLayer);
+        const shortcutCoords = this.getSpaceCoordinates(8);
+        if (shortcutCoords) {
+            const sign = document.createElement('div');
+            sign.className = 'gp_track_item gp_shortcut_sign';
+            sign.style.left = `${shortcutCoords.x}px`;
+            sign.style.top = `${shortcutCoords.y}px`;
+            sign.setAttribute('data-tip', _('Shortcut - A car that starts its turn here jumps straight to space 36 (once per car per race, always taken).'));
+            sign.innerHTML = '<div class="gp_item_badge gp_item_badge_shortcut"><svg viewBox="0 0 32 32"><path d="M6 24V12l10-6 10 6v12" fill="none" stroke="#fff" stroke-width="2.600" stroke-linejoin="round"/><path d="M12 24l4-9 4 9" fill="#fff"/></svg></div>';
+            sign.addEventListener('click', () => sign.classList.toggle('gp_item_pinned'));
+            signsLayer.appendChild(sign);
+        }
 
         // Racers container
         const racersLayer = document.createElement('div');
@@ -1113,24 +1080,6 @@ export class Game {
                     <path d="M19,5 L21,5 L21,11 L19,11 Z" fill="#ffffff" opacity="0.6"/>
                 </svg>
             `,
-            retro_beetle: `
-                <svg viewBox="0 0 40 40" class="gp_car_svg">
-                    <rect x="3" y="6" width="5.5" height="10" rx="2.75" fill="#1e232a"/>
-                    <rect x="31.5" y="6" width="5.5" height="10" rx="2.75" fill="#1e232a"/>
-                    <rect x="2" y="23" width="6" height="11" rx="3" fill="#1e232a"/>
-                    <rect x="32" y="23" width="6" height="11" rx="3" fill="#1e232a"/>
-                    <path d="M20,4 C27,4 31,9 31,16 C31,24 29,35 20,36 C11,35 9,24 9,16 C9,9 13,4 20,4 Z" fill="currentColor"/>
-                    <circle cx="14" cy="7" r="2.8" fill="#fef08a" stroke="#475569" stroke-width="0.8"/>
-                    <circle cx="26" cy="7" r="2.8" fill="#fef08a" stroke="#475569" stroke-width="0.8"/>
-                    <circle cx="13.5" cy="6.5" r="0.8" fill="#fff"/>
-                    <circle cx="25.5" cy="6.5" r="0.8" fill="#fff"/>
-                    <ellipse cx="20" cy="18" rx="6.5" ry="6" fill="#38bdf8" opacity="0.85"/>
-                    <path d="M16,15 Q20,13 24,15" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" fill="none"/>
-                    <circle cx="20" cy="19" r="3.2" fill="#f8fafc"/>
-                    <ellipse cx="20" cy="18.5" rx="2.5" ry="1.2" fill="#0f172a"/>
-                    <rect x="11" y="34.5" width="18" height="2.5" rx="1.25" fill="#94a3b8"/>
-                </svg>
-            `,
             chibi_f1: `
                 <svg viewBox="0 0 40 40" class="gp_car_svg">
                     <path d="M5,7 Q20,3 35,7 Q20,5 5,7 Z" fill="#334155"/>
@@ -1150,20 +1099,6 @@ export class Game {
                     <circle cx="35.25" cy="28.5" r="1.8" fill="#64748b"/>
                     <rect x="6" y="32.5" width="28" height="4.5" rx="2.25" fill="#334155"/>
                     <rect x="8" y="33.5" width="24" height="2.5" rx="1.25" fill="currentColor"/>
-                </svg>
-            `,
-            bumper_buggy: `
-                <svg viewBox="0 0 40 40" class="gp_car_svg">
-                    <rect x="5" y="4" width="30" height="32" rx="14" fill="#1e293b"/>
-                    <rect x="8" y="7" width="24" height="26" rx="11" fill="currentColor"/>
-                    <circle cx="14" cy="9" r="2.2" fill="#fef08a"/>
-                    <circle cx="26" cy="9" r="2.2" fill="#fef08a"/>
-                    <circle cx="20" cy="20" r="6.5" fill="#0f172a"/>
-                    <circle cx="20" cy="19.5" r="4.8" fill="#f8fafc"/>
-                    <ellipse cx="20" cy="18.5" rx="3.5" ry="1.8" fill="#0284c7"/>
-                    <circle cx="21" cy="17.8" r="0.7" fill="#ffffff"/>
-                    <rect x="12" y="28" width="3.5" height="3.5" rx="1.5" fill="#94a3b8"/>
-                    <rect x="24.5" y="28" width="3.5" height="3.5" rx="1.5" fill="#94a3b8"/>
                 </svg>
             `
         };
@@ -1351,22 +1286,13 @@ export class Game {
         const playerColor = racer.car_color || 'red';
         const isCurrentActive = this.isCurrentPlayerActive() && (this.getActivePlayerId() == (racer.player_id ?? activePlayerId));
 
-        // 1. Normal path preview
-        const normalSteps = this.getMovementPath(startSpace, mp, false);
-        if (normalSteps.length > 0) {
-            const normalDest = normalSteps[normalSteps.length - 1];
-            this.renderPathDots(normalSteps.slice(0, -1), playerColor, false);
-            this.renderDestinationMarker(normalDest, mp, playerColor, false, isCurrentActive, normalSteps);
-        }
-
-        // 2. Shortcut path preview (if active at space 8)
-        if (canShortcut && startSpace === 8) {
-            const shortcutSteps = this.getMovementPath(startSpace, mp, true);
-            if (shortcutSteps.length > 0) {
-                const shortcutDest = shortcutSteps[shortcutSteps.length - 1];
-                this.renderPathDots(shortcutSteps.slice(0, -1), 'cyan', true);
-                this.renderDestinationMarker(shortcutDest, mp, 'cyan', true, isCurrentActive, shortcutSteps);
-            }
+        // The shortcut is mandatory when starting a turn on space 8 with the shortcut unused
+        const useShortcut = canShortcut && startSpace === 8;
+        const steps = this.getMovementPath(startSpace, mp, useShortcut);
+        if (steps.length > 0) {
+            const dest = steps[steps.length - 1];
+            this.renderPathDots(steps.slice(0, -1), useShortcut ? 'cyan' : playerColor, useShortcut);
+            this.renderDestinationMarker(dest, mp, useShortcut ? 'cyan' : playerColor, useShortcut, isCurrentActive, steps);
         }
     }
 
@@ -1436,6 +1362,10 @@ export class Game {
         } else if (isShortcut) {
             badgeText = `⚡ SHORTCUT (+${mp})`;
             badgeIcon = '⚡';
+        } else if (destSpaceId === 8 && !this.getRacerData(this.activeRacerId)?.shortcut_used) {
+            badgeText = `⚡ SHORTCUT SPACE (+${mp})`;
+            badgeIcon = '⚡';
+            marker.title = _('Shortcut space: next turn from here you jump straight to space 36 (once per car).');
         } else {
             badgeText = `🏁 Space ${destSpaceId} (+${mp})`;
         }
@@ -1457,12 +1387,12 @@ export class Game {
 
         if (isCurrentActive) {
             marker.classList.add('gp_dest_clickable');
-            marker.title = isShortcut ? _('Click to take shortcut!') : _('Click to drive here!');
+            marker.title = isShortcut ? _('Click to take the shortcut!') : (marker.title || _('Click to drive here!'));
             marker.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.sound.playEngineRev();
                 this.clearHighlights();
-                this.bga.actions.performAction('actStop', { useShortcut: isShortcut });
+                this.bga.actions.performAction('actStop', {});
             });
         }
 

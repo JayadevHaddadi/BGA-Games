@@ -450,56 +450,6 @@
     100% { opacity: 0; transform: translate(-50%, -100%) scale(1); }
 }
 
-/* 🚗 Model Selector Bar */
-.gp_model_selector {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    margin: 6px 0 10px 0;
-    padding: 6px 12px;
-    background: rgba(30, 41, 59, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 20px;
-    backdrop-filter: blur(4px);
-    width: fit-content;
-}
-
-.gp_model_title {
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    color: #94a3b8;
-    letter-spacing: 0.5px;
-    margin-right: 4px;
-}
-
-.gp_model_btn {
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    background: rgba(15, 23, 42, 0.8);
-    color: #e2e8f0;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 4px 10px;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.15s ease;
-}
-
-.gp_model_btn:hover {
-    background: #334155;
-    border-color: #38bdf8;
-    color: #fff;
-    transform: translateY(-1px);
-}
-
-.gp_model_btn.active {
-    background: #0284c7;
-    border-color: #38bdf8;
-    color: #ffffff;
-    box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
-}
-
 /* 🎲 Push-Your-Luck Dice Tray */
 .gp_dice_tray {
     position: absolute;
@@ -1039,8 +989,8 @@
 
 .gp_track_item {
     position: absolute;
-    width: 34px;
-    height: 34px;
+    width: 38px;
+    height: 38px;
     transform: translate(-50%, -50%);
     pointer-events: auto;
     cursor: pointer;
@@ -1059,10 +1009,10 @@
     height: 100%;
     box-sizing: border-box;
     border-radius: 50%;
-    border: 2px solid #fff;
-    padding: 4px;
-    background: var(--gp-item-color, #475569);
-    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 0 10px 2px var(--gp-item-color, #475569);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    padding: 2px;
+    background: color-mix(in srgb, var(--gp-item-color, #475569) 38%, transparent);
+    box-shadow: 0 0 6px 1px color-mix(in srgb, var(--gp-item-color, #475569) 60%, transparent);
     animation: gp_item_glow 2.2s infinite ease-in-out;
 }
 
@@ -1077,10 +1027,11 @@
 .gp_item_badge_rocket { --gp-item-color: #f97316; }
 .gp_item_badge_wrench { --gp-item-color: #06b6d4; }
 .gp_item_badge_turboboost { --gp-item-color: #facc15; }
+.gp_item_badge_shortcut { --gp-item-color: #22d3ee; }
 
 @keyframes gp_item_glow {
-    0%, 100% { box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 0 6px 1px var(--gp-item-color, #475569); }
-    50% { box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 0 14px 4px var(--gp-item-color, #475569); }
+    0%, 100% { box-shadow: 0 0 4px 1px color-mix(in srgb, var(--gp-item-color, #475569) 45%, transparent); }
+    50% { box-shadow: 0 0 10px 3px color-mix(in srgb, var(--gp-item-color, #475569) 65%, transparent); }
 }
 
 .gp_track_item::after {

@@ -420,7 +420,7 @@ class Game extends \Bga\GameFramework\Table
     /**
      * Execute full movement along track for active racer
      */
-    public function executeMovement(int $racerId, int $movementPoints, bool $useShortcut = false): array
+    public function executeMovement(int $racerId, int $movementPoints): array
     {
         $racer = $this->getRacer($racerId);
         if (!$racer) {
@@ -440,7 +440,9 @@ class Game extends \Bga\GameFramework\Table
         $racersStarted = $this->globals->get('racers_started', []);
         $hasStarted = !empty($racersStarted[$rId]);
 
-        if ($useShortcut && !$shortcutUsed && $currentSpace === 8) {
+        // The shortcut is always taken when a car starts its turn on space 8 and has not used it yet.
+        $useShortcut = !$shortcutUsed && $currentSpace === 8;
+        if ($useShortcut) {
             $shortcutUsed = true;
         }
 
@@ -448,7 +450,7 @@ class Game extends \Bga\GameFramework\Table
         $bumpEvents = [];
 
         for ($i = 0; $i < $movementPoints; $i++) {
-            $nextSpace = Circuit::getNextSpace($currentSpace, $useShortcut && $i === 0 && $currentSpace === 8);
+            $nextSpace = Circuit::getNextSpace($currentSpace, $useShortcut && $i === 0);
 
             // Check if finish line was crossed
             if (Circuit::isFinishLineCrossed($currentSpace, $nextSpace)) {

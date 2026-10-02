@@ -1,0 +1,12 @@
+{
+  // user preferences ids should be between 100 and 199
+  "100": {
+    "name": "Car style",
+    "needReload": true,
+    "values": {
+      "1": { "name": "Chibi Kart" },
+      "2": { "name": "Chibi F1" }
+    },
+    "default": 1
+  }
+}

@@ -373,7 +373,7 @@ class PlayerTurn extends GameState
     }
 
     #[PossibleAction]
-    public function actStop(bool $useShortcut = false): string
+    public function actStop(): string
     {
         $activePlayerId = (int) $this->game->getActivePlayerId();
         $activeRacerId = (int) $this->globals->get('active_racer_id', $activePlayerId);
@@ -389,7 +389,7 @@ class PlayerTurn extends GameState
             $this->globals->set('turbo_active', false);
         }
 
-        $res = $this->game->executeMovement($activeRacerId, $movementPoints, $useShortcut);
+        $res = $this->game->executeMovement($activeRacerId, $movementPoints);
         $racer = $this->game->getRacer($activeRacerId);
         $playerName = $this->game->loadPlayersBasicInfos()[$activePlayerId]['player_name'];
         $carName = $racer['car_name'] ?: $racer['car_color'];
