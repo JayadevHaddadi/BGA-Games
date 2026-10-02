@@ -756,57 +756,68 @@ export class Game {
 
         wrapper.innerHTML = `
             <div id="kiln_main_layout" class="kiln_main_layout">
-                <div class="kiln_arena_container" id="kiln_arena_container">
+                <!-- Left Panel: Score Track (and Left Player in 3-4p) -->
+                <div class="kiln_left_panel" id="kiln_left_panel">
+                    <div class="kiln_arena_slot kiln_slot_left" id="kiln_slot_left"></div>
+
+                    <!-- Score Track directly to the left of the central kiln board -->
+                    <div class="kiln_track_panel" id="kiln_track_panel">
+                        <div class="kiln_panel_header">
+                            <span class="kiln_panel_title">🏆 ${_('Score Track')}</span>
+                        </div>
+                        <div id="kiln_score_track" class="kiln_score_track"></div>
+                        ${Number(this.variantBonusSpaces) === 1 ? `
+                            <div class="kiln_track_legend" title="${_('Spaces 5, 8, 14, 17, 19, 23, 26 award an extra turn in the Heating up the Kiln variant')}">
+                                <span class="kiln_legend_stripe"></span>
+                                <span>${_('Striped = Bonus Space')}</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+
+                <!-- Center Column: Opponent (Top), Central Kiln (Middle), You (Bottom) - Perfectly vertically aligned! -->
+                <div class="kiln_center_column" id="kiln_center_column">
                     <!-- Top Slot: Opponents Area (All Opponents upright) -->
                     <div class="kiln_arena_slot kiln_slot_top" id="kiln_slot_top"></div>
 
-                    <!-- Middle: Score Track & The Kiln (6x6) -->
-                    <div class="kiln_arena_middle" id="kiln_arena_middle">
-                        <div class="kiln_arena_slot kiln_slot_left" id="kiln_slot_left"></div>
+                    <!-- Middle: Central Kiln (6x6) with 24 push arrows -->
+                    <div class="kiln_center_panel" id="kiln_center_panel">
+                        <div id="kiln_oven_wrapper" class="kiln_oven_wrapper">
+                            <!-- North Arrows (0..5) -->
+                            <div id="kiln_arrows_north" class="kiln_arrow_row kiln_arrows_n"></div>
 
-                        <!-- Score Track directly to the left of the game board in the middle -->
-                        <div class="kiln_track_panel" id="kiln_track_panel">
-                            <div class="kiln_panel_header">
-                                <span class="kiln_panel_title">${_('Score Track')}</span>
+                            <div class="kiln_oven_middle">
+                                <!-- West Arrows (18..23) -->
+                                <div id="kiln_arrows_west" class="kiln_arrow_col kiln_arrows_w"></div>
+
+                                <!-- 6x6 Kiln Board -->
+                                <div id="kiln_board_grid" class="kiln_board_grid"></div>
+
+                                <!-- East Arrows (6..11) -->
+                                <div id="kiln_arrows_east" class="kiln_arrow_col kiln_arrows_e"></div>
                             </div>
-                            <div id="kiln_score_track" class="kiln_score_track"></div>
-                            ${Number(this.variantBonusSpaces) === 1 ? `
-                                <div class="kiln_track_legend" title="${_('Spaces 5, 8, 14, 17, 19, 23, 26 award an extra turn in the Heating up the Kiln variant')}">
-                                    <span class="kiln_legend_stripe"></span>
-                                    <span>${_('Striped = Bonus Space')}</span>
-                                </div>
-                            ` : ''}
+
+                            <!-- South Arrows (12..17) -->
+                            <div id="kiln_arrows_south" class="kiln_arrow_row kiln_arrows_s"></div>
                         </div>
-
-                        <div class="kiln_center_panel" id="kiln_center_panel">
-                            <div id="kiln_oven_wrapper" class="kiln_oven_wrapper">
-                                <!-- North Arrows (0..5) -->
-                                <div id="kiln_arrows_north" class="kiln_arrow_row kiln_arrows_n"></div>
-
-                                <div class="kiln_oven_middle">
-                                    <!-- West Arrows (18..23) -->
-                                    <div id="kiln_arrows_west" class="kiln_arrow_col kiln_arrows_w"></div>
-
-                                    <!-- 6x6 Kiln Board -->
-                                    <div id="kiln_board_grid" class="kiln_board_grid"></div>
-
-                                    <!-- East Arrows (6..11) -->
-                                    <div id="kiln_arrows_east" class="kiln_arrow_col kiln_arrows_e"></div>
-                                </div>
-
-                                <!-- South Arrows (12..17) -->
-                                <div id="kiln_arrows_south" class="kiln_arrow_row kiln_arrows_s"></div>
-                            </div>
-                        </div>
-
-                        <div class="kiln_arena_slot kiln_slot_right" id="kiln_slot_right"></div>
                     </div>
 
-                    <!-- Bottom Slot: Current Player (You, 0°) -->
+                    <!-- Bottom Slot: Current Player (You, 0°) - DIRECTLY below central board -->
                     <div class="kiln_arena_slot kiln_slot_bottom" id="kiln_slot_bottom"></div>
+                </div>
+
+                <!-- Right Panel: Right Player (270°, 3-4p only) -->
+                <div class="kiln_right_panel" id="kiln_right_panel">
+                    <div class="kiln_arena_slot kiln_slot_right" id="kiln_slot_right"></div>
                 </div>
             </div>
         `;
+
+        const numPlayers = Object.keys(this.gamedatas?.players || {}).length;
+        if (numPlayers <= 2) {
+            const rightPanel = wrapper.querySelector('#kiln_right_panel');
+            if (rightPanel) rightPanel.style.display = 'none';
+        }
 
         area.appendChild(wrapper);
 
@@ -1445,8 +1456,8 @@ export class Game {
         if (!scalerWrapper || !boardEl) return;
 
         const isMultiplayer = Object.keys(this.gamedatas.players || {}).length > 2;
-        const baseWidth = isMultiplayer ? 740 : 700;
-        const baseHeight = 860;
+        const baseWidth = isMultiplayer ? 920 : 720;
+        const baseHeight = 990;
 
         const updateScale = () => {
             const parent = scalerWrapper.parentElement || document.getElementById('game_play_area') || document.body;
