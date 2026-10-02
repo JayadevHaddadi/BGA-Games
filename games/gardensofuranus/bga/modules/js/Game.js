@@ -228,6 +228,16 @@ export class Game {
         return null;
     }
 
+    getRuleCards() {
+        return {
+            turn: { icon: '🌱', title: _('Your turn'), text: _('Either move your gardener OR score one mission card — never both.') },
+            move: { icon: '🧭', title: _('Moving'), text: _('Move in a straight line (6 directions, no turning). Trees block you. Other gardeners do not block you, but you cannot stop on a tree or on another gardener. Stop on an empty spot to plant a flower of your choice; stop on a flower and nothing is planted.') },
+            missions: { icon: '🃏', title: _('Mission cards'), text: _('The VP shown beside each of your cards is what it would score right now. Scoring a card discards it for good and you draw a replacement from any non-empty deck. The Hexagon card wins instantly if you form a regular hexagon of one color.') },
+            end: { icon: '🏁', title: _('Game end'), text: _('The game ends when: (1) at the start of a player\'s turn they have no flowers left; (2) every player moves in succession without planting; (3) a player draws the last card from the board; (4) the Hexagon mission is completed.') },
+            penalty: { icon: '📉', title: _('Unused flowers'), text: _('At the end, each player scores the mission cards left in hand, then loses points for unused flowers: 1 → -1, 2 → -3, 3 → -6, 4 → -10, 5 → -15, 6 → -21, 7 → -28, 8 → -36, 9 → -45, 10 → -55, 11 → -66, 12 → -78.') },
+        };
+    }
+
     createBoardDOM() {
         const area = (this.bga?.gameArea?.getElement && this.bga.gameArea.getElement()) ||
                      document.getElementById('game_play_area') ||
@@ -235,39 +245,53 @@ export class Game {
                      document.body;
         if (!area) return;
 
+        const rules = this.getRuleCards();
+        const buttons = Object.entries(rules).map(([key, r]) =>
+            `<button type="button" class="gou_rule_btn" data-rule="${key}" title="${r.icon} ${r.title}: ${r.text.replace(/"/g, '&quot;')}">${r.icon}</button>`
+        ).join('');
+        const cards = Object.entries(rules).map(([key, r]) =>
+            `<div class="gou_rule_card" id="gou_rule_card_${key}"><div class="gou_rule_card_title">${r.icon} ${r.title}</div><div>${r.text}</div></div>`
+        ).join('');
+
+        const boardType = parseInt(this.gamedatas?.board_type) || 1;
+
         area.innerHTML = `
             <div id="gardensofuranus_container">
-                <div id="gou_info">
-                    <button type="button" id="gou_info_btn" aria-label="${_('Game end and scoring')}">i</button>
-                    <div id="gou_info_panel">
-                        <h4>${_('How the game ends')}</h4>
-                        <ol>
-                            <li>${_('At the start of a player\'s turn, that player has no flowers left.')}</li>
-                            <li>${_('Every player moves their gardener in succession without planting.')}</li>
-                            <li>${_('A player draws the last card from the board.')}</li>
-                            <li>${_('The Hexagon mission is completed (instant win).')}</li>
-                        </ol>
-                        <h4>${_('Final scoring')}</h4>
-                        <div>${_('Each player scores the mission cards still in hand, then loses points for unused flowers:')}</div>
-                        <table>
-                            <tr><th>${_('Unused')}</th><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td><td>11</td><td>12</td></tr>
-                            <tr><th>${_('Points')}</th><td>-1</td><td>-3</td><td>-6</td><td>-10</td><td>-15</td><td>-21</td><td>-28</td><td>-36</td><td>-45</td><td>-55</td><td>-66</td><td>-78</td></tr>
-                        </table>
+                <div id="gou_layout">
+                    <div id="gou_decks_row"></div>
+                    <div id="gou_board_col">
+                        <div class="game-board-scaler" id="gou_board_scaler">
+                            <div id="garden_board" class="gou_board_type_${boardType}">
+                                <div id="gou_cells_layer"></div>
+                                <div id="gou_gardeners_layer"></div>
+                            </div>
+                        </div>
+                        <div id="gou_reminders">${buttons}</div>
+                    </div>
+                    <div id="gou_hand_area">
+                        <div class="gou_cards_container" id="gou_cards_container"></div>
                     </div>
                 </div>
-                <div class="game-board-scaler" id="gou_board_scaler">
-                    <div id="garden_board">
-                        <div id="gou_cells_layer"></div>
-                        <div id="gou_gardeners_layer"></div>
+                <div id="gou_rules_modal" style="display:none">
+                    <div class="gou_rules_panel">
+                        <button type="button" id="gou_rules_close" aria-label="${_('Close')}">✕</button>
+                        <h3>${_('Rules reminders')}</h3>
+                        ${cards}
                     </div>
                 </div>
-                <div id="gou_decks_row"></div>
-                <div class="gou_cards_container" id="gou_cards_container"></div>
             </div>
         `;
 
-        document.getElementById('gou_info_btn')?.addEventListener('click', () => {
-            document.getElementById('gou_info')?.classList.toggle('open');
+        document.getElementById('gou_reminders')?.addEventListener('click', (e) => {
+            const btn = e.target.closest('.gou_rule_btn');
+            if (btn) this.openRulesModal(btn.dataset.rule);
+        });
+        document.getElementById('gou_rules_close')?.addEventListener('click', () => this.closeRulesModal());
+        document.getElementById('gou_rules_modal')?.addEventListener('click', (e) => {
+            if (e.target.id === 'gou_rules_modal') this.closeRulesModal();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') this.closeRulesModal();
         });
 
         this.renderSpots();
@@ -276,14 +300,31 @@ export class Game {
         this.renderHandCards();
     }
 
+    openRulesModal(rule) {
+        const modal = document.getElementById('gou_rules_modal');
+        if (!modal) return;
+        modal.style.display = 'flex';
+        document.querySelectorAll('.gou_rule_card').forEach(c => c.classList.remove('highlighted'));
+        const target = document.getElementById(`gou_rule_card_${rule}`);
+        if (target) {
+            target.classList.add('highlighted');
+            setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 60);
+        }
+    }
+
+    closeRulesModal() {
+        const modal = document.getElementById('gou_rules_modal');
+        if (modal) modal.style.display = 'none';
+    }
+
     axialToPixel(q, r) {
         q = Number(q);
         r = Number(r);
         const boardType = parseInt(this.gamedatas?.board_type) || 1;
         if (boardType === 1) {
-            // Hexagonal board: 61 spots, pointy-topped centered at (349.5, 506.5)
-            const centerX = 349.5;
-            const centerY = 506.5;
+            // Hexagonal board cropped to the play area (560x600), pointy-topped
+            const centerX = 280;
+            const centerY = 300;
             const stepX = 58.0;
             const stepY = 33.5;
             const x = centerX + q * stepX;
@@ -532,7 +573,7 @@ export class Game {
         const pos = this.axialToPixel(q, r);
         const picker = document.createElement('div');
         picker.id = 'gou_color_picker';
-        picker.style.left = `${Math.max(140, Math.min(560, pos.x))}px`;
+        picker.style.left = `${Math.max(140, Math.min(board.offsetWidth - 140, pos.x))}px`;
         picker.style.top = `${pos.y < 110 ? pos.y + 70 : pos.y - 70}px`;
         colors.forEach(color => {
             const cnt = this.myFlowers?.[color] || 0;
@@ -623,7 +664,27 @@ export class Game {
         this.gamedatas.hand_cards.forEach(card => {
             const wrapper = this.createCardElement(card);
             wrapper.addEventListener('click', () => this.onCardClicked(card.card_id));
+            const vp = document.createElement('div');
+            vp.className = 'gou_card_vp';
+            wrapper.appendChild(vp);
             container.appendChild(wrapper);
+        });
+        this.updateHandScores();
+    }
+
+    updateHandScores() {
+        const scores = this.gamedatas.card_scores || {};
+        document.querySelectorAll('#gou_cards_container .gou_card_wrapper').forEach(w => {
+            const id = parseInt(w.dataset.cardId);
+            const label = w.querySelector('.gou_card_vp');
+            if (!label) return;
+            if (this.getCardInfo(id).type === 'HEXAGON') {
+                label.textContent = _('Instant win card');
+            } else if (scores[id] !== undefined) {
+                label.textContent = `${scores[id]} ${_('VP now')}`;
+            } else {
+                label.textContent = '';
+            }
         });
     }
 
@@ -744,6 +805,10 @@ export class Game {
         this.closeColorPicker();
         this.cancelScoreSelection();
         this.lastTurnArgs = args;
+        if (args?.card_scores) {
+            this.gamedatas.card_scores = args.card_scores;
+            this.updateHandScores();
+        }
         if (args?.board_decks) {
             this.gamedatas.board_decks = args.board_decks;
             this.renderBoardDecks();
@@ -833,6 +898,7 @@ export class Game {
             dojo.subscribe('gardenerMoved', this, 'notif_gardenerMoved');
             dojo.subscribe('missionScored', this, 'notif_missionScored');
             dojo.subscribe('handUpdated', this, 'notif_handUpdated');
+            dojo.subscribe('cardScores', this, 'notif_cardScores');
             dojo.subscribe('martianSelected', this, 'notif_martianSelected');
             dojo.subscribe('treeNuked', this, 'notif_treeNuked');
             dojo.subscribe('gardenerTeleported', this, 'notif_gardenerTeleported');
@@ -845,6 +911,7 @@ export class Game {
             this.bga.notifications.subscribe('gardenerMoved', (notif) => this.notif_gardenerMoved(notif));
             this.bga.notifications.subscribe('missionScored', (notif) => this.notif_missionScored(notif));
             this.bga.notifications.subscribe('handUpdated', (notif) => this.notif_handUpdated(notif));
+            this.bga.notifications.subscribe('cardScores', (notif) => this.notif_cardScores(notif));
             this.bga.notifications.subscribe('martianSelected', (notif) => this.notif_martianSelected(notif));
             this.bga.notifications.subscribe('treeNuked', (notif) => this.notif_treeNuked(notif));
             this.bga.notifications.subscribe('gardenerTeleported', (notif) => this.notif_gardenerTeleported(notif));
@@ -939,7 +1006,14 @@ export class Game {
     notif_handUpdated(notif) {
         const args = this._getNotifArgs(notif);
         this.gamedatas.hand_cards = args.hand_cards || [];
+        if (args.card_scores) this.gamedatas.card_scores = args.card_scores;
         this.renderHandCards();
+    }
+
+    notif_cardScores(notif) {
+        const args = this._getNotifArgs(notif);
+        this.gamedatas.card_scores = args.card_scores || {};
+        this.updateHandScores();
     }
 
     notif_missionScored(notif) {
@@ -1026,12 +1100,19 @@ export class Game {
         const board = document.getElementById('garden_board');
         if (!container || !scaler || !board) return;
 
-        const baseWidth = 700;
-        const baseHeight = 1016;
+        const boardType = parseInt(this.gamedatas?.board_type) || 1;
+        const baseWidth = boardType === 1 ? 560 : 700;
+        const baseHeight = boardType === 1 ? 600 : 1016;
+        const stripWidth = 50;
+        const landscape = window.matchMedia('(min-width: 1300px) and (min-aspect-ratio: 11/10)').matches;
+        const sideWidth = landscape ? 350 : 0;
         const containerWidth = container.clientWidth || window.innerWidth;
-        const availableWidth = Math.max(300, containerWidth - 20);
+        const availableWidth = Math.max(260, containerWidth - sideWidth - stripWidth - 24);
 
-        let scale = Math.min(1.0, availableWidth / baseWidth);
+        let scale = Math.min(1.3, availableWidth / baseWidth);
+        if (landscape) {
+            scale = Math.min(scale, Math.max(0.5, (window.innerHeight - 170) / baseHeight));
+        }
         const scaledW = Math.round(baseWidth * scale);
         const scaledH = Math.round(baseHeight * scale);
 

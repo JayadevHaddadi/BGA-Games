@@ -45,6 +45,13 @@ class NextPlayer extends GameState
             return EndScore::class;
         }
 
+        // Everyone's hand cards are worth different VP now that the board changed
+        foreach (array_keys($this->game->loadPlayersBasicInfos()) as $pid) {
+            $this->notify->player((int) $pid, 'cardScores', '', [
+                'card_scores' => $this->game->getHandScores((int) $pid),
+            ]);
+        }
+
         return PlayerTurn::class;
     }
 }

@@ -372,6 +372,15 @@ class Game extends \Bga\GameFramework\Table
         return $result;
     }
 
+    public function getHandScores(int $playerId): array
+    {
+        $scores = [];
+        foreach ($this->getPlayerCards($playerId) as $c) {
+            $scores[(int) $c['card_id']] = $this->calculateCardScore($c);
+        }
+        return $scores;
+    }
+
     public function getPlayerCards(int $playerId): array
     {
         return static::getObjectListFromDb("SELECT `card_id`, `card_type`, `color1`, `color2` FROM `card` WHERE `card_location` = 'hand' AND `location_arg` = $playerId");
@@ -595,6 +604,7 @@ class Game extends \Bga\GameFramework\Table
 
         $this->notify->player($playerId, "handUpdated", '', [
             'hand_cards' => $this->getPlayerCards($playerId),
+            'card_scores' => $this->getHandScores($playerId),
         ]);
     }
 
@@ -961,6 +971,7 @@ class Game extends \Bga\GameFramework\Table
             "SELECT `card_id`, `card_type`, `color1`, `color2` FROM `card` WHERE `card_location` = 'draft_hand' AND `location_arg` = " . (int)$currentPlayerId
         ) : [];
         $result['board_decks'] = $this->getBoardDecks();
+        $result['card_scores'] = ($currentPlayerId !== null) ? $this->getHandScores((int)$currentPlayerId) : [];
         $result['special_powers'] = (int) $this->globals->get('special_powers', 1);
         $result['mission_deck'] = $this->getMissionDeckWithDescriptions();
 

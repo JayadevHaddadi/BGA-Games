@@ -3,6 +3,7 @@
  */
 
 #gardensofuranus_container {
+    --gou-card-w: 124px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -77,14 +78,21 @@
 
 #garden_board {
     position: relative;
-    width: 700px;
-    height: 1016px;
-    background-image: url('img/board_1.jpg');
+    width: 560px;
+    height: 600px;
+    background-image: url('img/board_hex.jpg');
     background-size: cover;
     background-position: center;
     border-radius: 16px;
     box-shadow: 0 4px 20px rgba(0, 80, 120, 0.25);
     overflow: hidden;
+}
+
+#garden_board.gou_board_type_2,
+#garden_board.gou_board_type_3 {
+    width: 700px;
+    height: 1016px;
+    background-image: url('img/board_1.jpg');
 }
 
 .garden_spot {
@@ -97,15 +105,15 @@
     transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.garden_spot.valid_move {
-    box-shadow: 0 0 0 3px #00e676, 0 0 12px #00e676;
-    animation: gou_pulse 1.4s infinite ease-in-out;
-}
-
-@keyframes gou_pulse {
-    0% { transform: translate(-50%, -50%) scale(1); }
-    50% { transform: translate(-50%, -50%) scale(1.18); }
-    100% { transform: translate(-50%, -50%) scale(1); }
+.garden_spot.valid_move::after {
+    content: '';
+    position: absolute;
+    inset: -5px;
+    border: 4px solid #000;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.8);
+    z-index: 3;
+    pointer-events: none;
 }
 
 .gou_flower_token {
@@ -164,7 +172,7 @@
 }
 
 .gou_color_btn:hover:not(:disabled) {
-    border-color: #00e676;
+    border-color: #000;
 }
 
 .gou_color_btn:disabled {
@@ -225,7 +233,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 130px;
+    width: calc(var(--gou-card-w) + 6px);
     cursor: pointer;
     user-select: none;
     -webkit-user-select: none;
@@ -233,8 +241,8 @@
 
 .gou_card {
     position: relative;
-    width: 124px;
-    height: 188px;
+    width: var(--gou-card-w);
+    height: calc(var(--gou-card-w) * 1.516);
     border-radius: 8px;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
     cursor: pointer;
@@ -276,7 +284,7 @@
     padding: 4px 8px;
     border-radius: 12px;
     text-align: center;
-    max-width: 124px;
+    max-width: var(--gou-card-w);
     line-height: 1.25;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
     word-break: break-word;
@@ -393,7 +401,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 130px;
+    width: calc(var(--gou-card-w) + 6px);
     padding: 6px 0 8px;
     border-radius: 12px;
     border: 3px solid transparent;
@@ -424,8 +432,8 @@
 }
 
 .gou_deck_empty {
-    width: 124px;
-    height: 188px;
+    width: var(--gou-card-w);
+    height: calc(var(--gou-card-w) * 1.516);
     border-radius: 8px;
     border: 3px dashed rgba(18, 37, 63, 0.35);
     display: flex;
@@ -437,77 +445,154 @@
 
 .gou_deck.choosable {
     cursor: pointer;
-    border-color: #00e676;
-    background: rgba(0, 230, 118, 0.12);
-    animation: gou_pulse_box 1.4s infinite ease-in-out;
+    border-color: #000;
+    background: rgba(0, 0, 0, 0.08);
 }
 
-@keyframes gou_pulse_box {
-    0% { box-shadow: 0 0 0 0 rgba(0, 230, 118, 0.6); }
-    50% { box-shadow: 0 0 0 8px rgba(0, 230, 118, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(0, 230, 118, 0); }
+/* Layout: stacked on tall screens (decks on top), board + side column on wide screens */
+#gou_layout {
+    display: grid;
+    justify-content: center;
+    gap: 14px;
+    width: 100%;
+    grid-template-areas:
+        "decks"
+        "board"
+        "hand";
 }
 
-#gou_info {
-    position: relative;
-    align-self: flex-end;
-    margin-bottom: 6px;
+#gou_decks_row { grid-area: decks; margin-top: 0; }
+#gou_board_col { grid-area: board; justify-self: center; }
+#gou_hand_area { grid-area: hand; }
+
+#gou_board_col {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
 }
 
-#gou_info_btn {
-    width: 40px;
-    height: 40px;
+#gou_hand_area .gou_cards_container {
+    margin-top: 0;
+}
+
+@media (min-width: 1300px) and (min-aspect-ratio: 11/10) {
+    #gardensofuranus_container {
+        --gou-card-w: 92px;
+    }
+
+    #gou_layout {
+        grid-template-columns: auto 350px;
+        grid-template-areas:
+            "board decks"
+            "board hand";
+        align-items: start;
+        align-content: start;
+    }
+
+    #gou_decks_row { justify-content: flex-start; gap: 8px; }
+    #gou_hand_area .gou_cards_container { justify-content: flex-start; gap: 8px; }
+}
+
+/* Rule reminder icons (side strip) */
+#gou_reminders {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.gou_rule_btn {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    font-size: 19px;
     border-radius: 50%;
     border: 2px solid #12253f;
-    background: #ffffff;
-    color: #12253f;
-    font-size: 20px;
-    font-weight: 700;
+    background: #fff;
     cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    transition: transform 0.15s ease;
 }
 
-#gou_info_panel {
-    display: none;
-    position: absolute;
-    right: 0;
-    top: 46px;
-    z-index: 200;
-    width: 330px;
-    max-width: 92vw;
-    padding: 14px 16px;
-    border-radius: 12px;
-    background: #ffffff;
+.gou_rule_btn:hover {
+    transform: scale(1.18);
+    background: #fff3c4;
+}
+
+#gou_rules_modal {
+    position: fixed;
+    inset: 0;
+    z-index: 10001;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.55);
+    user-select: text;
+}
+
+.gou_rules_panel {
+    position: relative;
+    width: 520px;
+    max-width: 100%;
+    max-height: 86vh;
+    overflow-y: auto;
+    padding: 18px 20px;
+    border-radius: 14px;
+    background: #fff;
     color: #24292f;
-    font-size: 13px;
-    line-height: 1.4;
-    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
 }
 
-#gou_info:hover #gou_info_panel,
-#gou_info.open #gou_info_panel {
-    display: block;
-}
-
-#gou_info_panel h4 {
-    margin: 0 0 6px;
-    font-size: 14px;
-}
-
-#gou_info_panel ol {
+.gou_rules_panel h3 {
     margin: 0 0 10px;
-    padding-left: 20px;
 }
 
-#gou_info_panel table {
-    border-collapse: collapse;
-    margin-top: 4px;
-    width: 100%;
-    text-align: center;
+#gou_rules_close {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    font-size: 20px;
+    cursor: pointer;
 }
 
-#gou_info_panel td, #gou_info_panel th {
-    border: 1px solid #d0d7de;
-    padding: 2px 4px;
+.gou_rule_card {
+    margin-bottom: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 2px solid #d0d7de;
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+.gou_rule_card.highlighted {
+    border-color: #000;
+    background: #fff3c4;
+}
+
+.gou_rule_card_title {
+    font-weight: 800;
+    margin-bottom: 3px;
+}
+
+.gou_card_vp {
+    margin-top: 5px;
+    padding: 2px 10px;
+    border-radius: 12px;
+    background: #fff3c4;
+    border: 2px solid #12253f;
+    color: #12253f;
     font-size: 12px;
+    font-weight: 800;
+    text-align: center;
+    min-height: 0;
+}
+
+.gou_card_vp:empty {
+    display: none;
 }
