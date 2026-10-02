@@ -202,6 +202,7 @@ export class Game {
         this.selectedReserveTileId = null;
         this.currentArgs = null;
         this.tileStyle = 'classic';
+        this.gliderPieceStyle = 'facing_down'; // 'facing_down' (default per Néstor) or 'facing_up'
 
         this.setupPlacementState = new SetupPlacementState(this, bga);
         this.playerTurnState = new PlayerTurnState(this, bga);
@@ -453,15 +454,38 @@ export class Game {
         const wingPath = "M 0,-16 C 6,-16 10,-10 10,-6 C 18,-6 23,0 23,8 C 23,16 16,18 12,19 C 7,24 2,25 0,25 C -2,25 -7,24 -12,19 C -16,18 -23,16 -23,8 C -23,0 -18,-6 -10,-6 C -10,-10 -6,-16 0,-16 Z";
         const bellyPath = "M 0,-10 C 4,-10 8,-4 8,2 C 8,10 5,14 0,16 C -5,14 -8,10 -8,2 C -8,-4 -4,-10 0,-10 Z";
         const tailPath = "M 0,16 C 4,18 5,26 2,29 C -1,32 -6,30 -4,24 C -3,20 -1,17 0,16 Z";
+        const isFacingDown = (this.gliderPieceStyle !== 'facing_up'); // Default is facing_down per Néstor
 
-        const eyesSvg = inTorpor ? `
-            <path d="M -5.5,-10 Q -3.5,-8 -1.5,-10" stroke="#111" stroke-width="1.3" fill="none" stroke-linecap="round" />
-            <path d="M 1.5,-10 Q 3.5,-8 5.5,-10" stroke="#111" stroke-width="1.3" fill="none" stroke-linecap="round" />
+        const headAndFaceSvg = isFacingDown ? `
+            <!-- Ears (Solid dorsal view, no inner pink) -->
+            <circle cx="-7" cy="-16" r="3.8" class="sg-glider-ear color-${colorName}" />
+            <circle cx="7" cy="-16" r="3.8" class="sg-glider-ear color-${colorName}" />
+
+            <!-- Back of Head (Matches central back fur color) -->
+            <ellipse cx="0" cy="-11" rx="7.5" ry="6" class="sg-glider-head sg-glider-dorsal color-${colorName}" stroke-width="1.2" />
         ` : `
-            <ellipse cx="-3.5" cy="-11" rx="2.2" ry="2.5" fill="#111111" />
-            <circle cx="-4" cy="-12" r="0.8" fill="#ffffff" />
-            <ellipse cx="3.5" cy="-11" rx="2.2" ry="2.5" fill="#111111" />
-            <circle cx="3" cy="-12" r="0.8" fill="#ffffff" />
+            <!-- Ears (Ventral / Face-up with inner pink) -->
+            <circle cx="-7" cy="-16" r="3.8" class="sg-glider-ear color-${colorName}" />
+            <circle cx="-7" cy="-16" r="2.1" fill="#ff80ab" />
+            <circle cx="7" cy="-16" r="3.8" class="sg-glider-ear color-${colorName}" />
+            <circle cx="7" cy="-16" r="2.1" fill="#ff80ab" />
+
+            <!-- Face Head -->
+            <ellipse cx="0" cy="-11" rx="7.5" ry="6" class="sg-glider-head color-${colorName}" stroke-width="1.2" />
+
+            <!-- Eyes -->
+            ${inTorpor ? `
+                <path d="M -5.5,-10 Q -3.5,-8 -1.5,-10" stroke="#111" stroke-width="1.3" fill="none" stroke-linecap="round" />
+                <path d="M 1.5,-10 Q 3.5,-8 5.5,-10" stroke="#111" stroke-width="1.3" fill="none" stroke-linecap="round" />
+            ` : `
+                <ellipse cx="-3.5" cy="-11" rx="2.2" ry="2.5" fill="#111111" />
+                <circle cx="-4" cy="-12" r="0.8" fill="#ffffff" />
+                <ellipse cx="3.5" cy="-11" rx="2.2" ry="2.5" fill="#111111" />
+                <circle cx="3" cy="-12" r="0.8" fill="#ffffff" />
+            `}
+
+            <!-- Pink Nose -->
+            <polygon points="-1,-7.5 1,-7.5 0,-6.3" fill="#ff4081" />
         `;
 
         const restOffsetY = -6;
@@ -476,26 +500,14 @@ export class Game {
                     <!-- Outstretched Patagium (Gliding wings) -->
                     <path d="${wingPath}" class="sg-glider-wings color-${colorName}" stroke-width="1.4" stroke-linejoin="round" />
 
-                    <!-- Belly fur -->
+                    <!-- Central Back / Belly fur -->
                     <path d="${bellyPath}" class="sg-glider-belly color-${colorName}" />
 
                     <!-- Bushy Tail -->
                     <path d="${tailPath}" class="sg-glider-tail color-${colorName}" stroke-width="1" />
 
-                    <!-- Ears -->
-                    <circle cx="-7" cy="-16" r="3.8" class="sg-glider-ear color-${colorName}" />
-                    <circle cx="-7" cy="-16" r="2.1" fill="#ff80ab" />
-                    <circle cx="7" cy="-16" r="3.8" class="sg-glider-ear color-${colorName}" />
-                    <circle cx="7" cy="-16" r="2.1" fill="#ff80ab" />
-
-                    <!-- Head -->
-                    <ellipse cx="0" cy="-11" rx="7.5" ry="6" class="sg-glider-head color-${colorName}" stroke-width="1.2" />
-
-                    <!-- Eyes -->
-                    ${eyesSvg}
-
-                    <!-- Pink Nose -->
-                    <polygon points="-1,-7.5 1,-7.5 0,-6.3" fill="#ff4081" />
+                    <!-- Head & Ears -->
+                    ${headAndFaceSvg}
 
                     <!-- Torpor Sleep Floating ZZZ -->
                     ${inTorpor ? `<text x="14" y="-14" class="sg-torpor-zzz">&#128164; Zzz</text>` : ''}
