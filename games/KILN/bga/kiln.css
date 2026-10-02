@@ -617,8 +617,8 @@
 }
 
 .kiln_opponent_card .kiln_wh_grid {
-    grid-template-columns: repeat(5, 25px) !important;
-    grid-template-rows: repeat(5, 25px) !important;
+    grid-template-columns: repeat(5, 28px) !important;
+    grid-template-rows: repeat(5, 28px) !important;
     gap: 2px !important;
     padding: 3px !important;
     border-radius: 6px !important;
@@ -626,8 +626,8 @@
 }
 
 .kiln_opponent_card .kiln_wh_cell {
-    width: 25px !important;
-    height: 25px !important;
+    width: 28px !important;
+    height: 28px !important;
     border-radius: 4px !important;
 }
 
@@ -649,11 +649,20 @@
     font-size: 13px !important;
 }
 
-.kiln_rot_0,
-.kiln_rot_90,
-.kiln_rot_180,
+.kiln_rot_0 {
+    transform: rotate(0deg);
+}
+
+.kiln_rot_90 {
+    transform: rotate(90deg);
+}
+
+.kiln_rot_180 {
+    transform: rotate(180deg);
+}
+
 .kiln_rot_270 {
-    transform: none;
+    transform: rotate(270deg);
 }
 
 .kiln_wh_title {

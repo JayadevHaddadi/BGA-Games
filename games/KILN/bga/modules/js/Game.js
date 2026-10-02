@@ -994,7 +994,21 @@ export class Game {
                         break;
                 }
             }
-            const rotClass = 'kiln_rot_0';
+            // Orient opponent warehouses so pattern orientation matches viewer's perspective:
+            // - Me (Bottom): 0°
+            // - Player on Right: 90° rotated to the right
+            // - Player Opposite (Top): 180°
+            // - Player on Left: 90° rotated to the left (270°)
+            let rotClass = 'kiln_rot_0';
+            if (!isMe) {
+                if (slotId === 'kiln_slot_right') {
+                    rotClass = 'kiln_rot_90';
+                } else if (slotId === 'kiln_slot_top') {
+                    rotClass = 'kiln_rot_180';
+                } else if (slotId === 'kiln_slot_left') {
+                    rotClass = 'kiln_rot_270';
+                }
+            }
 
             const targetSlot = document.getElementById(slotId);
             if (!targetSlot) return;
@@ -1046,15 +1060,10 @@ export class Game {
                 <div class="kiln_wh_grid ${rotClass}" id="kiln_wh_grid_${pId}"></div>
             `;
 
-            let positionBadge = '';
-            if (isMultiplayer && !isMe && turnStep === 1) {
-                positionBadge = `<span class="kiln_seat_badge">(${_('Next')})</span>`;
-            }
-
             card.innerHTML = `
                 <div class="kiln_wh_title">
                     <span class="kiln_player_color_dot kiln_dot_${pColor}"></span>
-                    <strong>${pInfo.name}</strong> ${isMe ? `(${_('You')})` : ''} ${positionBadge}
+                    <strong>${pInfo.name}</strong> ${isMe ? `(${_('You')})` : ''}
                 </div>
                 <div class="kiln_wh_body">
                     ${bodyHtml}
