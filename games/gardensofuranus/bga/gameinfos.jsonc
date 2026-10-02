@@ -19,18 +19,9 @@
     "solo_mode_ranked": false,
 
     "is_coop": 0,
-    "complexity": 2,
-    "luck": 2,
-    "strategy": 4,
-    "diplomacy": 1,
 
     "player_colors": ["4caf50", "e91e63", "2196f3", "ff9800", "9c27b0"],
     "favorite_colors": ["4caf50", "e91e63"],
-
-    "custom_buy_button": {
-        "url": "https://nestorgames.com/",
-        "label": "Buy at nestorgames"
-    },
 
     "language_dependency": false,
     "favorite_colors_support": false,
