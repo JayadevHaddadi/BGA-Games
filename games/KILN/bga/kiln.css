@@ -88,6 +88,20 @@
     gap: 14px 20px;
 }
 
+/* In 3-Player mode: right column is omitted so table is centered without blank 310px column */
+.kiln_main_layout.kiln_3player {
+    grid-template-columns: 240px auto;
+    grid-template-areas:
+        "track top"
+        "west  center"
+        ".     bottom";
+    gap: 14px 20px;
+}
+
+.kiln_main_layout.kiln_3player #kiln_slot_right {
+    display: none;
+}
+
 .kiln_main_layout.kiln_multiplayer #kiln_track_panel {
     align-self: start;
     justify-self: center;

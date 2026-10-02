@@ -48,8 +48,8 @@ class NextPlayer extends \Bga\GameFramework\States\GameState
         $this->game->tableStats->inc('turns_number', 1);
         $this->game->playerStats->inc('turns_number', 1, $activePlayerId);
 
-        // Advance turn counter-clockwise around the kiln table
-        $this->game->activePrevPlayer();
+        // Advance turn order (top to bottom on right-hand player panel)
+        $this->game->activeNextPlayer();
         $nextActiveId = (int) $this->game->getActivePlayerId();
 
         $turn = (int) $this->game->globals->get('turn_count', 1) + 1;

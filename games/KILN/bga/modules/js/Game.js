@@ -758,7 +758,7 @@ export class Game {
         const isMultiplayer = numPlayers > 2;
 
         wrapper.innerHTML = `
-            <div id="kiln_main_layout" class="kiln_main_layout ${isMultiplayer ? 'kiln_multiplayer' : ''}">
+            <div id="kiln_main_layout" class="kiln_main_layout ${isMultiplayer ? 'kiln_multiplayer' : ''} ${numPlayers === 3 ? 'kiln_3player' : ''}">
                 <!-- Score Track: Top-Left in 3-4p, Left beside kiln in 2p -->
                 <div class="kiln_track_panel" id="kiln_track_panel">
                     <div class="kiln_panel_header">
@@ -957,40 +957,40 @@ export class Game {
             const pColor = this.playerColors[pId] || 'red';
             const isMe = String(pId) === String(myId);
 
-            // Relative counter-clockwise position from "my" viewpoint:
-            // 0 = You (Always at bottom)
-            // 1 = Next player in turn order (Right side of board)
-            // 2 = Opposite player (Top side of board)
-            // 3 = Preceding player (Left side of board)
+            // Turn progression relative to "my" viewpoint:
+            // 0 = ME (Always at bottom)
+            // 1 = PLAYER ON MY LEFT (Left side of board: "After my turn, it should be the player on my lefts turn to play")
+            // 2 = PLAYER OPPOSITE TO ME (Top side of board)
+            // 3 = PLAYER ON MY RIGHT (Right side of board)
             const pIdx = playerIds.indexOf(String(pId));
-            const ccwStep = (myIdx >= 0 && pIdx >= 0) ? (myIdx - pIdx + numP) % numP : 0;
+            const turnStep = (myIdx >= 0 && pIdx >= 0) ? (pIdx - myIdx + numP) % numP : (pIdx >= 0 ? pIdx % numP : 0);
 
             let slotId;
-            if (ccwStep === 0) {
+            if (turnStep === 0) {
                 // "for each player, their mat should be at the bottom"
                 slotId = 'kiln_slot_bottom';
             } else if (numP === 2) {
                 slotId = 'kiln_slot_top';
             } else if (numP === 3) {
-                // 3-Player counter-clockwise:
-                // step 1 (next): Right
-                // step 2 (previous): Top
-                slotId = (ccwStep === 1) ? 'kiln_slot_right' : 'kiln_slot_top';
+                // 3-Player:
+                // step 1 (next): PLAYER ON MY LEFT
+                // step 2 (opposite/previous): PLAYER OPPOSITE TO ME (Right side is skipped)
+                slotId = (turnStep === 1) ? 'kiln_slot_left' : 'kiln_slot_top';
             } else {
-                // 4-Player counter-clockwise:
-                // step 1 (next): Right
-                // step 2 (opposite): Top
-                // step 3 (previous): Left
-                switch (ccwStep) {
+                // 4-Player:
+                // step 1 (next): PLAYER ON MY LEFT
+                // step 2 (opposite): PLAYER OPPOSITE TO ME
+                // step 3 (previous): PLAYER ON MY RIGHT
+                switch (turnStep) {
                     case 1:
-                        slotId = 'kiln_slot_right';
+                        slotId = 'kiln_slot_left';
                         break;
                     case 2:
                         slotId = 'kiln_slot_top';
                         break;
                     case 3:
                     default:
-                        slotId = 'kiln_slot_left';
+                        slotId = 'kiln_slot_right';
                         break;
                 }
             }
@@ -1047,7 +1047,7 @@ export class Game {
             `;
 
             let positionBadge = '';
-            if (isMultiplayer && !isMe && ccwStep === 1) {
+            if (isMultiplayer && !isMe && turnStep === 1) {
                 positionBadge = `<span class="kiln_seat_badge">(${_('Next')})</span>`;
             }
 
@@ -1493,8 +1493,10 @@ export class Game {
         const boardEl = document.getElementById('kiln_main_layout');
         if (!scalerWrapper || !boardEl) return;
 
-        const isMultiplayer = Object.keys(this.gamedatas.players || {}).length > 2;
-        const baseWidth = isMultiplayer ? 1160 : 720;
+        const numP = Object.keys(this.gamedatas.players || {}).length;
+        const isMultiplayer = numP > 2;
+        const is3Player = numP === 3;
+        const baseWidth = isMultiplayer ? (is3Player ? 880 : 1160) : 720;
         const baseHeight = isMultiplayer ? 1040 : 990;
 
         const updateScale = () => {
