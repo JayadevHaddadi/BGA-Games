@@ -913,14 +913,7 @@ class Game extends \Bga\GameFramework\Table
             return 'instant_win';
         }
 
-        // 2. Active player has 0 flowers remaining at start of turn
-        $activePlayerId = (int) $this->getActivePlayerId();
-        $remainingFlowers = (int) $this->getUniqueValueFromDb(
-            "SELECT SUM(`count`) FROM `player_flower` WHERE `player_id` = $activePlayerId"
-        );
-        if ($remainingFlowers <= 0) {
-            return 'no_flowers';
-        }
+        // 2. (No-flowers end is checked in NextPlayer for the player about to start their turn)
 
         // 3. Stalemate: all players moved in succession without planting
         $playerCount = (int) $this->getUniqueValueFromDb("SELECT COUNT(*) FROM `player`");

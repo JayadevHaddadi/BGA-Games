@@ -182,7 +182,8 @@ export class Game {
         this.bga = bga;
         this.selectedCardId = null;
         this.selectedTargetMove = null;
-        this.selectedPlantColor = 'blue';
+        this.validMoves = [];
+        this.myFlowers = {};
         this.selectedMartian = null;
 
         // Register State Handlers with BGA
@@ -198,6 +199,7 @@ export class Game {
     setup(gamedatas) {
         this.gamedatas = gamedatas;
         this.createBoardDOM();
+        setTimeout(() => this.renderPlayerFlowers(), 500);
         this.renderGardenState();
         this.setupResponsiveScaling();
 
@@ -234,7 +236,6 @@ export class Game {
 
         area.innerHTML = `
             <div id="gardensofuranus_container">
-                <div id="gou_flower_reserve" class="gou_flower_pool"></div>
                 <div class="game-board-scaler" id="gou_board_scaler">
                     <div id="garden_board">
                         <div id="gou_cells_layer"></div>
@@ -432,12 +433,17 @@ export class Game {
         });
     }
 
+    imgUrl(name) {
+        const base = typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : '';
+        return `${base}img/${name}`;
+    }
+
     createFlowerToken(color) {
-        const token = document.createElement('div');
-        token.className = `gou_flower_token gou_dot_${color}`;
-        token.style.borderRadius = '50%';
-        token.style.border = '2px solid rgba(255,255,255,0.8)';
-        token.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)';
+        const token = document.createElement('img');
+        token.className = 'gou_flower_token';
+        token.src = this.imgUrl(`flower_${color}.png`);
+        token.alt = color;
+        token.draggable = false;
         return token;
     }
 
@@ -447,64 +453,85 @@ export class Game {
 
         layer.innerHTML = '';
         Object.values(this.gamedatas.gardeners).forEach(g => {
-            if (g.q === null || g.r === null) return;
+            if (g.q === null || g.r === null || g.q === undefined) return;
             const pos = this.axialToPixel(g.q, g.r);
             const token = document.createElement('div');
             token.className = 'gou_gardener_token';
             token.id = `gardener_${g.player_id}`;
             token.style.left = `${pos.x}px`;
             token.style.top = `${pos.y}px`;
-            token.innerHTML = '👽';
-            token.style.fontSize = '30px';
-            token.style.textAlign = 'center';
+            const color = this.gamedatas.players?.[g.player_id]?.color;
+            if (color) token.style.boxShadow = `0 0 0 3px #${color}, 0 2px 6px rgba(0,0,0,0.4)`;
+            const img = document.createElement('img');
+            img.src = this.imgUrl(`${g.martian || 'bot'}.png`);
+            img.alt = g.martian || '';
+            img.draggable = false;
+            token.appendChild(img);
             layer.appendChild(token);
         });
     }
 
     renderPlayerFlowers() {
-        const pool = document.getElementById('gou_flower_reserve');
-        if (!pool) return;
-        const myId = String(this.bga?.players?.getCurrentPlayerId?.() || this.player_id || 0);
         const all = this.gamedatas.all_flowers || {};
         const colors = ['blue', 'red', 'yellow', 'green', 'purple'];
-
-        const mine = all[myId] || {};
-        if (!this.selectedPlantColor || !(mine[this.selectedPlantColor] > 0)) {
-            this.selectedPlantColor = colors.find(c => mine[c] > 0) || 'blue';
-        }
-
-        pool.innerHTML = '';
-        const ids = Object.keys(all).sort((a, b) => (a === myId ? -1 : b === myId ? 1 : 0));
-        ids.forEach(pid => {
-            const isMe = pid === myId;
-            const info = this.gamedatas.players?.[pid];
-            const row = document.createElement('div');
-            row.className = 'gou_reserve_row';
-            const label = document.createElement('span');
-            label.className = 'gou_reserve_label';
-            label.textContent = isMe ? _('Your reserve') : (info?.name || '');
-            if (!isMe && info?.color) label.style.color = `#${info.color}`;
-            row.appendChild(label);
+        Object.keys(all).forEach(pid => {
+            const panel = this.bga?.playerPanels?.getElement?.(parseInt(pid));
+            if (!panel) return;
+            let box = document.getElementById(`gou_reserve_${pid}`);
+            if (!box) {
+                box = document.createElement('div');
+                box.id = `gou_reserve_${pid}`;
+                box.className = 'gou_panel_reserve';
+                box.title = _('Flower reserve (public)');
+                panel.appendChild(box);
+            }
+            box.innerHTML = '';
             colors.forEach(color => {
-                const cnt = all[pid]?.[color] || 0;
-                const div = document.createElement('div');
-                div.className = 'gou_flower_count';
-                if (isMe) {
-                    div.classList.add('gou_pickable');
-                    if (color === this.selectedPlantColor) div.classList.add('gou_selected_color');
-                    div.title = _('Click to choose the color to plant');
-                    div.addEventListener('click', () => {
-                        if (cnt <= 0) return;
-                        sounds.playClick();
-                        this.selectedPlantColor = color;
-                        this.renderPlayerFlowers();
-                    });
-                }
-                div.innerHTML = `<span class="gou_flower_dot gou_dot_${color}"></span> ${cnt}`;
-                row.appendChild(div);
+                const item = document.createElement('span');
+                item.className = 'gou_panel_flower';
+                item.innerHTML = `<img src="${this.imgUrl(`flower_${color}.png`)}" alt="${color}"><b>${all[pid]?.[color] || 0}</b>`;
+                box.appendChild(item);
             });
-            pool.appendChild(row);
         });
+    }
+
+    closeColorPicker() {
+        document.getElementById('gou_color_picker')?.remove();
+    }
+
+    openColorPicker(q, r) {
+        this.closeColorPicker();
+        const board = document.getElementById('garden_board');
+        if (!board) return;
+        const colors = ['blue', 'red', 'yellow', 'green', 'purple'];
+        const pos = this.axialToPixel(q, r);
+        const picker = document.createElement('div');
+        picker.id = 'gou_color_picker';
+        picker.style.left = `${Math.max(140, Math.min(560, pos.x))}px`;
+        picker.style.top = `${pos.y < 110 ? pos.y + 70 : pos.y - 70}px`;
+        colors.forEach(color => {
+            const cnt = this.myFlowers?.[color] || 0;
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'gou_color_btn';
+            btn.disabled = cnt <= 0;
+            btn.title = `${color} (${cnt})`;
+            btn.innerHTML = `<img src="${this.imgUrl(`flower_${color}.png`)}" alt="${color}"><b>${cnt}</b>`;
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.closeColorPicker();
+                this.bga.actions.performAction('actMoveGardener', {
+                    targetQ: q,
+                    targetR: r,
+                    plantColor: color,
+                });
+            });
+            picker.appendChild(btn);
+        });
+        board.appendChild(picker);
+        this.bga?.statusBar?.setTitle?.(_('Choose the color of the flower to plant'));
+        this.clearActionButtons();
+        this.bga?.statusBar?.addActionButton?.(_('Cancel'), () => this.updatePlayerTurnUI(this.lastTurnArgs), { color: 'alert' });
     }
 
     renderHandCards() {
@@ -633,6 +660,10 @@ export class Game {
     }
 
     updatePlayerTurnUI(args) {
+        this.closeColorPicker();
+        this.lastTurnArgs = args;
+        this.validMoves = args?.valid_moves || [];
+        this.myFlowers = args?.player_flowers || {};
         this.clearValidMoveHighlights();
         this.clearActionButtons();
         this.selectedMartian = null;
@@ -670,11 +701,13 @@ export class Game {
             return;
         }
 
-        this.bga.actions.performAction('actMoveGardener', {
-            targetQ: q,
-            targetR: r,
-            plantColor: this.selectedPlantColor || 'blue',
-        });
+        const move = this.validMoves.find(m => Number(m.q) === Number(q) && Number(m.r) === Number(r));
+        if (move && !move.has_flower) {
+            sounds.playClick();
+            this.openColorPicker(q, r);
+            return;
+        }
+        this.bga.actions.performAction('actMoveGardener', { targetQ: q, targetR: r });
     }
 
     onCardClicked(cardId) {

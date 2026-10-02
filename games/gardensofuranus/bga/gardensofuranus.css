@@ -110,20 +110,106 @@
 
 .gou_flower_token {
     position: absolute;
-    width: 34px;
-    height: 34px;
+    left: 50%;
+    top: 50%;
+    width: 56px;
+    height: auto;
     transform: translate(-50%, -50%);
     pointer-events: none;
+    z-index: 1;
 }
 
 .gou_gardener_token {
     position: absolute;
-    width: 42px;
-    height: 42px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.35);
     transform: translate(-50%, -50%);
     z-index: 10;
     pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     transition: left 0.3s cubic-bezier(0.25, 1, 0.5, 1), top 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.gou_gardener_token img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+}
+
+#gou_color_picker {
+    position: absolute;
+    z-index: 50;
+    transform: translate(-50%, -50%);
+    display: flex;
+    gap: 6px;
+    padding: 8px;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+.gou_color_btn {
+    position: relative;
+    width: 46px;
+    height: 46px;
+    padding: 2px;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    background: #f4fbfd;
+    cursor: pointer;
+}
+
+.gou_color_btn:hover:not(:disabled) {
+    border-color: #00e676;
+}
+
+.gou_color_btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.gou_color_btn img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.gou_color_btn b {
+    position: absolute;
+    right: -2px;
+    bottom: -2px;
+    min-width: 18px;
+    padding: 0 3px;
+    border-radius: 9px;
+    background: #12253f;
+    color: #fff;
+    font-size: 11px;
+    line-height: 18px;
+    text-align: center;
+}
+
+.gou_panel_reserve {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    margin-top: 6px;
+}
+
+.gou_panel_flower {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 13px;
+}
+
+.gou_panel_flower img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
 }
 
 .gou_cards_container {
