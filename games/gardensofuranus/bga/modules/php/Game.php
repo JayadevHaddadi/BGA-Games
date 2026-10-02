@@ -553,7 +553,7 @@ class Game extends \Bga\GameFramework\Table
 
         // Advance score on track
         if ($score > 0) {
-            $this->playerScore->inc($score, $playerId);
+            $this->playerScore->inc($playerId, $score);
         }
         $this->playerStats->inc('missions_scored', 1, $playerId);
 
@@ -562,18 +562,25 @@ class Game extends \Bga\GameFramework\Table
             "UPDATE `card` SET `card_location` = 'discard', `location_arg` = 0 WHERE `card_id` = $cardId"
         );
 
-        // Draw 1 replacement card from chosen board deck if available
+        // Draw 1 replacement card from the chosen board deck (fall back to any non-empty deck)
         $deckLoc = "deck_$drawDeckIdx";
         $topCard = static::getObjectFromDb(
             "SELECT `card_id` FROM `card` WHERE `card_location` = '$deckLoc' ORDER BY `location_arg` DESC LIMIT 1"
         );
-        $drawnCardId = null;
+        if (!$topCard) {
+            $topCard = static::getObjectFromDb(
+                "SELECT `card_id` FROM `card` WHERE `card_location` LIKE 'deck_%' ORDER BY `card_location`, `location_arg` DESC LIMIT 1"
+            );
+        }
         if ($topCard) {
             $drawnCardId = (int) $topCard['card_id'];
             static::DbQuery(
                 "UPDATE `card` SET `card_location` = 'hand', `location_arg` = $playerId WHERE `card_id` = $drawnCardId"
             );
         }
+
+        // Scoring a card is not a gardener move: it breaks the "everyone moved without planting" streak
+        $this->globals->set('non_plant_moves_streak', 0);
 
         $this->notifyAllPlayers("missionScored", clienttranslate('${player_name} scored mission card for ${score} points!'), [
             'player_id' => $playerId,
@@ -583,6 +590,11 @@ class Game extends \Bga\GameFramework\Table
             'score' => $score,
             'draw_deck' => $drawDeckIdx,
             'new_score' => (int) $this->getUniqueValueFromDb("SELECT `player_score` FROM `player` WHERE `player_id` = $playerId"),
+            'board_decks' => $this->getBoardDecks(),
+        ]);
+
+        $this->notify->player($playerId, "handUpdated", '', [
+            'hand_cards' => $this->getPlayerCards($playerId),
         ]);
     }
 

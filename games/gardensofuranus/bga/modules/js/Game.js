@@ -183,6 +183,7 @@ export class Game {
         this.selectedCardId = null;
         this.selectedTargetMove = null;
         this.validMoves = [];
+        this.pendingScoreCardId = null;
         this.myFlowers = {};
         this.selectedMartian = null;
 
@@ -236,18 +237,42 @@ export class Game {
 
         area.innerHTML = `
             <div id="gardensofuranus_container">
+                <div id="gou_info">
+                    <button type="button" id="gou_info_btn" aria-label="${_('Game end and scoring')}">i</button>
+                    <div id="gou_info_panel">
+                        <h4>${_('How the game ends')}</h4>
+                        <ol>
+                            <li>${_('At the start of a player\'s turn, that player has no flowers left.')}</li>
+                            <li>${_('Every player moves their gardener in succession without planting.')}</li>
+                            <li>${_('A player draws the last card from the board.')}</li>
+                            <li>${_('The Hexagon mission is completed (instant win).')}</li>
+                        </ol>
+                        <h4>${_('Final scoring')}</h4>
+                        <div>${_('Each player scores the mission cards still in hand, then loses points for unused flowers:')}</div>
+                        <table>
+                            <tr><th>${_('Unused')}</th><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td><td>11</td><td>12</td></tr>
+                            <tr><th>${_('Points')}</th><td>-1</td><td>-3</td><td>-6</td><td>-10</td><td>-15</td><td>-21</td><td>-28</td><td>-36</td><td>-45</td><td>-55</td><td>-66</td><td>-78</td></tr>
+                        </table>
+                    </div>
+                </div>
                 <div class="game-board-scaler" id="gou_board_scaler">
                     <div id="garden_board">
                         <div id="gou_cells_layer"></div>
                         <div id="gou_gardeners_layer"></div>
                     </div>
                 </div>
+                <div id="gou_decks_row"></div>
                 <div class="gou_cards_container" id="gou_cards_container"></div>
             </div>
         `;
 
+        document.getElementById('gou_info_btn')?.addEventListener('click', () => {
+            document.getElementById('gou_info')?.classList.toggle('open');
+        });
+
         this.renderSpots();
         this.renderPlayerFlowers();
+        this.renderBoardDecks();
         this.renderHandCards();
     }
 
@@ -534,6 +559,62 @@ export class Game {
         this.bga?.statusBar?.addActionButton?.(_('Cancel'), () => this.updatePlayerTurnUI(this.lastTurnArgs), { color: 'alert' });
     }
 
+    renderBoardDecks() {
+        const row = document.getElementById('gou_decks_row');
+        if (!row) return;
+        row.innerHTML = '';
+        const decks = this.gamedatas.board_decks || {};
+        Object.keys(decks).sort((a, b) => a - b).forEach(idx => {
+            const d = decks[idx];
+            const box = document.createElement('div');
+            box.className = 'gou_deck';
+            box.dataset.deckIdx = idx;
+
+            if (!d.count || !d.top_card) {
+                box.innerHTML = `<div class="gou_deck_empty">${_('Empty')}</div>`;
+            } else if (d.top_card.face_down) {
+                box.innerHTML = `<div class="gou_card"><img src="${this.imgUrl('cards/card_back.jpg')}" alt=""></div>`;
+            } else {
+                box.appendChild(this.createCardElement(d.top_card));
+            }
+            const count = document.createElement('div');
+            count.className = 'gou_deck_count';
+            count.textContent = d.count || 0;
+            box.appendChild(count);
+            const label = document.createElement('div');
+            label.className = 'gou_deck_label';
+            label.textContent = d.is_face_down ? _('Face-down deck') : _('Face-up deck');
+            box.appendChild(label);
+
+            box.addEventListener('click', () => this.onDeckClicked(parseInt(idx)));
+            row.appendChild(box);
+        });
+        if (this.pendingScoreCardId) this.highlightChoosableDecks();
+    }
+
+    highlightChoosableDecks() {
+        document.querySelectorAll('.gou_deck').forEach(el => {
+            const d = this.gamedatas.board_decks?.[el.dataset.deckIdx];
+            el.classList.toggle('choosable', !!(d && d.count > 0));
+        });
+    }
+
+    cancelScoreSelection() {
+        this.pendingScoreCardId = null;
+        document.querySelectorAll('.gou_deck.choosable').forEach(el => el.classList.remove('choosable'));
+        document.querySelectorAll('#gou_cards_container .gou_card_wrapper.selected, #gou_cards_container .gou_card.selected')
+            .forEach(el => el.classList.remove('selected'));
+    }
+
+    onDeckClicked(idx) {
+        if (!this.pendingScoreCardId) return;
+        const d = this.gamedatas.board_decks?.[idx];
+        if (!d || !(d.count > 0)) return;
+        const cardId = this.pendingScoreCardId;
+        this.cancelScoreSelection();
+        this.bga.actions.performAction('actScoreMission', { cardId: cardId, drawDeckIdx: idx });
+    }
+
     renderHandCards() {
         const container = document.getElementById('gou_cards_container');
         if (!container || !this.gamedatas.hand_cards) return;
@@ -661,7 +742,12 @@ export class Game {
 
     updatePlayerTurnUI(args) {
         this.closeColorPicker();
+        this.cancelScoreSelection();
         this.lastTurnArgs = args;
+        if (args?.board_decks) {
+            this.gamedatas.board_decks = args.board_decks;
+            this.renderBoardDecks();
+        }
         this.validMoves = args?.valid_moves || [];
         this.myFlowers = args?.player_flowers || {};
         this.clearValidMoveHighlights();
@@ -711,11 +797,28 @@ export class Game {
     }
 
     onCardClicked(cardId) {
-        if (!this.isCurrentPlayerActive()) return;
-        this.bga.actions.performAction('actScoreMission', {
-            cardId: cardId,
-            drawDeckIdx: 0,
-        });
+        if (!this.isCurrentPlayerActive() || !this.lastTurnArgs) return;
+        sounds.playClick();
+        const decks = this.gamedatas.board_decks || {};
+        const anyCards = Object.values(decks).some(d => d.count > 0);
+        if (!anyCards) {
+            this.bga.actions.performAction('actScoreMission', { cardId: cardId, drawDeckIdx: 0 });
+            return;
+        }
+
+        this.cancelScoreSelection();
+        this.pendingScoreCardId = cardId;
+        document.querySelectorAll(`#gou_cards_container .gou_card_wrapper[data-card-id="${cardId}"]`)
+            .forEach(el => el.classList.add('selected'));
+        this.highlightChoosableDecks();
+
+        const pts = this.lastTurnArgs.card_scores?.[cardId];
+        const msg = pts !== undefined
+            ? _('Score this card for ${pts} point(s). Click a deck to draw your replacement card from.').replace('${pts}', pts)
+            : _('Click a deck to draw your replacement card from.');
+        this.bga?.statusBar?.setTitle?.(msg);
+        this.clearActionButtons();
+        this.bga?.statusBar?.addActionButton?.(_('Cancel'), () => this.updatePlayerTurnUI(this.lastTurnArgs), { color: 'alert' });
     }
 
     _getNotifArgs(notif) {
@@ -729,6 +832,7 @@ export class Game {
         } else if (typeof dojo !== 'undefined' && typeof dojo.subscribe === 'function') {
             dojo.subscribe('gardenerMoved', this, 'notif_gardenerMoved');
             dojo.subscribe('missionScored', this, 'notif_missionScored');
+            dojo.subscribe('handUpdated', this, 'notif_handUpdated');
             dojo.subscribe('martianSelected', this, 'notif_martianSelected');
             dojo.subscribe('treeNuked', this, 'notif_treeNuked');
             dojo.subscribe('gardenerTeleported', this, 'notif_gardenerTeleported');
@@ -740,6 +844,7 @@ export class Game {
         } else if (typeof this.bga?.notifications?.subscribe === 'function') {
             this.bga.notifications.subscribe('gardenerMoved', (notif) => this.notif_gardenerMoved(notif));
             this.bga.notifications.subscribe('missionScored', (notif) => this.notif_missionScored(notif));
+            this.bga.notifications.subscribe('handUpdated', (notif) => this.notif_handUpdated(notif));
             this.bga.notifications.subscribe('martianSelected', (notif) => this.notif_martianSelected(notif));
             this.bga.notifications.subscribe('treeNuked', (notif) => this.notif_treeNuked(notif));
             this.bga.notifications.subscribe('gardenerTeleported', (notif) => this.notif_gardenerTeleported(notif));
@@ -831,9 +936,19 @@ export class Game {
         }
     }
 
+    notif_handUpdated(notif) {
+        const args = this._getNotifArgs(notif);
+        this.gamedatas.hand_cards = args.hand_cards || [];
+        this.renderHandCards();
+    }
+
     notif_missionScored(notif) {
         sounds.playScore();
         const args = this._getNotifArgs(notif);
+        if (args.board_decks) {
+            this.gamedatas.board_decks = args.board_decks;
+            this.renderBoardDecks();
+        }
         const counter = this.bga?.playerPanels?.getScoreCounter?.(args.player_id);
         if (counter && args.new_score !== undefined) {
             counter.toValue(args.new_score);
