@@ -671,6 +671,7 @@ export class Game {
             dojo.subscribe('treeNuked', this, 'notif_treeNuked');
             dojo.subscribe('gardenerTeleported', this, 'notif_gardenerTeleported');
             dojo.subscribe('flowersSwapped', this, 'notif_flowersSwapped');
+            dojo.subscribe('gardenersSwapped', this, 'notif_gardenersSwapped');
             dojo.subscribe('cardDrafted', this, 'notif_cardDrafted');
             dojo.subscribe('draftRoundStarted', this, 'notif_draftRoundStarted');
             dojo.subscribe('newDraftHand', this, 'notif_newDraftHand');
@@ -681,6 +682,7 @@ export class Game {
             this.bga.notifications.subscribe('treeNuked', (notif) => this.notif_treeNuked(notif));
             this.bga.notifications.subscribe('gardenerTeleported', (notif) => this.notif_gardenerTeleported(notif));
             this.bga.notifications.subscribe('flowersSwapped', (notif) => this.notif_flowersSwapped(notif));
+            this.bga.notifications.subscribe('gardenersSwapped', (notif) => this.notif_gardenersSwapped(notif));
             this.bga.notifications.subscribe('cardDrafted', (notif) => this.notif_cardDrafted(notif));
             this.bga.notifications.subscribe('draftRoundStarted', (notif) => this.notif_draftRoundStarted(notif));
             this.bga.notifications.subscribe('newDraftHand', (notif) => this.notif_newDraftHand(notif));
@@ -771,22 +773,61 @@ export class Game {
         }
     }
 
+    setGardenerPos(playerId, q, r, martian) {
+        if (!this.gamedatas.gardeners) this.gamedatas.gardeners = {};
+        const list = this.gamedatas.gardeners;
+        let g = Object.values(list).find(x => String(x.player_id) === String(playerId));
+        if (!g) {
+            g = { player_id: playerId };
+            list[playerId] = g;
+        }
+        g.q = q;
+        g.r = r;
+        if (martian) g.martian = martian;
+    }
+
+    setSpotFlower(q, r, color) {
+        const spot = document.getElementById(`spot_${q}_${r}`);
+        if (!spot) return;
+        spot.querySelectorAll('.gou_flower_token').forEach(el => el.remove());
+        if (color) spot.appendChild(this.createFlowerToken(color));
+    }
+
     notif_martianSelected(notif) {
+        const args = this._getNotifArgs(notif);
+        this.setGardenerPos(args.player_id, args.q, args.r, args.martian);
         this.renderGardenState();
     }
 
     notif_treeNuked(notif) {
         const args = this._getNotifArgs(notif);
         const spot = document.getElementById(`spot_${args.q}_${args.r}`);
-        if (spot) spot.innerHTML = '';
+        if (spot) {
+            spot.classList.remove('has_tree');
+            spot.innerHTML = '';
+        }
     }
 
     notif_gardenerTeleported(notif) {
         sounds.playMove();
+        const args = this._getNotifArgs(notif);
+        this.setGardenerPos(args.player_id, args.q, args.r);
+        this.renderGardenState();
+    }
+
+    notif_gardenersSwapped(notif) {
+        sounds.playMove();
+        const args = this._getNotifArgs(notif);
+        this.setGardenerPos(args.player_id, args.q, args.r);
+        this.setGardenerPos(args.other_player_id, args.other_q, args.other_r);
+        this.renderGardenState();
     }
 
     notif_flowersSwapped(notif) {
         sounds.playPlant();
+        const args = this._getNotifArgs(notif);
+        this.setSpotFlower(args.q1, args.r1, args.color1);
+        this.setSpotFlower(args.q2, args.r2, args.color2);
     }
 
     setupResponsiveScaling() {

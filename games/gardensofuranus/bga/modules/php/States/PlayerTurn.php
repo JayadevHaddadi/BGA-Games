@@ -119,6 +119,7 @@ class PlayerTurn extends GameState
             }
             $this->game->DbQuery("UPDATE `gardener` SET `coord_q` = $tq, `coord_r` = $tr WHERE `player_id` = $activePlayerId");
             $this->game->notifyAllPlayers("gardenerTeleported", clienttranslate('${player_name} used Marty to teleport!'), [
+                'player_id' => $activePlayerId,
                 'player_name' => $this->game->getPlayerNameById($activePlayerId),
                 'q' => $tq,
                 'r' => $tr,
@@ -140,6 +141,12 @@ class PlayerTurn extends GameState
             $this->game->notifyAllPlayers("gardenersSwapped", clienttranslate('${player_name} used Robby to swap positions with another Martian!'), [
                 'player_name' => $this->game->getPlayerNameById($activePlayerId),
                 'other_player_name' => $this->game->getPlayerNameById($targetPId),
+                'player_id' => $activePlayerId,
+                'other_player_id' => $targetPId,
+                'q' => $otherQ,
+                'r' => $otherR,
+                'other_q' => $myQ,
+                'other_r' => $myR,
             ]);
         } elseif ($martian === 'ali') {
             // Swap 2 flowers in straight line with Ali
@@ -160,6 +167,8 @@ class PlayerTurn extends GameState
             $this->game->DbQuery("UPDATE `cell` SET `flower_color` = '$col1' WHERE `coord_q` = $q2 AND `coord_r` = $r2");
             $this->game->notifyAllPlayers("flowersSwapped", clienttranslate('${player_name} used Ali to swap two flowers!'), [
                 'player_name' => $this->game->getPlayerNameById($activePlayerId),
+                'q1' => $q1, 'r1' => $r1, 'color1' => $col2,
+                'q2' => $q2, 'r2' => $r2, 'color2' => $col1,
             ]);
         }
 
