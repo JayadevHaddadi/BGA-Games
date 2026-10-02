@@ -114,7 +114,7 @@ class Game extends \Bga\GameFramework\Table
             $name = $colorNames[$idx % count($colorNames)];
             $playerColorMap[$player_id] = $name;
 
-            $query_values[] = vsprintf("(%s, %d, '%s', '%s')", [
+            $query_values[] = vsprintf("(%s, %d, '%s', '%s', 0)", [
                 $player_id,
                 $idx + 1,
                 $hex,
@@ -125,7 +125,7 @@ class Game extends \Bga\GameFramework\Table
 
         static::DbQuery(
             sprintf(
-                "INSERT INTO `player` (`player_id`, `player_no`, `player_color`, `player_name`) VALUES %s",
+                "INSERT INTO `player` (`player_id`, `player_no`, `player_color`, `player_name`, `player_score`) VALUES %s",
                 implode(",", $query_values)
             )
         );
@@ -180,6 +180,12 @@ class Game extends \Bga\GameFramework\Table
         // Initialize Stats
         $this->tableStats->init(['turns_number', 'winning_score'], 0);
         $this->playerStats->init(['turns_number', 'lines_sold', 'points_scored', 'extra_turns'], 0);
+
+        try {
+            $this->playerScore->initDb($playerIds, 0);
+        } catch (\Throwable $t) {
+            // Ignored if already initialized
+        }
 
         foreach ($playerIds as $pId) {
             $this->playerScore->set((int)$pId, 0);
@@ -313,6 +319,7 @@ class Game extends \Bga\GameFramework\Table
 
     protected function getAllDatas(): array
     {
+        $this->reloadPlayersBasicInfos();
         $result = [];
         $result['players'] = $this->loadPlayersBasicInfos();
         $result['target_score'] = (int) $this->globals->get('target_score', 17);
@@ -328,7 +335,10 @@ class Game extends \Bga\GameFramework\Table
         // Player scores
         $scores = [];
         foreach (array_keys($result['players']) as $pId) {
-            $scores[$pId] = $this->playerScore->get((int)$pId);
+            $score = (int) $this->playerScore->get((int)$pId);
+            $scores[$pId] = $score;
+            $result['players'][$pId]['score'] = $score;
+            $result['players'][$pId]['player_score'] = $score;
         }
         $result['scores'] = $scores;
 
@@ -917,7 +927,9 @@ class Game extends \Bga\GameFramework\Table
 
         // Increment score
         $this->playerScore->inc($playerId, $points);
-        $newScore = $this->playerScore->get($playerId);
+        $newScore = (int) $this->playerScore->get($playerId);
+        static::DbQuery("UPDATE `player` SET `player_score` = {$newScore} WHERE `player_id` = {$playerId}");
+        $this->reloadPlayersBasicInfos();
 
         // Update player stats (delta 2nd, playerId 3rd!)
         $this->playerStats->inc('lines_sold', $count, $playerId);

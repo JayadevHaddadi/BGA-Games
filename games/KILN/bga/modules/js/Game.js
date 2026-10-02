@@ -734,12 +734,27 @@ export class Game {
         this.playerColors = gamedatas.player_colors || {};
         this.isFixMessActive = false;
         this.isSellStateActive = false;
-        this.scores = Object.assign({}, gamedatas.scores || {});
+        this.scores = {};
+        if (gamedatas.players) {
+            Object.entries(gamedatas.players).forEach(([pId, pData]) => {
+                const sc = gamedatas.scores?.[pId] ?? pData?.score ?? pData?.player_score ?? 0;
+                this.scores[pId] = parseInt(sc, 10) || 0;
+            });
+        }
+        if (gamedatas.scores) {
+            Object.entries(gamedatas.scores).forEach(([pId, sc]) => {
+                this.scores[pId] = parseInt(sc, 10) || 0;
+            });
+        }
 
         this.buildMainLayout();
         this.setupBoardScaler();
         this.setupNotifications();
         this.updateScores(this.scores);
+
+        // Ensure sidebar player panel score counters are synced even if playerPanels mount asynchronously
+        setTimeout(() => this.updateScores(), 100);
+        setTimeout(() => this.updateScores(), 500);
     }
 
     buildMainLayout() {
@@ -1500,17 +1515,23 @@ export class Game {
      */
     updateScores(scores) {
         if (scores) {
-            Object.assign(this.scores, scores);
+            Object.entries(scores).forEach(([pId, val]) => {
+                this.scores[pId] = parseInt(val, 10) || 0;
+            });
         }
 
         document.querySelectorAll('.kiln_track_tokens').forEach(el => el.innerHTML = '');
 
-        Object.entries(this.scores).forEach(([pId, score]) => {
+        Object.entries(this.scores).forEach(([pId, scoreVal]) => {
+            const score = parseInt(scoreVal, 10) || 0;
+
             // Update sidebar counter
             const counter = this.bga?.playerPanels?.getScoreCounter?.(pId);
             if (counter) {
                 if (typeof counter.toValue === 'function') counter.toValue(score);
                 else if (typeof counter.setValue === 'function') counter.setValue(score);
+            } else if (typeof this.bga?.playerPanels?.setScore === 'function') {
+                this.bga.playerPanels.setScore(pId, score);
             }
 
             // Update score track token
@@ -1608,7 +1629,24 @@ export class Game {
             dojo.subscribe('cellErased', this, 'notif_cellErased');
             dojo.subscribe('fixSkipped', this, 'notif_fixSkipped');
             dojo.subscribe('groupCannotFit', this, 'notif_groupCannotFit');
+            dojo.subscribe('score', this, 'notif_score');
+            dojo.subscribe('playerScore', this, 'notif_score');
         }
+    }
+
+    async notif_score(notif) {
+        const args = this._getNotifArgs(notif);
+        const pId = args?.player_id ?? args?.playerId;
+        const score = args?.score ?? args?.player_score;
+        if (pId !== undefined && score !== undefined) {
+            const sc = {};
+            sc[pId] = score;
+            this.updateScores(sc);
+        }
+    }
+
+    async notif_playerScore(notif) {
+        return this.notif_score(notif);
     }
 
     async notif_tilePushed(notif) {
