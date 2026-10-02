@@ -287,6 +287,15 @@ export class Game {
                     <button id="sg_sound_toggle" class="sg_ctrl_btn" type="button">
                         ${sounds.muted ? '&#128263; Muted' : '&#128266; Sound'}
                     </button>
+                    <div class="sg_rules_quick_bar">
+                        <span class="sg_rules_quick_label">Tricky Rules:</span>
+                        <button type="button" class="sg_rule_icon_btn" data-rule="center" title="🎯 Center Nest: Jump to ANY space with 1 reserve fruit">🎯</button>
+                        <button type="button" class="sg_rule_icon_btn" data-rule="torpor" title="💤 Torpor: Eat tile under you. Consecutive torpor ends game!">💤</button>
+                        <button type="button" class="sg_rule_icon_btn" data-rule="blocking" title="🚫 Glider Blocking: Cannot jump through or over other squirrels">🚫</button>
+                        <button type="button" class="sg_rule_icon_btn" data-rule="takeoff" title="🍃 Takeoff vs Landing: Jump using takeoff tile">🍃</button>
+                        <button type="button" class="sg_rule_icon_btn" data-rule="scoring" title="🏆 Scoring: Most fruit points in reserve wins">🏆</button>
+                        <button type="button" class="sg_rule_icon_btn sg_rule_help_btn" data-rule="all" title="Click to view full Cruxy Rules Guide">📖 Tricky Rules</button>
+                    </div>
                 </div>
 
                 <div id="sg_reserve_tray">
@@ -303,6 +312,106 @@ export class Game {
                 <div id="sg_attribution">
                     <strong>Sugar Gliders</strong> &bull; Designed by <strong>Néstor Romeral Andrés</strong> &bull; Published by <strong>nestorgames</strong> &amp; <strong>Grok Games</strong>
                 </div>
+
+                <!-- Rules Modal Popup -->
+                <div id="sg_rules_modal" class="sg_modal" style="display: none;">
+                    <div class="sg_modal_backdrop" id="sg_modal_backdrop"></div>
+                    <div class="sg_modal_dialog" role="dialog" aria-modal="true" aria-labelledby="sg_modal_title">
+                        <div class="sg_modal_header">
+                            <h2 id="sg_modal_title">📖 Sugar Gliders &bull; Cruxy Rules Guide</h2>
+                            <button type="button" class="sg_modal_close_btn" id="sg_modal_close_btn" aria-label="Close">&times;</button>
+                        </div>
+                        <div class="sg_modal_body">
+                            <!-- Center Nest -->
+                            <div class="sg_rule_card" id="sg_rule_card_center">
+                                <div class="sg_rule_card_header">
+                                    <span class="sg_rule_card_icon">🎯</span>
+                                    <h3>The Center Nest Space</h3>
+                                    <span class="sg_rule_badge">Special Movement</span>
+                                </div>
+                                <div class="sg_rule_card_content">
+                                    <p>When you start your turn resting on the <strong>Center Nest space (0, 0)</strong>:</p>
+                                    <ul>
+                                        <li>You can glide to <strong>ANY unoccupied space on the entire tree</strong>!</li>
+                                        <li>You <strong>ignore straight-line and distance constraints</strong> completely.</li>
+                                        <li>To launch from the center, you must <strong>spend and discard any 1 fruit tile from your reserve</strong>.</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <!-- Torpor & Consecutive Torpor End -->
+                            <div class="sg_rule_card" id="sg_rule_card_torpor">
+                                <div class="sg_rule_card_header">
+                                    <span class="sg_rule_card_icon">💤</span>
+                                    <h3>Torpor (Resting) &amp; Sudden Game End</h3>
+                                    <span class="sg_rule_badge sg_badge_warn">Critical Endgame Rule</span>
+                                </div>
+                                <div class="sg_rule_card_content">
+                                    <p>Instead of jumping, you may choose to enter <strong>Torpor</strong>:</p>
+                                    <ul>
+                                        <li><strong>Eat the tile underneath</strong>: You do not move. You harvest the fruit tile beneath your glider and bank its points into your reserve.</li>
+                                        <li><strong>Next Turn Fuel</strong>: Because your current tile is eaten, your next jump requires spending 1 tile from your reserve (or entering torpor again).</li>
+                                        <li>⚠️ <strong>Sudden Death Game End</strong>: If <strong>all players consecutively choose Torpor</strong> with no jumps in between, <em>the game ends immediately!</em></li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <!-- Glider Obstacles & Blocking -->
+                            <div class="sg_rule_card" id="sg_rule_card_blocking">
+                                <div class="sg_rule_card_header">
+                                    <span class="sg_rule_card_icon">🚫</span>
+                                    <h3>No Jumping Over Squirrels (Solid Obstacles)</h3>
+                                    <span class="sg_rule_badge">Tactical Blocking</span>
+                                </div>
+                                <div class="sg_rule_card_content">
+                                    <p>Sugar gliders are physical obstacles on the tree branches:</p>
+                                    <ul>
+                                        <li>A glider <strong>cannot jump through, jump over, or land on another glider</strong>.</li>
+                                        <li>If another squirrel is in your straight-line trajectory before your target distance, that path is <strong>completely blocked</strong>.</li>
+                                        <li>Positioning your squirrel to block opponent flight paths is a core strategic move!</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <!-- Takeoff vs Landing Tile -->
+                            <div class="sg_rule_card" id="sg_rule_card_takeoff">
+                                <div class="sg_rule_card_header">
+                                    <span class="sg_rule_card_icon">🍃</span>
+                                    <h3>Takeoff Tile vs. Landing Tile</h3>
+                                    <span class="sg_rule_badge">Core Mechanics</span>
+                                </div>
+                                <div class="sg_rule_card_content">
+                                    <p>A common point of confusion is when fruit tiles are collected:</p>
+                                    <ul>
+                                        <li>You leap using the exact distance of the tile you are <strong>leaving</strong> (the takeoff space).</li>
+                                        <li>After leaping, you collect that takeoff tile into your reserve (these are your points!).</li>
+                                        <li>The tile you <strong>land on remains on the tree</strong> underneath your glider! It becomes your jump distance for your <em>next</em> turn.</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <!-- Scoring & Winning -->
+                            <div class="sg_rule_card" id="sg_rule_card_scoring">
+                                <div class="sg_rule_card_header">
+                                    <span class="sg_rule_card_icon">🏆</span>
+                                    <h3>Winning the Game &amp; Scoring</h3>
+                                    <span class="sg_rule_badge sg_badge_win">Victory Condition</span>
+                                </div>
+                                <div class="sg_rule_card_content">
+                                    <p>The game ends immediately when either:</p>
+                                    <ol>
+                                        <li>All players enter <strong>Torpor in succession</strong> without any jump.</li>
+                                        <li>All fruit tiles on the entire tree are <strong>exhausted / empty</strong>.</li>
+                                    </ol>
+                                    <p><strong>Final Scoring</strong>: Sum the total point values of all fruit tiles in your personal reserve: &sum; values. The player with the highest total score wins! In case of a tie, players share the victory.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="sg_modal_footer">
+                            <button type="button" class="sg_btn_primary" id="sg_modal_ack_btn">Got it, let's play!</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         `;
 
@@ -312,6 +421,56 @@ export class Game {
                 const muted = sounds.toggleMute();
                 soundBtn.innerHTML = muted ? '&#128263; Muted' : '&#128266; Sound';
             });
+        }
+
+        // Rules Modal Event Bindings
+        const closeBtn = document.getElementById('sg_modal_close_btn');
+        if (closeBtn) closeBtn.addEventListener('click', () => this.closeRulesModal());
+        const backdrop = document.getElementById('sg_modal_backdrop');
+        if (backdrop) backdrop.addEventListener('click', () => this.closeRulesModal());
+        const ackBtn = document.getElementById('sg_modal_ack_btn');
+        if (ackBtn) ackBtn.addEventListener('click', () => this.closeRulesModal());
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') this.closeRulesModal();
+        });
+
+        // Event delegation for all rules buttons across header and player panels
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('.sg_rule_icon_btn');
+            if (btn) {
+                const rule = btn.getAttribute('data-rule') || 'all';
+                this.openRulesModal(rule);
+            }
+        });
+    }
+
+    openRulesModal(ruleCategory = 'all') {
+        const modal = document.getElementById('sg_rules_modal');
+        if (!modal) return;
+        modal.style.display = 'flex';
+
+        // Remove previous highlights
+        document.querySelectorAll('.sg_rule_card').forEach(c => c.classList.remove('highlighted'));
+
+        if (ruleCategory && ruleCategory !== 'all') {
+            const targetCard = document.getElementById(`sg_rule_card_${ruleCategory}`);
+            if (targetCard) {
+                targetCard.classList.add('highlighted');
+                setTimeout(() => {
+                    targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 80);
+            }
+        } else {
+            const body = modal.querySelector('.sg_modal_body');
+            if (body) body.scrollTop = 0;
+        }
+    }
+
+    closeRulesModal() {
+        const modal = document.getElementById('sg_rules_modal');
+        if (modal) {
+            modal.style.display = 'none';
         }
     }
 
@@ -806,6 +965,16 @@ export class Game {
             ).join(' ');
 
             inv.innerHTML = `
+                <div class="sg_panel_top_row">
+                    <span class="sg_panel_title">&#127827; Reserves &amp; Fuel</span>
+                    <div class="sg_rules_icons_bar sg_panel_rules_bar">
+                        <button type="button" class="sg_rule_icon_btn" data-rule="center" title="🎯 Center Nest: Glide to ANY space with 1 reserve fruit">🎯</button>
+                        <button type="button" class="sg_rule_icon_btn" data-rule="torpor" title="💤 Torpor: Eat current fruit. Consecutive torpor ends game!">💤</button>
+                        <button type="button" class="sg_rule_icon_btn" data-rule="blocking" title="🚫 Glider Blocking: Cannot jump through or over other squirrels">🚫</button>
+                        <button type="button" class="sg_rule_icon_btn" data-rule="scoring" title="🏆 Scoring: Most fruit points in reserve wins">🏆</button>
+                        <button type="button" class="sg_rule_icon_btn sg_rule_help_btn" data-rule="all" title="Click to view Cruxy Rules Guide">📖</button>
+                    </div>
+                </div>
                 <div class="sg_panel_jumping">
                     <span>&#129438; Current Tile:</span> ${jumpingHtml}
                 </div>
