@@ -3,6 +3,7 @@
     "publisher": "nestorgames",
     "publisher_website": "https://nestorgames.com/",
     "publisher_bgg_id": 9976,
+    // BoardGameGeek URL: https://boardgamegeek.com/boardgame/81588/omega
     "bgg_id": 81588,
 
     "players": [2, 3, 4],
