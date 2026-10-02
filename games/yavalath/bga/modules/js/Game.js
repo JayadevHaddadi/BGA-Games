@@ -238,6 +238,15 @@ export class Game {
         this.playerColors = gamedatas.player_colors || {};
         this.eliminatedPlayers = gamedatas.eliminated_players || [];
         this.turnCount = gamedatas.turn_count || 1;
+        this.lastMove = gamedatas.last_move || null;
+
+        // Fallback for games in progress where last_move wasn't in DB yet
+        if (!this.lastMove && this.boardData) {
+            const placed = Object.values(this.boardData).filter(c => c && c.color);
+            if (placed.length === 1) {
+                this.lastMove = { q: placed[0].q, r: placed[0].r };
+            }
+        }
 
         this.initDom();
         this.renderBoard();
@@ -259,14 +268,11 @@ export class Game {
                     <span id="yavalath_turn_badge" class="yavalath_rule_badge yavalath_turn_badge">
                         Turn: ${this.turnCount}
                     </span>
-                    <button id="yavalath_swap_btn" class="yavalath_ctrl_btn" type="button" style="display:none;" title="Swap colors with Player 1 (Pie Rule)">
-                        <span>&#8644;</span> Swap Colors (Pie Rule)
-                    </button>
-                    <button id="yavalath_undo_btn" class="yavalath_ctrl_btn" type="button" disabled title="Undo staged stone before confirming">
-                        <span>&#8634;</span> Undo
-                    </button>
                     <button id="yavalath_sound_toggle" class="yavalath_ctrl_btn" type="button">
                         ${sounds.muted ? '&#128263; Muted' : '&#128266; Sound'}
+                    </button>
+                    <button id="yavalath_swap_btn" class="yavalath_ctrl_btn" type="button" style="display:none;" title="Swap colors with Player 1 (Pie Rule)">
+                        <span>&#8644;</span> Swap Colors (Pie Rule)
                     </button>
                 </div>
                 <div id="yavalath_board_scaler">
@@ -285,13 +291,6 @@ export class Game {
             soundBtn.addEventListener('click', () => {
                 const muted = sounds.toggleMute();
                 soundBtn.innerHTML = muted ? '&#128263; Muted' : '&#128266; Sound';
-            });
-        }
-
-        const undoBtn = document.getElementById('yavalath_undo_btn');
-        if (undoBtn) {
-            undoBtn.addEventListener('click', () => {
-                this.undoPendingMove();
             });
         }
 
@@ -444,6 +443,21 @@ export class Game {
 
         svg.innerHTML = html;
 
+        // Restore last move indicator on board render / page refresh
+        if (this.lastMove && this.lastMove.q !== undefined && this.lastMove.r !== undefined) {
+            const lastCell = svg.querySelector(`.yavalath_cell[data-q="${this.lastMove.q}"][data-r="${this.lastMove.r}"]`);
+            if (lastCell) {
+                const cx = lastCell.getAttribute('data-cx');
+                const cy = lastCell.getAttribute('data-cy');
+                const lastIndicator = svg.querySelector('#yavalath_last_indicator');
+                if (lastIndicator && cx && cy) {
+                    lastIndicator.setAttribute('cx', cx);
+                    lastIndicator.setAttribute('cy', cy);
+                    lastIndicator.style.display = 'block';
+                }
+            }
+        }
+
         svg.querySelectorAll('.yavalath_cell').forEach(cellEl => {
             cellEl.addEventListener('click', () => {
                 const q = parseInt(cellEl.getAttribute('data-q'), 10);
@@ -520,14 +534,7 @@ export class Game {
         }
         this.clearActionButtons();
         this.addActionButton('btnConfirmMove', _('✔ Confirm Move'), () => this.confirmPendingMove(), 'primary');
-        this.addActionButton('btnUndoMove', _('↺ Undo'), () => this.undoPendingMove(), 'secondary');
-
-        // Enable header undo button
-        const undoBtn = document.getElementById('yavalath_undo_btn');
-        if (undoBtn) {
-            undoBtn.removeAttribute('disabled');
-            undoBtn.classList.add('yavalath_undo_active');
-        }
+        this.addActionButton('btnUndoMove', _('↺ Undo'), () => this.undoPendingMove(), 'alert');
     }
 
     unstageCell(q, r) {
@@ -556,12 +563,6 @@ export class Game {
 
         this.clearActionButtons();
         this.updateTurnStatus(true);
-
-        const undoBtn = document.getElementById('yavalath_undo_btn');
-        if (undoBtn) {
-            undoBtn.setAttribute('disabled', 'disabled');
-            undoBtn.classList.remove('yavalath_undo_active');
-        }
     }
 
     confirmPendingMove() {
@@ -574,13 +575,6 @@ export class Game {
         if (stagedInd) stagedInd.style.display = 'none';
 
         this.clearActionButtons();
-
-        const undoBtn = document.getElementById('yavalath_undo_btn');
-        if (undoBtn) {
-            undoBtn.setAttribute('disabled', 'disabled');
-            undoBtn.classList.remove('yavalath_undo_active');
-        }
-
         this.bga.actions.performAction('actPlaceStone', { q, r });
     }
 
@@ -590,11 +584,6 @@ export class Game {
             this.pendingMove = null;
         }
         this.clearActionButtons();
-        const undoBtn = document.getElementById('yavalath_undo_btn');
-        if (undoBtn) {
-            undoBtn.setAttribute('disabled', 'disabled');
-            undoBtn.classList.remove('yavalath_undo_active');
-        }
     }
 
     onCellHover(cellEl, isHover) {
@@ -680,6 +669,7 @@ export class Game {
         const { q, r, color, result, line } = this._getNotifArgs(notif);
         const key = `${q}_${r}`;
         this.boardData[key] = { q, r, color };
+        this.lastMove = { q, r };
 
         // If this stone was our staged move, reset pending
         if (this.pendingMove && this.pendingMove.q === q && this.pendingMove.r === r) {

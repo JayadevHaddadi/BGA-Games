@@ -146,6 +146,7 @@ class Game extends \Bga\GameFramework\Table
         $this->globals->set('lose_length', $loseLength);
         $this->globals->set('pie_rule_enabled', $pieRuleEnabled);
         $this->globals->set('pie_rule_used', false);
+        $this->globals->set('last_move', null);
 
         $this->tableStats->init(['turns_number', 'win_by_four', 'win_by_opponent_three'], 0);
         $this->playerStats->init(['turns_number', 'stones_placed'], 0);
@@ -171,6 +172,7 @@ class Game extends \Bga\GameFramework\Table
         $result['pie_rule_enabled'] = (bool) $this->globals->get('pie_rule_enabled', false);
         $result['pie_rule_used'] = (bool) $this->globals->get('pie_rule_used', false);
         $result['turn_count'] = (int) $this->globals->get('turn_count', 1);
+        $result['last_move'] = $this->globals->get('last_move', null);
         return $result;
     }
 
@@ -213,6 +215,7 @@ class Game extends \Bga\GameFramework\Table
         $color = $playerColors[$playerId] ?? 'white';
 
         static::DbQuery("UPDATE `board` SET `color` = '{$color}', `player_id` = {$playerId} WHERE `coord_q` = {$q} AND `coord_r` = {$r}");
+        $this->globals->set('last_move', ['q' => $q, 'r' => $r]);
 
         return $color;
     }
