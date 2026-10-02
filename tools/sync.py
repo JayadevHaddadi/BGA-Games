@@ -165,7 +165,7 @@ def sync_directory(sftp, local_dir, remote_dir, dry_run=False, force=False):
                         sftp.remove(r_path)
                     except IOError:
                         pass
-                    sftp.put(l_path, r_path)
+                    sftp.put(l_path, r_path, confirm=False)
                 uploaded += 1
             else:
                 skipped += 1
