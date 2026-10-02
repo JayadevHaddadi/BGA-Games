@@ -84,5 +84,38 @@
             }
         },
         "default": 1
+    },
+    "105": {
+        "name": "Item placement",
+        "values": {
+            "1": {
+                "name": "Random",
+                "description": "Special items and oil spills are placed on random straight spaces (never corners) at the start of the race."
+            },
+            "2": {
+                "name": "Fixed layout",
+                "description": "Items always start on the same hand-picked straight spaces for the chosen circuit."
+            }
+        },
+        "default": 1,
+        "displaycondition": {
+            "type": "otheroption",
+            "id": 103,
+            "value": 2
+        }
+    },
+    "106": {
+        "name": "Track condition",
+        "values": {
+            "1": {
+                "name": "Dry race",
+                "description": "Normal conditions."
+            },
+            "2": {
+                "name": "Wet race",
+                "description": "4 oil spills start on the track exactly where the rulebook shows them for the chosen circuit (works with or without special items)."
+            }
+        },
+        "default": 1
     }
 }

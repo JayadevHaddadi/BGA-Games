@@ -195,13 +195,14 @@ class Circuit
     {
         $track = [
             'id' => $trackId, 'links' => [], 'aliases' => [], 'branch' => null, 'teleports' => [],
-            'gate_switches' => [], 'gate_connector' => null, 'items' => [],
+            'gate_switches' => [], 'gate_connector' => null, 'items' => [], 'wet_spills' => [],
         ];
 
         if ($trackId === 2) {
             [$track['spaces'], $track['last']] = self::buildFromCells(self::TRACK_2_CELLS, range(14, 7), 0);
             $track['aliases'] = [[14, 24], [34, 42], [44, 52]];
-            $track['items'] = ['spill' => [5, 29, 49, 63], 'mine' => [23, 57], 'rocket' => [10, 43], 'wrench' => [31, 69], 'turboboost' => [18, 53]];
+            $track['wet_spills'] = [5, 6, 31, 59];
+            $track['items'] = ['spill' => [5, 29, 49, 63], 'mine' => [23, 57], 'rocket' => [10, 43], 'wrench' => [33, 69], 'turboboost' => [18, 53]];
         } elseif ($trackId === 3) {
             [$track['spaces'], $track['last']] = self::buildFromCells(self::TRACK_3_CELLS, range(10, 3), 0);
             // Gate connector between the bottom straight (space 22) and the middle straight (space 36)
@@ -211,11 +212,13 @@ class Circuit
             $track['gate_switches'] = [17, 41];
             $track['gate_connector'] = 75;
             $track['teleports'] = [54, 65];
+            $track['wet_spills'] = [2, 27, 42, 57];
             $track['items'] = ['spill' => [5, 25, 48, 62], 'mine' => [19, 50], 'rocket' => [14, 38], 'wrench' => [33, 56], 'turboboost' => [11, 44]];
         } else {
             $track['spaces'] = self::SPACES_TRACK_1;
             $track['last'] = 74;
             $track['aliases'] = [[47, 57]];
+            $track['wet_spills'] = [1, 2, 23, 31];
             $track['branch'] = ['type' => 'shortcut', 'from' => 8, 'to' => 36];
             $track['items'] = ['spill' => [6, 21, 28, 42], 'mine' => [13, 50], 'rocket' => [19, 59], 'wrench' => [26, 40], 'turboboost' => [11, 58]];
         }
@@ -368,16 +371,28 @@ class Circuit
             && !($t['branch'] !== null && $t['branch']['from'] === $spaceId);
     }
 
-    /** @return array<int, array{item_type: string, space_id: int}> */
-    public static function getItemSpots(): array
+    /** Default (fixed) layout: item type => space ids. The counts also drive random placement. */
+    public static function getFixedItems(): array
     {
-        $spots = [];
-        foreach (self::track()['items'] as $type => $spaceIds) {
-            foreach ($spaceIds as $spaceId) {
-                $spots[] = ['item_type' => $type, 'space_id' => $spaceId];
+        return self::track()['items'];
+    }
+
+    /** The 4 oil spill spots printed in the rulebook's Wet Race pictures. */
+    public static function getWetSpillSpots(): array
+    {
+        return self::track()['wet_spills'];
+    }
+
+    /** Straight spaces where an item may be placed (never corners, pit lane, loop cells, switches, teleports). */
+    public static function getItemCandidates(): array
+    {
+        $ids = [];
+        foreach (self::track()['spaces'] as $id => $sp) {
+            if ($sp['type'] === 'straight' && self::canHoldItem($id)) {
+                $ids[] = $id;
             }
         }
-        return $spots;
+        return $ids;
     }
 
     /** Everything the client needs to draw the board and preview movement. */

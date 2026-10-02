@@ -204,11 +204,11 @@ class Game extends \Bga\GameFramework\Table
         $this->globals->set('finish_order', []);
         $this->globals->set('total_laps', $totalLaps);
 
-        // Setup track items if Option 103 (Special Items) is enabled
-        $itemsOption = (int) $this->tableOptions->get(103, 1);
-        if ($itemsOption === 2) {
-            $this->setupTrackItems();
-        }
+        // Item placement (105: 1 = random, 2 = fixed layout) and track condition (106: 2 = wet race)
+        $placementOption = isset($options[105]) ? (int) $options[105] : (int) $this->tableOptions->get(105, 1);
+        $weatherOption = isset($options[106]) ? (int) $options[106] : (int) $this->tableOptions->get(106, 1);
+        $itemsOption = isset($options[103]) ? (int) $options[103] : (int) $this->tableOptions->get(103, 1);
+        $this->setupTrackItems($itemsOption === 2, $placementOption === 1, $weatherOption === 2);
 
         if ($qualifyingEnabled) {
             return QualifyingTurn::class;
@@ -935,14 +935,48 @@ class Game extends \Bga\GameFramework\Table
         return $all[$racerId] ?? [];
     }
 
-    public function setupTrackItems(): void
+    public function setupTrackItems(bool $specialItems, bool $randomPlacement, bool $wetRace): void
     {
         static::DbQuery("DELETE FROM `track_item`");
         static::DbQuery("DELETE FROM `player_inventory`");
 
-        // 4 Oil Spills, 2 Mines, 2 Rockets, 2 Wrenches, 2 Turbos at the circuit's fixed starting spots
-        $items = Circuit::getItemSpots();
+        $items = [];
+        $taken = [];
 
+        // Wet race: the 4 oil spills go exactly where the rulebook shows them
+        if ($wetRace) {
+            foreach (Circuit::getWetSpillSpots() as $spaceId) {
+                $items[] = ['item_type' => 'spill', 'space_id' => $spaceId];
+                $taken[$spaceId] = true;
+            }
+        }
+
+        // Arcade items: 4 spills (unless wet race), 2 mines, 2 rockets, 2 wrenches, 2 turbos
+        if ($specialItems) {
+            $candidates = Circuit::getItemCandidates();
+            foreach (Circuit::getFixedItems() as $type => $spaceIds) {
+                if ($type === 'spill' && $wetRace) {
+                    continue;
+                }
+                foreach ($spaceIds as $fixedSpace) {
+                    if ($randomPlacement) {
+                        $free = array_values(array_diff($candidates, array_keys($taken)));
+                        $spaceId = $free[random_int(0, count($free) - 1)];
+                    } else {
+                        $spaceId = $fixedSpace;
+                    }
+                    if (isset($taken[$spaceId])) {
+                        continue;
+                    }
+                    $taken[$spaceId] = true;
+                    $items[] = ['item_type' => $type, 'space_id' => $spaceId];
+                }
+            }
+        }
+
+        if (empty($items)) {
+            return;
+        }
         $vals = [];
         foreach ($items as $it) {
             $vals[] = sprintf("('%s', %d)", $it['item_type'], $it['space_id']);
