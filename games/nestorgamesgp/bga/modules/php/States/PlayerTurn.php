@@ -30,7 +30,7 @@ class PlayerTurn extends GameState
         $rolledDice = $this->globals->get('current_roll_dice', []);
         $racer = $this->game->getRacer($activeRacerId);
 
-        $canUseShortcut = ($racer && $racer['space_id'] === 8 && !$racer['shortcut_used']);
+        $canUseShortcut = ($racer && Circuit::canUseShortcut((int) $racer['space_id'], (bool) $racer['shortcut_used']));
         $canFixCar = ($racer && $racer['dice_available'] < 6 && empty($rolledDice) && !$racer['is_belly_up']);
 
         $itemsOption = (int) $this->tableOptions->get(103, 1);
@@ -66,6 +66,7 @@ class PlayerTurn extends GameState
             'current_mp' => array_sum($rolledDice) + ($turboActive && !empty($rolledDice) ? max($rolledDice) : 0),
             'dice_remaining' => $racer ? ($racer['dice_available'] - count($rolledDice)) : 0,
             'can_use_shortcut' => $canUseShortcut,
+            'gate_open' => (bool) $this->globals->get('gate_open', false),
             'can_fix_car' => $canFixCar,
             'is_belly_up' => $racer ? (bool) $racer['is_belly_up'] : false,
             'is_corner' => ($racer ? Circuit::isCorner((int)$racer['space_id']) : false),
@@ -407,6 +408,8 @@ class PlayerTurn extends GameState
             'discs_remaining' => $res['discs_remaining'],
             'bump_events' => $res['bump_events'],
             'racer' => $racer,
+            'teleport' => $res['teleport'] ?? null,
+            'gate_open' => $res['gate_open'] ?? false,
             'all_racers' => $this->game->getAllRacers(),
             'track_items' => $res['track_items'] ?? $this->game->getTrackItems(),
             'player_inventory' => $res['player_inventory'] ?? $this->game->getPlayerInventories(),
@@ -463,6 +466,24 @@ class PlayerTurn extends GameState
                         'from_space' => $evt['from_space'],
                         'to_space' => $evt['to_space'],
                         'all_racers' => $this->game->getAllRacers(),
+                    ]);
+                } elseif ($evt['type'] === 'teleport') {
+                    $this->game->notifyAllPlayers('carTeleported', clienttranslate('🌀 ${car_name} (${player_name}) landed on a teleport pad and was sent from space ${from_space} to space ${to_space}!'), [
+                        'player_id' => $activePlayerId,
+                        'racer_id' => $activeRacerId,
+                        'car_name' => $carName,
+                        'player_name' => $playerName,
+                        'from_space' => $evt['from_space'],
+                        'to_space' => $evt['to_space'],
+                    ]);
+                } elseif ($evt['type'] === 'gate_toggle') {
+                    $this->game->notifyAllPlayers('gateToggled', $evt['open']
+                        ? clienttranslate('🚧 ${player_name} stopped on a gate switch: the gate is now OPEN, the shortcut is available!')
+                        : clienttranslate('🚧 ${player_name} stopped on a gate switch: the gate is now CLOSED.'), [
+                        'player_id' => $activePlayerId,
+                        'player_name' => $playerName,
+                        'open' => $evt['open'],
+                        'space_id' => $evt['space_id'],
                     ]);
                 } elseif ($evt['type'] === 'item_pickup') {
                     $pCar = $this->game->getRacer($evt['racer_id'] ?? $activeRacerId);

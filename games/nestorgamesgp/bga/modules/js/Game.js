@@ -455,6 +455,8 @@ export class Game {
         this.racerInventories = gamedatas.racer_inventory || {};
         this.itemsEnabled = !!gamedatas.items_enabled;
         this.racersStarted = gamedatas.racers_started || {};
+        this.initCircuit(gamedatas.circuit);
+        this.gateOpen = !!gamedatas.gate_open;
         this.currentCarModel = (this.bga?.userPreferences?.get?.(100) == 2) ? 'chibi_f1' : 'chibi_kart';
         this.initDom();
         this.initBoardScaler();
@@ -607,6 +609,9 @@ export class Game {
         if (!boardEl) return;
         boardEl.innerHTML = '';
 
+        const trackImgs = { 1: 'img/track1.png', 2: 'img/track2.jpg', 3: 'img/track3.jpg' };
+        boardEl.style.backgroundImage = `url('${(typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : '')}${trackImgs[this.circuit.track_id] || trackImgs[1]}')`;
+
         // Circuit background track
         const bgImg = document.createElement('div');
         bgImg.className = 'gp_track_bg';
@@ -629,17 +634,7 @@ export class Game {
         signsLayer.id = 'gp_signs_layer';
         signsLayer.className = 'gp_items_layer gp_signs_layer';
         boardEl.appendChild(signsLayer);
-        const shortcutCoords = this.getSpaceCoordinates(8);
-        if (shortcutCoords) {
-            const sign = document.createElement('div');
-            sign.className = 'gp_track_item gp_shortcut_sign';
-            sign.style.left = `${shortcutCoords.x}px`;
-            sign.style.top = `${shortcutCoords.y}px`;
-            sign.setAttribute('data-tip', _('Shortcut - A car that starts its turn here jumps straight to space 36 (once per car per race, always taken).'));
-            sign.innerHTML = '<div class="gp_item_badge gp_item_badge_shortcut"><svg viewBox="0 0 32 32"><path d="M6 24V12l10-6 10 6v12" fill="none" stroke="#fff" stroke-width="2.600" stroke-linejoin="round"/><path d="M12 24l4-9 4 9" fill="#fff"/></svg></div>';
-            sign.addEventListener('click', () => sign.classList.toggle('gp_item_pinned'));
-            signsLayer.appendChild(sign);
-        }
+        this.renderCircuitSigns(signsLayer);
 
         // Racers container
         const racersLayer = document.createElement('div');
@@ -658,6 +653,54 @@ export class Game {
         qualPanel.id = 'gp_qualifying_panel';
         qualPanel.className = 'gp_qualifying_panel';
         boardEl.appendChild(qualPanel);
+    }
+
+    addInfoSpot(layer, spaceId, cls, tip, innerHtml = '') {
+        const coords = this.getSpaceCoordinates(spaceId);
+        if (!coords) return null;
+        const el = document.createElement('div');
+        el.className = `gp_track_item ${cls}`;
+        el.style.left = `${coords.x}px`;
+        el.style.top = `${coords.y}px`;
+        el.setAttribute('data-tip', tip);
+        el.innerHTML = innerHtml;
+        el.addEventListener('click', () => el.classList.toggle('gp_item_pinned'));
+        layer.appendChild(el);
+        return el;
+    }
+
+    renderCircuitSigns(layer) {
+        const c = this.circuit;
+        const b = c.branch;
+        if (b && b.type === 'shortcut') {
+            this.addInfoSpot(layer, b.from, 'gp_shortcut_sign',
+                _('Shortcut - A car that starts its turn here jumps straight to the shortcut exit (once per car per race, always taken).'),
+                '<div class="gp_item_badge gp_item_badge_shortcut"><svg viewBox="0 0 32 32"><path d="M6 24V12l10-6 10 6v12" fill="none" stroke="#fff" stroke-width="2.600" stroke-linejoin="round"/><path d="M12 24l4-9 4 9" fill="#fff"/></svg></div>');
+        }
+        c.teleports.forEach(id => this.addInfoSpot(layer, id, 'gp_info_spot gp_teleport_spot',
+            _('Teleport pad - End your move here and your car is sent to the other teleport pad.')));
+        c.gate_switches.forEach(id => this.addInfoSpot(layer, id, 'gp_info_spot gp_switch_spot',
+            _('Gate switch - End your move here to open the gate (or close it if it is open). Items are never placed here.')));
+        if (c.gate_connector) {
+            const coords = this.getSpaceCoordinates(c.gate_connector);
+            const gate = document.createElement('div');
+            gate.id = 'gp_gate';
+            gate.className = 'gp_gate';
+            gate.style.left = `${coords.x}px`;
+            gate.style.top = `${coords.y + this.CELL_SIZE / 2}px`;
+            gate.addEventListener('click', () => gate.classList.toggle('gp_item_pinned'));
+            layer.appendChild(gate);
+            this.renderGate();
+        }
+    }
+
+    renderGate() {
+        const gate = document.getElementById('gp_gate');
+        if (!gate) return;
+        gate.classList.toggle('gp_gate_open', this.gateOpen);
+        gate.setAttribute('data-tip', this.gateOpen
+            ? _('Gate (OPEN) - Cars passing the junction take the shortcut. Stop on a gate switch to close it.')
+            : _('Gate (CLOSED) - Stop on a gate switch to open the shortcut.'));
     }
 
     renderTrackItems(items = null) {
@@ -1133,83 +1176,25 @@ export class Game {
         el.style.transform = `translate(-50%, -50%) rotate(${dir}deg)`;
     }
 
+    initCircuit(circuit) {
+        this.circuit = circuit || { track_id: 1, last: 74, spaces: {}, links: {}, branch: null, aliases: [], teleports: [], gate_switches: [], gate_connector: null };
+        this.circuit.links = this.circuit.links || {};
+        this.circuit.teleports = this.circuit.teleports || [];
+        this.circuit.gate_switches = this.circuit.gate_switches || [];
+        this._spacesMap = this.circuit.spaces || {};
+    }
+
     get SPACES_MAP() {
-        return {
-            1: { c: 6, r: 0, dir: 270, type: 'straight' },
-            2: { c: 5, r: 0, dir: 270, type: 'straight' },
-            3: { c: 4, r: 0, dir: 180, type: 'corner' },
-            4: { c: 4, r: 1, dir: 180, type: 'straight' },
-            5: { c: 4, r: 2, dir: 180, type: 'straight' },
-            6: { c: 4, r: 3, dir: 180, type: 'straight' },
-            7: { c: 4, r: 4, dir: 180, type: 'straight' },
-            8: { c: 4, r: 5, dir: 270, type: 'corner', shortcut_next: 36 },
-            9: { c: 3, r: 5, dir: 270, type: 'straight' },
-            10: { c: 2, r: 5, dir: 0, type: 'corner' },
-            11: { c: 2, r: 4, dir: 0, type: 'straight' },
-            12: { c: 2, r: 3, dir: 0, type: 'straight' },
-            13: { c: 2, r: 2, dir: 0, type: 'straight' },
-            14: { c: 2, r: 1, dir: 0, type: 'straight' },
-            15: { c: 2, r: 0, dir: 270, type: 'corner' },
-            16: { c: 1, r: 0, dir: 270, type: 'straight' },
-            17: { c: 0, r: 0, dir: 180, type: 'corner' },
-            18: { c: 0, r: 1, dir: 180, type: 'straight' },
-            19: { c: 0, r: 2, dir: 180, type: 'straight' },
-            20: { c: 0, r: 3, dir: 180, type: 'straight' },
-            21: { c: 0, r: 4, dir: 180, type: 'straight' },
-            22: { c: 0, r: 5, dir: 180, type: 'straight' },
-            23: { c: 0, r: 6, dir: 180, type: 'straight' },
-            24: { c: 0, r: 7, dir: 90, type: 'corner' },
-            25: { c: 1, r: 7, dir: 90, type: 'straight' },
-            26: { c: 2, r: 7, dir: 90, type: 'straight' },
-            27: { c: 3, r: 7, dir: 90, type: 'straight' },
-            28: { c: 4, r: 7, dir: 90, type: 'straight' },
-            29: { c: 5, r: 7, dir: 90, type: 'straight' },
-            30: { c: 6, r: 7, dir: 90, type: 'straight' },
-            31: { c: 7, r: 7, dir: 90, type: 'straight' },
-            32: { c: 8, r: 7, dir: 0, type: 'corner' },
-            33: { c: 8, r: 6, dir: 0, type: 'straight' },
-            34: { c: 8, r: 5, dir: 270, type: 'corner' },
-            35: { c: 7, r: 5, dir: 270, type: 'straight' },
-            36: { c: 6, r: 5, dir: 0, type: 'corner' },
-            37: { c: 6, r: 4, dir: 0, type: 'straight' },
-            38: { c: 6, r: 3, dir: 90, type: 'corner' },
-            39: { c: 7, r: 3, dir: 90, type: 'straight' },
-            40: { c: 8, r: 3, dir: 90, type: 'straight' },
-            41: { c: 9, r: 3, dir: 90, type: 'straight' },
-            42: { c: 10, r: 3, dir: 90, type: 'straight' },
-            43: { c: 11, r: 3, dir: 90, type: 'straight' },
-            44: { c: 12, r: 3, dir: 90, type: 'straight' },
-            45: { c: 13, r: 3, dir: 180, type: 'corner' },
-            46: { c: 13, r: 4, dir: 180, type: 'straight' },
-            47: { c: 13, r: 5, dir: 180, type: 'loop' },
-            48: { c: 13, r: 6, dir: 180, type: 'straight' },
-            49: { c: 13, r: 7, dir: 270, type: 'corner' },
-            50: { c: 12, r: 7, dir: 270, type: 'straight' },
-            51: { c: 11, r: 7, dir: 270, type: 'straight' },
-            52: { c: 10, r: 7, dir: 0, type: 'corner' },
-            53: { c: 10, r: 6, dir: 0, type: 'straight' },
-            54: { c: 10, r: 5, dir: 90, type: 'corner' },
-            55: { c: 11, r: 5, dir: 90, type: 'straight' },
-            56: { c: 12, r: 5, dir: 90, type: 'straight' },
-            57: { c: 13, r: 5, dir: 90, type: 'loop' },
-            58: { c: 14, r: 5, dir: 90, type: 'straight' },
-            59: { c: 15, r: 5, dir: 90, type: 'straight' },
-            60: { c: 16, r: 5, dir: 0, type: 'corner' },
-            61: { c: 16, r: 4, dir: 0, type: 'straight' },
-            62: { c: 16, r: 3, dir: 0, type: 'straight' },
-            63: { c: 16, r: 2, dir: 0, type: 'straight' },
-            64: { c: 16, r: 1, dir: 0, type: 'straight' },
-            65: { c: 16, r: 0, dir: 270, type: 'corner' },
-            66: { c: 15, r: 0, dir: 270, type: 'straight' },
-            67: { c: 14, r: 0, dir: 270, type: 'pit_lane' },
-            68: { c: 13, r: 0, dir: 270, type: 'pit_lane' },
-            69: { c: 12, r: 0, dir: 270, type: 'pit_lane' },
-            70: { c: 11, r: 0, dir: 270, type: 'pit_lane' },
-            71: { c: 10, r: 0, dir: 270, type: 'pit_lane' },
-            72: { c: 9, r: 0, dir: 270, type: 'pit_lane' },
-            73: { c: 8, r: 0, dir: 270, type: 'pit_lane' },
-            74: { c: 7, r: 0, dir: 270, type: 'pit_lane' },
-        };
+        return this._spacesMap || {};
+    }
+
+    isPitSpace(spaceId) {
+        return this.SPACES_MAP[spaceId]?.type === 'pit_lane';
+    }
+
+    canUseShortcutAt(spaceId, shortcutUsed) {
+        const b = this.circuit?.branch;
+        return !!b && b.type === 'shortcut' && b.from === spaceId && !shortcutUsed;
     }
 
     getSpaceCoordinates(spaceId) {
@@ -1229,21 +1214,28 @@ export class Game {
         return info && info.type === 'corner';
     }
 
-    getNextSpace(currSpace, useShortcut = false) {
-        if (useShortcut && currSpace === 8) {
-            return 36;
+    getNextSpace(currSpace, takeBranch = false) {
+        const c = this.circuit;
+        if (takeBranch && c.branch && c.branch.from === currSpace) {
+            return c.branch.to;
         }
-        if (currSpace === 74) {
-            return 1;
+        if (c.links[currSpace]) {
+            return c.links[currSpace];
         }
-        return currSpace + 1;
+        return currSpace === c.last ? 1 : currSpace + 1;
     }
 
-    getMovementPath(startSpace, mp, useShortcut = false) {
+    shouldTakeBranch(fromSpace, stepIndex, shortcutUsed) {
+        const b = this.circuit?.branch;
+        if (!b || b.from !== fromSpace) return false;
+        return b.type === 'shortcut' ? (stepIndex === 0 && !shortcutUsed) : this.gateOpen;
+    }
+
+    getMovementPath(startSpace, mp, shortcutUsed = false) {
         let curr = startSpace;
         const steps = [];
         for (let i = 0; i < mp; i++) {
-            curr = this.getNextSpace(curr, useShortcut && i === 0 && curr === 8);
+            curr = this.getNextSpace(curr, this.shouldTakeBranch(curr, i, shortcutUsed));
             steps.push(curr);
         }
         return steps;
@@ -1286,13 +1278,13 @@ export class Game {
         const playerColor = racer.car_color || 'red';
         const isCurrentActive = this.isCurrentPlayerActive() && (this.getActivePlayerId() == (racer.player_id ?? activePlayerId));
 
-        // The shortcut is mandatory when starting a turn on space 8 with the shortcut unused
-        const useShortcut = canShortcut && startSpace === 8;
-        const steps = this.getMovementPath(startSpace, mp, useShortcut);
+        const steps = this.getMovementPath(startSpace, mp, !!racer.shortcut_used);
+        const branch = this.circuit.branch;
+        const usesBranch = !!(branch && steps.includes(branch.to));
         if (steps.length > 0) {
             const dest = steps[steps.length - 1];
-            this.renderPathDots(steps.slice(0, -1), useShortcut ? 'cyan' : playerColor, useShortcut);
-            this.renderDestinationMarker(dest, mp, useShortcut ? 'cyan' : playerColor, useShortcut, isCurrentActive, steps);
+            this.renderPathDots(steps.slice(0, -1), usesBranch ? 'cyan' : playerColor, usesBranch);
+            this.renderDestinationMarker(dest, mp, usesBranch ? 'cyan' : playerColor, usesBranch, isCurrentActive, steps);
         }
     }
 
@@ -1332,10 +1324,10 @@ export class Game {
         // Check if finish line (74 -> 1) was crossed
         let crossedFinish = false;
         const movingRacer = this.racers?.[this.activeRacerId];
-        const raceStarted = !!this.racersStarted?.[this.activeRacerId] || (movingRacer && movingRacer.space_id < 74);
+        const raceStarted = !!this.racersStarted?.[this.activeRacerId] || (movingRacer && !this.isPitSpace(movingRacer.space_id));
         if (pathSteps && raceStarted) {
             for (let i = 0; i < pathSteps.length - 1; i++) {
-                if (pathSteps[i] === 74 && pathSteps[i + 1] === 1) {
+                if (pathSteps[i] === this.circuit.last && pathSteps[i + 1] === 1) {
                     crossedFinish = true;
                     break;
                 }
@@ -1362,10 +1354,20 @@ export class Game {
         } else if (isShortcut) {
             badgeText = `⚡ SHORTCUT (+${mp})`;
             badgeIcon = '⚡';
-        } else if (destSpaceId === 8 && !this.getRacerData(this.activeRacerId)?.shortcut_used) {
+        } else if (this.canUseShortcutAt(destSpaceId, this.getRacerData(this.activeRacerId)?.shortcut_used)) {
             badgeText = `⚡ SHORTCUT SPACE (+${mp})`;
             badgeIcon = '⚡';
-            marker.title = _('Shortcut space: next turn from here you jump straight to space 36 (once per car).');
+            marker.title = _('Shortcut space: next turn from here you jump straight to the shortcut exit (once per car).');
+        } else if (this.circuit.teleports.includes(destSpaceId)) {
+            badgeText = `🌀 TELEPORT (+${mp})`;
+            badgeIcon = '🌀';
+            marker.title = _('Teleport pad: you will be sent to the other teleport pad.');
+        } else if (this.circuit.gate_switches.includes(destSpaceId)) {
+            badgeText = `🚧 GATE SWITCH (+${mp})`;
+            badgeIcon = '🚧';
+            marker.title = this.gateOpen
+                ? _('Gate switch: stopping here will CLOSE the gate.')
+                : _('Gate switch: stopping here will OPEN the gate (shortcut).');
         } else {
             badgeText = `🏁 Space ${destSpaceId} (+${mp})`;
         }
@@ -1520,7 +1522,7 @@ export class Game {
             }
 
             // Finish line crossing check
-            if (prevSpace === 74 && spId === 1) {
+            if (prevSpace === this.circuit.last && spId === 1) {
                 if (!this.racersStarted?.[racerId]) {
                     if (!this.racersStarted) this.racersStarted = {};
                     this.racersStarted[racerId] = true;
@@ -1712,7 +1714,7 @@ export class Game {
 
         const pId = args.player_id;
         const racer = this.getRacerData(pId);
-        const spaceId = racer?.space_id ?? 74;
+        const spaceId = racer?.space_id ?? this.circuit.last;
         this.spawnBustBadge(spaceId, '😭 BUSTED! (0 pts)', 'bust');
 
         const carEl = this.getCarElement(pId);
@@ -1773,7 +1775,7 @@ export class Game {
         this.currentArgs.dice_available = availableDice;
         this.currentArgs.is_corner = isCorner;
         if (racer) {
-            this.currentArgs.can_use_shortcut = (racer.space_id == 8 && !racer.shortcut_used);
+            this.currentArgs.can_use_shortcut = this.canUseShortcutAt(racer.space_id, racer.shortcut_used);
         }
 
         this.updateMovePreview(rId, args.total_mp, this.currentArgs.can_use_shortcut);
@@ -1835,6 +1837,9 @@ export class Game {
         const rId = args.racer_id ?? args.player_id;
         // 🏎️ Cute animated drive through track spaces
         await this.animateCarDrive(rId, args.steps, args.final_space, args.racer);
+        if (args.teleport) {
+            await this.animateTeleport(rId, args.teleport.to_space);
+        }
 
         if (args.track_items) {
             this.trackItems = args.track_items;
@@ -1861,6 +1866,30 @@ export class Game {
         }
         this.updateActiveCarHighlight();
         this.updatePlayerPanels();
+    }
+
+    async animateTeleport(rId, toSpace) {
+        const carEl = this.getCarElement(rId);
+        if (!carEl) return;
+        this.sound.playChime();
+        carEl.style.transition = 'opacity 0.25s ease';
+        carEl.style.opacity = '0';
+        await this.waitMs(280);
+        this.updateCarPosition(carEl, toSpace, undefined);
+        carEl.style.opacity = '1';
+        await this.waitMs(280);
+        this.layoutStackedCars();
+    }
+
+    notif_carTeleported(notif) {
+        // Position and animation are handled by carMoved; this only adds the log line
+    }
+
+    notif_gateToggled(notif) {
+        const args = this._getNotifArgs(notif);
+        this.gateOpen = !!args.open;
+        this.sound.playChime();
+        this.renderGate();
     }
 
     async notif_carBumped(notif) {

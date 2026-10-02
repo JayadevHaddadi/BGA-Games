@@ -7,12 +7,12 @@
                 "description": "The classic nestorgames GP circuit featuring the high-speed shortcut and looping crossover."
             },
             "2": {
-                "name": "Circuit 2 (Triple Loop - Coming Soon)",
-                "description": "A technical circuit with three intersecting loops (currently in development)."
+                "name": "Circuit 2 (Triple Loop)",
+                "description": "A technical circuit with three self-crossing loops. Cars cross the same square twice, so a bump there can push a car off its path."
             },
             "3": {
-                "name": "Circuit 3 (Gate and Teleport - Coming Soon)",
-                "description": "Advanced track with interactive switch gates and quantum teleport pads (currently in development)."
+                "name": "Circuit 3 (Gate and Teleport)",
+                "description": "A long circuit with a gate shortcut that opens and closes when a car stops on a gate switch, plus two teleport pads."
             }
         },
         "default": 1

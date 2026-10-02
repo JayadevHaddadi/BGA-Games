@@ -18,6 +18,8 @@ class Game extends \Bga\GameFramework\Table
     public function __construct()
     {
         parent::__construct();
+        // The track is chosen at table creation; read lazily so no DB access happens before it is needed.
+        Circuit::setTrackProvider(fn () => (int) $this->globals->get('track_id', 1));
     }
 
     public function getGameProgression(): int
@@ -88,6 +90,11 @@ class Game extends \Bga\GameFramework\Table
 
         $playerIds = array_keys($players);
         $numPlayers = count($playerIds);
+
+        $trackId = isset($options[100]) ? (int) $options[100] : (int) $this->tableOptions->get(100, 1);
+        Circuit::useTrack($trackId);
+        $this->globals->set('track_id', Circuit::getTrackId());
+        $this->globals->set('gate_open', false);
 
         $totalLaps = isset($options[102]) ? (int) $options[102] : (int) $this->tableOptions->get(102, self::DEFAULT_LAPS);
         if ($totalLaps < 1 || $totalLaps > 3) {
@@ -228,6 +235,8 @@ class Game extends \Bga\GameFramework\Table
         $result['player_inventory'] = $this->getPlayerInventories();
         $result['racer_inventory'] = $this->getRacerInventories();
         $result['car_turn_order'] = $this->globals->get('car_turn_order', []);
+        $result['circuit'] = Circuit::getClientData();
+        $result['gate_open'] = (bool) $this->globals->get('gate_open', false);
         $result['items_enabled'] = ((int) $this->tableOptions->get(103, 1) === 2);
         return $result;
     }
@@ -306,8 +315,9 @@ class Game extends \Bga\GameFramework\Table
 
     public function getRacersOnSpace(int $spaceId): array
     {
+        // Loop crossings: two space ids can share one physical square
         $rows = static::getObjectListFromDb(
-            sprintf("SELECT * FROM `racer` WHERE `space_id` = %d", $spaceId)
+            sprintf("SELECT * FROM `racer` WHERE `space_id` IN (%s)", implode(',', array_map('intval', Circuit::getAliasedSpaces($spaceId))))
         );
         $result = [];
         foreach ($rows as $r) {
@@ -440,17 +450,18 @@ class Game extends \Bga\GameFramework\Table
         $racersStarted = $this->globals->get('racers_started', []);
         $hasStarted = !empty($racersStarted[$rId]);
 
-        // The shortcut is always taken when a car starts its turn on space 8 and has not used it yet.
-        $useShortcut = !$shortcutUsed && $currentSpace === 8;
-        if ($useShortcut) {
-            $shortcutUsed = true;
-        }
+        $gateOpen = (bool) $this->globals->get('gate_open', false);
+        $teleportEvent = null;
 
         $crashedFromMine = false;
         $bumpEvents = [];
 
         for ($i = 0; $i < $movementPoints; $i++) {
-            $nextSpace = Circuit::getNextSpace($currentSpace, $useShortcut && $i === 0);
+            $takeBranch = Circuit::shouldTakeBranch($currentSpace, $i, (bool) $shortcutUsed, $gateOpen);
+            if ($takeBranch && Circuit::getBranch()['type'] === 'shortcut') {
+                $shortcutUsed = true;
+            }
+            $nextSpace = Circuit::getNextSpace($currentSpace, $takeBranch);
 
             // Check if finish line was crossed
             if (Circuit::isFinishLineCrossed($currentSpace, $nextSpace)) {
@@ -547,6 +558,35 @@ class Game extends \Bga\GameFramework\Table
                 $slidFromOil = true;
             }
         }
+        if (!$crashedFromMine && !$slidFromOil) {
+            // Teleport pads: ending the move on a 'T' space sends the car to the other 'T' space
+            $teleportTarget = Circuit::getTeleportTarget($currentSpace);
+            if ($teleportTarget !== null) {
+                $teleportEvent = ['from_space' => $currentSpace, 'to_space' => $teleportTarget];
+                $bumpEvents[] = [
+                    'type' => 'teleport',
+                    'from_space' => $currentSpace,
+                    'to_space' => $teleportTarget,
+                    'player_id' => $playerId,
+                    'racer_id' => $rId,
+                ];
+                $currentSpace = $teleportTarget;
+            }
+
+            // Gate switches: ending the move on one opens/closes the gate
+            if (Circuit::isGateSwitch($currentSpace)) {
+                $gateOpen = !$gateOpen;
+                $this->globals->set('gate_open', $gateOpen);
+                $bumpEvents[] = [
+                    'type' => 'gate_toggle',
+                    'space_id' => $currentSpace,
+                    'open' => $gateOpen,
+                    'player_id' => $playerId,
+                    'racer_id' => $rId,
+                ];
+            }
+        }
+
         $finalSpaceInfo = Circuit::getSpace($currentSpace);
         $facingDir = $finalSpaceInfo['dir'] ?? 270;
 
@@ -619,6 +659,8 @@ class Game extends \Bga\GameFramework\Table
             'discs_remaining' => $discsRemaining,
             'bump_events' => $bumpEvents,
             'finished' => $finished,
+            'teleport' => $teleportEvent,
+            'gate_open' => $gateOpen,
             'track_items' => $this->getTrackItems(),
             'player_inventory' => $this->getPlayerInventories(),
             'racer_inventory' => $this->getRacerInventories(),
@@ -898,21 +940,8 @@ class Game extends \Bga\GameFramework\Table
         static::DbQuery("DELETE FROM `track_item`");
         static::DbQuery("DELETE FROM `player_inventory`");
 
-        // 4 Oil Spills, 2 Mines, 2 Rockets, 2 Wrenches, 2 Turbos
-        $items = [
-            ['item_type' => 'spill', 'space_id' => 6],
-            ['item_type' => 'spill', 'space_id' => 21],
-            ['item_type' => 'spill', 'space_id' => 28],
-            ['item_type' => 'spill', 'space_id' => 42],
-            ['item_type' => 'mine', 'space_id' => 13],
-            ['item_type' => 'mine', 'space_id' => 50],
-            ['item_type' => 'rocket', 'space_id' => 19],
-            ['item_type' => 'rocket', 'space_id' => 59],
-            ['item_type' => 'wrench', 'space_id' => 26],
-            ['item_type' => 'wrench', 'space_id' => 40],
-            ['item_type' => 'turboboost', 'space_id' => 11],
-            ['item_type' => 'turboboost', 'space_id' => 58],
-        ];
+        // 4 Oil Spills, 2 Mines, 2 Rockets, 2 Wrenches, 2 Turbos at the circuit's fixed starting spots
+        $items = Circuit::getItemSpots();
 
         $vals = [];
         foreach ($items as $it) {
@@ -924,10 +953,10 @@ class Game extends \Bga\GameFramework\Table
     public function recycleItem(string $itemType, int $fromSpace): ?int
     {
         $curr = Circuit::getPreviousSpace($fromSpace);
-        for ($i = 0; $i < 74; $i++) {
+        for ($i = 0, $n = Circuit::getLastSpaceId(); $i < $n; $i++) {
             $hasCar = (int) $this->getUniqueValueFromDb("SELECT COUNT(*) FROM `racer` WHERE `space_id` = $curr");
             $hasItem = (int) $this->getUniqueValueFromDb("SELECT COUNT(*) FROM `track_item` WHERE `space_id` = $curr");
-            if ($hasCar === 0 && $hasItem === 0 && !Circuit::isPitLane($curr)) {
+            if ($hasCar === 0 && $hasItem === 0 && Circuit::canHoldItem($curr)) {
                 static::DbQuery(
                     sprintf("INSERT INTO `track_item` (`item_type`, `space_id`) VALUES ('%s', %d)", $itemType, $curr)
                 );

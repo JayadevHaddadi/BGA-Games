@@ -98,9 +98,133 @@ class Circuit
         74 => ['id' => 74, 'col' => 7, 'row' => 0, 'type' => 'pit_lane', 'dir' => 270, 'bay' => 1],
     ];
 
+    /**
+     * Compact specs for tracks 2 and 3: "col,row,type,dir" in racing order starting right after the
+     * finish line (S = straight, C = corner, L = loop crossing cell). Pit bays are appended after.
+     */
+    private const TRACK_2_CELLS = [
+        '6,0,S,270', '5,0,S,270', '4,0,S,270', '3,0,S,270', '2,0,S,270', '1,0,S,270', '0,0,C,180',
+        '0,1,S,180', '0,2,S,180', '0,3,S,180', '0,4,S,180', '0,5,C,90',
+        '1,5,S,90', '2,5,L,90', '3,5,S,90', '4,5,C,0', '4,4,S,0', '4,3,S,0', '4,2,C,270', '3,2,S,270', '2,2,C,180',
+        '2,3,S,180', '2,4,S,180', '2,5,L,180', '2,6,S,180', '2,7,C,90',
+        '3,7,S,90', '4,7,S,90', '5,7,S,90', '6,7,S,90', '7,7,S,90', '8,7,C,0',
+        '8,6,S,0', '8,5,L,0', '8,4,S,0', '8,3,C,270', '7,3,S,270', '6,3,C,180', '6,4,S,180', '6,5,C,90',
+        '7,5,S,90', '8,5,L,90', '9,5,S,90', '10,5,L,90', '11,5,S,90', '12,5,C,0', '12,4,S,0', '12,3,C,270',
+        '11,3,S,270', '10,3,C,180', '10,4,S,180', '10,5,L,180', '10,6,S,180', '10,7,C,90',
+        '11,7,S,90', '12,7,S,90', '13,7,S,90', '14,7,S,90', '15,7,S,90', '16,7,C,0', '16,6,S,0', '16,5,C,270',
+        '15,5,S,270', '14,5,C,0', '14,4,S,0', '14,3,C,90', '15,3,S,90', '16,3,C,0', '16,2,S,0', '16,1,S,0',
+        '16,0,C,270', '15,0,S,270',
+    ];
+
+    private const TRACK_3_CELLS = [
+        '2,0,S,270', '1,0,S,270', '0,0,C,180', '0,1,S,180', '0,2,S,180', '0,3,C,90', '1,3,C,180', '1,4,S,180',
+        '1,5,C,270', '0,5,C,180', '0,6,S,180', '0,7,C,90',
+        '1,7,S,90', '2,7,S,90', '3,7,S,90', '4,7,S,90', '5,7,S,90', '6,7,S,90', '7,7,S,90', '8,7,S,90', '9,7,S,90',
+        '10,7,S,90', '11,7,S,90', '12,7,S,90', '13,7,S,90', '14,7,S,90', '15,7,S,90',
+        '16,7,C,0', '16,6,S,0', '16,5,C,270',
+        '15,5,S,270', '14,5,S,270', '13,5,S,270', '12,5,S,270', '11,5,S,270', '10,5,S,270', '9,5,S,270',
+        '8,5,S,270', '7,5,S,270', '6,5,S,270', '5,5,S,270', '4,5,S,270',
+        '3,5,C,0', '3,4,S,0', '3,3,C,90',
+        '4,3,S,90', '5,3,S,90', '6,3,S,90', '7,3,S,90', '8,3,S,90', '9,3,S,90', '10,3,S,90', '11,3,S,90',
+        '12,3,S,90', '13,3,S,90', '14,3,S,90', '15,3,S,90',
+        '16,3,C,0', '16,2,S,0', '16,1,S,0', '16,0,C,270',
+        '15,0,S,270', '14,0,S,270', '13,0,S,270', '12,0,S,270', '11,0,S,270',
+    ];
+
+    private static int $trackId = 1;
+    private static bool $trackExplicit = false;
+    private static $trackProvider = null;
+    private static ?array $cache = null;
+
+    /** Lets the Game class tell the circuit which track the table uses (read lazily from the DB). */
+    public static function setTrackProvider(callable $provider): void
+    {
+        self::$trackProvider = $provider;
+        self::$cache = null;
+    }
+
+    public static function useTrack(int $trackId): void
+    {
+        self::$trackId = in_array($trackId, [1, 2, 3], true) ? $trackId : 1;
+        self::$trackExplicit = true;
+        self::$cache = null;
+    }
+
+    public static function getTrackId(): int
+    {
+        self::track();
+        return self::$trackId;
+    }
+
+    private static function track(): array
+    {
+        if (self::$cache === null) {
+            if (!self::$trackExplicit && self::$trackProvider !== null) {
+                $id = (int) (self::$trackProvider)();
+                self::$trackId = in_array($id, [1, 2, 3], true) ? $id : 1;
+            }
+            self::$cache = self::buildTrack(self::$trackId);
+        }
+        return self::$cache;
+    }
+
+    private static function buildFromCells(array $cells, array $pitCols, int $pitRow): array
+    {
+        $spaces = [];
+        $id = 0;
+        foreach ($cells as $cell) {
+            [$col, $row, $t, $dir] = explode(',', $cell);
+            $id++;
+            $spaces[$id] = [
+                'id' => $id, 'col' => (int) $col, 'row' => (int) $row,
+                'type' => $t === 'C' ? 'corner' : ($t === 'L' ? 'loop' : 'straight'),
+                'dir' => (int) $dir,
+            ];
+        }
+        $bay = 8;
+        foreach ($pitCols as $col) {
+            $id++;
+            $spaces[$id] = [
+                'id' => $id, 'col' => $col, 'row' => $pitRow, 'type' => 'pit_lane', 'dir' => 270, 'bay' => $bay--,
+            ];
+        }
+        return [$spaces, $id];
+    }
+
+    private static function buildTrack(int $trackId): array
+    {
+        $track = [
+            'id' => $trackId, 'links' => [], 'aliases' => [], 'branch' => null, 'teleports' => [],
+            'gate_switches' => [], 'gate_connector' => null, 'items' => [],
+        ];
+
+        if ($trackId === 2) {
+            [$track['spaces'], $track['last']] = self::buildFromCells(self::TRACK_2_CELLS, range(14, 7), 0);
+            $track['aliases'] = [[14, 24], [34, 42], [44, 52]];
+            $track['items'] = ['spill' => [5, 29, 49, 63], 'mine' => [23, 57], 'rocket' => [10, 43], 'wrench' => [31, 69], 'turboboost' => [18, 53]];
+        } elseif ($trackId === 3) {
+            [$track['spaces'], $track['last']] = self::buildFromCells(self::TRACK_3_CELLS, range(10, 3), 0);
+            // Gate connector between the bottom straight (space 22) and the middle straight (space 36)
+            $track['spaces'][75] = ['id' => 75, 'col' => 10, 'row' => 6, 'type' => 'straight', 'dir' => 0, 'connector' => true];
+            $track['links'] = [75 => 36];
+            $track['branch'] = ['type' => 'gate', 'from' => 22, 'to' => 75];
+            $track['gate_switches'] = [17, 41];
+            $track['gate_connector'] = 75;
+            $track['teleports'] = [54, 65];
+            $track['items'] = ['spill' => [5, 25, 48, 62], 'mine' => [19, 50], 'rocket' => [14, 38], 'wrench' => [33, 56], 'turboboost' => [11, 44]];
+        } else {
+            $track['spaces'] = self::SPACES_TRACK_1;
+            $track['last'] = 74;
+            $track['aliases'] = [[47, 57]];
+            $track['branch'] = ['type' => 'shortcut', 'from' => 8, 'to' => 36];
+            $track['items'] = ['spill' => [6, 21, 28, 42], 'mine' => [13, 50], 'rocket' => [19, 59], 'wrench' => [26, 40], 'turboboost' => [11, 58]];
+        }
+        return $track;
+    }
+
     public static function getSpace(int $spaceId): ?array
     {
-        return self::SPACES_TRACK_1[$spaceId] ?? null;
+        return self::track()['spaces'][$spaceId] ?? null;
     }
 
     public static function isCorner(int $spaceId): bool
@@ -115,43 +239,62 @@ class Circuit
         return $sp !== null && $sp['type'] === 'pit_lane';
     }
 
+    /** Highest regular/pit space id (pit bay 1, right before the finish line). */
+    public static function getLastSpaceId(): int
+    {
+        return self::track()['last'];
+    }
+
     public static function getPitBaySpaceId(int $bayRank): int
     {
-        // Bay 1 = 74, Bay 2 = 73, ..., Bay 8 = 67
         $clampedRank = max(1, min(8, $bayRank));
-        return 75 - $clampedRank;
+        return self::getLastSpaceId() + 1 - $clampedRank;
     }
 
-    /**
-     * Advance 1 space forward.
-     * If at space 8 and $useShortcut is true, advance to space 36.
-     * Wrap around from space 74 to space 1.
-     */
-    public static function getNextSpace(int $currentSpaceId, bool $useShortcut = false): int
+    public static function getBranch(): ?array
     {
-        if ($useShortcut && $currentSpaceId === 8) {
-            return 36;
-        }
-
-        if ($currentSpaceId === 74) {
-            return 1;
-        }
-
-        return $currentSpaceId + 1;
+        return self::track()['branch'];
     }
 
     /**
-     * Check if a single step from $from to $to crosses the finish line.
-     * Finish line is situated between space 74 and space 1.
+     * Whether a car stepping out of $fromSpace takes the branch (track 1 shortcut / track 3 gate shortcut).
+     * Shortcut: once per car, only when the car starts its turn on the junction. Gate: whenever the gate is open.
      */
+    public static function shouldTakeBranch(int $fromSpace, int $stepIndex, bool $shortcutUsed, bool $gateOpen): bool
+    {
+        $b = self::getBranch();
+        if ($b === null || $b['from'] !== $fromSpace) {
+            return false;
+        }
+        return $b['type'] === 'shortcut' ? ($stepIndex === 0 && !$shortcutUsed) : $gateOpen;
+    }
+
+    public static function canUseShortcut(int $spaceId, bool $shortcutUsed): bool
+    {
+        $b = self::getBranch();
+        return $b !== null && $b['type'] === 'shortcut' && $b['from'] === $spaceId && !$shortcutUsed;
+    }
+
+    public static function getNextSpace(int $currentSpaceId, bool $takeBranch = false): int
+    {
+        $t = self::track();
+        if ($takeBranch && $t['branch'] !== null && $t['branch']['from'] === $currentSpaceId) {
+            return $t['branch']['to'];
+        }
+        if (isset($t['links'][$currentSpaceId])) {
+            return $t['links'][$currentSpaceId];
+        }
+        return $currentSpaceId === $t['last'] ? 1 : $currentSpaceId + 1;
+    }
+
     public static function isFinishLineCrossed(int $fromSpace, int $toSpace): bool
     {
-        return ($fromSpace === 74 && $toSpace === 1);
+        return ($fromSpace === self::getLastSpaceId() && $toSpace === 1);
     }
 
     public static function getPreviousSpace(int $spaceId): int
     {
-        return ($spaceId === 1) ? 74 : $spaceId - 1;
+        return ($spaceId === 1) ? self::getLastSpaceId() : $spaceId - 1;
     }
 
     public static function getStraightLineAhead(int $fromSpaceId): array
@@ -179,5 +322,82 @@ class Circuit
             $curr = self::getNextSpace($curr);
         }
         return $curr;
+    }
+
+    /** All space ids occupying the same physical square (loop crossings), including $spaceId itself. */
+    public static function getAliasedSpaces(int $spaceId): array
+    {
+        foreach (self::track()['aliases'] as $group) {
+            if (in_array($spaceId, $group, true)) {
+                return $group;
+            }
+        }
+        return [$spaceId];
+    }
+
+    public static function getTeleportTarget(int $spaceId): ?int
+    {
+        $tp = self::track()['teleports'];
+        if (count($tp) !== 2 || !in_array($spaceId, $tp, true)) {
+            return null;
+        }
+        return $tp[0] === $spaceId ? $tp[1] : $tp[0];
+    }
+
+    public static function isGateSwitch(int $spaceId): bool
+    {
+        return in_array($spaceId, self::track()['gate_switches'], true);
+    }
+
+    public static function hasGate(): bool
+    {
+        $b = self::getBranch();
+        return $b !== null && $b['type'] === 'gate';
+    }
+
+    /** Items may not be placed on pit lane, loop cells, gate switches/connector or teleport pads. */
+    public static function canHoldItem(int $spaceId): bool
+    {
+        $sp = self::getSpace($spaceId);
+        if ($sp === null || in_array($sp['type'], ['pit_lane', 'loop'], true) || !empty($sp['connector'])) {
+            return false;
+        }
+        $t = self::track();
+        return !in_array($spaceId, $t['gate_switches'], true)
+            && !in_array($spaceId, $t['teleports'], true)
+            && !($t['branch'] !== null && $t['branch']['from'] === $spaceId);
+    }
+
+    /** @return array<int, array{item_type: string, space_id: int}> */
+    public static function getItemSpots(): array
+    {
+        $spots = [];
+        foreach (self::track()['items'] as $type => $spaceIds) {
+            foreach ($spaceIds as $spaceId) {
+                $spots[] = ['item_type' => $type, 'space_id' => $spaceId];
+            }
+        }
+        return $spots;
+    }
+
+    /** Everything the client needs to draw the board and preview movement. */
+    public static function getClientData(): array
+    {
+        $t = self::track();
+        $spaces = [];
+        foreach ($t['spaces'] as $id => $sp) {
+            $spaces[$id] = ['c' => $sp['col'], 'r' => $sp['row'], 'dir' => $sp['dir'], 'type' => $sp['type']];
+        }
+        return [
+            'track_id' => $t['id'],
+            'last' => $t['last'],
+            'spaces' => $spaces,
+            'links' => $t['links'],
+            'branch' => $t['branch'],
+            'aliases' => $t['aliases'],
+            'teleports' => $t['teleports'],
+            'gate_switches' => $t['gate_switches'],
+            'gate_connector' => $t['gate_connector'],
+        ];
     }
 }
