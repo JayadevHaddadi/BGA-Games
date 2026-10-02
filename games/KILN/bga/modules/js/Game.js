@@ -768,7 +768,7 @@ export class Game {
                     ${Number(this.variantBonusSpaces) === 1 ? `
                         <div class="kiln_track_legend" title="${_('Spaces 5, 8, 14, 17, 19, 23, 26 award an extra turn in the Heating up the Kiln variant')}">
                             <span class="kiln_legend_stripe"></span>
-                            <span>${_('Striped = Bonus Space')}</span>
+                            <span>${_('Extra Turn')}</span>
                         </div>
                     ` : ''}
                 </div>
@@ -946,19 +946,42 @@ export class Game {
 
         const isMultiplayer = Object.keys(this.gamedatas.players || {}).length > 2;
 
+        // Player turn sequence (sorted by player_no)
+        const playerIds = (this.gamedatas.playerorder || Object.keys(this.gamedatas.players)).map(String);
+        playerIds.sort((a, b) => (this.gamedatas.players[a]?.player_no || 0) - (this.gamedatas.players[b]?.player_no || 0));
+        const numP = playerIds.length;
+        const myIdx = playerIds.indexOf(String(myId));
+
         Object.keys(this.gamedatas.players).forEach(pId => {
             const pInfo = this.gamedatas.players[pId];
             const pColor = this.playerColors[pId] || 'red';
             const isMe = String(pId) === String(myId);
-            const seat = playerSeats[pId] !== undefined ? Number(playerSeats[pId]) : 0;
 
-            // In 2-player: You at bottom, Opponent at top.
-            // In 3-4 player: place each player at their assigned table seat (South, East, North, West).
+            // Relative counter-clockwise position from "my" viewpoint:
+            // 0 = You (Always at bottom)
+            // 1 = Next player in turn order (Right side of board)
+            // 2 = Opposite player (Top side of board)
+            // 3 = Preceding player (Left side of board)
+            const pIdx = playerIds.indexOf(String(pId));
+            const relStep = (myIdx >= 0 && pIdx >= 0) ? (pIdx - myIdx + numP) % numP : 0;
+
             let slotId;
-            if (!isMultiplayer) {
-                slotId = isMe ? 'kiln_slot_bottom' : 'kiln_slot_top';
+            if (relStep === 0) {
+                // "for each player, their mat should be at the bottom"
+                slotId = 'kiln_slot_bottom';
+            } else if (numP === 2) {
+                slotId = 'kiln_slot_top';
+            } else if (numP === 3) {
+                // 3-Player counter-clockwise:
+                // step 1 (next): Right
+                // step 2 (previous): Top
+                slotId = (relStep === 1) ? 'kiln_slot_right' : 'kiln_slot_top';
             } else {
-                switch (seat) {
+                // 4-Player counter-clockwise:
+                // step 1 (next): Right
+                // step 2 (opposite): Top
+                // step 3 (previous): Left
+                switch (relStep) {
                     case 1:
                         slotId = 'kiln_slot_right';
                         break;
@@ -966,11 +989,8 @@ export class Game {
                         slotId = 'kiln_slot_top';
                         break;
                     case 3:
-                        slotId = 'kiln_slot_left';
-                        break;
-                    case 0:
                     default:
-                        slotId = 'kiln_slot_bottom';
+                        slotId = 'kiln_slot_left';
                         break;
                 }
             }
@@ -1026,13 +1046,15 @@ export class Game {
                 <div class="kiln_wh_grid ${rotClass}" id="kiln_wh_grid_${pId}"></div>
             `;
 
-            const seatDirections = { 0: _('South'), 1: _('East'), 2: _('North'), 3: _('West') };
-            const seatLabel = isMultiplayer ? `<span class="kiln_seat_badge">(${seatDirections[seat] || ''})</span>` : '';
+            let positionBadge = '';
+            if (isMultiplayer && !isMe && relStep === 1) {
+                positionBadge = `<span class="kiln_seat_badge">(${_('Next')})</span>`;
+            }
 
             card.innerHTML = `
                 <div class="kiln_wh_title">
                     <span class="kiln_player_color_dot kiln_dot_${pColor}"></span>
-                    <strong>${pInfo.name}</strong> ${isMe ? `(${_('You')})` : ''} ${seatLabel}
+                    <strong>${pInfo.name}</strong> ${isMe ? `(${_('You')})` : ''} ${positionBadge}
                 </div>
                 <div class="kiln_wh_body">
                     ${bodyHtml}

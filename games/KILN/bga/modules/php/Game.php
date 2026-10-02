@@ -731,31 +731,13 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Normalize shape coordinates relative to player's seat orientation
+     * Normalize shape coordinates directly from the kiln board to warehouse (unrotated 1:1)
      */
     public function normalizeShapeForPlayer(int $playerId, array $shape): array
     {
-        if (empty($shape)) return [];
-        $seat = $this->getPlayerSeat($playerId);
-
-        $oriented = [];
-        foreach ($shape as $c) {
-            $oriented[] = $this->canonicalToOriented($seat, (int)$c['x'], (int)$c['y']);
-        }
-
-        $minU = min(array_column($oriented, 'u'));
-        $minV = min(array_column($oriented, 'v'));
-
-        $norm = [];
-        foreach ($oriented as $o) {
-            $norm[] = [
-                'dx' => $o['u'] - $minU,
-                'dy' => $o['v'] - $minV,
-            ];
-        }
-
-        usort($norm, fn($a, $b) => ($a['dy'] === $b['dy']) ? ($a['dx'] <=> $b['dx']) : ($a['dy'] <=> $b['dy']));
-        return $norm;
+        // Pieces taken from the central board retain their exact visible screen orientation
+        // as they move directly into the player's mat below (no rotation).
+        return static::normalizeShape($shape);
     }
 
     public static function normalizeShape(array $shape): array
