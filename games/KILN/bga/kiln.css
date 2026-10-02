@@ -30,11 +30,16 @@
 }
 
 .kiln_main_layout {
-    display: flex;
-    flex-direction: row;
+    display: grid;
+    grid-template-columns: 180px auto;
+    grid-template-rows: auto auto auto;
+    grid-template-areas:
+        "track top"
+        "track center"
+        "track bottom";
     align-items: center;
-    justify-content: center;
-    gap: 20px;
+    justify-items: center;
+    gap: 16px 20px;
     padding: 16px 20px;
     background: #1e2430;
     background-image: 
@@ -47,26 +52,83 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-.kiln_left_panel,
-.kiln_right_panel {
+#kiln_track_panel {
+    grid-area: track;
+}
+#kiln_slot_top {
+    grid-area: top;
+}
+#kiln_slot_left {
+    grid-area: west;
+}
+#kiln_center_panel {
+    grid-area: center;
+}
+#kiln_slot_right {
+    grid-area: east;
+}
+#kiln_slot_bottom {
+    grid-area: bottom;
+}
+
+/* In 2-player mode: hide unused west/east slots */
+.kiln_main_layout:not(.kiln_multiplayer) #kiln_slot_left,
+.kiln_main_layout:not(.kiln_multiplayer) #kiln_slot_right {
+    display: none !important;
+}
+
+/* In 3-4 Player mode: 3x3 table with Score Track in Top-Left Corner */
+.kiln_main_layout.kiln_multiplayer {
+    grid-template-columns: 240px auto 310px;
+    grid-template-rows: auto auto auto;
+    grid-template-areas:
+        "track top    ."
+        "west  center east"
+        ".     bottom .";
+    gap: 14px 20px;
+}
+
+.kiln_main_layout.kiln_multiplayer #kiln_track_panel {
+    align-self: start;
+    justify-self: center;
+    width: 230px;
+}
+
+.kiln_main_layout.kiln_multiplayer .kiln_score_track {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 3px;
+}
+
+.kiln_main_layout.kiln_multiplayer .kiln_track_cell {
+    height: 32px;
+}
+
+.kiln_main_layout.kiln_multiplayer .kiln_track_num {
+    font-size: 10px;
+}
+
+.kiln_main_layout.kiln_multiplayer .kiln_score_disc {
+    width: 15px;
+    height: 15px;
+}
+
+.kiln_main_layout.kiln_multiplayer #kiln_slot_left,
+.kiln_main_layout.kiln_multiplayer #kiln_slot_right {
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    align-self: center;
 }
 
-.kiln_center_column {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
+.kiln_main_layout.kiln_multiplayer #kiln_slot_left:empty {
+    visibility: hidden;
+    min-width: 240px;
 }
 
-.kiln_right_panel:empty,
-.kiln_right_panel:has(.kiln_slot_right:empty) {
-    display: none;
+.kiln_seat_badge {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 600;
+    margin-left: 4px;
 }
 
 .kiln_panel_header {
@@ -427,14 +489,8 @@
 }
 
 .kiln_slot_left, .kiln_slot_right {
-    width: 180px;
-    min-height: 440px;
-}
-
-.kiln_slot_left:empty,
-.kiln_slot_right:empty,
-.kiln_slot_top:empty {
-    display: none;
+    width: auto;
+    min-height: auto;
 }
 
 .kiln_warehouse_card {

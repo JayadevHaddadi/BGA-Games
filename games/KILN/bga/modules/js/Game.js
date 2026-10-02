@@ -754,70 +754,60 @@ export class Game {
         wrapper.id = 'kiln_scaler_container';
         wrapper.className = 'kiln_scaler_container';
 
+        const numPlayers = Object.keys(this.gamedatas?.players || {}).length;
+        const isMultiplayer = numPlayers > 2;
+
         wrapper.innerHTML = `
-            <div id="kiln_main_layout" class="kiln_main_layout">
-                <!-- Left Panel: Score Track (and Left Player in 3-4p) -->
-                <div class="kiln_left_panel" id="kiln_left_panel">
-                    <div class="kiln_arena_slot kiln_slot_left" id="kiln_slot_left"></div>
-
-                    <!-- Score Track directly to the left of the central kiln board -->
-                    <div class="kiln_track_panel" id="kiln_track_panel">
-                        <div class="kiln_panel_header">
-                            <span class="kiln_panel_title">🏆 ${_('Score Track')}</span>
+            <div id="kiln_main_layout" class="kiln_main_layout ${isMultiplayer ? 'kiln_multiplayer' : ''}">
+                <!-- Score Track: Top-Left in 3-4p, Left beside kiln in 2p -->
+                <div class="kiln_track_panel" id="kiln_track_panel">
+                    <div class="kiln_panel_header">
+                        <span class="kiln_panel_title">🏆 ${_('Score Track')}</span>
+                    </div>
+                    <div id="kiln_score_track" class="kiln_score_track"></div>
+                    ${Number(this.variantBonusSpaces) === 1 ? `
+                        <div class="kiln_track_legend" title="${_('Spaces 5, 8, 14, 17, 19, 23, 26 award an extra turn in the Heating up the Kiln variant')}">
+                            <span class="kiln_legend_stripe"></span>
+                            <span>${_('Striped = Bonus Space')}</span>
                         </div>
-                        <div id="kiln_score_track" class="kiln_score_track"></div>
-                        ${Number(this.variantBonusSpaces) === 1 ? `
-                            <div class="kiln_track_legend" title="${_('Spaces 5, 8, 14, 17, 19, 23, 26 award an extra turn in the Heating up the Kiln variant')}">
-                                <span class="kiln_legend_stripe"></span>
-                                <span>${_('Striped = Bonus Space')}</span>
-                            </div>
-                        ` : ''}
+                    ` : ''}
+                </div>
+
+                <!-- Top Slot: Seat 2 (North player) -->
+                <div class="kiln_arena_slot kiln_slot_top" id="kiln_slot_top"></div>
+
+                <!-- West Slot: Seat 3 (West player) -->
+                <div class="kiln_arena_slot kiln_slot_left" id="kiln_slot_left"></div>
+
+                <!-- Central Kiln (6x6) with 24 push arrows -->
+                <div class="kiln_center_panel" id="kiln_center_panel">
+                    <div id="kiln_oven_wrapper" class="kiln_oven_wrapper">
+                        <!-- North Arrows (0..5) -->
+                        <div id="kiln_arrows_north" class="kiln_arrow_row kiln_arrows_n"></div>
+
+                        <div class="kiln_oven_middle">
+                            <!-- West Arrows (18..23) -->
+                            <div id="kiln_arrows_west" class="kiln_arrow_col kiln_arrows_w"></div>
+
+                            <!-- 6x6 Kiln Board -->
+                            <div id="kiln_board_grid" class="kiln_board_grid"></div>
+
+                            <!-- East Arrows (6..11) -->
+                            <div id="kiln_arrows_east" class="kiln_arrow_col kiln_arrows_e"></div>
+                        </div>
+
+                        <!-- South Arrows (12..17) -->
+                        <div id="kiln_arrows_south" class="kiln_arrow_row kiln_arrows_s"></div>
                     </div>
                 </div>
 
-                <!-- Center Column: Opponent (Top), Central Kiln (Middle), You (Bottom) - Perfectly vertically aligned! -->
-                <div class="kiln_center_column" id="kiln_center_column">
-                    <!-- Top Slot: Opponents Area (All Opponents upright) -->
-                    <div class="kiln_arena_slot kiln_slot_top" id="kiln_slot_top"></div>
+                <!-- East Slot: Seat 1 (East player) -->
+                <div class="kiln_arena_slot kiln_slot_right" id="kiln_slot_right"></div>
 
-                    <!-- Middle: Central Kiln (6x6) with 24 push arrows -->
-                    <div class="kiln_center_panel" id="kiln_center_panel">
-                        <div id="kiln_oven_wrapper" class="kiln_oven_wrapper">
-                            <!-- North Arrows (0..5) -->
-                            <div id="kiln_arrows_north" class="kiln_arrow_row kiln_arrows_n"></div>
-
-                            <div class="kiln_oven_middle">
-                                <!-- West Arrows (18..23) -->
-                                <div id="kiln_arrows_west" class="kiln_arrow_col kiln_arrows_w"></div>
-
-                                <!-- 6x6 Kiln Board -->
-                                <div id="kiln_board_grid" class="kiln_board_grid"></div>
-
-                                <!-- East Arrows (6..11) -->
-                                <div id="kiln_arrows_east" class="kiln_arrow_col kiln_arrows_e"></div>
-                            </div>
-
-                            <!-- South Arrows (12..17) -->
-                            <div id="kiln_arrows_south" class="kiln_arrow_row kiln_arrows_s"></div>
-                        </div>
-                    </div>
-
-                    <!-- Bottom Slot: Current Player (You, 0°) - DIRECTLY below central board -->
-                    <div class="kiln_arena_slot kiln_slot_bottom" id="kiln_slot_bottom"></div>
-                </div>
-
-                <!-- Right Panel: Right Player (270°, 3-4p only) -->
-                <div class="kiln_right_panel" id="kiln_right_panel">
-                    <div class="kiln_arena_slot kiln_slot_right" id="kiln_slot_right"></div>
-                </div>
+                <!-- Bottom Slot: Seat 0 (South player / You) -->
+                <div class="kiln_arena_slot kiln_slot_bottom" id="kiln_slot_bottom"></div>
             </div>
         `;
-
-        const numPlayers = Object.keys(this.gamedatas?.players || {}).length;
-        if (numPlayers <= 2) {
-            const rightPanel = wrapper.querySelector('#kiln_right_panel');
-            if (rightPanel) rightPanel.style.display = 'none';
-        }
 
         area.appendChild(wrapper);
 
@@ -954,13 +944,36 @@ export class Game {
             oven.style.transform = 'none';
         }
 
+        const isMultiplayer = Object.keys(this.gamedatas.players || {}).length > 2;
+
         Object.keys(this.gamedatas.players).forEach(pId => {
             const pInfo = this.gamedatas.players[pId];
             const pColor = this.playerColors[pId] || 'red';
             const isMe = String(pId) === String(myId);
+            const seat = playerSeats[pId] !== undefined ? Number(playerSeats[pId]) : 0;
 
-            // 3-Tier Layout: opponents sit neatly at top, player's board at bottom
-            const slotId = isMe ? 'kiln_slot_bottom' : 'kiln_slot_top';
+            // In 2-player: You at bottom, Opponent at top.
+            // In 3-4 player: place each player at their assigned table seat (South, East, North, West).
+            let slotId;
+            if (!isMultiplayer) {
+                slotId = isMe ? 'kiln_slot_bottom' : 'kiln_slot_top';
+            } else {
+                switch (seat) {
+                    case 1:
+                        slotId = 'kiln_slot_right';
+                        break;
+                    case 2:
+                        slotId = 'kiln_slot_top';
+                        break;
+                    case 3:
+                        slotId = 'kiln_slot_left';
+                        break;
+                    case 0:
+                    default:
+                        slotId = 'kiln_slot_bottom';
+                        break;
+                }
+            }
             const rotClass = 'kiln_rot_0';
 
             const targetSlot = document.getElementById(slotId);
@@ -1013,10 +1026,13 @@ export class Game {
                 <div class="kiln_wh_grid ${rotClass}" id="kiln_wh_grid_${pId}"></div>
             `;
 
+            const seatDirections = { 0: _('South'), 1: _('East'), 2: _('North'), 3: _('West') };
+            const seatLabel = isMultiplayer ? `<span class="kiln_seat_badge">(${seatDirections[seat] || ''})</span>` : '';
+
             card.innerHTML = `
                 <div class="kiln_wh_title">
                     <span class="kiln_player_color_dot kiln_dot_${pColor}"></span>
-                    <strong>${pInfo.name}</strong> ${isMe ? `(${_('You')})` : ''}
+                    <strong>${pInfo.name}</strong> ${isMe ? `(${_('You')})` : ''} ${seatLabel}
                 </div>
                 <div class="kiln_wh_body">
                     ${bodyHtml}
@@ -1456,8 +1472,8 @@ export class Game {
         if (!scalerWrapper || !boardEl) return;
 
         const isMultiplayer = Object.keys(this.gamedatas.players || {}).length > 2;
-        const baseWidth = isMultiplayer ? 920 : 720;
-        const baseHeight = 990;
+        const baseWidth = isMultiplayer ? 1160 : 720;
+        const baseHeight = isMultiplayer ? 1040 : 990;
 
         const updateScale = () => {
             const parent = scalerWrapper.parentElement || document.getElementById('game_play_area') || document.body;

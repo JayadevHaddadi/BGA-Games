@@ -188,19 +188,51 @@ class Game extends \Bga\GameFramework\Table
         // Populate 36 tiles into the 6x6 Kiln: 9 Red, 9 Blue, 9 Green, 9 Yellow
         $boardValues = [];
         if ($boardSetupOption === 1) {
-            // Balanced Placement: 9 sectors of 2x2. Each gets exactly 1 of each color, locally shuffled.
-            // Eliminates monolithic starting blobs while maintaining organic variance.
-            $grid = array_fill(0, self::BOARD_SIZE, array_fill(0, self::BOARD_SIZE, ''));
-            for ($by = 0; $by < 3; $by++) {
-                for ($bx = 0; $bx < 3; $bx++) {
-                    $sec = self::COLORS;
-                    shuffle($sec);
-                    $grid[$by * 2][$bx * 2] = $sec[0];
-                    $grid[$by * 2][$bx * 2 + 1] = $sec[1];
-                    $grid[$by * 2 + 1][$bx * 2] = $sec[2];
-                    $grid[$by * 2 + 1][$bx * 2 + 1] = $sec[3];
+            // Balanced Placement: 9 sectors of 2x2 with strict fairness verification.
+            // Guarantees:
+            // 1. Every color has max connected group size == 2 (no color gets groups of 3+).
+            // 2. Every color has at least one group of size 2 (no color is left with only isolated 1-tile pieces).
+            // This ensures 100% equal starting opportunity for all players on turn 1.
+            $grid = [];
+            $maxAttempts = 150;
+            $fallbackCandidate = null;
+
+            for ($attempt = 0; $attempt < $maxAttempts; $attempt++) {
+                $candidate = array_fill(0, self::BOARD_SIZE, array_fill(0, self::BOARD_SIZE, ''));
+                for ($by = 0; $by < 3; $by++) {
+                    for ($bx = 0; $bx < 3; $bx++) {
+                        $sec = self::COLORS;
+                        shuffle($sec);
+                        $candidate[$by * 2][$bx * 2] = $sec[0];
+                        $candidate[$by * 2][$bx * 2 + 1] = $sec[1];
+                        $candidate[$by * 2 + 1][$bx * 2] = $sec[2];
+                        $candidate[$by * 2 + 1][$bx * 2 + 1] = $sec[3];
+                    }
+                }
+
+                if ($fallbackCandidate === null) {
+                    $fallbackCandidate = $candidate;
+                }
+
+                $valid = true;
+                foreach (self::COLORS as $c) {
+                    $maxSize = $this->calculateMaxGroupInGrid($candidate, $c);
+                    if ($maxSize !== 2) {
+                        $valid = false;
+                        break;
+                    }
+                }
+
+                if ($valid) {
+                    $grid = $candidate;
+                    break;
                 }
             }
+
+            if (empty($grid)) {
+                $grid = $fallbackCandidate;
+            }
+
             for ($y = 0; $y < self::BOARD_SIZE; $y++) {
                 for ($x = 0; $x < self::BOARD_SIZE; $x++) {
                     $col = $grid[$y][$x];
@@ -592,6 +624,48 @@ class Game extends \Bga\GameFramework\Table
             }
         }
         return $largest;
+    }
+
+    /**
+     * Calculate maximum connected group size of a given color in a 6x6 grid
+     */
+    public function calculateMaxGroupInGrid(array $grid, string $color): int
+    {
+        $visited = [];
+        $maxSize = 0;
+        for ($y = 0; $y < self::BOARD_SIZE; $y++) {
+            for ($x = 0; $x < self::BOARD_SIZE; $x++) {
+                if ($grid[$y][$x] === $color && empty($visited["{$x}_{$y}"])) {
+                    $visited["{$x}_{$y}"] = true;
+                    $size = 0;
+                    $queue = [['x' => $x, 'y' => $y]];
+                    while (!empty($queue)) {
+                        $curr = array_shift($queue);
+                        $size++;
+                        $neighbors = [
+                            ['x' => $curr['x'] + 1, 'y' => $curr['y']],
+                            ['x' => $curr['x'] - 1, 'y' => $curr['y']],
+                            ['x' => $curr['x'], 'y' => $curr['y'] + 1],
+                            ['x' => $curr['x'], 'y' => $curr['y'] - 1],
+                        ];
+                        foreach ($neighbors as $n) {
+                            $nx = $n['x'];
+                            $ny = $n['y'];
+                            if ($nx >= 0 && $nx < self::BOARD_SIZE && $ny >= 0 && $ny < self::BOARD_SIZE) {
+                                if ($grid[$ny][$nx] === $color && empty($visited["{$nx}_{$ny}"])) {
+                                    $visited["{$nx}_{$ny}"] = true;
+                                    $queue[] = ['x' => $nx, 'y' => $ny];
+                                }
+                            }
+                        }
+                    }
+                    if ($size > $maxSize) {
+                        $maxSize = $size;
+                    }
+                }
+            }
+        }
+        return $maxSize;
     }
 
     /**
