@@ -202,13 +202,14 @@ If you see:
 > `ERROR: Missing zombieModeLevel in Game Metadata Manager`  
 > `Impossible to request PRIVATE ALPHA status: some mandatory game metadata is missing.`
 
-These two fields **MUST** be filled in the BGA Studio Web Interface via the **Game Metadata Manager (GMM)**:
-1. Open GMM at: `https://studio.boardgamearena.com/gamemetadatamanager?game=<game>` (or *Manage Game* $\rightarrow$ *Game Metadata Manager*).
+These two fields **MUST** be filled in the BGA Web Interface via the **Game Control Panel / GMM**:
+1. Open Control Panel at: `https://boardgamearena.com/controlpanelgames?game=<game>` (or *Manage Game* $\rightarrow$ *Game Metadata Manager*). Note: do NOT use `studio.boardgamearena.com/gamemetadatamanager` as that URL does not exist.
 2. **Description**: Enter a 1–2 paragraph English description of the game, theme, and objective.
 3. **Zombie Mode Level**: Select **Level 1** (or *"Turn-based / complete support handled by game engine"*).
 4. **Characteristics**: Set sliders/values (1–5) for `Complexity`, `Luck`, `Strategy`, `Diplomacy` only in GMM (do NOT include these keys in `gameinfos.jsonc`, as modern BGA rejects them as deprecated).
 5. **Tags**: Add relevant tags (e.g., *Abstract strategy*, *Hexagonal grid*, *Animals*).
-6. Click **Save** in GMM, then return to *Manage Game* and click **Request PRIVATE ALPHA status**.
+6. **BGG ID**: Note that BGG ID is **NOT editable in the Control Panel UI**. It is read directly from `"bgg_id": <ID>` inside `gameinfos.jsonc`. Whenever you get a warning that BGG ID is missing, set it directly in `gameinfos.jsonc`!
+7. Click **Save** in the Control Panel, then return to *Manage Game* and click **Request PRIVATE ALPHA status** (or Public Alpha).
 
 ### C. Warnings You Can Safely Ignore for Private Alpha
 * **"There is no registered licence linked to the BGG id"**: Safe to ignore for Private Alpha. BGA allows developer playtesting in Private Alpha before the publisher officially signs off on `boardgamearena.com/gamepublishers`.
