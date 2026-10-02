@@ -781,6 +781,15 @@ export class Game {
 
                 <!-- Central Kiln (6x6) with 24 push arrows -->
                 <div class="kiln_center_panel" id="kiln_center_panel">
+                    <!-- Black Tile Push Rule Indicator (Top-Left Corner) -->
+                    <div class="kiln_black_rule_badge" id="kiln_black_rule_badge" role="button" tabindex="0" title="${_('Pushing black tile out gives 1 extra turn')}">
+                        <div class="kiln_black_rule_tile">
+                            <span class="kiln_black_push_arrow">➔</span>
+                        </div>
+                        <div class="kiln_black_rule_bonus">+1 ⟳</div>
+                        <div class="kiln_black_rule_tooltip">${_('Pushing black tile out gives 1 extra turn')}</div>
+                    </div>
+
                     <div id="kiln_oven_wrapper" class="kiln_oven_wrapper">
                         <!-- North Arrows (0..5) -->
                         <div id="kiln_arrows_north" class="kiln_arrow_row kiln_arrows_n"></div>
@@ -816,6 +825,30 @@ export class Game {
         this.renderKilnBoard();
         this.renderWarehouses();
         this.updateOuterTileVisual();
+        this.setupBlackTileBadge();
+    }
+
+    /**
+     * Interactivity for black tile rule badge in top-left corner of the central board
+     */
+    setupBlackTileBadge() {
+        const badge = document.getElementById('kiln_black_rule_badge');
+        if (!badge) return;
+
+        badge.addEventListener('click', (e) => {
+            e.stopPropagation();
+            badge.classList.toggle('kiln_tooltip_active');
+            const msg = _('Pushing black tile out gives 1 extra turn');
+            if (typeof this.showMessage === 'function') {
+                this.showMessage(msg, 'info');
+            } else if (typeof gameui !== 'undefined' && typeof gameui.showMessage === 'function') {
+                gameui.showMessage(msg, 'info');
+            }
+        });
+
+        document.addEventListener('click', () => {
+            badge.classList.remove('kiln_tooltip_active');
+        });
     }
 
     /**
