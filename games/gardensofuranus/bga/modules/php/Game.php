@@ -522,6 +522,7 @@ class Game extends \Bga\GameFramework\Table
             'planted' => $planted,
             'plant_color' => $plantColor,
             'planted_msg' => $planted ? sprintf(" and planted a %s flower", $plantColor) : "",
+            'flowers' => $this->getPlayerFlowers($playerId),
         ]);
 
         // Check if hexagon instant win triggered for any player holding the HEXAGON card!

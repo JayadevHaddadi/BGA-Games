@@ -34,7 +34,7 @@ class NextPlayer extends GameState
         }
 
         // Advance to next player
-        $this->activeNextPlayer();
+        $this->game->activeNextPlayer();
 
         // Check if next player has 0 flowers at the start of their turn
         $nextPlayerId = (int) $this->game->getActivePlayerId();

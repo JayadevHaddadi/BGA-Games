@@ -38,8 +38,9 @@
 
 .gou_flower_pool {
     display: flex;
-    align-items: center;
-    gap: 10px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
     padding: 8px 16px;
     border-radius: 24px;
     background: #ffffff;
@@ -268,3 +269,27 @@
     100% { transform: scale(1); opacity: 1; }
 }
 
+
+.gou_reserve_row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.gou_reserve_label {
+    font-weight: 700;
+    min-width: 96px;
+}
+
+.gou_flower_count.gou_pickable {
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 12px;
+    border: 2px solid transparent;
+}
+
+.gou_flower_count.gou_selected_color {
+    border-color: #00e676;
+    background: rgba(0, 230, 118, 0.12);
+}

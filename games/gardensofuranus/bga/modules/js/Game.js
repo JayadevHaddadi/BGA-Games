@@ -234,9 +234,6 @@ export class Game {
 
         area.innerHTML = `
             <div id="gardensofuranus_container">
-                <div id="gardensofuranus_header">
-                    <span class="gou_badge" id="gou_turn_status">🌸 Gardens of Uranus</span>
-                </div>
                 <div id="gou_flower_reserve" class="gou_flower_pool"></div>
                 <div class="game-board-scaler" id="gou_board_scaler">
                     <div id="garden_board">
@@ -254,6 +251,8 @@ export class Game {
     }
 
     axialToPixel(q, r) {
+        q = Number(q);
+        r = Number(r);
         const boardType = parseInt(this.gamedatas?.board_type) || 1;
         if (boardType === 1) {
             // Hexagonal board: 61 spots, pointy-topped centered at (349.5, 506.5)
@@ -465,16 +464,46 @@ export class Game {
     renderPlayerFlowers() {
         const pool = document.getElementById('gou_flower_reserve');
         if (!pool) return;
-        const myId = this.bga?.players?.getCurrentPlayerId?.() || 0;
-        const flowers = this.gamedatas.all_flowers?.[myId] || {};
+        const myId = String(this.bga?.players?.getCurrentPlayerId?.() || this.player_id || 0);
+        const all = this.gamedatas.all_flowers || {};
+        const colors = ['blue', 'red', 'yellow', 'green', 'purple'];
 
-        pool.innerHTML = '<span style="font-weight:700; margin-right:8px;">Your Reserve:</span>';
-        ['blue', 'red', 'yellow', 'green', 'purple'].forEach(color => {
-            const cnt = flowers[color] || 0;
-            const div = document.createElement('div');
-            div.className = 'gou_flower_count';
-            div.innerHTML = `<span class="gou_flower_dot gou_dot_${color}"></span> ${cnt}`;
-            pool.appendChild(div);
+        const mine = all[myId] || {};
+        if (!this.selectedPlantColor || !(mine[this.selectedPlantColor] > 0)) {
+            this.selectedPlantColor = colors.find(c => mine[c] > 0) || 'blue';
+        }
+
+        pool.innerHTML = '';
+        const ids = Object.keys(all).sort((a, b) => (a === myId ? -1 : b === myId ? 1 : 0));
+        ids.forEach(pid => {
+            const isMe = pid === myId;
+            const info = this.gamedatas.players?.[pid];
+            const row = document.createElement('div');
+            row.className = 'gou_reserve_row';
+            const label = document.createElement('span');
+            label.className = 'gou_reserve_label';
+            label.textContent = isMe ? _('Your reserve') : (info?.name || '');
+            if (!isMe && info?.color) label.style.color = `#${info.color}`;
+            row.appendChild(label);
+            colors.forEach(color => {
+                const cnt = all[pid]?.[color] || 0;
+                const div = document.createElement('div');
+                div.className = 'gou_flower_count';
+                if (isMe) {
+                    div.classList.add('gou_pickable');
+                    if (color === this.selectedPlantColor) div.classList.add('gou_selected_color');
+                    div.title = _('Click to choose the color to plant');
+                    div.addEventListener('click', () => {
+                        if (cnt <= 0) return;
+                        sounds.playClick();
+                        this.selectedPlantColor = color;
+                        this.renderPlayerFlowers();
+                    });
+                }
+                div.innerHTML = `<span class="gou_flower_dot gou_dot_${color}"></span> ${cnt}`;
+                row.appendChild(div);
+            });
+            pool.appendChild(row);
         });
     }
 
@@ -751,6 +780,11 @@ export class Game {
     notif_gardenerMoved(notif) {
         sounds.playMove();
         const args = this._getNotifArgs(notif);
+        if (args.flowers) {
+            if (!this.gamedatas.all_flowers) this.gamedatas.all_flowers = {};
+            this.gamedatas.all_flowers[args.player_id] = args.flowers;
+            this.renderPlayerFlowers();
+        }
         const gToken = document.getElementById(`gardener_${args.player_id}`);
         if (gToken) {
             const pos = this.axialToPixel(args.target_q, args.target_r);
