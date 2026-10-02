@@ -452,102 +452,66 @@
     text-align: center;
 }
 
-/* Quick Rules Icons Bar */
-.sg_rules_quick_bar {
-    display: inline-flex;
-    align-items: center;
+/* Tricky Rules Widget (Top Right Corner of Board) */
+.sg_board_tricky_rules {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
     gap: 5px;
-    padding: 3px 8px;
-    background: rgba(255, 255, 255, 0.9);
-    border: 1px solid #c8e6c9;
-    border-radius: 20px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    padding: 7px 11px;
+    background: rgba(255, 255, 255, 0.90);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 14px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+    user-select: none;
 }
 
-.sg_rules_quick_label {
+.sg_tricky_rules_title {
     font-size: 11px;
-    font-weight: 700;
-    color: #2e7d32;
+    font-weight: 800;
+    color: #1b5e20;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-right: 2px;
+}
+
+.sg_tricky_rules_icons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .sg_rule_icon_btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: 34px;
+    height: 34px;
     padding: 0;
-    font-size: 15px;
+    font-size: 18px;
     background: #ffffff;
-    border: 1px solid #cfd8dc;
+    border: 1.5px solid #b0bec5;
     border-radius: 50%;
     cursor: pointer;
     outline: none;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-    transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.14);
+    transition: all 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .sg_rule_icon_btn:hover {
-    transform: scale(1.22);
-    border-color: #81c784;
+    transform: scale(1.24);
+    border-color: #2e7d32;
     background: #e8f5e9;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.28);
 }
 
 .sg_rule_icon_btn:active {
-    transform: scale(0.95);
-}
-
-.sg_rule_help_btn {
-    width: auto;
-    height: 26px;
-    padding: 0 8px;
-    border-radius: 13px;
-    font-size: 11px;
-    font-weight: 700;
-    color: #1b5e20;
-    background: #e8f5e9;
-    border-color: #81c784;
-}
-
-.sg_rule_help_btn:hover {
-    background: #c8e6c9;
-}
-
-/* Player Panel Top Row */
-.sg_panel_top_row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 2px;
-    padding-bottom: 4px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-}
-
-.sg_panel_title {
-    font-weight: 700;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: #37474f;
-}
-
-.sg_panel_rules_bar {
-    display: inline-flex;
-    gap: 3px;
-    background: transparent;
-    border: none;
-    padding: 0;
-    box-shadow: none;
-}
-
-.sg_panel_rules_bar .sg_rule_icon_btn {
-    width: 24px;
-    height: 24px;
-    font-size: 13px;
+    transform: scale(0.92);
 }
 
 /* Modal Popup: Cruxy Rules Guide */

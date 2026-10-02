@@ -275,9 +275,6 @@ export class Game {
         main.innerHTML = `
             <div id="sg_container">
                 <div id="sg_header_info">
-                    <span id="sg_mode_badge" class="sg_badge" style="background:#e0f2f1; color:#004d40; border-color:#80cbc4;">
-                        ${this.gamedatas.game_mode === 2 ? 'Compact Variant' : 'Standard'}
-                    </span>
                     <span id="sg_consecutive_torpor_badge" class="sg_badge sg_torpor_badge">
                         Torpor: ${this.gamedatas.consecutive_torpor || 0} / ${Object.keys(this.gamedatas.players).length}
                     </span>
@@ -287,15 +284,6 @@ export class Game {
                     <button id="sg_sound_toggle" class="sg_ctrl_btn" type="button">
                         ${sounds.muted ? '&#128263; Muted' : '&#128266; Sound'}
                     </button>
-                    <div class="sg_rules_quick_bar">
-                        <span class="sg_rules_quick_label">Tricky Rules:</span>
-                        <button type="button" class="sg_rule_icon_btn" data-rule="center" title="🎯 Center Nest: Jump to ANY space with 1 reserve fruit">🎯</button>
-                        <button type="button" class="sg_rule_icon_btn" data-rule="torpor" title="💤 Torpor: Eat tile under you. Consecutive torpor ends game!">💤</button>
-                        <button type="button" class="sg_rule_icon_btn" data-rule="blocking" title="🚫 Glider Blocking: Cannot jump through or over other squirrels">🚫</button>
-                        <button type="button" class="sg_rule_icon_btn" data-rule="takeoff" title="🍃 Takeoff vs Landing: Jump using takeoff tile">🍃</button>
-                        <button type="button" class="sg_rule_icon_btn" data-rule="scoring" title="🏆 Scoring: Most fruit points in reserve wins">🏆</button>
-                        <button type="button" class="sg_rule_icon_btn sg_rule_help_btn" data-rule="all" title="Click to view full Cruxy Rules Guide">📖 Tricky Rules</button>
-                    </div>
                 </div>
 
                 <div id="sg_reserve_tray">
@@ -306,6 +294,18 @@ export class Game {
                 <div id="sg_board_scaler" class="game-board-scaler">
                     <div id="sg_board_wrapper" class="${this.HEX_RADIUS === 3 ? 'compact-tree' : ''}">
                         <svg id="sg_board_svg"></svg>
+                    </div>
+
+                    <!-- Tricky Rules Widget (Top Right of the Board) -->
+                    <div id="sg_board_tricky_rules" class="sg_board_tricky_rules">
+                        <div class="sg_tricky_rules_title">Tricky rules:</div>
+                        <div class="sg_tricky_rules_icons">
+                            <button type="button" class="sg_rule_icon_btn" data-rule="center" title="🎯 Center Nest: Jump to ANY space with 1 reserve fruit">🎯</button>
+                            <button type="button" class="sg_rule_icon_btn" data-rule="torpor" title="💤 Torpor: Eat tile under you. Consecutive torpor ends game!">💤</button>
+                            <button type="button" class="sg_rule_icon_btn" data-rule="blocking" title="🚫 Glider Blocking: Cannot jump through or over other squirrels">🚫</button>
+                            <button type="button" class="sg_rule_icon_btn" data-rule="takeoff" title="🍃 Takeoff vs Landing: Jump using takeoff tile">🍃</button>
+                            <button type="button" class="sg_rule_icon_btn" data-rule="scoring" title="🏆 Scoring: Most fruit points in reserve wins">🏆</button>
+                        </div>
                     </div>
                 </div>
 
@@ -965,16 +965,6 @@ export class Game {
             ).join(' ');
 
             inv.innerHTML = `
-                <div class="sg_panel_top_row">
-                    <span class="sg_panel_title">&#127827; Reserves &amp; Fuel</span>
-                    <div class="sg_rules_icons_bar sg_panel_rules_bar">
-                        <button type="button" class="sg_rule_icon_btn" data-rule="center" title="🎯 Center Nest: Glide to ANY space with 1 reserve fruit">🎯</button>
-                        <button type="button" class="sg_rule_icon_btn" data-rule="torpor" title="💤 Torpor: Eat current fruit. Consecutive torpor ends game!">💤</button>
-                        <button type="button" class="sg_rule_icon_btn" data-rule="blocking" title="🚫 Glider Blocking: Cannot jump through or over other squirrels">🚫</button>
-                        <button type="button" class="sg_rule_icon_btn" data-rule="scoring" title="🏆 Scoring: Most fruit points in reserve wins">🏆</button>
-                        <button type="button" class="sg_rule_icon_btn sg_rule_help_btn" data-rule="all" title="Click to view Cruxy Rules Guide">📖</button>
-                    </div>
-                </div>
                 <div class="sg_panel_jumping">
                     <span>&#129438; Current Tile:</span> ${jumpingHtml}
                 </div>
