@@ -1,0 +1,79 @@
+= Omega =
+
+''A strategy board game of intuitive arithmetic for 2 to 4 players by '''Néstor Romeral Andrés'''. Published by '''nestorgames'''.''
+
+== Overview & Objective ==
+In '''Omega''', players place stones onto a hexagonal grid to form connected groups of their color.
+The player with the highest final score wins!
+Your final score is calculated not by simply counting stones, but by '''multiplying the sizes of all your separate connected groups'''.
+
+== Components & Players ==
+* '''Board''': A hexagonal grid of varying sizes (Standard: Side 5 with 61 cells).
+* '''Stones''':
+** '''White''' (Player 1)
+** '''Black''' (Player 2)
+** '''Red''' (Player 3)
+** '''Blue''' (Player 4)
+
+== Turn Structure ==
+Players take turns according to the color order: '''White &rarr; Black &rarr; Red &rarr; Blue'''.
+
+On your turn, you must place '''one stone of each active color in play''' onto any unoccupied hexagonal cells on the board:
+* '''2-Player Game''': Place '''1 White''' stone and '''1 Black''' stone.
+* '''3-Player Game''': Place '''1 White''', '''1 Black''', and '''1 Red''' stone.
+* '''4-Player Game''': Place '''1 White''', '''1 Black''', '''1 Red''', and '''1 Blue''' stone.
+
+''Note: You first place a stone of your own color, followed by one stone for each opponent in turn order.''
+
+=== The Pie Rule (Swap Option) ===
+In a 2-player game (when enabled), Player 1's opening move provides a first-move initiative. To guarantee balance:
+* Player 1 makes the opening turn (places 1 White and 1 Black stone).
+* Player 2 may then choose to either:
+# '''Play Normally''': Place 1 Black stone and 1 White stone, OR
+# '''Swap Colors (Pie Rule)''': Take over the White color and its placed stones! Player 1 now plays as Black.
+
+== Game End ==
+The game ends when, just before White's turn, there are not enough empty cells remaining to complete another full round where every player places their required stones:
+* '''2 Players''': At least '''4 empty cells''' are needed for a full round (2 players &times; 2 stones).
+* '''3 Players''': At least '''9 empty cells''' are needed for a full round (3 players &times; 3 stones).
+* '''4 Players''': At least '''16 empty cells''' are needed for a full round (4 players &times; 4 stones).
+
+When fewer empty cells remain at the start of a round, the game ends immediately. A few cells will remain empty at game end.
+
+== Scoring ==
+At game end, all connected groups of stones (chains of adjacent stones sharing a hexagon edge) of each color are counted:
+* A single isolated stone counts as a group of size '''1'''.
+* Each distinct connected cluster of stones forms a group of size '''N'''.
+* '''Your score is the product of all your group sizes multiplied together:'''
+$$\text{Final Score} = \text{Size}(\text{Group}_1) \times \text{Size}(\text{Group}_2) \times \dots \times \text{Size}(\text{Group}_k)$$
+
+=== Scoring Examples ===
+* If White has groups of sizes '''3''', '''4''', and '''5''':
+** Score = $3 \times 4 \times 5 = \mathbf{60}$.
+* If Black has one large group of '''12''' stones:
+** Score = $\mathbf{12}$.
+* If Red has groups of sizes '''1''', '''2''', '''2''', '''4''', and '''3''':
+** Score = $1 \times 2 \times 2 \times 4 \times 3 = \mathbf{48}$.
+* If a color has no stones on the board, its score is '''0'''.
+
+=== Tie-Breaker ===
+If two or more players are tied with the highest score, the winner is the tied player who played '''latest in round order''' (Blue &gt; Red &gt; Black &gt; White). This compensates for earlier turn advantage.
+
+== Board Sizes & Options ==
+When creating a table on Board Game Arena, you can select the following board sizes:
+* '''Mini (Side 3 / 19 hexes)''': Ultra-fast blitz game (~9 turns).
+* '''Short (Side 4 / 37 hexes)''': Quick tactical game (~18 turns).
+* '''Standard (Side 5 / 61 hexes)''' ''(Default)'': Official standard tournament board (~30 turns).
+* '''Large (Side 6 / 91 hexes)''': Spacious board for deeper group development (~45 turns).
+* '''Expert (Side 7 / 127 hexes)''': Advanced tactical play with massive scoring potential.
+
+== Strategy Tips ==
+* '''Multiplication vs. Addition''': One giant connected group of 10 stones yields only '''10''' points. But three separate groups of 3, 3, and 4 stones yield $3 \times 3 \times 4 = \mathbf{36}$ points! Aim to maintain multiple healthy groups rather than merging everything into one blob.
+* '''Weaponized Placement''': Because you must place stones of your opponents' colors, you can use their stones against them! Force their distinct groups to merge into one, shrinking their multiplier, or trap their single stones in dead corners.
+* '''Avoid Isolated Singletons''': A single isolated stone of size 1 multiplies your score by 1, contributing almost nothing to your growth while taking up board space.
+* '''Mind the Endgame Threshold''': Count the remaining empty spaces as the board fills up. Knowing when the final round will trigger lets you execute crucial connections or sabotage merges just in time.
+
+== Credits ==
+* '''Game Design''': Néstor Romeral Andrés
+* '''Publisher''': [https://nestorgames.com nestorgames]
+* '''Digital Adaptation''': Jayadev Haddadi
