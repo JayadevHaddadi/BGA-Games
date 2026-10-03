@@ -485,6 +485,7 @@ export class Game {
         this.targetScore = 17;
         this.currentPlacementNorm = null;
         this.currentPlacementAnchors = [];
+        this.stagedAnchor = null;
     }
 
     isCurrentPlayerActive() {
@@ -1169,6 +1170,7 @@ export class Game {
     }
 
     clearWarehousePlacement() {
+        this.stagedAnchor = null;
         this.currentPlacementNorm = null;
         this.currentPlacementAnchors = [];
         document.querySelectorAll('.kiln_wh_cell').forEach(c => {
@@ -1186,16 +1188,43 @@ export class Game {
 
         if (!isEnter) return;
 
+        this.showPlacementGhost(wx, wy);
+    }
+
+    showPlacementGhost(wx, wy) {
+        const myId = this.bga?.players?.getCurrentPlayerId?.();
+        document.querySelectorAll('.kiln_wh_cell').forEach(c => {
+            c.classList.remove('kiln_ghost_valid', 'kiln_ghost_invalid');
+        });
         const isValid = this.currentPlacementAnchors.some(a => a.ox === wx && a.oy === wy);
         const cls = isValid ? 'kiln_ghost_valid' : 'kiln_ghost_invalid';
-
         this.currentPlacementNorm.forEach(n => {
-            const cx = wx + n.dx;
-            const cy = wy + n.dy;
-            const cell = document.getElementById(`kiln_wh_${myId}_${cx}_${cy}`);
+            const cell = document.getElementById(`kiln_wh_${myId}_${wx + n.dx}_${wy + n.dy}`);
             if (cell) cell.classList.add(cls);
         });
+    }
 
+    /**
+     * Touch screens have no hover preview: first tap stages the placement (ghost preview),
+     * Confirm (blue) commits it, Undo Push (red) reverts the whole push.
+     */
+    stagePlacement(wx, wy) {
+        this.stagedAnchor = { wx, wy };
+        this.showPlacementGhost(wx, wy);
+        this.clearActionButtons();
+        this.bga.statusBar.setTitle(_('${you} must confirm this placement, or tap another highlighted cell'));
+        this.addActionButton('btn_confirm_place', _('Confirm placement'), () => this.confirmPlacement(), 'primary');
+        this.addActionButton('btn_undo_push', _('Undo Push'), () => this.onUndo(), 'alert');
+    }
+
+    confirmPlacement() {
+        if (!this.stagedAnchor) return;
+        const { wx, wy } = this.stagedAnchor;
+        this.stagedAnchor = null;
+        this.clearWarehousePlacement();
+        this.clearActionButtons();
+        this.bga.statusBar.setTitle(_('Placing shape in warehouse...'));
+        this.bga.actions.performAction('actPlaceShape', { ox: wx, oy: wy });
     }
 
     onWarehouseCellClick(wx, wy) {
@@ -1213,11 +1242,14 @@ export class Game {
         const isValid = this.currentPlacementAnchors.some(a => a.ox === wx && a.oy === wy);
         if (!isValid) return;
 
-        this.clearWarehousePlacement();
-        this.clearActionButtons();
-        this.bga.statusBar.setTitle(_('Placing shape in warehouse...'));
+        const hasHover = window.matchMedia && window.matchMedia('(hover: hover)').matches;
+        if (!hasHover) {
+            this.stagePlacement(wx, wy);
+            return;
+        }
 
-        this.bga.actions.performAction('actPlaceShape', { ox: wx, oy: wy });
+        this.stagedAnchor = { wx, wy };
+        this.confirmPlacement();
     }
 
     /**

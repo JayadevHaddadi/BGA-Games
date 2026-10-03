@@ -299,8 +299,9 @@ Always store these promotional images in `<game>/bga/metadata_assets/` (**never*
 2. **Thematic background (C.5)**: put a themed class on `bga.gameArea.getElement()` (Kiln: dark brick wall via CSS gradients, low contrast). Never a flat dark gradient.
 3. **Hover sounds (D.4)**: sounds only from server notifications (confirmed events). Never in `mouseenter`, click-to-select, stage or undo-click handlers. Ship real `sounds/*.ogg|mp3` and call `bga.sounds.play(id)`; no Web Audio synths. Mouse-only previews are attached only if `matchMedia('(hover: hover)')`; all `:hover` CSS lives inside `@media (hover: hover)`.
 4. **Mobile width (C.4)**: below ~720px container width switch to a one-column `kiln_compact` layout (no side gutters, track strip on top, no rotated seats) and scale the *measured* natural size to ~100% of the width. Do not hard-code a base width.
+6. **No hover on touch = no preview**: any placement that relies on a hover ghost must, on `(hover: none)` devices, use tap-to-stage (first tap shows the ghost, blue Confirm + red Undo in the action bar, tap another cell to restage). Kiln: `stagePlacement()` / `confirmPlacement()`.
 5. **Tap targets (E.3)**: measure with Playwright at 375px (`getBoundingClientRect`) for 2p AND 4p. Kiln result: kiln tiles/arrows 41px, warehouse cells 34px, sell arrows 34px.
 
 ### F. Process
 * Every new game starts from this section, not from a generic template. Re-check the checklist at the end of each UI task and state in the commit/summary which items were verified.
-* Push directly to `main` (no feature branches/PRs) unless the user says otherwise.
+* **ALWAYS commit and push straight to `main`** (no feature branches, no PRs) — this is the user's standing rule and it overrides any session-assigned feature branch. Pushing to `main` triggers the BGA deploy. Only use another branch if the user explicitly says so in that task.
