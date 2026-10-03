@@ -41,15 +41,9 @@
     justify-items: center;
     gap: 16px 20px;
     padding: 16px 20px;
-    background: #1e2430;
-    background-image: 
-        radial-gradient(circle at 50% 25%, #2a3242 0%, #181d27 100%);
-    border-radius: 14px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
-    border: 1px solid rgba(255,255,255,0.08);
+    background: transparent;
     width: max-content;
     box-sizing: border-box;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 #kiln_track_panel {
@@ -173,14 +167,13 @@
    ======================================================== */
 .kiln_track_panel {
     width: 180px;
-    background: #ffffff;
-    border-radius: 10px;
+    background: #efe6d8;
+    border-radius: 2px;
     padding: 10px;
-    border: 1px solid var(--kiln-border-color);
+    border: 1px solid #8a6f55;
     box-sizing: border-box;
     flex-shrink: 0;
     align-self: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
 .kiln_goal_badge {
@@ -188,7 +181,7 @@
     color: #212121;
     font-size: 12px;
     padding: 2px 8px;
-    border-radius: 4px;
+    border-radius: 3px;
     font-weight: 600;
 }
 
@@ -202,21 +195,14 @@
 .kiln_track_cell {
     background: #ffffff;
     border: 1px solid #b0bec5;
-    border-radius: 6px;
+    border-radius: 3px;
     height: 38px;
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
     cursor: help;
     transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.kiln_track_cell:hover {
-    transform: scale(1.08);
-    z-index: 10;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
 }
 
 .kiln_track_legend {
@@ -284,9 +270,7 @@
     width: 18px;
     height: 18px;
     border-radius: 50%;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.4);
     border: 1.5px solid #ffffff;
-    animation: kiln_pulse_subtle 2s infinite ease-in-out;
 }
 
 /* ========================================================
@@ -295,16 +279,15 @@
 .kiln_center_panel {
     position: relative;
     width: fit-content;
-    background: #ffffff;
-    border-radius: 10px;
+    background: #efe6d8;
+    border-radius: 2px;
     padding: 10px;
-    border: 1px solid var(--kiln-border-color);
+    border: 1px solid #8a6f55;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
     align-items: center;
     flex-shrink: 0;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
 .kiln_black_rule_badge {
@@ -322,17 +305,12 @@
     transition: transform 0.15s ease;
 }
 
-.kiln_black_rule_badge:hover {
-    transform: scale(1.08);
-}
-
 .kiln_black_rule_tile {
     width: 38px;
     height: 38px;
-    background: linear-gradient(135deg, #455a64 0%, #263238 100%);
+    background: #263238;
     border: 2px solid #10171a;
-    border-radius: 6px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.3);
+    border-radius: 3px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -343,7 +321,6 @@
     font-size: 18px;
     font-weight: 900;
     line-height: 1;
-    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.7));
 }
 
 .kiln_black_rule_bonus {
@@ -352,41 +329,15 @@
     color: #1e293b;
     background: #e2e8f0;
     border: 1px solid #cbd5e1;
-    border-radius: 4px;
+    border-radius: 3px;
     padding: 1px 5px;
     line-height: 1.2;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
 
-.kiln_black_rule_tooltip {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    margin-top: 6px;
-    background: #0f172a;
-    color: #ffffff;
-    font-size: 12px;
-    font-weight: 600;
-    padding: 6px 10px;
-    border-radius: 6px;
-    white-space: nowrap;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.35);
-    border: 1px solid #334155;
-    pointer-events: none;
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(-4px);
-    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
-    z-index: 100;
-}
-
+@media (hover: hover) {
 .kiln_black_rule_badge:hover .kiln_black_rule_tooltip,
 .kiln_black_rule_badge:focus .kiln_black_rule_tooltip,
-.kiln_black_rule_badge.kiln_tooltip_active .kiln_black_rule_tooltip {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0);
-}
+.kiln_black_rule_badge.kiln_tooltip_active }
 
 .kiln_outer_badge {
     font-size: 12px;
@@ -396,7 +347,7 @@
 .kiln_color_tag {
     display: inline-block;
     padding: 2px 8px;
-    border-radius: 4px;
+    border-radius: 3px;
     color: #ffffff;
     font-size: 11px;
     font-weight: 700;
@@ -440,7 +391,7 @@
     height: 52px;
     background: #f8fafc;
     border: 1px solid #cbd5e1;
-    border-radius: 6px;
+    border-radius: 3px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -461,22 +412,22 @@
     cursor: pointer;
     background: #e0f2fe;
     border: 2px solid #0284c7;
-    box-shadow: 0 0 10px rgba(2, 132, 199, 0.35);
-    animation: kiln_arrow_bounce 1.5s infinite ease-in-out;
 }
 
 .kiln_arrow_clickable .kiln_arrow_icon {
     color: #0284c7;
 }
 
+@media (hover: hover) {
 .kiln_arrow_clickable:hover {
     background: #0284c7;
-    transform: scale(1.08);
-    box-shadow: 0 0 14px rgba(2, 132, 199, 0.6);
+    }
 }
 
+@media (hover: hover) {
 .kiln_arrow_clickable:hover .kiln_arrow_icon {
     color: #ffffff;
+}
 }
 
 .kiln_outer_tile_holder {
@@ -494,10 +445,8 @@
 .kiln_outer_tile_disc {
     width: 44px;
     height: 44px;
-    border-radius: 6px;
+    border-radius: 3px;
     border: 2.5px solid #ffffff;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
-    animation: kiln_outer_glow 1.6s infinite alternate ease-in-out;
 }
 
 /* 6x6 Kiln Grid */
@@ -508,35 +457,32 @@
     gap: 4px;
     background: #cfd8dc;
     padding: 6px;
-    border-radius: 8px;
-    box-shadow: inset 0 2px 6px rgba(0,0,0,0.15);
+    border-radius: 3px;
 }
 
 .kiln_board_tile {
     width: 52px;
     height: 52px;
-    border-radius: 6px;
+    border-radius: 3px;
     position: relative;
     box-sizing: border-box;
     transition: transform 0.25s ease;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
 }
 
 .kiln_tile_inner {
     width: 100%;
     height: 100%;
-    border-radius: 6px;
-    box-shadow: inset 0 1px 1px rgba(255,255,255,0.4), inset 0 -1px 2px rgba(0,0,0,0.25);
+    border-radius: 3px;
 }
 
 .kiln_tile_candidate {
     cursor: pointer;
-    animation: kiln_candidate_pulse 1.2s infinite ease-in-out;
 }
 
+@media (hover: hover) {
 .kiln_tile_candidate:hover {
-    transform: scale(1.06);
-    z-index: 5;
+        z-index: 5;
+}
 }
 
 .kiln_tile_group_badge {
@@ -553,7 +499,6 @@
     height: 14px;
     line-height: 14px;
     text-align: center;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.5);
 }
 
 /* ========================================================
@@ -600,19 +545,18 @@
 
 .kiln_warehouse_card {
     border: 1.5px solid var(--kiln-border-color);
-    border-radius: 10px;
+    border-radius: 3px;
     padding: 10px 14px;
     box-sizing: border-box;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     display: flex;
     flex-direction: column;
     align-items: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
 /* Color-tinted warehouse mat cards */
 .kiln_wh_red {
-    background: linear-gradient(180deg, #fff5f5 0%, #fee2e2 100%) !important;
+    background: #f3dcd4 !important;
     border-color: #fca5a5 !important;
 }
 .kiln_wh_red .kiln_wh_grid {
@@ -623,7 +567,7 @@
 }
 
 .kiln_wh_blue {
-    background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%) !important;
+    background: #d6e2ea !important;
     border-color: #93c5fd !important;
 }
 .kiln_wh_blue .kiln_wh_grid {
@@ -634,7 +578,7 @@
 }
 
 .kiln_wh_green {
-    background: linear-gradient(180deg, #f0fdf4 0%, #dcfce7 100%) !important;
+    background: #dbe5d2 !important;
     border-color: #86efac !important;
 }
 .kiln_wh_green .kiln_wh_grid {
@@ -645,7 +589,7 @@
 }
 
 .kiln_wh_yellow {
-    background: linear-gradient(180deg, #fefce8 0%, #fef3c7 100%) !important;
+    background: #efe3bd !important;
     border-color: #fde047 !important;
 }
 .kiln_wh_yellow .kiln_wh_grid {
@@ -658,25 +602,20 @@
 /* Highlighted styling for player's own active warehouse */
 .kiln_my_warehouse.kiln_wh_red {
     border: 2.5px solid #dc2626 !important;
-    box-shadow: 0 4px 16px rgba(220, 38, 38, 0.25), 0 0 0 2px rgba(239, 68, 68, 0.35);
 }
 .kiln_my_warehouse.kiln_wh_blue {
     border: 2.5px solid #0284c7 !important;
-    box-shadow: 0 4px 16px rgba(2, 132, 199, 0.25), 0 0 0 2px rgba(2, 132, 199, 0.35);
 }
 .kiln_my_warehouse.kiln_wh_green {
     border: 2.5px solid #16a34a !important;
-    box-shadow: 0 4px 16px rgba(22, 163, 74, 0.25), 0 0 0 2px rgba(22, 163, 74, 0.35);
 }
 .kiln_my_warehouse.kiln_wh_yellow {
     border: 2.5px solid #d97706 !important;
-    box-shadow: 0 4px 16px rgba(217, 119, 6, 0.25), 0 0 0 2px rgba(217, 119, 6, 0.35);
 }
 
 .kiln_opponent_card {
-    border-radius: 8px;
+    border-radius: 3px;
     padding: 6px 10px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
@@ -703,14 +642,13 @@
     grid-template-rows: repeat(5, 28px) !important;
     gap: 2px !important;
     padding: 3px !important;
-    border-radius: 6px !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border-radius: 3px !important;
 }
 
 .kiln_opponent_card .kiln_wh_cell {
     width: 28px !important;
     height: 28px !important;
-    border-radius: 4px !important;
+    border-radius: 3px !important;
 }
 
 .kiln_opponent_card .kiln_price_table {
@@ -762,7 +700,6 @@
     height: 18px;
     border-radius: 50%;
     display: inline-block;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
     border: 2px solid #ffffff;
     flex-shrink: 0;
 }
@@ -781,7 +718,7 @@
     gap: 3px;
     background: #cbd5e1;
     padding: 5px;
-    border-radius: 8px;
+    border-radius: 3px;
     width: fit-content;
 }
 
@@ -791,10 +728,9 @@
     width: 116px;
     background: #ffffff;
     border: 1px solid #cbd5e1;
-    border-radius: 8px;
+    border-radius: 3px;
     padding: 6px 8px;
     box-sizing: border-box;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
 
 .kiln_price_table_header {
@@ -816,7 +752,7 @@
     margin-bottom: 3px;
     background: #f8fafc;
     border: 1px solid #e2e8f0;
-    border-radius: 5px;
+    border-radius: 3px;
     font-size: 14px;
     font-weight: 800;
     color: #1e293b;
@@ -830,9 +766,7 @@
 .kiln_price_highlight {
     background: #fde68a !important;
     border-color: #d97706 !important;
-    transform: scale(1.06);
-    box-shadow: 0 0 8px rgba(217, 119, 6, 0.45);
-}
+    }
 
 .kiln_pr_num {
     color: #64748b;
@@ -849,13 +783,12 @@
     width: 40px;
     height: 40px;
     background: #ffffff;
-    border-radius: 5px;
+    border-radius: 3px;
     box-sizing: border-box;
     transition: background-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .kiln_wh_filled {
-    box-shadow: inset 0 1px 2px rgba(255,255,255,0.4), inset 0 -1px 2px rgba(0,0,0,0.3);
 }
 
 .kiln_anchor_valid {
@@ -865,18 +798,15 @@
 
 .kiln_ghost_valid {
     background: rgba(34, 197, 94, 0.75) !important;
-    box-shadow: 0 0 6px rgba(34, 197, 94, 0.9);
 }
 
 .kiln_ghost_invalid {
     background: rgba(239, 68, 68, 0.75) !important;
-    box-shadow: 0 0 6px rgba(239, 68, 68, 0.9);
 }
 
 .kiln_line_sellable_row,
 .kiln_line_sellable_col,
 .kiln_line_sellable_selected {
-    animation: kiln_gold_shimmer 1.4s infinite alternate ease-in-out !important;
     cursor: pointer !important;
 }
 
@@ -887,83 +817,52 @@
     transition: opacity 0.15s ease;
 }
 
+@media (hover: hover) {
 .kiln_line_sellable_unselected:hover {
     opacity: 0.85;
+}
 }
 
 .kiln_wh_erasable {
     cursor: crosshair !important;
-    animation: kiln_erase_pulse 1.2s infinite ease-in-out;
 }
 
+@media (hover: hover) {
 .kiln_wh_erasable:hover {
-    transform: scale(1.1);
-    box-shadow: 0 0 10px #ef4444 !important;
-    border: 2px dashed #dc2626 !important;
+        border: 2px dashed #dc2626 !important;
 }
-
-@keyframes kiln_erase_pulse {
-    0%, 100% { box-shadow: inset 0 0 3px #ef4444; }
-    50% { box-shadow: inset 0 0 10px #f87171, 0 0 8px #ef4444; }
 }
 
 /* ========================================================
    Tile & Disc Color Palette (Ceramic Gloss Styling)
    ======================================================== */
 .kiln_tile_red, .kiln_disc_red, .kiln_dot_red, .kiln_tag_red {
-    background: linear-gradient(135deg, #e53935 0%, #c62828 100%);
+    background: #c62828;
     border-color: #b71c1c;
 }
 .kiln_tile_blue, .kiln_disc_blue, .kiln_dot_blue, .kiln_tag_blue {
-    background: linear-gradient(135deg, #1e88e5 0%, #1565c0 100%);
+    background: #1565c0;
     border-color: #0d47a1;
 }
 .kiln_tile_green, .kiln_disc_green, .kiln_dot_green, .kiln_tag_green {
-    background: linear-gradient(135deg, #43a047 0%, #2e7d32 100%);
+    background: #2e7d32;
     border-color: #1b5e20;
 }
 .kiln_tile_yellow, .kiln_disc_yellow, .kiln_dot_yellow, .kiln_tag_yellow {
-    background: linear-gradient(135deg, #fdd835 0%, #f9a825 100%);
+    background: #f9a825;
     border-color: #f57f17;
 }
 .kiln_tile_black, .kiln_disc_black, .kiln_dot_black, .kiln_tag_black {
-    background: linear-gradient(135deg, #455a64 0%, #263238 100%);
+    background: #263238;
     border-color: #10171a;
 }
 
 /* ========================================================
    Animations
    ======================================================== */
-@keyframes kiln_arrow_bounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-2px); }
-}
-
-@keyframes kiln_outer_glow {
-    0% { transform: scale(0.96); box-shadow: 0 0 8px rgba(0,0,0,0.6), 0 0 14px rgba(2, 132, 199, 0.7); }
-    100% { transform: scale(1.08); box-shadow: 0 0 20px rgba(2, 132, 199, 1), 0 0 36px rgba(56, 189, 248, 0.95); }
-}
-
-@keyframes kiln_candidate_pulse {
-    0%, 100% { box-shadow: 0 0 4px #0284c7; }
-    50% { box-shadow: 0 0 14px #38bdf8; }
-}
-
-@keyframes kiln_gold_shimmer {
-    0% { box-shadow: inset 0 0 3px #f59e0b; border: 1px solid #d97706; }
-    100% { box-shadow: inset 0 0 10px #fbbf24, 0 0 8px #f59e0b; border: 1px solid #fef08a; }
-}
-
-@keyframes kiln_pulse_subtle {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.08); }
-}
-
 /* Shape preview highlight (when selected or cannot fit) */
 .kiln_shape_highlighted {
-    box-shadow: 0 0 10px #38bdf8, inset 0 0 6px #ffffff !important;
     border: 2.5px solid #0284c7 !important;
-    animation: kiln_candidate_pulse 1.4s infinite ease-in-out;
 }
 
 /* Cannot fit banner above warehouse */
@@ -974,10 +873,9 @@
     gap: 8px;
     background: #fffbeb;
     border: 1.5px solid #f59e0b;
-    border-radius: 8px;
+    border-radius: 3px;
     padding: 8px 14px;
     margin-bottom: 8px;
-    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
     box-sizing: border-box;
     width: 100%;
 }
@@ -1000,10 +898,9 @@
     padding: 6px 14px;
     font-size: 13px;
     font-weight: 700;
-    border-radius: 6px;
+    border-radius: 3px;
     border: none;
     cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
     transition: all 0.15s ease;
 }
 
@@ -1012,9 +909,11 @@
     color: #ffffff;
 }
 
+@media (hover: hover) {
 .kiln_btn_primary:hover {
     background: #0369a1;
     transform: translateY(-1px);
+}
 }
 
 .kiln_btn_alert {
@@ -1022,9 +921,11 @@
     color: #ffffff;
 }
 
+@media (hover: hover) {
 .kiln_btn_alert:hover {
     background: #b91c1c;
     transform: translateY(-1px);
+}
 }
 
 /* Warehouse Sell Line Selector Arrows (Rule 2) */
@@ -1092,7 +993,7 @@
     justify-content: center;
     font-size: 15px;
     font-weight: 900;
-    border-radius: 5px;
+    border-radius: 3px;
     box-sizing: border-box;
     transition: all 0.2s ease;
     user-select: none;
@@ -1106,7 +1007,7 @@
     justify-content: center;
     font-size: 15px;
     font-weight: 900;
-    border-radius: 5px;
+    border-radius: 3px;
     box-sizing: border-box;
     transition: all 0.2s ease;
     user-select: none;
@@ -1125,29 +1026,114 @@
     background: #f8fafc;
     border: 1.5px dashed #f59e0b;
     color: #d97706;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
 
+@media (hover: hover) {
 .kiln_arrow_available:hover {
     background: #fef3c7;
     border-color: #d97706;
-    transform: scale(1.08);
-    box-shadow: 0 0 6px rgba(245, 158, 11, 0.4);
+    }
 }
 
 .kiln_arrow_selected {
     opacity: 1;
     cursor: pointer;
-    background: linear-gradient(135deg, #f59e0b, #d97706);
+    background: #d97706;
     border: 1.5px solid #b45309;
     color: #ffffff;
-    transform: scale(1.08);
-    box-shadow: 0 0 8px rgba(245, 158, 11, 0.65), 0 2px 4px rgba(0,0,0,0.15);
-    animation: kiln_arrow_pulse 1.4s infinite ease-in-out;
+    }
+
+
+
+/* ========================================================
+   Theme: brick kiln wall play area, matte clay panels
+   ======================================================== */
+.kiln_play_area {
+    background-color: #5b3a2e;
+    background-image:
+        linear-gradient(rgba(30, 18, 12, 0.55), rgba(30, 18, 12, 0.55)),
+        repeating-linear-gradient(0deg, transparent 0, transparent 21px, rgba(20, 12, 8, 0.7) 21px, rgba(20, 12, 8, 0.7) 24px),
+        repeating-linear-gradient(90deg, transparent 0, transparent 45px, rgba(20, 12, 8, 0.7) 45px, rgba(20, 12, 8, 0.7) 48px);
+    background-size: auto, 96px 48px, 96px 48px;
+    padding: 6px 0;
+}
+.kiln_board_grid {
+    background: #3a2a22;
+}
+.kiln_arrow_slot {
+    background: #d9c9b0;
+    border-color: #8a6f55;
+}
+.kiln_arrow_icon { color: #6b5848; }
+.kiln_arrow_clickable {
+    background: #f3e9d6;
+    border: 2px solid #1565c0;
+}
+.kiln_arrow_clickable .kiln_arrow_icon { color: #1565c0; }
+.kiln_outer_tile_disc { outline: 3px solid #ffffff; outline-offset: 1px; }
+.kiln_panel_header { color: #3b2d22; border-bottom-color: #8a6f55; }
+.kiln_wh_title { color: #2b2018; }
+.kiln_tile_candidate { outline: 3px solid #1565c0; outline-offset: -3px; cursor: pointer; }
+.kiln_shape_highlighted { outline: 3px solid #1565c0; outline-offset: -3px; }
+.kiln_black_rule_bonus { background: #efe6d8; border-color: #8a6f55; color: #2b2018; }
+.kiln_my_warehouse { outline: 3px solid #1565c0; outline-offset: 2px; }
+.kiln_line_sellable_row, .kiln_line_sellable_col, .kiln_line_sellable_selected { outline: 3px solid #e65100; outline-offset: -3px; }
+.kiln_wh_erasable { outline: 2px dashed #b71c1c; outline-offset: -2px; }
+
+/* Touch targets: >= 32px at phone scale, 44px where space allows */
+.kiln_row_arrow_btn { width: 44px; height: 44px; }
+.kiln_col_arrow_btn { width: 44px; height: 44px; }
+.kiln_row_arrows { gap: 4px; }
+.kiln_col_arrows_track { gap: 4px; padding-left: 5px; }
+.kiln_btn_action { min-height: 44px; min-width: 44px; padding: 8px 16px; }
+.kiln_arrow_spacer { width: 44px; }
+
+@media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
 }
 
-@keyframes kiln_arrow_pulse {
-    0%, 100% { box-shadow: 0 0 6px rgba(245, 158, 11, 0.5); }
-    50% { box-shadow: 0 0 14px rgba(245, 158, 11, 0.9); }
+/* ========================================================
+   Compact (phone) layout: single column, no side gutter,
+   board uses the full available width
+   ======================================================== */
+.kiln_main_layout.kiln_compact,
+.kiln_main_layout.kiln_compact.kiln_multiplayer,
+.kiln_main_layout.kiln_compact.kiln_3player {
+    grid-template-columns: auto;
+    grid-template-areas:
+        "track"
+        "top"
+        "west"
+        "east"
+        "center"
+        "bottom";
+    gap: 6px;
+    padding: 4px;
 }
-
+.kiln_compact .kiln_arena_slot { min-height: 0; width: auto; }
+.kiln_compact.kiln_3player #kiln_slot_right { display: none; }
+.kiln_compact.kiln_multiplayer #kiln_slot_left,
+.kiln_compact.kiln_multiplayer #kiln_slot_right { display: flex; justify-content: center; }
+.kiln_compact.kiln_multiplayer #kiln_slot_left:empty,
+.kiln_compact.kiln_multiplayer #kiln_slot_right:empty { display: none; }
+.kiln_compact #kiln_track_panel,
+.kiln_compact.kiln_multiplayer #kiln_track_panel { width: 0; min-width: 100%; justify-self: stretch; }
+.kiln_compact .kiln_score_track,
+.kiln_compact.kiln_multiplayer .kiln_score_track { grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 2px; }
+.kiln_compact .kiln_track_cell,
+.kiln_compact.kiln_multiplayer .kiln_track_cell { height: 36px; }
+.kiln_compact .kiln_track_num { font-size: 9px; left: 2px; top: 1px; }
+.kiln_compact .kiln_score_disc,
+.kiln_compact.kiln_multiplayer .kiln_score_disc { width: 12px; height: 12px; }
+.kiln_compact .kiln_rot_90,
+.kiln_compact .kiln_rot_180,
+.kiln_compact .kiln_rot_270 { transform: none; }
+.kiln_compact .kiln_center_panel { padding: 4px; }
+.kiln_compact .kiln_warehouse_card { padding: 6px; }
+.kiln_compact .kiln_arrow_row { margin-left: 56px; margin-right: 56px; }
+.kiln_compact .kiln_my_warehouse .kiln_wh_grid {
+    grid-template-columns: repeat(5, 44px);
+    grid-template-rows: repeat(5, 44px);
+}
+.kiln_compact .kiln_my_warehouse .kiln_wh_cell { width: 44px; height: 44px; }
+.kiln_compact .kiln_wh_body { gap: 8px; }

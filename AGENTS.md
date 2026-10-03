@@ -294,6 +294,13 @@ Always store these promotional images in `<game>/bga/metadata_assets/` (**never*
 * **Final scoring must include everything still "in play"** (e.g. Sugar Gliders: the tile each glider sits on is collected at game end; missing it declared the wrong winner). Before finishing any game, trace the end-game trigger and list every component that should be scored/collected, then log each collection.
 * **Don't invent tie-breakers.** Equal points = tie between those players (shared victory) unless the official rules say otherwise. Remove unofficial tie-break options when the publisher/designer objects.
 
+### G. Kiln review (Ian, Oct 2026) — 5 repeat findings, now standing rules
+1. **Generic / AI-looking stylesheet (C.3)**: no looping `animation`/glow/pulse, no `box-shadow` drop shadows, no gradient "gloss" on pieces, no rounded white cards (radius <= 3px), no emoji or glyph-badges (🏆 ⟳) in labels, no custom CSS tooltips (use `title` / `bga` tooltips). Pieces = flat matte colours; panels = matte paper/clay of the game's materials. Highlights use `outline`, not glow.
+2. **Thematic background (C.5)**: put a themed class on `bga.gameArea.getElement()` (Kiln: dark brick wall via CSS gradients, low contrast). Never a flat dark gradient.
+3. **Hover sounds (D.4)**: sounds only from server notifications (confirmed events). Never in `mouseenter`, click-to-select, stage or undo-click handlers. Ship real `sounds/*.ogg|mp3` and call `bga.sounds.play(id)`; no Web Audio synths. Mouse-only previews are attached only if `matchMedia('(hover: hover)')`; all `:hover` CSS lives inside `@media (hover: hover)`.
+4. **Mobile width (C.4)**: below ~720px container width switch to a one-column `kiln_compact` layout (no side gutters, track strip on top, no rotated seats) and scale the *measured* natural size to ~100% of the width. Do not hard-code a base width.
+5. **Tap targets (E.3)**: measure with Playwright at 375px (`getBoundingClientRect`) for 2p AND 4p. Kiln result: kiln tiles/arrows 41px, warehouse cells 34px, sell arrows 34px.
+
 ### F. Process
 * Every new game starts from this section, not from a generic template. Re-check the checklist at the end of each UI task and state in the commit/summary which items were verified.
 * Push directly to `main` (no feature branches/PRs) unless the user says otherwise.

@@ -8,147 +8,29 @@
  */
 
 /**
- * Sound synthesis using Web Audio API (low subtle volumes, pure synthesis, zero external assets)
+ * Native BGA sounds (files in sounds/). Played only for confirmed game events
+ * (server notifications), never on hover or tentative/staged input.
  */
 class KilnSoundController {
     constructor() {
-        this.ctx = null;
-        this.muted = false;
+        this.bga = null;
     }
 
-    init() {
-        if (!this.ctx && typeof (window.AudioContext || window.webkitAudioContext) !== 'undefined') {
-            const AudioCtx = window.AudioContext || window.webkitAudioContext;
-            this.ctx = new AudioCtx();
-        }
-    }
-
-    playClick() {
-        if (this.muted) return;
+    play(id) {
         try {
-            this.init();
-            if (!this.ctx) return;
-            const now = this.ctx.currentTime;
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(800, now);
-            osc.frequency.exponentialRampToValueAtTime(380, now + 0.02);
-            gain.gain.setValueAtTime(0.001, now);
-            gain.gain.linearRampToValueAtTime(0.04, now + 0.002);
-            gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.02);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start(now);
-            osc.stop(now + 0.025);
+            if (this.bga?.sounds?.play) {
+                this.bga.sounds.play(id);
+            } else if (typeof gameui !== 'undefined' && gameui.playSound) {
+                gameui.playSound(id);
+            }
         } catch (e) {}
     }
 
-    playPush() {
-        if (this.muted) return;
-        try {
-            this.init();
-            if (!this.ctx) return;
-            const now = this.ctx.currentTime;
-
-            // Sliding ceramic tile sound
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(260, now);
-            osc.frequency.exponentialRampToValueAtTime(520, now + 0.16);
-            gain.gain.setValueAtTime(0.001, now);
-            gain.gain.linearRampToValueAtTime(0.09, now + 0.01);
-            gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start(now);
-            osc.stop(now + 0.23);
-        } catch (e) {}
-    }
-
-    playPlace() {
-        if (this.muted) return;
-        try {
-            this.init();
-            if (!this.ctx) return;
-            const now = this.ctx.currentTime;
-
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(660, now);
-            osc.frequency.exponentialRampToValueAtTime(880, now + 0.09);
-            gain.gain.setValueAtTime(0.001, now);
-            gain.gain.linearRampToValueAtTime(0.12, now + 0.003);
-            gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start(now);
-            osc.stop(now + 0.17);
-        } catch (e) {}
-    }
-
-    playScore() {
-        if (this.muted) return;
-        try {
-            this.init();
-            if (!this.ctx) return;
-            const freqs = [523.25, 659.25, 783.99, 1046.50];
-            freqs.forEach((freq, idx) => {
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.value = freq;
-                gain.gain.setValueAtTime(0.10, this.ctx.currentTime + idx * 0.08);
-                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + idx * 0.08 + 0.28);
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start(this.ctx.currentTime + idx * 0.08);
-                osc.stop(this.ctx.currentTime + idx * 0.08 + 0.3);
-            });
-        } catch (e) {}
-    }
-
-    playReset() {
-        if (this.muted) return;
-        try {
-            this.init();
-            if (!this.ctx) return;
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(280, this.ctx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(140, this.ctx.currentTime + 0.14);
-            gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.14);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start();
-            osc.stop(this.ctx.currentTime + 0.15);
-        } catch (e) {}
-    }
-
-    playExtraTurn() {
-        if (this.muted) return;
-        try {
-            this.init();
-            if (!this.ctx) return;
-            const freqs = [440, 554.37, 659.25, 880];
-            freqs.forEach((freq, idx) => {
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'triangle';
-                osc.frequency.value = freq;
-                gain.gain.setValueAtTime(0.12, this.ctx.currentTime + idx * 0.07);
-                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + idx * 0.07 + 0.35);
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start(this.ctx.currentTime + idx * 0.07);
-                osc.stop(this.ctx.currentTime + idx * 0.07 + 0.36);
-            });
-        } catch (e) {}
-    }
+    playPush() { this.play('kiln_push'); }
+    playPlace() { this.play('kiln_place'); }
+    playScore() { this.play('kiln_sell'); }
+    playReset() { this.play('kiln_undo'); }
+    playExtraTurn() { this.play('kiln_extra'); }
 }
 
 const sounds = new KilnSoundController();
@@ -219,7 +101,6 @@ class StatePlayerTurnSelectGroup {
     }
 
     onSelectGroup(index) {
-        sounds.playClick();
         this.game.clearActionButtons();
         this.bga.actions.performAction('actSelectGroup', { groupIndex: index });
     }
@@ -277,7 +158,7 @@ class StatePlayerTurnPlaceShape {
                     'alert'
                 );
             } else {
-                this.bga.statusBar.setTitle(_('${you} must place the tile shape into your warehouse (hover and click)'));
+                this.bga.statusBar.setTitle(_('${you} must place the tile shape into your warehouse (click a highlighted cell)'));
                 this.game.setupWarehousePlacement(norm, validAnchors);
 
                 this.game.addActionButton(
@@ -300,7 +181,6 @@ class StatePlayerTurnPlaceShape {
     }
 
     onSkipPlacement() {
-        sounds.playClick();
         this.game.hideCannotFitBanner();
         this.game.clearActionButtons();
         this.game.clearKilnHighlights();
@@ -351,7 +231,6 @@ class StatePlayerTurnFixMess {
     }
 
     onSkip() {
-        sounds.playClick();
         this.game.clearActionButtons();
         this.game.clearFixMessMode();
         this.bga.actions.performAction('actSkipFix', {});
@@ -422,7 +301,6 @@ class StatePlayerTurnSell {
                 this.selectedIndices.sort((a, b) => a - b);
             }
         }
-        sounds.playClick();
         this.updateUI();
     }
 
@@ -443,7 +321,6 @@ class StatePlayerTurnSell {
                 this.selectedIndices.sort((a, b) => a - b);
             }
         }
-        sounds.playClick();
         this.updateUI();
     }
 
@@ -469,7 +346,7 @@ class StatePlayerTurnSell {
         const otherAvailable = otherType === 'rows' ? this.completedRows : this.completedCols;
 
         if (count > 0) {
-            this.bga.statusBar.setTitle(_('${you} may sell completed rows or columns (click arrows ▶ / ▲ to select lines, or pass)'));
+            this.bga.statusBar.setTitle(_('${you} may sell completed rows or columns (click the row or column arrows to select lines, or pass)'));
             const isMax = count === 5;
             const lineWord = this.selectedType === 'rows' ? _('Row(s)') : _('Column(s)');
             this.game.addActionButton(
@@ -479,7 +356,7 @@ class StatePlayerTurnSell {
                 isMax ? 'primary' : 'alert'
             );
         } else {
-            this.bga.statusBar.setTitle(_('${you}: click a row arrow (▶) or column arrow (▲) to choose what to sell, or pass'));
+            this.bga.statusBar.setTitle(_('${you}: click a row arrow or a column arrow to choose what to sell, or pass'));
         }
 
         // 2. Secondary toggle / switch option (strictly keeping total buttons <= 4)
@@ -534,12 +411,10 @@ class StatePlayerTurnSell {
         if (targetLineCount > available.length) return;
 
         this.selectedIndices = available.slice(0, targetLineCount);
-        sounds.playClick();
         this.updateUI();
     }
 
     toggleType() {
-        sounds.playClick();
         this.selectedType = this.selectedType === 'rows' ? 'cols' : 'rows';
         const available = this.selectedType === 'rows' ? this.completedRows : this.completedCols;
         this.selectedIndices = [...available];
@@ -547,14 +422,12 @@ class StatePlayerTurnSell {
     }
 
     selectAll() {
-        sounds.playClick();
         const available = this.selectedType === 'rows' ? this.completedRows : this.completedCols;
         this.selectedIndices = [...available];
         this.updateUI();
     }
 
     selectOneOnly() {
-        sounds.playClick();
         const available = this.selectedType === 'rows' ? this.completedRows : this.completedCols;
         this.selectedIndices = available.slice(0, 1);
         this.updateUI();
@@ -562,7 +435,6 @@ class StatePlayerTurnSell {
 
     onConfirmSell() {
         if (this.selectedIndices.length === 0) return;
-        sounds.playScore();
         this.game.clearActionButtons();
         this.bga.actions.performAction('actSellLines', {
             type: this.selectedType,
@@ -571,7 +443,6 @@ class StatePlayerTurnSell {
     }
 
     onPass() {
-        sounds.playClick();
         this.game.clearActionButtons();
         this.bga.actions.performAction('actPassSell', {});
     }
@@ -589,6 +460,7 @@ class StatePlayerTurnSell {
 export class Game {
     constructor(bga) {
         this.bga = bga;
+        sounds.bga = bga;
 
         // Register State Classes
         this.playerTurn = new StatePlayerTurn(this, bga);
@@ -760,6 +632,7 @@ export class Game {
     buildMainLayout() {
         const area = this.bga.gameArea.getElement();
         area.innerHTML = '';
+        area.classList.add('kiln_play_area');
 
         const myId = this.bga?.players?.getCurrentPlayerId?.() || Object.keys(this.gamedatas.players)[0];
         const playerSeats = this.gamedatas.player_seats || {};
@@ -777,7 +650,7 @@ export class Game {
                 <!-- Score Track: Top-Left in 3-4p, Left beside kiln in 2p -->
                 <div class="kiln_track_panel" id="kiln_track_panel">
                     <div class="kiln_panel_header">
-                        <span class="kiln_panel_title">🏆 ${_('Score Track')}</span>
+                        <span class="kiln_panel_title">${_('Score Track')}</span>
                     </div>
                     <div id="kiln_score_track" class="kiln_score_track"></div>
                     ${Number(this.variantBonusSpaces) === 1 ? `
@@ -801,8 +674,7 @@ export class Game {
                         <div class="kiln_black_rule_tile">
                             <span class="kiln_black_push_arrow">➔</span>
                         </div>
-                        <div class="kiln_black_rule_bonus">+1 ⟳</div>
-                        <div class="kiln_black_rule_tooltip">${_('Pushing black tile out gives 1 extra turn')}</div>
+                        <div class="kiln_black_rule_bonus">${_('+1 turn')}</div>
                     </div>
 
                     <div id="kiln_oven_wrapper" class="kiln_oven_wrapper">
@@ -1134,8 +1006,9 @@ export class Game {
                     cell.setAttribute('data-wy', wy);
 
                     if (isMe) {
-                        cell.addEventListener('mouseenter', () => this.onWarehouseCellHover(wx, wy, true));
-                        cell.addEventListener('mouseleave', () => this.onWarehouseCellHover(wx, wy, false));
+                        // Mouse-only ghost preview (never on touch screens)
+                        if (window.matchMedia && window.matchMedia('(hover: hover)').matches) cell.addEventListener('mouseenter', () => this.onWarehouseCellHover(wx, wy, true));
+                        if (window.matchMedia && window.matchMedia('(hover: hover)').matches) cell.addEventListener('mouseleave', () => this.onWarehouseCellHover(wx, wy, false));
                         cell.addEventListener('click', () => this.onWarehouseCellClick(wx, wy));
                     }
 
@@ -1208,7 +1081,6 @@ export class Game {
         const curSlot = this.outerTile.border_slot;
         if (slot === curSlot) return;
 
-        sounds.playPush();
         this.clearArrowHighlights();
         this.bga.statusBar.setTitle(_('Pushing tile into the kiln...'));
 
@@ -1324,7 +1196,6 @@ export class Game {
             if (cell) cell.classList.add(cls);
         });
 
-        if (isValid) sounds.playClick();
     }
 
     onWarehouseCellClick(wx, wy) {
@@ -1342,7 +1213,6 @@ export class Game {
         const isValid = this.currentPlacementAnchors.some(a => a.ox === wx && a.oy === wy);
         if (!isValid) return;
 
-        sounds.playPlace();
         this.clearWarehousePlacement();
         this.clearActionButtons();
         this.bga.statusBar.setTitle(_('Placing shape in warehouse...'));
@@ -1380,7 +1250,6 @@ export class Game {
         const whData = this.warehouses[myId] || [];
         if (!whData[wy] || !whData[wy][wx]) return;
 
-        sounds.playClick();
         this.clearFixMessMode();
         this.clearActionButtons();
         this.bga.statusBar.setTitle(_('Erasing cell from warehouse...'));
@@ -1391,7 +1260,6 @@ export class Game {
      * Undo interaction
      */
     onUndo() {
-        sounds.playReset();
         this.hideCannotFitBanner();
         this.clearWarehousePlacement();
         this.clearKilnHighlights();
@@ -1556,38 +1424,26 @@ export class Game {
         const boardEl = document.getElementById('kiln_main_layout');
         if (!scalerWrapper || !boardEl) return;
 
-        const numP = Object.keys(this.gamedatas.players || {}).length;
-        const isMultiplayer = numP > 2;
-        const is3Player = numP === 3;
-        const baseWidth = isMultiplayer ? (is3Player ? 760 : 960) : 740;
-        const baseHeight = isMultiplayer ? 1020 : 960;
-
         const updateScale = () => {
             const parent = scalerWrapper.parentElement || document.getElementById('game_play_area') || document.body;
             const containerWidth = parent.clientWidth || window.innerWidth;
-            const availableWidth = Math.max(280, containerWidth - 16);
+            const availableWidth = Math.max(280, containerWidth - 4);
             const availableHeight = window.innerHeight - 130;
 
-            const isMobile = document.body.classList.contains('mobile_version') ||
-                             document.body.classList.contains('touch-device') ||
-                             (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) ||
-                             (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ||
-                             ('ontouchstart' in window);
+            // Phones / narrow areas: single-column compact layout (no side gutter)
+            const compact = containerWidth < 720;
+            boardEl.classList.toggle('kiln_compact', compact);
 
-            const unscaledW = Math.max(baseWidth, boardEl.offsetWidth || 0);
-            const unscaledH = Math.max(baseHeight, boardEl.offsetHeight || 0, boardEl.scrollHeight || 0);
+            // Measure the natural (unscaled) size of the current layout
+            boardEl.style.transform = 'none';
+            const unscaledW = boardEl.offsetWidth || 740;
+            const unscaledH = boardEl.offsetHeight || 960;
 
             let scale = availableWidth / unscaledW;
-
-            if (!isMobile) {
-                // Desktop: cap at 1.0 (natural crisp large layout)
+            if (!compact) {
+                // Desktop: cap at 1.0 (natural crisp layout)
                 scale = Math.min(1.0, scale);
             } else {
-                // Mobile: in landscape, constrain scale by available viewport height so board fits vertically
-                if (window.innerWidth > window.innerHeight && availableHeight > 180) {
-                    const heightScale = availableHeight / unscaledH;
-                    scale = Math.min(scale, heightScale);
-                }
                 scale = Math.min(1.15, scale);
             }
             scale = Math.max(0.28, scale);
