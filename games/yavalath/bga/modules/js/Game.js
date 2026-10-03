@@ -19,11 +19,7 @@ class SoundController {
 
     play(id) {
         try {
-            if (this.bga?.sounds?.play) {
-                this.bga.sounds.play(id);
-            } else if (typeof gameui !== 'undefined' && gameui.playSound) {
-                gameui.playSound(id);
-            }
+            this.bga?.sounds?.play?.(id);
         } catch (e) {}
     }
 

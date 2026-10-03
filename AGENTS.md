@@ -168,7 +168,7 @@ Every change should be committed and pushed to `main`. The GitHub Actions deploy
 
 ### C. Audio & Feedback
 1. **Audio**:
-   * Ship real sound files in `<game>/bga/sounds/` (both `.ogg` and `.mp3`, short, quiet) and play them with `this.bga.sounds.play('<filename-without-ext>')`. This respects the player's BGA volume/mute settings. **Do not** build custom Web Audio synths or in-game mute buttons.
+   * Ship real sound files in `<game>/bga/sounds/` (both `.ogg` and `.mp3`, short, quiet) and play them with `this.bga.sounds.play('<filename-without-ext>')`. This respects the player's BGA volume/mute settings. **Do not** build custom Web Audio synths or in-game mute buttons. **Never** call the deprecated `gameui.playSound` (build warning) — only `this.bga.sounds.play`. Sound files must sit in the top-level `sounds/` folder so BGA preloads them.
    * Sounds fire only for **confirmed game events** (stone placed, result). **Never** on hover, `mouseenter`, or tap-to-stage (Ian/BGA: *"Remove hover-triggered sounds"*, guideline D.4).
 2. **Status Bar Guidance**:
    * Always provide dynamic, informative titles in `this.bga.statusBar.setTitle(...)` guiding the active player.
