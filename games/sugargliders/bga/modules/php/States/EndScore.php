@@ -32,6 +32,27 @@ class EndScore extends GameState
         $playerInfos = $this->game->loadPlayersBasicInfos();
         $players = array_keys($playerInfos);
 
+        // Final collection: each glider takes the fruit tile it is sitting on into its reserve
+        foreach ($players as $pId) {
+            $p = (int) $pId;
+            $under = Game::getObjectFromDb("SELECT `tile_id`, `tile_value` FROM `board_tile` WHERE `location` = 'jumping' AND `player_id` = {$p}");
+            if ($under) {
+                $underId = (int) $under['tile_id'];
+                $underVal = (int) $under['tile_value'];
+                Game::DbQuery("UPDATE `board_tile` SET `location` = 'reserve', `coord_q` = NULL, `coord_r` = NULL WHERE `tile_id` = {$underId}");
+                $this->playerStats->inc('tiles_collected', 1, $p);
+                $this->game->notifyAllPlayers('finalCollect', clienttranslate('${player_name} collects ${fruit_name} (${val} pt) from the space they are sitting on'), [
+                    'player_id' => $p,
+                    'player_name' => $playerInfos[$p]['player_name'],
+                    'val' => $underVal,
+                    'fruit_name' => Game::fruitName($underVal),
+                    'i18n' => ['fruit_name'],
+                    'collected_tile' => ['tile_id' => $underId, 'value' => $underVal],
+                    'current_score' => $this->game->calculatePlayerScore($p),
+                ]);
+            }
+        }
+
         $scores = [];
         $maxScore = -1;
         $winners = [];
@@ -51,27 +72,6 @@ class EndScore extends GameState
                 $winners = [$p];
             } elseif ($score === $maxScore) {
                 $winners[] = $p;
-            }
-        }
-
-        $tieBreaker = (int) $this->globals->get('tie_breaker', 1);
-        $wonByTieBreaker = false;
-        if (count($winners) > 1 && $tieBreaker === 2) {
-            // Tie-breaker: most total food tiles collected
-            $maxTiles = -1;
-            $tieWinners = [];
-            foreach ($winners as $wId) {
-                $tCount = (int) Game::getUniqueValueFromDb("SELECT COUNT(*) FROM `board_tile` WHERE `location` = 'reserve' AND `player_id` = {$wId}");
-                if ($tCount > $maxTiles) {
-                    $maxTiles = $tCount;
-                    $tieWinners = [$wId];
-                } elseif ($tCount === $maxTiles) {
-                    $tieWinners[] = $wId;
-                }
-            }
-            if (count($tieWinners) === 1) {
-                $winners = $tieWinners;
-                $wonByTieBreaker = true;
             }
         }
 
@@ -108,9 +108,7 @@ class EndScore extends GameState
         $winnerString = implode(', ', $winnerNames);
 
         $msg = clienttranslate('Game over! ${player_name} wins with ${score} fruit points!');
-        if ($wonByTieBreaker) {
-            $msg = clienttranslate('Game over! ${player_name} wins the tie-breaker by collecting more food tiles (${score} points)!');
-        } elseif (count($winners) > 1) {
+        if (count($winners) > 1) {
             $msg = clienttranslate('Game over! It is a tie between ${player_name} with ${score} fruit points!');
         }
 

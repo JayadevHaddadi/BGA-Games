@@ -940,6 +940,7 @@ export class Game {
             dojo.subscribe('gliderPlaced', this, 'notif_gliderPlaced');
             dojo.subscribe('sugarGliderJumped', this, 'notif_sugarGliderJumped');
             dojo.subscribe('sugarGliderTorpor', this, 'notif_sugarGliderTorpor');
+            dojo.subscribe('finalCollect', this, 'notif_finalCollect');
             dojo.subscribe('finalScore', this, 'notif_finalScore');
             dojo.subscribe('endGameScores', this, 'notif_endGameScores');
         }
@@ -1086,6 +1087,22 @@ export class Game {
         this.updatePlayerPanels();
 
         this.updateInfoStrip(consecutive_torpor);
+    }
+
+    notif_finalCollect(notif) {
+        const { player_id, collected_tile, current_score } = this._getNotifArgs(notif);
+        if (collected_tile) {
+            this.playerReserves[player_id] = this.playerReserves[player_id] || [];
+            this.playerReserves[player_id].push(collected_tile);
+            this.jumpingTiles[player_id] = null;
+            for (const key in this.boardTiles) {
+                if (this.boardTiles[key].tile_id === collected_tile.tile_id) delete this.boardTiles[key];
+            }
+        }
+        this.scores[player_id] = current_score;
+        sounds.playHarvest();
+        this.renderBoard();
+        this.updatePlayerPanels();
     }
 
     notif_finalScore(notif) {

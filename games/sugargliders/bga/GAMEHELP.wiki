@@ -50,7 +50,7 @@ The game ends immediately when either:
 === Final Scoring ===
 Each player sums the values of all fruit tiles in their personal reserve:
 $$\text{Score} = \sum (\text{tile values in reserve})$$
-The player with the highest total score wins! In case of a tie, players share the victory.
+The player with the highest total score wins! At the end of the game each player also collects the fruit tile their glider is sitting on. In case of a tie, the tied players share the victory.
 
 == 2-Player Compact Variant ==
 * Played on the inner board (radius 3, 37 total spaces).

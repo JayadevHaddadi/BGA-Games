@@ -269,6 +269,10 @@ Always store these promotional images in `<game>/bga/metadata_assets/` (**never*
 * **Test at 320–400px portrait and landscape phones, not just desktop**, before every push touching UI. Take screenshots with the pre-installed Chromium/Playwright at 360×740, 390×844, 820×1180, 1440×900 and review them honestly against the checklist.
 * Refresh/reconnect must restore exact state (server is source of truth).
 
-### E. Process
+### E. Game-logic lessons (rules correctness)
+* **Final scoring must include everything still "in play"** (e.g. Sugar Gliders: the tile each glider sits on is collected at game end; missing it declared the wrong winner). Before finishing any game, trace the end-game trigger and list every component that should be scored/collected, then log each collection.
+* **Don't invent tie-breakers.** Equal points = tie between those players (shared victory) unless the official rules say otherwise. Remove unofficial tie-break options when the publisher/designer objects.
+
+### F. Process
 * Every new game starts from this section, not from a generic template. Re-check the checklist at the end of each UI task and state in the commit/summary which items were verified.
 * Push directly to `main` (no feature branches/PRs) unless the user says otherwise.

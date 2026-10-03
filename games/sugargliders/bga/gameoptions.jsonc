@@ -16,19 +16,5 @@
             }
         },
         "default": 3
-    },
-    "101": {
-        "name": "Tie-Breaker",
-        "values": {
-            "1": {
-                "name": "Shared Victory",
-                "description": "Players with equal highest points share the victory (official rulebook)."
-            },
-            "2": {
-                "name": "Most Food Tiles",
-                "description": "Tied player who collected more total food tiles in their reserve wins."
-            }
-        },
-        "default": 1
     }
 }

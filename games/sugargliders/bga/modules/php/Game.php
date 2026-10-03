@@ -134,7 +134,6 @@ class Game extends \Bga\GameFramework\Table
 
         // Read options
         $gameMode = (int) ($options[100] ?? ($this->tableOptions ? $this->tableOptions->get(100) : 1) ?? 1);
-        $tieBreaker = (int) ($options[101] ?? ($this->tableOptions ? $this->tableOptions->get(101) : 1) ?? 1);
 
         if ($gameMode === 3) {
             // Automatic: compact board for 2 players, full tree for 3-4 players
@@ -188,7 +187,6 @@ class Game extends \Bga\GameFramework\Table
         $this->globals->set('setup_player_order', $playerIds);
         $this->globals->set('setup_index', 0);
         $this->globals->set('game_mode', $gameMode);
-        $this->globals->set('tie_breaker', $tieBreaker);
         $this->globals->set('hex_radius', $radius);
         $this->globals->set('total_tiles', count($tileValues));
 
@@ -215,7 +213,6 @@ class Game extends \Bga\GameFramework\Table
         $result['player_colors'] = $this->globals->get('player_colors', []);
         $result['hex_radius'] = (int) $this->globals->get('hex_radius', self::HEX_RADIUS);
         $result['game_mode'] = (int) $this->globals->get('game_mode', 1);
-        $result['tie_breaker'] = (int) $this->globals->get('tie_breaker', 1);
         $result['total_tiles'] = (int) $this->globals->get('total_tiles', 60);
         $result['turn_count'] = (int) $this->globals->get('turn_count', 1);
         $result['consecutive_torpor'] = (int) $this->globals->get('consecutive_torpor', 0);
