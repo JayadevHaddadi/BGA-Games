@@ -308,9 +308,10 @@
 .kiln_black_rule_tile {
     width: 38px;
     height: 38px;
-    background: #263238;
+    background: linear-gradient(135deg, #455a64 0%, #263238 100%);
     border: 2px solid #10171a;
-    border-radius: 3px;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.3);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -445,8 +446,11 @@
 .kiln_outer_tile_disc {
     width: 44px;
     height: 44px;
-    border-radius: 3px;
+    border-radius: 6px;
     border: 2.5px solid #ffffff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    outline: 3px solid #ffffff;
+    outline-offset: 1px;
 }
 
 /* 6x6 Kiln Grid */
@@ -463,16 +467,18 @@
 .kiln_board_tile {
     width: 52px;
     height: 52px;
-    border-radius: 3px;
+    border-radius: 6px;
     position: relative;
     box-sizing: border-box;
     transition: transform 0.25s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
 }
 
 .kiln_tile_inner {
     width: 100%;
     height: 100%;
-    border-radius: 3px;
+    border-radius: 6px;
+    box-shadow: inset 0 1px 1px rgba(255,255,255,0.4), inset 0 -1px 2px rgba(0,0,0,0.25);
 }
 
 .kiln_tile_candidate {
@@ -648,7 +654,7 @@
 .kiln_opponent_card .kiln_wh_cell {
     width: 28px !important;
     height: 28px !important;
-    border-radius: 3px !important;
+    border-radius: 4px !important;
 }
 
 .kiln_opponent_card .kiln_price_table {
@@ -789,6 +795,7 @@
 }
 
 .kiln_wh_filled {
+    box-shadow: inset 0 1px 2px rgba(255,255,255,0.4), inset 0 -1px 2px rgba(0,0,0,0.3);
 }
 
 .kiln_anchor_valid {
@@ -837,23 +844,23 @@
    Tile & Disc Color Palette (Ceramic Gloss Styling)
    ======================================================== */
 .kiln_tile_red, .kiln_disc_red, .kiln_dot_red, .kiln_tag_red {
-    background: #c62828;
+    background: linear-gradient(135deg, #e53935 0%, #c62828 100%);
     border-color: #b71c1c;
 }
 .kiln_tile_blue, .kiln_disc_blue, .kiln_dot_blue, .kiln_tag_blue {
-    background: #1565c0;
+    background: linear-gradient(135deg, #1e88e5 0%, #1565c0 100%);
     border-color: #0d47a1;
 }
 .kiln_tile_green, .kiln_disc_green, .kiln_dot_green, .kiln_tag_green {
-    background: #2e7d32;
+    background: linear-gradient(135deg, #43a047 0%, #2e7d32 100%);
     border-color: #1b5e20;
 }
 .kiln_tile_yellow, .kiln_disc_yellow, .kiln_dot_yellow, .kiln_tag_yellow {
-    background: #f9a825;
+    background: linear-gradient(135deg, #fdd835 0%, #f9a825 100%);
     border-color: #f57f17;
 }
 .kiln_tile_black, .kiln_disc_black, .kiln_dot_black, .kiln_tag_black {
-    background: #263238;
+    background: linear-gradient(135deg, #455a64 0%, #263238 100%);
     border-color: #10171a;
 }
 
@@ -1070,7 +1077,6 @@
     border: 2px solid #1565c0;
 }
 .kiln_arrow_clickable .kiln_arrow_icon { color: #1565c0; }
-.kiln_outer_tile_disc { outline: 3px solid #ffffff; outline-offset: 1px; }
 .kiln_panel_header { color: #3b2d22; border-bottom-color: #8a6f55; }
 .kiln_wh_title { color: #2b2018; }
 .kiln_tile_candidate { outline: 3px solid #1565c0; outline-offset: -3px; cursor: pointer; }
@@ -1093,93 +1099,48 @@
 }
 
 /* ========================================================
-   Compact (phone) layout: single column, no side gutter,
-   board uses the full available width
-   ======================================================== */
-.kiln_main_layout.kiln_compact,
-.kiln_main_layout.kiln_compact.kiln_multiplayer,
-.kiln_main_layout.kiln_compact.kiln_3player {
-    grid-template-columns: auto;
-    grid-template-areas:
-        "track"
-        "top"
-        "west"
-        "east"
-        "center"
-        "bottom";
-    gap: 6px;
-    padding: 4px;
-}
-.kiln_compact .kiln_arena_slot { min-height: 0; width: auto; }
-.kiln_compact.kiln_3player #kiln_slot_right { display: none; }
-.kiln_compact.kiln_multiplayer #kiln_slot_left,
-.kiln_compact.kiln_multiplayer #kiln_slot_right { display: flex; justify-content: center; }
-.kiln_compact.kiln_multiplayer #kiln_slot_left:empty,
-.kiln_compact.kiln_multiplayer #kiln_slot_right:empty { display: none; }
-.kiln_compact #kiln_track_panel,
-.kiln_compact.kiln_multiplayer #kiln_track_panel { width: 0; min-width: 100%; justify-self: stretch; }
-.kiln_compact .kiln_score_track,
-.kiln_compact.kiln_multiplayer .kiln_score_track { grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 2px; }
-.kiln_compact .kiln_track_cell,
-.kiln_compact.kiln_multiplayer .kiln_track_cell { height: 36px; }
-.kiln_compact .kiln_track_num { font-size: 9px; left: 2px; top: 1px; }
-.kiln_compact .kiln_score_disc,
-.kiln_compact.kiln_multiplayer .kiln_score_disc { width: 12px; height: 12px; }
-.kiln_compact .kiln_rot_90,
-.kiln_compact .kiln_rot_180,
-.kiln_compact .kiln_rot_270 { transform: none; }
-.kiln_compact .kiln_center_panel { padding: 4px; }
-.kiln_compact .kiln_warehouse_card { padding: 6px; }
-.kiln_compact .kiln_arrow_row { margin-left: 56px; margin-right: 56px; }
-.kiln_compact .kiln_my_warehouse .kiln_wh_grid {
-    grid-template-columns: repeat(5, 44px);
-    grid-template-rows: repeat(5, 44px);
-}
-.kiln_compact .kiln_my_warehouse .kiln_wh_cell { width: 44px; height: 44px; }
-.kiln_compact .kiln_wh_body { gap: 8px; }
-
-/* ========================================================
    Colorblind support (user preference 100, default ON):
    every colour also carries its own symbol
    ======================================================== */
 .kiln_cb_on .kiln_tile_red,
 .kiln_cb_on .kiln_disc_red,
 .kiln_cb_on .kiln_dot_red {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='7' fill='%23fff' stroke='%231a1a1a' stroke-width='2.2' stroke-linejoin='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: 62%;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='7' fill='%23fff' stroke='%231a1a1a' stroke-width='2.2' stroke-linejoin='round'/%3E%3C/svg%3E"), linear-gradient(135deg, #e53935 0%, #c62828 100%);
+    background-repeat: no-repeat, no-repeat;
+    background-position: center, center;
+    background-size: 31%, 100% 100%;
 }
 .kiln_cb_on .kiln_tile_blue,
 .kiln_cb_on .kiln_disc_blue,
 .kiln_cb_on .kiln_dot_blue {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3 21 12 12 21 3 12Z' fill='%23fff' stroke='%231a1a1a' stroke-width='2.2' stroke-linejoin='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: 62%;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3 21 12 12 21 3 12Z' fill='%23fff' stroke='%231a1a1a' stroke-width='2.2' stroke-linejoin='round'/%3E%3C/svg%3E"), linear-gradient(135deg, #1e88e5 0%, #1565c0 100%);
+    background-repeat: no-repeat, no-repeat;
+    background-position: center, center;
+    background-size: 31%, 100% 100%;
 }
 .kiln_cb_on .kiln_tile_green,
 .kiln_cb_on .kiln_disc_green,
 .kiln_cb_on .kiln_dot_green {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 4 21 20H3Z' fill='%23fff' stroke='%231a1a1a' stroke-width='2.2' stroke-linejoin='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: 62%;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 4 21 20H3Z' fill='%23fff' stroke='%231a1a1a' stroke-width='2.2' stroke-linejoin='round'/%3E%3C/svg%3E"), linear-gradient(135deg, #43a047 0%, #2e7d32 100%);
+    background-repeat: no-repeat, no-repeat;
+    background-position: center, center;
+    background-size: 31%, 100% 100%;
 }
 .kiln_cb_on .kiln_tile_yellow,
 .kiln_cb_on .kiln_disc_yellow,
 .kiln_cb_on .kiln_dot_yellow {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 3h6v6h6v6h-6v6H9v-6H3V9h6Z' fill='%23fff' stroke='%231a1a1a' stroke-width='2.2' stroke-linejoin='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: 62%;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 3h6v6h6v6h-6v6H9v-6H3V9h6Z' fill='%23fff' stroke='%231a1a1a' stroke-width='2.2' stroke-linejoin='round'/%3E%3C/svg%3E"), linear-gradient(135deg, #fdd835 0%, #f9a825 100%);
+    background-repeat: no-repeat, no-repeat;
+    background-position: center, center;
+    background-size: 31%, 100% 100%;
 }
 .kiln_cb_on .kiln_tile_black,
 .kiln_cb_on .kiln_disc_black,
 .kiln_cb_on .kiln_dot_black {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 5 19 19M19 5 5 19' fill='none' stroke='%23fff' stroke-width='5' stroke-linecap='round'/%3E%3Cpath d='M5 5 19 19M19 5 5 19' fill='none' stroke='%231a1a1a' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: 62%;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 5 19 19M19 5 5 19' fill='none' stroke='%23fff' stroke-width='5' stroke-linecap='round'/%3E%3Cpath d='M5 5 19 19M19 5 5 19' fill='none' stroke='%231a1a1a' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E"), linear-gradient(135deg, #455a64 0%, #263238 100%);
+    background-repeat: no-repeat, no-repeat;
+    background-position: center, center;
+    background-size: 31%, 100% 100%;
 }
-.kiln_cb_on .kiln_main_layout .kiln_score_disc { width: 16px; height: 16px; background-size: 80%; }
+.kiln_cb_on .kiln_main_layout .kiln_score_disc { width: 16px; height: 16px; background-size: 80%, 100% 100%; }
+.kiln_cb_on .kiln_player_color_dot { background-size: 70%, 100% 100%; }

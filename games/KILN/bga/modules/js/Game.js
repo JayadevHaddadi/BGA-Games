@@ -1458,26 +1458,38 @@ export class Game {
         const boardEl = document.getElementById('kiln_main_layout');
         if (!scalerWrapper || !boardEl) return;
 
+        const numP = Object.keys(this.gamedatas.players || {}).length;
+        const isMultiplayer = numP > 2;
+        const is3Player = numP === 3;
+        const baseWidth = isMultiplayer ? (is3Player ? 760 : 960) : 740;
+        const baseHeight = isMultiplayer ? 1020 : 960;
+
         const updateScale = () => {
             const parent = scalerWrapper.parentElement || document.getElementById('game_play_area') || document.body;
             const containerWidth = parent.clientWidth || window.innerWidth;
-            const availableWidth = Math.max(280, containerWidth - 4);
+            const availableWidth = Math.max(280, containerWidth - 16);
             const availableHeight = window.innerHeight - 130;
 
-            // Phones / narrow areas: single-column compact layout (no side gutter)
-            const compact = containerWidth < 720;
-            boardEl.classList.toggle('kiln_compact', compact);
+            const isMobile = document.body.classList.contains('mobile_version') ||
+                             document.body.classList.contains('touch-device') ||
+                             (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) ||
+                             (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ||
+                             ('ontouchstart' in window);
 
-            // Measure the natural (unscaled) size of the current layout
-            boardEl.style.transform = 'none';
-            const unscaledW = boardEl.offsetWidth || 740;
-            const unscaledH = boardEl.offsetHeight || 960;
+            const unscaledW = Math.max(baseWidth, boardEl.offsetWidth || 0);
+            const unscaledH = Math.max(baseHeight, boardEl.offsetHeight || 0, boardEl.scrollHeight || 0);
 
             let scale = availableWidth / unscaledW;
-            if (!compact) {
-                // Desktop: cap at 1.0 (natural crisp layout)
+
+            if (!isMobile) {
+                // Desktop: cap at 1.0 (natural crisp large layout)
                 scale = Math.min(1.0, scale);
             } else {
+                // Mobile: in landscape, constrain scale by available viewport height so board fits vertically
+                if (window.innerWidth > window.innerHeight && availableHeight > 180) {
+                    const heightScale = availableHeight / unscaledH;
+                    scale = Math.min(scale, heightScale);
+                }
                 scale = Math.min(1.15, scale);
             }
             scale = Math.max(0.28, scale);
