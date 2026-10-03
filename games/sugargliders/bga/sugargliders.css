@@ -115,28 +115,6 @@
     display: block;
 }
 
-/* Compact game info under the board */
-#sg_info_strip {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 6px 22px;
-    margin-top: 10px;
-    font-size: 14px;
-}
-
-.sg_info_item {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.sg_info_icon {
-    width: 24px;
-    height: 24px;
-    object-fit: contain;
-}
-
 #sg_preview {
     min-height: 20px;
     margin-top: 6px;
@@ -247,6 +225,33 @@
 .sg-glider-belly.color-green, .sg-glider-head.sg-glider-dorsal.color-green { fill: #c8e6c9; opacity: 0.88; stroke: #1b5e20; }
 .sg-glider-tail.color-green, .sg-glider-ear.color-green { fill: #2e7d32; stroke: #0f3b14; }
 
+/* Your turn: ring under your own glider with a gentle pulse (functional, stops when the turn ends) */
+.sg-turn-halo {
+    display: none;
+    fill: rgba(255, 255, 255, 0.25);
+    stroke: #ffffff;
+    stroke-width: 3;
+    pointer-events: none;
+}
+
+.sg-glider-piece.sg-my-turn .sg-turn-halo {
+    display: inline;
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: sg_turn_pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes sg_turn_pulse {
+    0%, 100% { transform: scale(0.9); opacity: 0.95; }
+    50% { transform: scale(1.1); opacity: 0.45; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sg-glider-piece.sg-my-turn .sg-turn-halo {
+        animation: none;
+    }
+}
+
 /* Torpor: resting glider is dimmed and labelled (no looping decoration) */
 .sg-glider-piece.in-torpor .sg-glider-inner {
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4)) saturate(0.7) brightness(0.92);
@@ -276,6 +281,14 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
+}
+
+.sg_panel_torpor {
+    font-weight: bold;
+    padding: 0 5px;
+    border: 1px solid currentColor;
+    border-radius: 4px;
+    line-height: 16px;
 }
 
 .sg_panel_symbol {

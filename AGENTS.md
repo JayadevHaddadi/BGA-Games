@@ -257,7 +257,9 @@ Always store these promotional images in `<game>/bga/metadata_assets/` (**never*
 * Prefer one "Restart turn"/timed confirm over per-action Undo; don't layer Undo+Reset+Confirm.
 * Highlight valid targets and **preview consequences before commit**. Every failed action shows a short plain-text reason (shake/tooltip). Pair color with icon/text.
 * **Game log**: every action says *who* did *what* with icons (e.g. "Marianna jumped to [space] and ate [tile] (+2)"), incl. automatic/forced actions; group tiny events.
-* Animations 0.5s (max 0.8s), purposeful, no looping/bouncing/glow decoration, batch repeats. Scoring end: step-by-step with `displayScoring`, show breakdown.
+* Animations 0.5s (max 0.8s), purposeful, no looping/bouncing/glow decoration, batch repeats. **Exception (functional, allowed)**: a gentle ring/pulse on the current player's own piece *only while it is their turn*, stopping afterwards and disabled under `prefers-reduced-motion`. Scoring end: step-by-step with `displayScoring`, show breakdown.
+* Show state with text/icon, not color alone (e.g. a "Zz" label on the player panel for torpor). Don't add always-visible counters/badges below the board that players won't read; put rare info in tooltips or the status bar.
+* Calibrate the hex-grid centre/size against each board art variant (full and compact) with screenshots; no visible gap/offset.
 * Sound: below BGA default, short, never the only cue.
 
 ### D. Accessibility & mobile

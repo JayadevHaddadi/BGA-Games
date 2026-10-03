@@ -168,6 +168,7 @@ class PlayerTurnState {
 
         const active = (isCurrentPlayerActive !== undefined) ? isCurrentPlayerActive : this.game.isCurrentPlayerActive();
         this.game.updateTurnStatus(active, args);
+        this.game.setMyTurnHalo(active);
 
         if (active) {
             this.game.setupPlayerTurnInteraction(args);
@@ -177,6 +178,7 @@ class PlayerTurnState {
     }
 
     onLeavingState() {
+        this.game.setMyTurnHalo(false);
         this.game.clearHighlights();
         this.game.hideReserveTray();
         this.game.clearActionButtons();
@@ -188,6 +190,8 @@ export class Game {
         this.bga = bga;
         this.HEX_RADIUS = 4;
         this.HEX_SIZE = 34;
+        this.GRID_CX = 321;
+        this.GRID_CY = 325;
         this.boardTiles = {};
         this.gliders = {};
         this.playerColors = {};
@@ -198,6 +202,7 @@ export class Game {
         this.currentArgs = null;
         this.pendingTarget = null;
         this.consecutiveTorpor = 0;
+        this.myTurnHalo = false;
         this.tileStyle = 'classic';
         this.gliderPieceStyle = 'facing_down'; // 'facing_down' (default per Néstor) or 'facing_up'
 
@@ -284,25 +289,22 @@ export class Game {
                     </div>
                 </div>
 
-                <div id="sg_info_strip">
-                    <span id="sg_info_tiles" class="sg_info_item">
-                        <img src="${this.themeUrl()}img/tile_1.png" class="sg_info_icon" alt="" />
-                        <span id="sg_info_tiles_text"></span>
-                    </span>
-                    <span id="sg_info_torpor" class="sg_info_item">
-                        <svg class="sg_info_icon" viewBox="-26 -20 52 52" aria-hidden="true">${this.gliderBodySvg('white', 'circle', false)}</svg>
-                        <span id="sg_info_torpor_text"></span>
-                    </span>
-                </div>
                 <div id="sg_preview" aria-live="polite"></div>
             </div>
         `;
+    }
 
-        this.updateInfoStrip(this.gamedatas.consecutive_torpor || 0);
+    // Marks the current player's own glider while it is their turn (static ring + gentle pulse, see CSS)
+    updateTurnHalo() {
+        document.querySelectorAll('.sg-glider-piece.sg-my-turn').forEach(el => el.classList.remove('sg-my-turn'));
+        if (!this.myTurnHalo) return;
+        const el = document.getElementById(`sg_glider_${this.getCurrentPlayerId()}`);
+        if (el) el.classList.add('sg-my-turn');
+    }
 
-        const tip = (id, text) => this.addTip(id, text);
-        tip('sg_info_tiles', _('Fruit tiles still on the tree. The game also ends when the tree is empty.'));
-        tip('sg_info_torpor', _('Consecutive torpor turns. If every player enters torpor in a row, the game ends immediately.'));
+    setMyTurnHalo(on) {
+        this.myTurnHalo = !!on;
+        this.updateTurnHalo();
     }
 
     themeUrl() {
@@ -322,15 +324,6 @@ export class Game {
 
     updateInfoStrip(consecutiveTorpor) {
         this.consecutiveTorpor = consecutiveTorpor;
-        const n = Object.keys(this.gamedatas.players).length;
-        const tilesEl = document.getElementById('sg_info_tiles_text');
-        if (tilesEl) {
-            tilesEl.textContent = _('Fruit on tree:') + ' ' + Object.keys(this.boardTiles).length;
-        }
-        const torEl = document.getElementById('sg_info_torpor_text');
-        if (torEl) {
-            torEl.textContent = _('Torpor streak:') + ' ' + consecutiveTorpor + '/' + n;
-        }
     }
 
     animationsActive() {
@@ -403,11 +396,14 @@ export class Game {
         if (!svg) return;
 
         const radius = this.HEX_RADIUS;
-        const size = (radius === 3) ? 38.0 : 34.0;
+        const size = (radius === 3) ? 39.5 : 34.0;
         this.HEX_SIZE = size;
         const svgDim = 640;
-        const cx = 317;
-        const cy = 319; // Shifted ~2mm down per user review
+        // Grid centre calibrated to the board art (compact art sits further right/down)
+        this.GRID_CX = (radius === 3) ? 323 : 321;
+        this.GRID_CY = (radius === 3) ? 328 : 325;
+        const cx = this.GRID_CX;
+        const cy = this.GRID_CY;
 
         svg.setAttribute('viewBox', `0 0 ${svgDim} ${svgDim}`);
         svg.setAttribute('width', `${svgDim}`);
@@ -465,6 +461,7 @@ export class Game {
 
         svg.innerHTML = defs + hexGroup + tilesGroup + glidersGroup;
         this.bindCellClicks();
+        this.updateTurnHalo();
 
         // Restore active state interaction if the current player is active!
         if (this.currentArgs && this.isCurrentPlayerActive()) {
@@ -537,6 +534,7 @@ export class Game {
         const restOffsetY = -6;
         return `
             <g class="sg-glider-piece ${inTorpor ? 'in-torpor' : ''}" id="sg_glider_${playerId}" data-player-id="${playerId}" transform="translate(${x}, ${y + restOffsetY})">
+                <circle class="sg-turn-halo" cx="0" cy="6" r="30" />
                 <g class="sg-glider-inner">
                     ${this.gliderBodySvg(colorName, symbol, inTorpor)}
                     ${inTorpor ? `<text x="14" y="-12" class="sg-torpor-zzz">Zz</text>` : ''}
@@ -711,8 +709,8 @@ export class Game {
     highlightJumpTargets(legalJumps) {
         this.clearHighlights();
         const svg = document.getElementById('sg_board_svg');
-        const cx = 317;
-        const cy = 319;
+        const cx = this.GRID_CX;
+        const cy = this.GRID_CY;
 
         legalJumps.forEach(m => {
             const cell = document.getElementById(`sg_cell_${m.target_q}_${m.target_r}`);
@@ -907,11 +905,16 @@ export class Game {
                 ? `<span class="sg_panel_tile_item"><img src="${themeUrl}img/tile_${jumping.value}.png" class="sg_panel_tile_img" alt="${jumping.value} pt" /></span>`
                 : `<span class="sg_panel_tile_item sg_panel_none">&ndash;</span>`;
 
+            const torpor = this.gliders[pId] && this.gliders[pId].in_torpor
+                ? `<span class="sg_panel_torpor" id="sg_panel_torpor_${pId}">Zz</span>` : '';
+
             inv.innerHTML = `
                 <span class="sg_panel_under" id="sg_panel_under_${pId}">${marker}${underHtml}</span>
+                ${torpor}
                 <span class="sg_panel_reserve" id="sg_panel_reserve_${pId}">${reserveHtml}</span>
             `;
             this.addTip(`sg_panel_under_${pId}`, _('Fruit under the glider. Its value is the length of the next jump.'));
+            if (torpor) this.addTip(`sg_panel_torpor_${pId}`, _('Resting in torpor. If every player enters torpor in a row, the game ends.'));
             this.addTip(`sg_panel_reserve_${pId}`, _('Reserve: fruit collected, by value. Their total is your score.'));
         }
     }
@@ -946,8 +949,8 @@ export class Game {
         }
 
         const size = this.HEX_SIZE;
-        const cx = 317;
-        const cy = 319;
+        const cx = this.GRID_CX;
+        const cy = this.GRID_CY;
         const fromPos = this.axialToPixel(fromQ, fromR, cx, cy, size);
         const toPos = this.axialToPixel(toQ, toR, cx, cy, size);
         const restOffsetY = -6;
