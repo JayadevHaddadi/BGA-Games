@@ -10,7 +10,7 @@
 class SoundController {
     constructor() {
         this.ctx = null;
-        this.muted = false;
+        this.isMuted = () => false;
     }
 
     init() {
@@ -25,13 +25,8 @@ class SoundController {
         }
     }
 
-    toggleMute() {
-        this.muted = !this.muted;
-        return this.muted;
-    }
-
     playJump() {
-        if (this.muted) return;
+        if (this.isMuted()) return;
         try {
             this.init();
             if (!this.ctx) return;
@@ -52,7 +47,7 @@ class SoundController {
     }
 
     playHarvest() {
-        if (this.muted) return;
+        if (this.isMuted()) return;
         try {
             this.init();
             if (!this.ctx) return;
@@ -72,7 +67,7 @@ class SoundController {
     }
 
     playTorpor() {
-        if (this.muted) return;
+        if (this.isMuted()) return;
         try {
             this.init();
             if (!this.ctx) return;
@@ -92,7 +87,7 @@ class SoundController {
     }
 
     playVictory() {
-        if (this.muted) return;
+        if (this.isMuted()) return;
         try {
             this.init();
             if (!this.ctx) return;
@@ -201,6 +196,8 @@ export class Game {
         this.scores = {};
         this.selectedReserveTileId = null;
         this.currentArgs = null;
+        this.pendingTarget = null;
+        this.consecutiveTorpor = 0;
         this.tileStyle = 'classic';
         this.gliderPieceStyle = 'facing_down'; // 'facing_down' (default per Néstor) or 'facing_up'
 
@@ -261,6 +258,7 @@ export class Game {
         this.jumpingTiles = gamedatas.jumping_tiles || {};
         this.scores = gamedatas.scores || {};
 
+        sounds.isMuted = () => Number(this.bga?.userPreferences?.get?.(100) ?? 1) === 2;
         this.initDom();
         this.initScaler();
         this.renderBoard();
@@ -272,210 +270,81 @@ export class Game {
         const main = document.getElementById('game_play_area');
         if (!main) return;
 
+        const playerCount = Object.keys(this.gamedatas.players).length;
         main.innerHTML = `
             <div id="sg_container">
-                <div id="sg_header_info">
-                    <div class="sg_header_left">
-                        <span id="sg_consecutive_torpor_badge" class="sg_badge sg_torpor_badge">
-                            Torpor: ${this.gamedatas.consecutive_torpor || 0} / ${Object.keys(this.gamedatas.players).length}
-                        </span>
-                        <span id="sg_remaining_tiles_badge" class="sg_badge sg_tiles_badge">
-                            Tiles in Tree: ${Object.keys(this.boardTiles).length}
-                        </span>
-                    </div>
-                    <div class="sg_header_right">
-                        <button id="sg_sound_toggle" class="sg_ctrl_btn" type="button">
-                            ${sounds.muted ? '&#128263; Muted' : '&#128266; Sound'}
-                        </button>
-                    </div>
-                </div>
-
-                <div id="sg_reserve_tray">
-                    <span class="sg_tray_label">Choose a Reserve Fruit to spend for jump:</span>
+                <div id="sg_reserve_tray" role="group" aria-label="${_('Reserve fruit to spend')}">
+                    <span class="sg_tray_label">${_('Spend a reserve fruit to jump:')}</span>
                     <div id="sg_tray_tiles_container" class="sg_tray_tiles"></div>
                 </div>
 
                 <div id="sg_board_scaler" class="game-board-scaler">
                     <div id="sg_board_wrapper" class="${this.HEX_RADIUS === 3 ? 'compact-tree' : ''}">
-                        <svg id="sg_board_svg"></svg>
-                    </div>
-
-                    <!-- Tricky Rules Widget (Top Right of the Board) -->
-                    <div id="sg_board_tricky_rules" class="sg_board_tricky_rules">
-                        <div class="sg_tricky_rules_title">Tricky rules:</div>
-                        <div class="sg_tricky_rules_icons">
-                            <button type="button" class="sg_rule_icon_btn" data-rule="center" title="🎯 Center Nest: Jump to ANY space with 1 reserve fruit">🎯</button>
-                            <button type="button" class="sg_rule_icon_btn" data-rule="torpor" title="💤 Torpor: Eat tile under you. Consecutive torpor ends game!">💤</button>
-                            <button type="button" class="sg_rule_icon_btn" data-rule="blocking" title="🚫 Glider Blocking: Cannot jump through or over other squirrels">🚫</button>
-                            <button type="button" class="sg_rule_icon_btn" data-rule="takeoff" title="🍃 Takeoff vs Landing: Jump using takeoff tile">🍃</button>
-                            <button type="button" class="sg_rule_icon_btn" data-rule="scoring" title="🏆 Scoring: Most fruit points in reserve wins">🏆</button>
-                        </div>
+                        <svg id="sg_board_svg" role="img" aria-label="${_('Sugar Gliders tree board')}"></svg>
                     </div>
                 </div>
 
-                <div id="sg_attribution">
-                    <strong>Sugar Gliders</strong> &bull; Designed by <strong>Néstor Romeral Andrés</strong> &bull; Published by <strong>nestorgames</strong> &amp; <strong>Grok Games</strong>
+                <div id="sg_info_strip">
+                    <span id="sg_info_tiles" class="sg_info_item">
+                        <img src="${this.themeUrl()}img/tile_1.png" class="sg_info_icon" alt="" />
+                        <span id="sg_info_tiles_text"></span>
+                    </span>
+                    <span id="sg_info_torpor" class="sg_info_item">
+                        <svg class="sg_info_icon" viewBox="-26 -20 52 52" aria-hidden="true">${this.gliderBodySvg('white', 'circle', false)}</svg>
+                        <span id="sg_info_torpor_text"></span>
+                    </span>
                 </div>
-
-                <!-- Rules Modal Popup -->
-                <div id="sg_rules_modal" class="sg_modal" style="display: none;">
-                    <div class="sg_modal_backdrop" id="sg_modal_backdrop"></div>
-                    <div class="sg_modal_dialog" role="dialog" aria-modal="true" aria-labelledby="sg_modal_title">
-                        <div class="sg_modal_header">
-                            <h2 id="sg_modal_title">📖 Sugar Gliders &bull; Cruxy Rules Guide</h2>
-                            <button type="button" class="sg_modal_close_btn" id="sg_modal_close_btn" aria-label="Close">&times;</button>
-                        </div>
-                        <div class="sg_modal_body">
-                            <!-- Center Nest -->
-                            <div class="sg_rule_card" id="sg_rule_card_center">
-                                <div class="sg_rule_card_header">
-                                    <span class="sg_rule_card_icon">🎯</span>
-                                    <h3>The Center Nest Space</h3>
-                                    <span class="sg_rule_badge">Special Movement</span>
-                                </div>
-                                <div class="sg_rule_card_content">
-                                    <p>When you start your turn resting on the <strong>Center Nest space (0, 0)</strong>:</p>
-                                    <ul>
-                                        <li>You can glide to <strong>ANY unoccupied space on the entire tree</strong>!</li>
-                                        <li>You <strong>ignore straight-line and distance constraints</strong> completely.</li>
-                                        <li>To launch from the center, you must <strong>spend and discard any 1 fruit tile from your reserve</strong>.</li>
-                                    </ul>
-                                </div>
-                            </div>
-
-                            <!-- Torpor & Consecutive Torpor End -->
-                            <div class="sg_rule_card" id="sg_rule_card_torpor">
-                                <div class="sg_rule_card_header">
-                                    <span class="sg_rule_card_icon">💤</span>
-                                    <h3>Torpor (Resting) &amp; Sudden Game End</h3>
-                                    <span class="sg_rule_badge sg_badge_warn">Critical Endgame Rule</span>
-                                </div>
-                                <div class="sg_rule_card_content">
-                                    <p>Instead of jumping, you may choose to enter <strong>Torpor</strong>:</p>
-                                    <ul>
-                                        <li><strong>Eat the tile underneath</strong>: You do not move. You harvest the fruit tile beneath your glider and bank its points into your reserve.</li>
-                                        <li><strong>Next Turn Fuel</strong>: Because your current tile is eaten, your next jump requires spending 1 tile from your reserve (or entering torpor again).</li>
-                                        <li>⚠️ <strong>Sudden Death Game End</strong>: If <strong>all players consecutively choose Torpor</strong> with no jumps in between, <em>the game ends immediately!</em></li>
-                                    </ul>
-                                </div>
-                            </div>
-
-                            <!-- Glider Obstacles & Blocking -->
-                            <div class="sg_rule_card" id="sg_rule_card_blocking">
-                                <div class="sg_rule_card_header">
-                                    <span class="sg_rule_card_icon">🚫</span>
-                                    <h3>No Jumping Over Squirrels (Solid Obstacles)</h3>
-                                    <span class="sg_rule_badge">Tactical Blocking</span>
-                                </div>
-                                <div class="sg_rule_card_content">
-                                    <p>Sugar gliders are physical obstacles on the tree branches:</p>
-                                    <ul>
-                                        <li>A glider <strong>cannot jump through, jump over, or land on another glider</strong>.</li>
-                                        <li>If another squirrel is in your straight-line trajectory before your target distance, that path is <strong>completely blocked</strong>.</li>
-                                        <li>Positioning your squirrel to block opponent flight paths is a core strategic move!</li>
-                                    </ul>
-                                </div>
-                            </div>
-
-                            <!-- Takeoff vs Landing Tile -->
-                            <div class="sg_rule_card" id="sg_rule_card_takeoff">
-                                <div class="sg_rule_card_header">
-                                    <span class="sg_rule_card_icon">🍃</span>
-                                    <h3>Takeoff Tile vs. Landing Tile</h3>
-                                    <span class="sg_rule_badge">Core Mechanics</span>
-                                </div>
-                                <div class="sg_rule_card_content">
-                                    <p>A common point of confusion is when fruit tiles are collected:</p>
-                                    <ul>
-                                        <li>You leap using the exact distance of the tile you are <strong>leaving</strong> (the takeoff space).</li>
-                                        <li>After leaping, you collect that takeoff tile into your reserve (these are your points!).</li>
-                                        <li>The tile you <strong>land on remains on the tree</strong> underneath your glider! It becomes your jump distance for your <em>next</em> turn.</li>
-                                    </ul>
-                                </div>
-                            </div>
-
-                            <!-- Scoring & Winning -->
-                            <div class="sg_rule_card" id="sg_rule_card_scoring">
-                                <div class="sg_rule_card_header">
-                                    <span class="sg_rule_card_icon">🏆</span>
-                                    <h3>Winning the Game &amp; Scoring</h3>
-                                    <span class="sg_rule_badge sg_badge_win">Victory Condition</span>
-                                </div>
-                                <div class="sg_rule_card_content">
-                                    <p>The game ends immediately when either:</p>
-                                    <ol>
-                                        <li>All players enter <strong>Torpor in succession</strong> without any jump.</li>
-                                        <li>All fruit tiles on the entire tree are <strong>exhausted / empty</strong>.</li>
-                                    </ol>
-                                    <p><strong>Final Scoring</strong>: Sum the total point values of all fruit tiles in your personal reserve: &sum; values. The player with the highest total score wins! In case of a tie, players share the victory.</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="sg_modal_footer">
-                            <button type="button" class="sg_btn_primary" id="sg_modal_ack_btn">Got it, let's play!</button>
-                        </div>
-                    </div>
-                </div>
+                <div id="sg_preview" aria-live="polite"></div>
             </div>
         `;
 
-        const soundBtn = document.getElementById('sg_sound_toggle');
-        if (soundBtn) {
-            soundBtn.addEventListener('click', () => {
-                const muted = sounds.toggleMute();
-                soundBtn.innerHTML = muted ? '&#128263; Muted' : '&#128266; Sound';
-            });
-        }
+        this.updateInfoStrip(this.gamedatas.consecutive_torpor || 0);
 
-        // Rules Modal Event Bindings
-        const closeBtn = document.getElementById('sg_modal_close_btn');
-        if (closeBtn) closeBtn.addEventListener('click', () => this.closeRulesModal());
-        const backdrop = document.getElementById('sg_modal_backdrop');
-        if (backdrop) backdrop.addEventListener('click', () => this.closeRulesModal());
-        const ackBtn = document.getElementById('sg_modal_ack_btn');
-        if (ackBtn) ackBtn.addEventListener('click', () => this.closeRulesModal());
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') this.closeRulesModal();
-        });
-
-        // Event delegation for all rules buttons across header and player panels
-        document.addEventListener('click', (e) => {
-            const btn = e.target.closest('.sg_rule_icon_btn');
-            if (btn) {
-                const rule = btn.getAttribute('data-rule') || 'all';
-                this.openRulesModal(rule);
-            }
-        });
+        const tip = (id, text) => this.addTip(id, text);
+        tip('sg_info_tiles', _('Fruit tiles still on the tree. The game also ends when the tree is empty.'));
+        tip('sg_info_torpor', _('Consecutive torpor turns. If every player enters torpor in a row, the game ends immediately.'));
     }
 
-    openRulesModal(ruleCategory = 'all') {
-        const modal = document.getElementById('sg_rules_modal');
-        if (!modal) return;
-        modal.style.display = 'flex';
+    themeUrl() {
+        return typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : '';
+    }
 
-        // Remove previous highlights
-        document.querySelectorAll('.sg_rule_card').forEach(c => c.classList.remove('highlighted'));
-
-        if (ruleCategory && ruleCategory !== 'all') {
-            const targetCard = document.getElementById(`sg_rule_card_${ruleCategory}`);
-            if (targetCard) {
-                targetCard.classList.add('highlighted');
-                setTimeout(() => {
-                    targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }, 80);
-            }
+    addTip(nodeId, text) {
+        if (typeof this.bga?.gameui?.addTooltip === 'function') {
+            this.bga.gameui.addTooltip(nodeId, text, '');
+        } else if (typeof gameui !== 'undefined' && typeof gameui.addTooltip === 'function') {
+            gameui.addTooltip(nodeId, text, '');
         } else {
-            const body = modal.querySelector('.sg_modal_body');
-            if (body) body.scrollTop = 0;
+            const el = document.getElementById(nodeId);
+            if (el) el.setAttribute('title', text);
         }
     }
 
-    closeRulesModal() {
-        const modal = document.getElementById('sg_rules_modal');
-        if (modal) {
-            modal.style.display = 'none';
+    updateInfoStrip(consecutiveTorpor) {
+        this.consecutiveTorpor = consecutiveTorpor;
+        const n = Object.keys(this.gamedatas.players).length;
+        const tilesEl = document.getElementById('sg_info_tiles_text');
+        if (tilesEl) {
+            tilesEl.textContent = _('Fruit on tree:') + ' ' + Object.keys(this.boardTiles).length;
         }
+        const torEl = document.getElementById('sg_info_torpor_text');
+        if (torEl) {
+            torEl.textContent = _('Torpor streak:') + ' ' + consecutiveTorpor + '/' + n;
+        }
+    }
+
+    animationsActive() {
+        if (typeof this.bga?.gameui?.bgaAnimationsActive === 'function') {
+            return this.bga.gameui.bgaAnimationsActive();
+        }
+        return true;
+    }
+
+    needsJumpConfirmation() {
+        const pref = Number(this.bga?.userPreferences?.get?.(101) ?? 1);
+        if (pref === 2) return true;
+        if (pref === 3) return false;
+        return !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
     }
 
     initScaler() {
@@ -485,30 +354,30 @@ export class Game {
         if (!scaler || !wrapper || !container) return;
 
         const updateScale = () => {
-            const availW = Math.max(300, container.clientWidth - 16);
             const baseDim = 640;
-            // 30% larger default display on desktop: 640 * 1.30 = 832px
-            const maxScale = 1.30;
-            const scale = Math.max(0.45, Math.min(maxScale, availW / baseDim));
-
-            const targetDim = Math.round(baseDim * scale);
-            scaler.style.width = `${targetDim}px`;
-            scaler.style.height = `${targetDim}px`;
-            wrapper.style.transform = `scale(${scale})`;
-            wrapper.style.transformOrigin = 'top left';
-
-            const header = document.getElementById('sg_header_info');
-            if (header) {
-                header.style.width = `${targetDim}px`;
-                header.style.maxWidth = `${targetDim}px`;
+            const availW = Math.max(280, container.clientWidth - 8);
+            // On narrow screens crop the empty art margin so the hexes stay large enough to tap
+            const crop = availW < 560 ? 40 : 0;
+            const dim = baseDim - crop * 2;
+            let scale = availW / dim;
+            const landscape = window.innerWidth > window.innerHeight;
+            if (landscape && window.innerWidth < 1000) {
+                scale = Math.min(scale, Math.max(0.75, (window.innerHeight - 70) / dim));
             }
+            scale = Math.max(0.5, Math.min(1.3, scale));
+
+            const target = Math.round(dim * scale);
+            scaler.style.width = `${target}px`;
+            scaler.style.height = `${target}px`;
+            wrapper.style.transform = `translate(${-crop * scale}px, ${-crop * scale}px) scale(${scale})`;
+            wrapper.style.transformOrigin = 'top left';
         };
 
         if (window.ResizeObserver) {
-            const ro = new ResizeObserver(() => updateScale());
-            ro.observe(container);
+            new ResizeObserver(() => updateScale()).observe(container);
         }
         window.addEventListener('resize', updateScale);
+        window.addEventListener('orientationchange', updateScale);
         setTimeout(updateScale, 50);
     }
 
@@ -620,65 +489,57 @@ export class Game {
         `;
     }
 
-    renderGliderSvg(x, y, playerId, colorName, inTorpor) {
+    symbolForColor(colorName) {
+        const map = { white: 'circle', black: 'square', red: 'triangle', blue: 'diamond', yellow: 'star', green: 'cross' };
+        return map[colorName] || 'circle';
+    }
+
+    // Distinct shape per player so pieces never rely on color alone (colorblind support)
+    symbolSvg(symbol, cx, cy, r, fill, stroke) {
+        const attrs = `fill="${fill}" stroke="${stroke}" stroke-width="1.2" stroke-linejoin="round"`;
+        switch (symbol) {
+            case 'square':
+                return `<rect x="${cx - r}" y="${cy - r}" width="${2 * r}" height="${2 * r}" ${attrs} />`;
+            case 'triangle':
+                return `<polygon points="${cx},${cy - r - 1} ${cx + r + 1},${cy + r} ${cx - r - 1},${cy + r}" ${attrs} />`;
+            case 'diamond':
+                return `<polygon points="${cx},${cy - r - 1} ${cx + r + 1},${cy} ${cx},${cy + r + 1} ${cx - r - 1},${cy}" ${attrs} />`;
+            case 'star':
+                return `<polygon points="${cx},${cy - r - 1} ${cx + 1.6},${cy - 1.2} ${cx + r + 1},${cy - 1.2} ${cx + 2.4},${cy + 1.4} ${cx + 3.4},${cy + r + 1} ${cx},${cy + 2.6} ${cx - 3.4},${cy + r + 1} ${cx - 2.4},${cy + 1.4} ${cx - r - 1},${cy - 1.2} ${cx - 1.6},${cy - 1.2}" ${attrs} />`;
+            case 'cross':
+                return `<path d="M ${cx - 1.5},${cy - r} h 3 v ${r - 1.5} h ${r - 1.5} v 3 h ${-(r - 1.5)} v ${r - 1.5} h -3 v ${-(r - 1.5)} h ${-(r - 1.5)} v -3 h ${r - 1.5} z" ${attrs} />`;
+            default:
+                return `<circle cx="${cx}" cy="${cy}" r="${r}" ${attrs} />`;
+        }
+    }
+
+    gliderBodySvg(colorName, symbol, inTorpor) {
         const wingPath = "M 0,-16 C 6,-16 10,-10 10,-6 C 18,-6 23,0 23,8 C 23,16 16,18 12,19 C 7,24 2,25 0,25 C -2,25 -7,24 -12,19 C -16,18 -23,16 -23,8 C -23,0 -18,-6 -10,-6 C -10,-10 -6,-16 0,-16 Z";
         const bellyPath = "M 0,-10 C 4,-10 8,-4 8,2 C 8,10 5,14 0,16 C -5,14 -8,10 -8,2 C -8,-4 -4,-10 0,-10 Z";
         const tailPath = "M 0,16 C 4,18 5,26 2,29 C -1,32 -6,30 -4,24 C -3,20 -1,17 0,16 Z";
-        const isFacingDown = (this.gliderPieceStyle !== 'facing_up'); // Default is facing_down per Néstor
+        const dark = (colorName === 'white' || colorName === 'yellow');
+        const symFill = dark ? '#263238' : '#ffffff';
+        const symStroke = dark ? '#ffffff' : '#263238';
 
-        const headAndFaceSvg = isFacingDown ? `
-            <!-- Ears (Solid dorsal view, no inner pink) -->
+        return `
+            <path d="${wingPath}" class="sg-glider-wings color-${colorName}" stroke-width="1.4" stroke-linejoin="round" />
+            <path d="${bellyPath}" class="sg-glider-belly color-${colorName}" />
+            <path d="${tailPath}" class="sg-glider-tail color-${colorName}" stroke-width="1" />
             <circle cx="-7" cy="-16" r="3.8" class="sg-glider-ear color-${colorName}" />
             <circle cx="7" cy="-16" r="3.8" class="sg-glider-ear color-${colorName}" />
-
-            <!-- Back of Head (Matches central back fur color) -->
             <ellipse cx="0" cy="-11" rx="7.5" ry="6" class="sg-glider-head sg-glider-dorsal color-${colorName}" stroke-width="1.2" />
-        ` : `
-            <!-- Ears (Ventral / Face-up with inner pink) -->
-            <circle cx="-7" cy="-16" r="3.8" class="sg-glider-ear color-${colorName}" />
-            <circle cx="-7" cy="-16" r="2.1" fill="#ff80ab" />
-            <circle cx="7" cy="-16" r="3.8" class="sg-glider-ear color-${colorName}" />
-            <circle cx="7" cy="-16" r="2.1" fill="#ff80ab" />
-
-            <!-- Face Head -->
-            <ellipse cx="0" cy="-11" rx="7.5" ry="6" class="sg-glider-head color-${colorName}" stroke-width="1.2" />
-
-            <!-- Eyes -->
-            ${inTorpor ? `
-                <path d="M -5.5,-10 Q -3.5,-8 -1.5,-10" stroke="#111" stroke-width="1.3" fill="none" stroke-linecap="round" />
-                <path d="M 1.5,-10 Q 3.5,-8 5.5,-10" stroke="#111" stroke-width="1.3" fill="none" stroke-linecap="round" />
-            ` : `
-                <ellipse cx="-3.5" cy="-11" rx="2.2" ry="2.5" fill="#111111" />
-                <circle cx="-4" cy="-12" r="0.8" fill="#ffffff" />
-                <ellipse cx="3.5" cy="-11" rx="2.2" ry="2.5" fill="#111111" />
-                <circle cx="3" cy="-12" r="0.8" fill="#ffffff" />
-            `}
-
-            <!-- Pink Nose -->
-            <polygon points="-1,-7.5 1,-7.5 0,-6.3" fill="#ff4081" />
+            ${this.symbolSvg(symbol, 0, 4, 4.2, symFill, symStroke)}
         `;
+    }
 
+    renderGliderSvg(x, y, playerId, colorName, inTorpor) {
+        const symbol = this.symbolForColor(colorName);
         const restOffsetY = -6;
         return `
             <g class="sg-glider-piece ${inTorpor ? 'in-torpor' : ''}" id="sg_glider_${playerId}" data-player-id="${playerId}" transform="translate(${x}, ${y + restOffsetY})">
                 <g class="sg-glider-inner">
-                    <!-- Sleeping Aura / Halo if in Torpor -->
-                    ${inTorpor ? `<circle cx="0" cy="4" r="28" class="sg-torpor-aura" />` : ''}
-
-                    <!-- Outstretched Patagium (Gliding wings) -->
-                    <path d="${wingPath}" class="sg-glider-wings color-${colorName}" stroke-width="1.4" stroke-linejoin="round" />
-
-                    <!-- Central Back / Belly fur -->
-                    <path d="${bellyPath}" class="sg-glider-belly color-${colorName}" />
-
-                    <!-- Bushy Tail -->
-                    <path d="${tailPath}" class="sg-glider-tail color-${colorName}" stroke-width="1" />
-
-                    <!-- Head & Ears -->
-                    ${headAndFaceSvg}
-
-                    <!-- Torpor Sleep Floating ZZZ -->
-                    ${inTorpor ? `<text x="14" y="-14" class="sg-torpor-zzz">&#128164; Zzz</text>` : ''}
+                    ${this.gliderBodySvg(colorName, symbol, inTorpor)}
+                    ${inTorpor ? `<text x="14" y="-12" class="sg-torpor-zzz">Zz</text>` : ''}
                 </g>
             </g>
         `;
@@ -695,8 +556,11 @@ export class Game {
                 this.onCellClicked(q, r);
             });
 
-            // Hover lift: strictly lift the glider when hovering over the cell it currently occupies
             c.addEventListener('mouseenter', () => {
+                if (c.classList.contains('selectable')) {
+                    this.showPreview(this.describeLanding(q, r));
+                }
+                // Lift the glider only when hovering the cell it occupies
                 for (const pId in this.gliders) {
                     const g = this.gliders[pId];
                     if (g && g.q === q && g.r === r) {
@@ -707,6 +571,7 @@ export class Game {
             });
 
             c.addEventListener('mouseleave', () => {
+                this.showPreview(this.pendingTarget ? this.describeLanding(this.pendingTarget.q, this.pendingTarget.r) : '');
                 for (const pId in this.gliders) {
                     const g = this.gliders[pId];
                     if (g && g.q === q && g.r === r) {
@@ -716,39 +581,101 @@ export class Game {
                 }
             });
         });
+
+        this.addTip('sg_cell_0_0', _('Center Nest: a glider resting here can spend any reserve fruit to glide to any empty space on the tree.'));
+    }
+
+    describeLanding(q, r) {
+        const isSetup = !!(this.currentArgs && this.currentArgs.valid_spaces);
+        const tile = this.boardTiles[`${q}_${r}`];
+        if (isSetup) {
+            return _('Your first jump will be 1 space.');
+        }
+        if (tile) {
+            return _('Landing here: you keep this fruit under you and your next jump is ${val} space(s).').replace('${val}', tile.value);
+        }
+        return _('Landing on an empty space: next turn you must spend a reserve fruit to jump.');
+    }
+
+    showPreview(text) {
+        const el = document.getElementById('sg_preview');
+        if (el) el.textContent = text || '';
     }
 
     onCellClicked(q, r) {
-        if (!this.isCurrentPlayerActive()) return;
+        if (!this.isCurrentPlayerActive() || !this.currentArgs) return;
+        const isSetup = !!this.currentArgs.valid_spaces;
+        if (!isSetup && !this.currentArgs.legal_jumps) return;
 
-        // In Setup Placement
-        if (this.currentArgs && this.currentArgs.valid_spaces) {
-            this.bgaPerformAction('actSelectStartSpace', { coord_q: q, coord_r: r });
+        if (!isSetup && this.currentArgs.jumping_tile === null && this.selectedReserveTileId === null) {
+            this.bga?.dialogs?.showMessage?.(_('Choose a reserve fruit to spend first.'), 'error');
             return;
         }
 
-        // In Player Turn (Jump)
-        if (this.currentArgs && this.currentArgs.legal_jumps) {
-            const hasJumpingTile = (this.currentArgs.jumping_tile !== null);
-            if (hasJumpingTile) {
-                this.bgaPerformAction('actJump', { target_q: q, target_r: r });
-            } else {
-                if (this.selectedReserveTileId !== null) {
-                    this.bgaPerformAction('actJump', {
-                        target_q: q,
-                        target_r: r,
-                        reserve_tile_id: this.selectedReserveTileId
-                    });
-                }
-            }
+        if (this.needsJumpConfirmation()) {
+            this.setPendingTarget(q, r, isSetup);
+        } else {
+            this.commitTarget(q, r, isSetup);
+        }
+    }
+
+    commitTarget(q, r, isSetup) {
+        this.pendingTarget = null;
+        if (isSetup) {
+            this.bgaPerformAction('actSelectStartSpace', { coord_q: q, coord_r: r });
+        } else if (this.currentArgs.jumping_tile !== null) {
+            this.bgaPerformAction('actJump', { target_q: q, target_r: r });
+        } else {
+            this.bgaPerformAction('actJump', {
+                target_q: q,
+                target_r: r,
+                reserve_tile_id: this.selectedReserveTileId
+            });
+        }
+    }
+
+    setPendingTarget(q, r, isSetup) {
+        this.pendingTarget = { q, r };
+        document.querySelectorAll('.sg-hex-cell.sg-target-selected').forEach(c => c.classList.remove('sg-target-selected'));
+        const cell = document.getElementById(`sg_cell_${q}_${r}`);
+        if (cell) cell.classList.add('sg-target-selected');
+        this.showPreview(this.describeLanding(q, r));
+
+        this.clearActionButtons();
+        this.addActionButton('sg_confirm_btn', isSetup ? _('Confirm placement') : _('Confirm jump'), () => {
+            this.commitTarget(q, r, isSetup);
+        }, 'primary');
+        if (!isSetup) {
+            this.addActionButton('sg_torpor_btn', this.torporLabel(), () => this.onTorpor(), 'secondary');
+        }
+        this.addActionButton('sg_cancel_btn', _('Cancel'), () => this.cancelPendingTarget(), 'alert');
+        this.bga?.statusBar?.setTitle(isSetup
+            ? _('${you} must confirm your starting space')
+            : _('${you} must confirm your jump'));
+    }
+
+    cancelPendingTarget() {
+        this.pendingTarget = null;
+        document.querySelectorAll('.sg-hex-cell.sg-target-selected').forEach(c => c.classList.remove('sg-target-selected'));
+        this.showPreview('');
+        const isSetup = !!(this.currentArgs && this.currentArgs.valid_spaces);
+        this.clearActionButtons();
+        if (isSetup) {
+            this.updateSetupStatus(true, this.currentArgs);
+        } else {
+            this.updateTurnStatus(true, this.currentArgs);
+            this.addTorporButton(this.currentArgs);
         }
     }
 
     clearHighlights() {
-        document.querySelectorAll('.sg-hex-cell.selectable').forEach(c => {
+        this.pendingTarget = null;
+        document.querySelectorAll('.sg-hex-cell.selectable, .sg-hex-cell.sg-target-selected').forEach(c => {
             c.classList.remove('selectable');
+            c.classList.remove('sg-target-selected');
         });
         document.querySelectorAll('.sg-landing-marker').forEach(m => m.remove());
+        this.showPreview('');
     }
 
     highlightSetupSpaces(validSpaces) {
@@ -758,21 +685,20 @@ export class Game {
         });
     }
 
+    torporLabel() {
+        return (this.currentArgs && this.currentArgs.will_end_on_torpor)
+            ? _('Enter torpor (ends the game)')
+            : _('Enter torpor');
+    }
+
+    addTorporButton(args) {
+        this.addActionButton('sg_torpor_btn', this.torporLabel(), () => this.onTorpor(), 'secondary');
+    }
+
     setupPlayerTurnInteraction(args) {
         this.clearActionButtons();
+        this.addTorporButton(args);
 
-        // 1. Add Torpor Button with end-game warning if applicable
-        const willEnd = !!args.will_end_on_torpor;
-        const torporLabel = willEnd
-            ? _('⚠️ ENTER TORPOR (WILL END GAME)')
-            : _('Enter Torpor (Rest & Bank Fruit)');
-        const torporColor = willEnd ? 'alert' : 'secondary';
-
-        this.addActionButton('sg_torpor_btn', torporLabel, () => {
-            this.onTorpor();
-        }, torporColor);
-
-        // 2. Check if glider has jumping tile
         if (args.jumping_tile !== null) {
             this.hideReserveTray();
             this.highlightJumpTargets(args.legal_jumps);
@@ -799,9 +725,6 @@ export class Game {
                     marker.setAttribute('cy', y);
                     marker.setAttribute('r', '22');
                     marker.setAttribute('class', 'sg-landing-marker');
-                    marker.setAttribute('fill', 'none');
-                    marker.setAttribute('stroke', '#ffeb3b');
-                    marker.setAttribute('stroke-width', '3');
                     svg.appendChild(marker);
                 }
             }
@@ -831,14 +754,17 @@ export class Game {
             }
         });
 
+        const themeUrl = this.themeUrl();
         const sortedVals = Object.keys(uniqueValues).map(Number).sort((a, b) => a - b);
         sortedVals.forEach((val, idx) => {
             const tileId = uniqueValues[val];
             const btn = document.createElement('button');
-            btn.className = `sg_tray_tile_btn val-${val} ${idx === 0 ? 'selected' : ''}`;
-            btn.innerHTML = `${val}`;
+            btn.className = `sg_tray_tile_btn ${idx === 0 ? 'selected' : ''}`;
             btn.type = 'button';
-            btn.setAttribute('title', `Spend tile worth ${val} pt(s)`);
+            const label = _('Spend a fruit worth ${val} pt (jump ${val} space(s))').replace(/\$\{val\}/g, val);
+            btn.setAttribute('aria-label', label);
+            btn.setAttribute('title', label);
+            btn.innerHTML = `<img src="${themeUrl}img/tile_${val}.png" alt="" /><span class="sg_tray_tile_num">${val}</span>`;
 
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.sg_tray_tile_btn').forEach(b => b.classList.remove('selected'));
@@ -861,6 +787,10 @@ export class Game {
     filterJumpsForReserveTile(reserveTileId, allLegalJumps) {
         const matching = allLegalJumps.filter(m => m.reserve_tile_id === reserveTileId);
         this.highlightJumpTargets(matching);
+        if (this.pendingTarget === null) {
+            this.clearActionButtons();
+            this.addTorporButton(this.currentArgs);
+        }
     }
 
     hideReserveTray() {
@@ -868,43 +798,45 @@ export class Game {
         if (tray) tray.style.display = 'none';
     }
 
-    onTorpor() {
+    async onTorpor() {
         if (!this.isCurrentPlayerActive()) return;
+        if (this.currentArgs && this.currentArgs.will_end_on_torpor && typeof this.bga?.dialogs?.confirmation === 'function') {
+            const ok = await this.bga.dialogs.confirmation(_('Entering torpor now will end the game. Continue?'));
+            if (!ok) return;
+        }
         this.bgaPerformAction('actTorpor', {});
     }
 
     updateSetupStatus(active, args) {
         if (!this.bga?.statusBar) return;
         if (active) {
-            this.bga.statusBar.setTitle(_('${you} must choose a space with 1 fruit to place your Sugar Glider'));
+            this.bga.statusBar.setTitle(_('${you} must choose a space with a 1-point fruit for your sugar glider'));
         } else {
-            this.bga.statusBar.setTitle(_('${actplayer} is choosing a starting space...'));
+            this.bga.statusBar.setTitle(_('${actplayer} is choosing a starting space'));
         }
     }
 
     updateTurnStatus(active, args) {
         if (!this.bga?.statusBar) return;
-        if (active) {
-            let statusText = '';
-            if (args.jumping_tile !== null) {
-                const val = args.jumping_tile.value;
-                statusText = _('${you} must Jump ${val} space(s)').replace('${val}', val);
-            } else {
-                if (args.is_center) {
-                    statusText = _('${you} are on Center Nest: spend any reserve fruit to glide anywhere');
-                } else {
-                    statusText = _('${you} must spend a reserve fruit to Jump');
-                }
-            }
-            if (args.will_end_on_torpor) {
-                statusText += _(' — ⚠️ Entering Torpor will END the game!');
-            } else {
-                statusText += _(', or enter Torpor');
-            }
-            this.bga.statusBar.setTitle(statusText);
-        } else {
-            this.bga.statusBar.setTitle(_('${actplayer} is taking their turn...'));
+        if (!active) {
+            this.bga.statusBar.setTitle(_('${actplayer} must jump or enter torpor'));
+            return;
         }
+        let statusText;
+        if (args.jumping_tile !== null) {
+            const val = args.jumping_tile.value;
+            statusText = args.will_end_on_torpor
+                ? _('${you} must jump ${val} space(s). Entering torpor now would end the game')
+                : _('${you} must jump ${val} space(s) or enter torpor');
+            statusText = statusText.replace('${val}', val);
+        } else if (args.is_center) {
+            statusText = _('${you} are on the Center Nest: spend a reserve fruit to glide anywhere, or enter torpor');
+        } else {
+            statusText = args.will_end_on_torpor
+                ? _('${you} must spend a reserve fruit to jump. Entering torpor now would end the game')
+                : _('${you} must spend a reserve fruit to jump, or enter torpor');
+        }
+        this.bga.statusBar.setTitle(statusText);
     }
 
     addActionButton(id, text, callback, color = 'primary') {
@@ -925,6 +857,9 @@ export class Game {
     }
 
     updatePlayerPanels() {
+        const themeUrl = this.themeUrl();
+        const activeValues = (this.HEX_RADIUS === 3) ? [1, 2, 3, 4] : [1, 2, 3, 4, 5];
+
         for (const pId in this.gamedatas.players) {
             let panel = null;
             if (this.bga?.playerPanels && typeof this.bga.playerPanels.getElement === 'function') {
@@ -944,7 +879,6 @@ export class Game {
             const reserves = this.playerReserves[pId] || [];
             const score = this.scores[pId] || 0;
 
-            // Update standard BGA star VP score counter next to player name using official API
             const counter = this.bga?.playerPanels?.getScoreCounter?.(pId);
             if (counter) {
                 if (typeof counter.toValue === 'function') {
@@ -954,36 +888,37 @@ export class Game {
                 }
             }
 
-            const themeUrl = typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : '';
-            const prefix = 'tile_';
+            const colorName = this.playerColors[pId] || 'white';
+            const symbol = this.symbolForColor(colorName);
+            const dark = (colorName === 'white' || colorName === 'yellow');
+            const marker = `<svg class="sg_panel_symbol" viewBox="-8 -8 16 16" role="img" aria-label="${_('Player marker')}">${this.symbolSvg(symbol, 0, 0, 5, this.markerFill(colorName), dark ? '#263238' : '#ffffff')}</svg>`;
 
-            let jumpingHtml = jumping ? `
-                <span class="sg_panel_tile_item">
-                    <img src="${themeUrl}img/${prefix}${jumping.value}.png" class="sg_panel_tile_img" alt="${jumping.value}" />
-                    <span>${jumping.value} pt(s)</span>
-                </span>
-            ` : '<em>None (spend reserve to jump)</em>';
-
-            // Group reserves into compact counts: (Image of tile):(how many of that tile)
-            const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+            const counts = {};
+            activeValues.forEach(v => { counts[v] = 0; });
             reserves.forEach(t => {
                 if (counts[t.value] !== undefined) counts[t.value]++;
             });
 
-            const activeValues = (this.HEX_RADIUS === 3) ? [1, 2, 3, 4] : [1, 2, 3, 4, 5];
             const reserveHtml = activeValues.map(v =>
-                `<span class="sg_panel_tile_item"><img src="${themeUrl}img/${prefix}${v}.png" class="sg_panel_tile_img" alt="${v}" />: ${counts[v]}</span>`
-            ).join(' ');
+                `<span class="sg_panel_tile_item"><img src="${themeUrl}img/tile_${v}.png" class="sg_panel_tile_img" alt="${v} pt" /><span>${counts[v]}</span></span>`
+            ).join('');
+
+            const underHtml = jumping
+                ? `<span class="sg_panel_tile_item"><img src="${themeUrl}img/tile_${jumping.value}.png" class="sg_panel_tile_img" alt="${jumping.value} pt" /></span>`
+                : `<span class="sg_panel_tile_item sg_panel_none">&ndash;</span>`;
 
             inv.innerHTML = `
-                <div class="sg_panel_jumping">
-                    <span>&#129438; Current Tile:</span> ${jumpingHtml}
-                </div>
-                <div class="sg_panel_reserves">
-                    <span>&#127822; Reserve:</span> <div class="sg_panel_reserves_row">${reserveHtml}</div>
-                </div>
+                <span class="sg_panel_under" id="sg_panel_under_${pId}">${marker}${underHtml}</span>
+                <span class="sg_panel_reserve" id="sg_panel_reserve_${pId}">${reserveHtml}</span>
             `;
+            this.addTip(`sg_panel_under_${pId}`, _('Fruit under the glider. Its value is the length of the next jump.'));
+            this.addTip(`sg_panel_reserve_${pId}`, _('Reserve: fruit collected, by value. Their total is your score.'));
         }
+    }
+
+    markerFill(colorName) {
+        const map = { white: '#ffffff', black: '#263238', red: '#e53935', blue: '#1e88e5', yellow: '#fbc02d', green: '#43a047' };
+        return map[colorName] || '#ffffff';
     }
 
     _getNotifArgs(notif) {
@@ -998,13 +933,14 @@ export class Game {
             dojo.subscribe('gliderPlaced', this, 'notif_gliderPlaced');
             dojo.subscribe('sugarGliderJumped', this, 'notif_sugarGliderJumped');
             dojo.subscribe('sugarGliderTorpor', this, 'notif_sugarGliderTorpor');
+            dojo.subscribe('finalScore', this, 'notif_finalScore');
             dojo.subscribe('endGameScores', this, 'notif_endGameScores');
         }
     }
 
     animateGliderJump(playerId, fromQ, fromR, toQ, toR, callback) {
         const gliderEl = document.getElementById(`sg_glider_${playerId}`);
-        if (!gliderEl || fromQ === undefined || fromR === undefined || toQ === undefined || toR === undefined) {
+        if (!gliderEl || !this.animationsActive() || fromQ === undefined || fromR === undefined || toQ === undefined || toR === undefined) {
             if (callback) callback();
             return;
         }
@@ -1114,14 +1050,7 @@ export class Game {
                 this.renderBoard();
                 this.updatePlayerPanels();
 
-                const remBadge = document.getElementById('sg_remaining_tiles_badge');
-                if (remBadge) {
-                    remBadge.innerHTML = `Tiles in Tree: ${Object.keys(this.boardTiles).length}`;
-                }
-                const torpBadge = document.getElementById('sg_consecutive_torpor_badge');
-                if (torpBadge) {
-                    torpBadge.innerHTML = `Torpor: 0 / ${Object.keys(this.gamedatas.players).length}`;
-                }
+                this.updateInfoStrip(0);
                 resolve();
             });
         });
@@ -1149,10 +1078,19 @@ export class Game {
         this.renderBoard();
         this.updatePlayerPanels();
 
-        const torpBadge = document.getElementById('sg_consecutive_torpor_badge');
-        if (torpBadge) {
-            torpBadge.innerHTML = `Torpor: ${consecutive_torpor} / ${Object.keys(this.gamedatas.players).length}`;
-        }
+        this.updateInfoStrip(consecutive_torpor);
+    }
+
+    notif_finalScore(notif) {
+        const { player_id, score } = this._getNotifArgs(notif);
+        const anchor = document.getElementById(`sg_glider_${player_id}`) ? `sg_glider_${player_id}` : 'sg_board_scaler';
+        const colorName = this.playerColors[player_id] || 'white';
+        try {
+            const pcolor = (this.gamedatas.players[player_id] && this.gamedatas.players[player_id].color) || '000000';
+            this.bga?.gameui?.displayScoring?.(anchor, pcolor, score, 1200);
+        } catch (e) {}
+        const counter = this.bga?.playerPanels?.getScoreCounter?.(player_id);
+        if (counter && typeof counter.toValue === 'function') counter.toValue(score);
     }
 
     notif_endGameScores(notif) {

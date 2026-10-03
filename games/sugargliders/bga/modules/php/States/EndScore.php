@@ -85,6 +85,22 @@ class EndScore extends GameState
             $this->tableStats->set('end_reason_tree_empty', 1);
         }
 
+        // Step-by-step scoring breakdown, one notification per player
+        foreach ($players as $pId) {
+            $p = (int) $pId;
+            $rows = Game::getObjectListFromDB("SELECT `tile_value`, COUNT(*) AS cnt FROM `board_tile` WHERE `location` = 'reserve' AND `player_id` = {$p} GROUP BY `tile_value` ORDER BY `tile_value`");
+            $parts = [];
+            foreach ($rows as $row) {
+                $parts[] = $row['cnt'] . '×' . $row['tile_value'];
+            }
+            $this->game->notifyAllPlayers('finalScore', clienttranslate('${player_name} scores ${score} pt (${breakdown})'), [
+                'player_id' => $p,
+                'player_name' => $playerInfos[$p]['player_name'],
+                'score' => $scores[$p],
+                'breakdown' => empty($parts) ? '0' : implode(' + ', $parts),
+            ]);
+        }
+
         $winnerNames = [];
         foreach ($winners as $wId) {
             $winnerNames[] = $playerInfos[$wId]['player_name'];

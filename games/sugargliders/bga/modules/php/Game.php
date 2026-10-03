@@ -37,6 +37,25 @@ class Game extends \Bga\GameFramework\Table
         return (int) min(100, round(($collectedOrDiscarded / max(1, $totalTiles)) * 100));
     }
 
+    /**
+     * Translatable fruit names used in game log messages.
+     */
+    public static function fruitName(int $value): string
+    {
+        switch ($value) {
+            case 1:
+                return clienttranslate('a white seed');
+            case 2:
+                return clienttranslate('a yellow seed');
+            case 3:
+                return clienttranslate('an acorn');
+            case 4:
+                return clienttranslate('a red berry');
+            default:
+                return clienttranslate('a purple fruit');
+        }
+    }
+
     public function ensureSchema(): void
     {
         try {
@@ -116,6 +135,11 @@ class Game extends \Bga\GameFramework\Table
         // Read options
         $gameMode = (int) ($options[100] ?? ($this->tableOptions ? $this->tableOptions->get(100) : 1) ?? 1);
         $tieBreaker = (int) ($options[101] ?? ($this->tableOptions ? $this->tableOptions->get(101) : 1) ?? 1);
+
+        if ($gameMode === 3) {
+            // Automatic: compact board for 2 players, full tree for 3-4 players
+            $gameMode = (count($players) === 2) ? 2 : 1;
+        }
 
         if ($gameMode === 2) {
             // Mode 2: Compact Inner Tree (2-Player Short Variant)

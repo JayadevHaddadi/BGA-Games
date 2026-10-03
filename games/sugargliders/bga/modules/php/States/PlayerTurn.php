@@ -166,11 +166,18 @@ class PlayerTurn extends GameState
 
         $playerName = $this->game->loadPlayersBasicInfos()[$activePlayerId]['player_name'];
 
-        $msg = clienttranslate('${player_name} jumps from (${from_q}, ${from_r}) to (${to_q}, ${to_r})');
+        $dq = $target_q - $startQ;
+        $dr = $target_r - $startR;
+        $distance = max(abs($dq), abs($dr), abs($dq + $dr));
+        $isCenterGlide = ($startQ === 0 && $startR === 0);
+        $spentValue = $collectedTile ? (int) $collectedTile['value'] : ($discardedTile ? (int) $discardedTile['value'] : 0);
+
         if ($collectedTile) {
-            $msg = clienttranslate('${player_name} jumps from (${from_q}, ${from_r}) to (${to_q}, ${to_r}) and collects a fruit worth ${val} pt(s)');
-        } elseif ($discardedTile) {
-            $msg = clienttranslate('${player_name} jumps from (${from_q}, ${from_r}) to (${to_q}, ${to_r}) by spending a reserve fruit worth ${val} pt(s)');
+            $msg = clienttranslate('${player_name} jumps ${distance} space(s) and collects ${fruit_name} (${val} pt)');
+        } elseif ($isCenterGlide) {
+            $msg = clienttranslate('${player_name} spends ${fruit_name} (${val} pt) to glide from the Center Nest');
+        } else {
+            $msg = clienttranslate('${player_name} spends ${fruit_name} (${val} pt) to jump ${distance} space(s)');
         }
 
         $currentScore = $this->game->calculatePlayerScore($activePlayerId);
@@ -183,7 +190,10 @@ class PlayerTurn extends GameState
             'from_r' => $startR,
             'to_q' => $target_q,
             'to_r' => $target_r,
-            'val' => $collectedTile ? $collectedTile['value'] : ($discardedTile ? $discardedTile['value'] : 0),
+            'val' => $spentValue,
+            'distance' => $distance,
+            'fruit_name' => Game::fruitName($spentValue),
+            'i18n' => ['fruit_name'],
             'collected_tile' => $collectedTile,
             'discarded_tile' => $discardedTile,
             'new_jumping_tile' => $newJumpingTile,
@@ -219,9 +229,10 @@ class PlayerTurn extends GameState
 
         $playerName = $this->game->loadPlayersBasicInfos()[$activePlayerId]['player_name'];
 
-        $msg = clienttranslate('${player_name} enters torpor');
+        $totalPlayers = count($this->game->loadPlayersBasicInfos());
+        $msg = clienttranslate('${player_name} enters torpor with nothing to eat (torpor ${consecutive_torpor}/${total_players})');
         if ($collectedTile) {
-            $msg = clienttranslate('${player_name} enters torpor and collects a fruit worth ${val} pt(s) into reserve');
+            $msg = clienttranslate('${player_name} enters torpor and eats ${fruit_name} (${val} pt) (torpor ${consecutive_torpor}/${total_players})');
         }
 
         $currentScore = $this->game->calculatePlayerScore($activePlayerId);
@@ -232,7 +243,10 @@ class PlayerTurn extends GameState
             'player_name' => $playerName,
             'coord_q' => $args['glider_q'],
             'coord_r' => $args['glider_r'],
-            'val' => $collectedTile ? $collectedTile['value'] : 0,
+            'val' => $collectedTile ? (int) $collectedTile['value'] : 0,
+            'fruit_name' => Game::fruitName($collectedTile ? (int) $collectedTile['value'] : 1),
+            'i18n' => ['fruit_name'],
+            'total_players' => $totalPlayers,
             'collected_tile' => $collectedTile,
             'consecutive_torpor' => $consecutiveTorpor,
             'current_score' => $currentScore,

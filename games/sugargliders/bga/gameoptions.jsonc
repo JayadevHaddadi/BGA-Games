@@ -2,6 +2,10 @@
     "100": {
         "name": "Board Size & Variant",
         "values": {
+            "3": {
+                "name": "Automatic (compact for 2 players, full tree for 3-4)",
+                "description": "Uses the 37-space compact board with 2 players and the 61-space full tree with 3 or 4 players."
+            },
             "1": {
                 "name": "Standard (Full Tree)",
                 "description": "Standard board (61 spaces, 60 food tiles, values 1-5)."
@@ -11,7 +15,7 @@
                 "description": "Compact board (37 spaces, 36 food tiles, values 1-4, no purples). Official 2-player short variant."
             }
         },
-        "default": 1
+        "default": 3
     },
     "101": {
         "name": "Tie-Breaker",

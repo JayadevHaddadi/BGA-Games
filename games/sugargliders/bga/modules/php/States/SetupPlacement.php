@@ -91,13 +91,15 @@ class SetupPlacement extends GameState
 
         $playerName = $this->game->loadPlayersBasicInfos()[$activePlayerId]['player_name'];
 
-        $this->game->notifyAllPlayers('gliderPlaced', clienttranslate('${player_name} places their sugar glider on (${coord_q}, ${coord_r})'), [
+        $this->game->notifyAllPlayers('gliderPlaced', clienttranslate('${player_name} places their sugar glider on ${fruit_name} (1 pt)'), [
             'player_id' => $activePlayerId,
             'player_name' => $playerName,
             'coord_q' => $coord_q,
             'coord_r' => $coord_r,
             'tile_id' => $tileId,
             'tile_value' => 1,
+            'fruit_name' => Game::fruitName(1),
+            'i18n' => ['fruit_name'],
         ]);
 
         return $this->advanceSetup();

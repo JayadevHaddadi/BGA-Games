@@ -3,211 +3,95 @@
  * BGA framework: Gregory Isabelli & Emmanuel Colin & BoardGameArena
  * sugargliders implementation : © Jayadev Haddadi
  *
- * sugargliders.css - Handcrafted Adaptive Styles for Sugar Gliders
+ * sugargliders.css - Styles for Sugar Gliders (default BGA font, BGA button/tooltip/log conventions)
  *------
  */
 
-:root {
-    --sg-board-bg: #2e5d32;
-    --sg-hex-empty: rgba(255, 255, 255, 0.08);
-    --sg-hex-border: rgba(255, 255, 255, 0.25);
-    --sg-center-bg: #8d6e63;
-    --sg-center-border: #d7ccc8;
-    --sg-highlight: #ffeb3b;
-    --sg-highlight-glow: rgba(255, 235, 59, 0.75);
-    --sg-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-}
-
+/* Subtle forest-floor playmat: textured, low contrast, slightly blurred so the board stays the focus */
 #sg_container {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
     width: 100%;
-    margin: 8px auto 20px auto;
-    font-family: var(--sg-font);
+    box-sizing: border-box;
+    margin: 0 auto 16px auto;
+    padding: 16px 8px 14px 8px;
+    border-radius: 10px;
+    overflow-x: auto;
+    background-color: #cfe0c8;
+    background-image:
+        radial-gradient(ellipse at 30% 20%, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0) 60%),
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.2  0 0 0 0 0.35  0 0 0 0 0.2  0 0 0 0.10 0'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
     user-select: none;
     -webkit-user-select: none;
 }
 
-/* Header & Status Badges */
-#sg_header_info {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    max-width: 832px;
-    margin: 4px auto 12px auto;
-    padding: 0 4px;
-    box-sizing: border-box;
-    gap: 10px;
-}
-
-.sg_header_left {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-.sg_header_right {
-    display: flex;
-    align-items: center;
-    margin-left: auto;
-}
-
-.sg_badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 14px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.2px;
-    background: #e8f5e9;
-    color: #1b5e20;
-    border: 1px solid #81c784;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    white-space: nowrap;
-}
-
-.sg_torpor_badge {
-    background: #ede7f6;
-    color: #4a148c;
-    border-color: #b39ddb;
-}
-
-.sg_tiles_badge {
-    background: #fff8e1;
-    color: #e65100;
-    border-color: #ffe082;
-}
-
-.sg_ctrl_btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 14px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 600;
-    background: #ffffff;
-    color: #333333;
-    border: 1px solid #cccccc;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    cursor: pointer;
-    outline: none;
-    transition: all 0.15s ease;
-    white-space: nowrap;
-}
-
-.sg_ctrl_btn:hover:not(:disabled) {
-    background: #f5f5f5;
-    border-color: #999999;
-    transform: translateY(-1px);
-}
-
-.sg_ctrl_btn:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-    box-shadow: none;
-}
-
-/* Reserve Selector Tray (When choosing a reserve tile to jump) */
+/* Reserve selector (only shown when the glider has no tile underneath) */
 #sg_reserve_tray {
     display: none;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    background: #ffffff;
-    padding: 10px 18px;
-    border-radius: 16px;
-    border: 2px solid #81c784;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 10px;
 }
 
 .sg_tray_label {
-    font-size: 13px;
-    font-weight: 700;
-    color: #2e7d32;
+    font-size: 14px;
+    font-weight: bold;
 }
 
 .sg_tray_tiles {
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
 }
 
 .sg_tray_tile_btn {
     display: inline-flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    font-weight: 800;
-    font-size: 16px;
+    width: 48px;
+    height: 48px;
+    padding: 2px;
+    border-radius: 6px;
+    background: #ffffff;
+    border: 2px solid #8a8a8a;
     cursor: pointer;
-    border: 2px solid transparent;
-    transition: all 0.15s ease;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
-.sg_tray_tile_btn.val-1 {
-    background: #e8f5e9 url('img/tile_1.png') no-repeat center center;
-    background-size: 85% 85%;
-    color: transparent;
-    border-color: #81c784;
+.sg_tray_tile_btn img {
+    width: 28px;
+    height: 26px;
+    object-fit: contain;
 }
 
-.sg_tray_tile_btn.val-2 {
-    background: #fff9c4 url('img/tile_2.png') no-repeat center center;
-    background-size: 85% 85%;
-    color: transparent;
-    border-color: #fbc02d;
-}
-
-.sg_tray_tile_btn.val-3 {
-    background: #e8f5e9 url('img/tile_3.png') no-repeat center center;
-    background-size: 85% 85%;
-    color: transparent;
-    border-color: #81c784;
-}
-
-.sg_tray_tile_btn.val-4 {
-    background: #e1f5fe url('img/tile_4.png') no-repeat center center;
-    background-size: 85% 85%;
-    color: transparent;
-    border-color: #0288d1;
-}
-
-.sg_tray_tile_btn.val-5 {
-    background: #ede7f6 url('img/tile_5.png') no-repeat center center;
-    background-size: 85% 85%;
-    color: transparent;
-    border-color: #7b1fa2;
-}
-
-.sg_tray_tile_btn:hover {
-    transform: scale(1.12);
+.sg_tray_tile_num {
+    font-size: 13px;
+    font-weight: bold;
+    line-height: 1;
+    color: #000000;
 }
 
 .sg_tray_tile_btn.selected {
-    border-color: #ffeb3b !important;
-    box-shadow: 0 0 10px #ffeb3b, 0 3px 8px rgba(0, 0, 0, 0.3) !important;
-    transform: scale(1.16);
+    border-color: #1f5fbf;
+    background: #e3eefc;
+    box-shadow: 0 0 0 2px #1f5fbf;
 }
 
-/* Scaler & Responsive Board (30% larger: 832x832 base) */
+/* Board scaler (JS sets width/height/transform) */
 .game-board-scaler {
     position: relative;
     width: 832px;
     height: 832px;
+    max-width: none;
     overflow: hidden;
     margin: 0 auto;
-    border-radius: 32px;
-    box-shadow: 0 16px 42px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.12);
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+    flex: 0 0 auto;
 }
 
 #sg_board_wrapper {
@@ -231,12 +115,40 @@
     display: block;
 }
 
+/* Compact game info under the board */
+#sg_info_strip {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px 22px;
+    margin-top: 10px;
+    font-size: 14px;
+}
+
+.sg_info_item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sg_info_icon {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+}
+
+#sg_preview {
+    min-height: 20px;
+    margin-top: 6px;
+    font-size: 14px;
+    text-align: center;
+}
+
 /* Hexagons in SVG */
 .sg-hex {
-    fill: var(--sg-hex-empty);
+    fill: rgba(255, 255, 255, 0.08);
     stroke: rgba(255, 255, 255, 0.22);
     stroke-width: 1.2;
-    transition: fill 0.2s ease, stroke 0.2s ease;
 }
 
 .sg-hex.center-space {
@@ -250,99 +162,58 @@
     cursor: default;
 }
 
+/* Valid targets: static (non-animated) highlight, outline + fill so it never relies on color alone */
 .sg-hex-cell.selectable {
     cursor: pointer;
 }
 
 .sg-hex-cell.selectable .sg-hex {
-    fill: rgba(255, 235, 59, 0.22);
+    fill: rgba(255, 235, 59, 0.28);
     stroke: #ffeb3b;
-    stroke-width: 2.5;
-    filter: drop-shadow(0 0 6px rgba(255, 235, 59, 0.8));
-    animation: sg_pulse_hex 1.3s infinite alternate;
+    stroke-width: 3;
 }
 
-@keyframes sg_pulse_hex {
-    0% {
-        stroke-width: 2.2;
-        fill: rgba(255, 235, 59, 0.18);
-    }
-    100% {
-        stroke-width: 3.4;
-        fill: rgba(255, 235, 59, 0.38);
-    }
+.sg-hex-cell.selectable:hover .sg-hex {
+    fill: rgba(255, 235, 59, 0.5);
 }
 
-/* Leap target highlight */
+.sg-hex-cell.sg-target-selected .sg-hex {
+    fill: rgba(255, 255, 255, 0.55);
+    stroke: #ffffff;
+    stroke-width: 4;
+    stroke-dasharray: 7, 4;
+}
+
 .sg-landing-marker {
     pointer-events: none;
-    animation: sg_landing_ring 1.3s infinite ease-out;
+    r: 22;
+    fill: none;
+    stroke: #ffeb3b;
+    stroke-width: 2;
+    stroke-dasharray: 3, 3;
 }
 
-@keyframes sg_landing_ring {
-    0% {
-        r: 16;
-        opacity: 0.95;
-    }
-    100% {
-        r: 30;
-        opacity: 0;
-    }
-}
-
-/* Food Tile SVG Styling */
+/* Food tile SVG */
 .sg-food-tile {
     pointer-events: none;
-    transition: transform 0.25s ease;
-    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.8)) drop-shadow(0 3px 6px rgba(0, 0, 0, 0.45));
+    filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.7)) drop-shadow(0 3px 5px rgba(0, 0, 0, 0.45));
 }
 
-.sg-tile-bg-green {
-    fill: #81c784;
-    stroke: #2e7d32;
-    stroke-width: 2;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-}
-
-.sg-tile-bg-purple {
-    fill: #8e24aa;
-    stroke: #ffd54f;
-    stroke-width: 2.5;
-    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.45));
-}
-
-.sg-tile-pip {
-    fill: #ffffff;
-    stroke: #333333;
-    stroke-width: 0.8;
-}
-
-.sg-tile-text {
-    font-weight: 900;
-    font-size: 15px;
-    fill: #ffffff;
-    text-anchor: middle;
-    dominant-baseline: central;
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
-}
-
-/* Sugar Glider Pawns - Top-down Soaring View */
+/* Sugar glider pieces */
 .sg-glider-piece {
     pointer-events: none;
-    transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 .sg-glider-inner {
     display: inline-block;
-    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.22s ease;
+    transition: transform 0.2s ease-out;
     transform: translateY(0);
-    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.45));
+    filter: drop-shadow(0 4px 5px rgba(0, 0, 0, 0.45));
 }
 
-/* Hover lift effect: glider hops high (-46px) ONLY when its home cell is hovered */
+/* Glider lifts only while its own cell is hovered */
 .sg-glider-piece.sg-glider-lifted .sg-glider-inner {
-    transform: translateY(-46px) scale(1.18);
-    filter: drop-shadow(0 30px 24px rgba(0, 0, 0, 0.65));
+    transform: translateY(-30px) scale(1.12);
 }
 
 /* Player Colors for Top-down Glider Pieces */
@@ -376,356 +247,67 @@
 .sg-glider-belly.color-green, .sg-glider-head.sg-glider-dorsal.color-green { fill: #c8e6c9; opacity: 0.88; stroke: #1b5e20; }
 .sg-glider-tail.color-green, .sg-glider-ear.color-green { fill: #2e7d32; stroke: #0f3b14; }
 
-/* Torpor Sleeping Visuals */
+/* Torpor: resting glider is dimmed and labelled (no looping decoration) */
 .sg-glider-piece.in-torpor .sg-glider-inner {
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4)) saturate(0.85);
-}
-
-.sg-torpor-aura {
-    fill: rgba(33, 150, 243, 0.22);
-    stroke: #64b5f6;
-    stroke-width: 2;
-    stroke-dasharray: 4, 3;
-    animation: sg_aura_pulse 2.2s infinite ease-in-out;
-}
-
-@keyframes sg_aura_pulse {
-    0% { transform: scale(0.94); opacity: 0.45; }
-    50% { transform: scale(1.06); opacity: 0.9; }
-    100% { transform: scale(0.94); opacity: 0.45; }
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4)) saturate(0.7) brightness(0.92);
 }
 
 .sg-torpor-zzz {
-    font-size: 13px;
-    font-weight: 800;
-    fill: #ffeb3b;
-    stroke: #333333;
-    stroke-width: 0.4;
-    animation: sg_zzz_float 1.8s infinite ease-in-out;
+    font-size: 14px;
+    font-weight: bold;
+    fill: #ffffff;
+    stroke: #1b2a33;
+    stroke-width: 2.5;
+    paint-order: stroke;
 }
 
-@keyframes sg_zzz_float {
-    0% { transform: translateY(0) scale(0.9); opacity: 0.4; }
-    50% { transform: translateY(-5px) scale(1.1); opacity: 1; }
-    100% { transform: translateY(0) scale(0.9); opacity: 0.4; }
-}
-
-/* Player Panels Custom Reserve Counters */
+/* Player panel: one compact line */
 .sg_panel_inventory {
     display: flex;
-    flex-direction: column;
-    gap: 5px;
-    padding: 8px;
-    margin-top: 6px;
-    background: rgba(0, 0, 0, 0.04);
-    border-radius: 8px;
-    font-size: 12px;
-}
-
-.sg_panel_jumping {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-weight: 600;
-}
-
-.sg_panel_reserves {
-    display: flex;
-    align-items: baseline;
-    gap: 6px;
-}
-
-.sg_panel_reserves_row {
-    display: inline-flex;
     flex-wrap: wrap;
     align-items: center;
+    gap: 4px 10px;
+    padding: 4px 0 2px 0;
+    font-size: 13px;
+}
+
+.sg_panel_under,
+.sg_panel_reserve {
+    display: inline-flex;
+    align-items: center;
     gap: 4px;
+}
+
+.sg_panel_symbol {
+    width: 18px;
+    height: 18px;
 }
 
 .sg_panel_tile_item {
     display: inline-flex;
     align-items: center;
     gap: 2px;
-    padding: 2px 5px;
-    background: rgba(255, 255, 255, 0.75);
-    border: 1px solid rgba(0, 0, 0, 0.12);
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 700;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    font-weight: bold;
+}
+
+.sg_panel_none {
+    min-width: 20px;
+    justify-content: center;
 }
 
 .sg_panel_tile_img {
     width: 22px;
     height: 20px;
     object-fit: contain;
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
-    vertical-align: middle;
 }
 
-#sg_attribution {
-    margin-top: 14px;
-    font-size: 12px;
-    color: #666666;
-    text-align: center;
-}
-
-/* Tricky Rules Widget (Top Right Corner of Board) */
-.sg_board_tricky_rules {
-    position: absolute;
-    top: 14px;
-    right: 16px;
-    z-index: 10;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 5px;
-    padding: 7px 11px;
-    background: rgba(255, 255, 255, 0.90);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    border: 1px solid rgba(0, 0, 0, 0.12);
-    border-radius: 14px;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
-    user-select: none;
-}
-
-.sg_tricky_rules_title {
-    font-size: 11px;
-    font-weight: 800;
-    color: #1b5e20;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.sg_tricky_rules_icons {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.sg_rule_icon_btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 34px;
-    height: 34px;
-    padding: 0;
-    font-size: 18px;
-    background: #ffffff;
-    border: 1.5px solid #b0bec5;
-    border-radius: 50%;
-    cursor: pointer;
-    outline: none;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.14);
-    transition: all 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.sg_rule_icon_btn:hover {
-    transform: scale(1.24);
-    border-color: #2e7d32;
-    background: #e8f5e9;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.28);
-}
-
-.sg_rule_icon_btn:active {
-    transform: scale(0.92);
-}
-
-/* Modal Popup: Cruxy Rules Guide */
-.sg_modal {
-    position: fixed;
-    inset: 0;
-    z-index: 10001;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
-    user-select: text;
-    -webkit-user-select: text;
-}
-
-.sg_modal_backdrop {
-    position: absolute;
-    inset: 0;
-    background: rgba(10, 25, 12, 0.65);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-}
-
-.sg_modal_dialog {
-    position: relative;
-    z-index: 10002;
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    max-width: 580px;
-    max-height: 86vh;
-    background: #ffffff;
-    border-radius: 18px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
-    animation: sg_modal_pop 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes sg_modal_pop {
-    0% { transform: scale(0.92) translateY(12px); opacity: 0; }
-    100% { transform: scale(1) translateY(0); opacity: 1; }
-}
-
-.sg_modal_header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 20px;
-    background: linear-gradient(135deg, #1b5e20, #2e7d32);
-    color: #ffffff;
-}
-
-.sg_modal_header h2 {
-    margin: 0;
-    font-size: 18px;
-    font-weight: 800;
-    letter-spacing: -0.2px;
-}
-
-.sg_modal_close_btn {
-    background: rgba(255, 255, 255, 0.15);
-    border: none;
-    border-radius: 50%;
-    width: 32px;
-    height: 32px;
-    font-size: 22px;
-    line-height: 1;
-    color: #ffffff;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.15s ease;
-}
-
-.sg_modal_close_btn:hover {
-    background: rgba(255, 255, 255, 0.3);
-}
-
-.sg_modal_body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 16px 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    background: #f8faf8;
-}
-
-.sg_rule_card {
-    background: #ffffff;
-    border: 1px solid #e0e0e0;
-    border-radius: 12px;
-    padding: 14px 16px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.04);
-    transition: all 0.25s ease;
-}
-
-.sg_rule_card.highlighted {
-    border-color: #ff9800 !important;
-    background: #fffde7 !important;
-    box-shadow: 0 0 16px rgba(255, 152, 0, 0.5) !important;
-    animation: sg_card_pulse 1.8s ease-in-out 2;
-}
-
-@keyframes sg_card_pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.02); }
-    100% { transform: scale(1); }
-}
-
-.sg_rule_card_header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
-}
-
-.sg_rule_card_icon {
-    font-size: 22px;
-    line-height: 1;
-}
-
-.sg_rule_card_header h3 {
-    margin: 0;
-    flex: 1;
-    font-size: 15px;
-    font-weight: 700;
-    color: #1b3b1e;
-}
-
-.sg_rule_badge {
-    padding: 3px 8px;
-    border-radius: 10px;
-    font-size: 11px;
-    font-weight: 700;
-    background: #e8f5e9;
-    color: #2e7d32;
-    border: 1px solid #a5d6a7;
-    white-space: nowrap;
-}
-
-.sg_rule_badge.sg_badge_warn {
-    background: #fbe9e7;
-    color: #d84315;
-    border-color: #ffab91;
-}
-
-.sg_rule_badge.sg_badge_win {
-    background: #fff8e1;
-    color: #f57f17;
-    border-color: #ffe082;
-}
-
-.sg_rule_card_content {
-    font-size: 13px;
-    line-height: 1.5;
-    color: #37474f;
-}
-
-.sg_rule_card_content p {
-    margin: 0 0 6px 0;
-}
-
-.sg_rule_card_content ul, .sg_rule_card_content ol {
-    margin: 0;
-    padding-left: 18px;
-}
-
-.sg_rule_card_content li {
-    margin-bottom: 4px;
-}
-
-.sg_modal_footer {
-    display: flex;
-    justify-content: flex-end;
-    padding: 12px 20px;
-    background: #ffffff;
-    border-top: 1px solid #e0e0e0;
-}
-
-.sg_btn_primary {
-    padding: 8px 20px;
-    font-size: 13px;
-    font-weight: 700;
-    color: #ffffff;
-    background: #2e7d32;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-    transition: all 0.15s ease;
-}
-
-.sg_btn_primary:hover {
-    background: #1b5e20;
-    transform: translateY(-1px);
-    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+@media (max-width: 480px) {
+    #sg_container {
+        padding: 10px 2px 10px 2px;
+        border-radius: 0;
+    }
+    .sg_tray_label {
+        flex-basis: 100%;
+        text-align: center;
+    }
 }

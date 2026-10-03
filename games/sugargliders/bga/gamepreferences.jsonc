@@ -1,0 +1,22 @@
+{
+    // user preferences ids should be between 100 and 199
+    "100": {
+        "name": "Sound effects",
+        "needReload": false,
+        "values": {
+            "1": { "name": "On" },
+            "2": { "name": "Off" }
+        },
+        "default": 1
+    },
+    "101": {
+        "name": "Confirm jump before moving",
+        "needReload": false,
+        "values": {
+            "1": { "name": "Automatic (touch screens only)" },
+            "2": { "name": "Always" },
+            "3": { "name": "Never" }
+        },
+        "default": 1
+    }
+}
