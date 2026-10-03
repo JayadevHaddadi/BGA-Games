@@ -227,15 +227,15 @@
     .yavalath_last_ping { animation: none; }
 }
 
-/* Colour-blind help: each stone colour also carries its own symbol */
+/* Colour-blind help: white = triangle, black = square, red = plus (pref 100, on by default) */
 .yavalath_mark {
     display: none;
     pointer-events: none;
 }
 
-.yavalath_stone_white ~ .yavalath_mark_white { display: inline; fill: none; stroke: #6b5d44; stroke-width: 2.4; }
-.yavalath_stone_black ~ .yavalath_mark_black { display: inline; fill: #efe6d0; stroke: none; }
-.yavalath_stone_red   ~ .yavalath_mark_red   { display: inline; fill: #f7e8d8; stroke: none; }
+.yavalath_symbols_on .yavalath_stone_white ~ .yavalath_mark_white { display: inline; fill: #4a3f2c; stroke: none; }
+.yavalath_symbols_on .yavalath_stone_black ~ .yavalath_mark_black { display: inline; fill: #efe6d0; stroke: none; }
+.yavalath_symbols_on .yavalath_stone_red   ~ .yavalath_mark_red   { display: inline; fill: none; stroke: #f7e8d8; stroke-width: 4; stroke-linecap: round; }
 
 /* Board coordinates */
 .yavalath_coord {

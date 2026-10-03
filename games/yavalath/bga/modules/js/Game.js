@@ -143,6 +143,7 @@ export class Game {
         }
 
         this.initDom();
+        this.applySymbolPreference();
         this.renderBoard();
         this.setupNotifications();
         this.setupResponsiveScaling();
@@ -163,6 +164,27 @@ export class Game {
                 </div>
             </div>
         `;
+    }
+
+    /** Pref 100: stone symbols for colour-blind players (default: on). */
+    applySymbolPreference() {
+        const container = document.getElementById('yavalath_container');
+        if (!container) return;
+        const read = () => {
+            try {
+                const v = this.bga?.userPreferences?.get?.(100);
+                return v === undefined || v === null ? 1 : Number(v);
+            } catch (e) { return 1; }
+        };
+        const apply = () => container.classList.toggle('yavalath_symbols_on', read() !== 2);
+        apply();
+        if (this.bga?.userPreferences) {
+            this.bga.userPreferences.onChange = (prefId, value) => {
+                if (Number(prefId) === 100) {
+                    container.classList.toggle('yavalath_symbols_on', Number(value) !== 2);
+                }
+            };
+        }
     }
 
     onPieRuleSwap() {
@@ -277,7 +299,7 @@ export class Game {
 
         const stoneR = (size * 0.74).toFixed(1);
         const ringR = (size * 0.56).toFixed(1);
-        const markR = size * 0.17;   // colour-blind symbol on each stone
+        const markR = size * 0.2;   // colour-blind symbol on each stone
         for (let q = -radius; q <= radius; q++) {
             for (let r = -radius; r <= radius; r++) {
                 if (q + r >= -radius && q + r <= radius) {
@@ -295,9 +317,9 @@ export class Game {
                             <g class="yavalath_stone_group" style="${color ? '' : 'display:none;'}">
                                 <circle class="yavalath_stone_base ${color ? 'yavalath_stone_' + color : ''}" cx="${cx}" cy="${cy}" r="${stoneR}" />
                                 <circle class="yavalath_stone_ring" cx="${cx}" cy="${cy}" r="${ringR}" />
-                                <circle class="yavalath_mark yavalath_mark_white" cx="${cx}" cy="${cy}" r="${markR}" />
-                                <circle class="yavalath_mark yavalath_mark_black" cx="${cx}" cy="${cy}" r="${markR}" />
-                                <polygon class="yavalath_mark yavalath_mark_red" points="${cx},${(y - markR * 1.35).toFixed(1)} ${(x + markR * 1.35).toFixed(1)},${cy} ${cx},${(y + markR * 1.35).toFixed(1)} ${(x - markR * 1.35).toFixed(1)},${cy}" />
+                                <polygon class="yavalath_mark yavalath_mark_white" points="${cx},${(y - markR * 1.15).toFixed(1)} ${(x + markR * 1.1).toFixed(1)},${(y + markR * 0.85).toFixed(1)} ${(x - markR * 1.1).toFixed(1)},${(y + markR * 0.85).toFixed(1)}" />
+                                <rect class="yavalath_mark yavalath_mark_black" x="${(x - markR * 0.85).toFixed(1)}" y="${(y - markR * 0.85).toFixed(1)}" width="${(markR * 1.7).toFixed(1)}" height="${(markR * 1.7).toFixed(1)}" />
+                                <path class="yavalath_mark yavalath_mark_red" d="M${(x - markR * 1.1).toFixed(1)},${cy} H${(x + markR * 1.1).toFixed(1)} M${cx},${(y - markR * 1.1).toFixed(1)} V${(y + markR * 1.1).toFixed(1)}" />
                             </g>
                             <circle class="yavalath_ghost_stone" cx="${cx}" cy="${cy}" r="${stoneR}" style="display:none;" />
                         </g>

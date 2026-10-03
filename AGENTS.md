@@ -190,7 +190,7 @@ Ian reviews each submission against the same UX/UI points. Check all of these **
 
 Extra rules learned with this review:
 * **Board coordinates + log**: label board axes (letters/numbers) and put the same coordinate string in the `stonePlaced`-style notification (`${coord}` computed server-side, e.g. `coordLabel()`), so the log matches the board.
-* **Colour-blind help** (reviewer request on other games): never rely on colour alone. Give each piece colour its own symbol (e.g. hollow dot / filled dot / diamond) and differentiate win vs lose highlights by line style (solid vs dashed), not just green vs red.
+* **Colour-blind help** (reviewer request on other games): never rely on colour alone. Give each piece colour its own clearly different SILHOUETTE (e.g. triangle / square / plus — not hollow vs filled dot, which look alike), on by default, with a user preference (`gamepreferences.jsonc`, id 100) to turn it off and differentiate win vs lose highlights by line style (solid vs dashed), not just green vs red.
 * **Last-move markers**: make them obvious (tinted cell + double ring dark/bright). In 3-player games mark the last `players-1` placements, newest bold and older dashed. One-shot ping animation only, no looping.
 * **Full-width on phones**: BGA wraps `#game_play_area` in padded containers. Widen the game container to the widest ancestor (`fitContainerToScreen()` pattern in Yavalath `Game.js`) and scale the board from that width; verify with a harness that wraps the play area in padded divs.
 * `:hover` styles must be wrapped in `@media (hover: hover)` so they don't stick on touch screens; mouse-only ghost previews are attached only when `matchMedia('(hover: hover)')` matches.
