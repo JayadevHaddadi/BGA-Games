@@ -335,11 +335,6 @@
     line-height: 1.2;
 }
 
-@media (hover: hover) {
-.kiln_black_rule_badge:hover .kiln_black_rule_tooltip,
-.kiln_black_rule_badge:focus .kiln_black_rule_tooltip,
-.kiln_black_rule_badge.kiln_tooltip_active }
-
 .kiln_outer_badge {
     font-size: 12px;
     color: #455a64;
