@@ -55,12 +55,9 @@ class PlayerTurnPlaceShape extends GameState
             'warehouse' => $this->game->getPlayerWarehouse($activePlayerId),
         ]);
 
-        $lines = $this->game->getCompletedLines($activePlayerId);
-        if (!empty($lines['rows']) || !empty($lines['cols'])) {
-            return PlayerTurnSell::class;
-        }
-
-        return NextPlayer::class;
+        // Always go through the Sell state: with nothing to sell it acts as a
+        // "Confirm end of turn / Undo" step so a placement can still be undone.
+        return PlayerTurnSell::class;
     }
 
     #[PossibleAction]

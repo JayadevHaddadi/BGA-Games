@@ -355,6 +355,8 @@ class StatePlayerTurnSell {
                 () => this.onConfirmSell(),
                 isMax ? 'primary' : 'alert'
             );
+        } else if (this.completedRows.length === 0 && this.completedCols.length === 0) {
+            this.bga.statusBar.setTitle(_('${you}: nothing to sell. Confirm to end your turn, or undo your move'));
         } else {
             this.bga.statusBar.setTitle(_('${you}: click a row arrow or a column arrow to choose what to sell, or pass'));
         }
@@ -389,7 +391,7 @@ class StatePlayerTurnSell {
         // 3. Pass action
         this.game.addActionButton(
             'btn_pass',
-            _('Pass (Keep Tiles)'),
+            (this.completedRows.length === 0 && this.completedCols.length === 0) ? _('Confirm end of turn') : _('Pass (Keep Tiles)'),
             () => this.onPass(),
             'primary'
         );

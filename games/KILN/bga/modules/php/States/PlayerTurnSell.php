@@ -100,10 +100,13 @@ class PlayerTurnSell extends GameState
     #[PossibleAction]
     public function actPassSell(int $activePlayerId): string
     {
-        $this->notify->all('sellPassed', clienttranslate('${player_name} chooses not to sell completed lines this turn.'), [
-            'player_id' => $activePlayerId,
-            'player_name' => $this->game->getPlayerNameById($activePlayerId),
-        ]);
+        $lines = $this->game->getCompletedLines($activePlayerId);
+        if (!empty($lines['rows']) || !empty($lines['cols'])) {
+            $this->notify->all('sellPassed', clienttranslate('${player_name} chooses not to sell completed lines this turn.'), [
+                'player_id' => $activePlayerId,
+                'player_name' => $this->game->getPlayerNameById($activePlayerId),
+            ]);
+        }
 
         return NextPlayer::class;
     }
