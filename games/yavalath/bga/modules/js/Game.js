@@ -128,13 +128,17 @@ export class Game {
         this.playerColors = gamedatas.player_colors || {};
         this.eliminatedPlayers = gamedatas.eliminated_players || [];
         this.turnCount = gamedatas.turn_count || 1;
-        this.lastMove = gamedatas.last_move || null;
-
-        // Fallback for games in progress where last_move wasn't in DB yet
-        if (!this.lastMove && this.boardData) {
+        // Newest first. In a 3-player game the last 2 placements are marked (one per opponent).
+        const nbPlayers = Object.keys(gamedatas.players || this.playerColors).length || 2;
+        this.maxLastMarks = Math.max(1, nbPlayers - 1);
+        this.lastMoves = Array.isArray(gamedatas.last_moves) ? gamedatas.last_moves.slice() : [];
+        if (!this.lastMoves.length && gamedatas.last_move) {
+            this.lastMoves = [gamedatas.last_move];
+        }
+        if (!this.lastMoves.length && this.boardData) {
             const placed = Object.values(this.boardData).filter(c => c && c.color);
             if (placed.length === 1) {
-                this.lastMove = { q: placed[0].q, r: placed[0].r };
+                this.lastMoves = [{ q: placed[0].q, r: placed[0].r }];
             }
         }
 
@@ -224,7 +228,7 @@ export class Game {
         const s3 = Math.sqrt(3);
 
         // Board plate: a flat-top hexagon, like the physical board, hugging the cells.
-        const sideDist = 1.5 * radius * size + size * 1.15;   // centre -> plate edge
+        const sideDist = 1.5 * radius * size + size * 1.5;    // centre -> plate edge (room for coordinate labels)
         const cornerDist = sideDist / (s3 / 2);              // centre -> plate corner
         const pad = 7;
         const svgWidth = Math.ceil(2 * cornerDist + pad * 2);
@@ -273,6 +277,7 @@ export class Game {
 
         const stoneR = (size * 0.74).toFixed(1);
         const ringR = (size * 0.56).toFixed(1);
+        const markR = size * 0.17;   // colour-blind symbol on each stone
         for (let q = -radius; q <= radius; q++) {
             for (let r = -radius; r <= radius; r++) {
                 if (q + r >= -radius && q + r <= radius) {
@@ -290,6 +295,9 @@ export class Game {
                             <g class="yavalath_stone_group" style="${color ? '' : 'display:none;'}">
                                 <circle class="yavalath_stone_base ${color ? 'yavalath_stone_' + color : ''}" cx="${cx}" cy="${cy}" r="${stoneR}" />
                                 <circle class="yavalath_stone_ring" cx="${cx}" cy="${cy}" r="${ringR}" />
+                                <circle class="yavalath_mark yavalath_mark_white" cx="${cx}" cy="${cy}" r="${markR}" />
+                                <circle class="yavalath_mark yavalath_mark_black" cx="${cx}" cy="${cy}" r="${markR}" />
+                                <polygon class="yavalath_mark yavalath_mark_red" points="${cx},${(y - markR * 1.35).toFixed(1)} ${(x + markR * 1.35).toFixed(1)},${cy} ${cx},${(y + markR * 1.35).toFixed(1)} ${(x - markR * 1.35).toFixed(1)},${cy}" />
                             </g>
                             <circle class="yavalath_ghost_stone" cx="${cx}" cy="${cy}" r="${stoneR}" style="display:none;" />
                         </g>
@@ -298,24 +306,25 @@ export class Game {
             }
         }
 
-        // Last move marker and staged move marker (static rings)
-        html += `<circle id="yavalath_last_indicator" class="yavalath_last_marker" cx="0" cy="0" r="${(size * 0.84).toFixed(1)}" style="display:none;" />`;
+        // Coordinate labels: letters follow the diagonal columns, numbers the rows
+        for (let r = -radius; r <= radius; r++) {
+            const q0 = Math.max(-radius, -radius - r);
+            const p = this.axialToPixel(q0, r, centerX, centerY, size);
+            html += `<text class="yavalath_coord" x="${(p.x - size * s3 * 0.76).toFixed(1)}" y="${p.y.toFixed(1)}" font-size="${(size * 0.46).toFixed(1)}">${r + radius + 1}</text>`;
+        }
+        for (let q = -radius; q <= radius; q++) {
+            const rEnd = Math.min(radius, radius - q);
+            const p = this.axialToPixel(q, rEnd, centerX, centerY, size);
+            html += `<text class="yavalath_coord" x="${(p.x + size * s3 * 0.5 * 0.76).toFixed(1)}" y="${(p.y + size * 1.5 * 0.76).toFixed(1)}" font-size="${(size * 0.46).toFixed(1)}">${String.fromCharCode(65 + q + radius)}</text>`;
+        }
+
+        // Last move markers (rebuilt by drawLastMarkers) and staged move marker
+        html += `<g id="yavalath_last_layer"></g>`;
         html += `<circle id="yavalath_staged_indicator" class="yavalath_staged_marker" cx="0" cy="0" r="${(size * 0.84).toFixed(1)}" style="display:none;" />`;
 
         svg.innerHTML = html;
 
-        // Restore last move indicator on board render / page refresh
-        if (this.lastMove && this.lastMove.q !== undefined && this.lastMove.r !== undefined) {
-            const lastCell = svg.querySelector(`.yavalath_cell[data-q="${this.lastMove.q}"][data-r="${this.lastMove.r}"]`);
-            if (lastCell) {
-                const lastIndicator = svg.querySelector('#yavalath_last_indicator');
-                if (lastIndicator) {
-                    lastIndicator.setAttribute('cx', lastCell.getAttribute('data-cx'));
-                    lastIndicator.setAttribute('cy', lastCell.getAttribute('data-cy'));
-                    lastIndicator.style.display = 'block';
-                }
-            }
-        }
+        this.drawLastMarkers(false);
 
         const canHover = !!(window.matchMedia && window.matchMedia('(hover: hover)').matches);
         svg.querySelectorAll('.yavalath_cell').forEach(cellEl => {
@@ -330,6 +339,32 @@ export class Game {
                 cellEl.addEventListener('mouseleave', () => this.onCellHover(cellEl, false));
             }
         });
+    }
+
+    drawLastMarkers(animate) {
+        const svg = document.getElementById('yavalath_board_svg');
+        const layer = svg ? svg.querySelector('#yavalath_last_layer') : null;
+        if (!svg || !layer) return;
+        const size = this.HEX_SIZE;
+
+        svg.querySelectorAll('.yavalath_last_new, .yavalath_last_prev').forEach(el => {
+            el.classList.remove('yavalath_last_new', 'yavalath_last_prev');
+        });
+
+        let html = '';
+        this.lastMoves.slice(0, this.maxLastMarks).forEach((m, i) => {
+            const cell = svg.querySelector(`.yavalath_cell[data-q="${m.q}"][data-r="${m.r}"]`);
+            if (!cell) return;
+            cell.classList.add(i === 0 ? 'yavalath_last_new' : 'yavalath_last_prev');
+            const cx = cell.getAttribute('data-cx');
+            const cy = cell.getAttribute('data-cy');
+            const kind = i === 0 ? 'new' : 'prev';
+            html += `<g class="yavalath_last_ring yavalath_last_ring_${kind}${animate && i === 0 ? ' yavalath_last_ping' : ''}">
+                <circle class="yavalath_last_outer" cx="${cx}" cy="${cy}" r="${(size * 0.9).toFixed(1)}" />
+                <circle class="yavalath_last_inner" cx="${cx}" cy="${cy}" r="${(size * 0.9).toFixed(1)}" />
+            </g>`;
+        });
+        layer.innerHTML = html;
     }
 
     onCellClick(q, r) {
@@ -544,16 +579,10 @@ export class Game {
                 stoneGroup.style.display = 'block';
             }
 
-            // Update Last Move Indicator
-            const cx = cell.getAttribute('data-cx');
-            const cy = cell.getAttribute('data-cy');
-            const lastIndicator = document.getElementById('yavalath_last_indicator');
-            if (lastIndicator && cx && cy) {
-                lastIndicator.setAttribute('cx', cx);
-                lastIndicator.setAttribute('cy', cy);
-                lastIndicator.style.display = 'block';
-            }
         }
+
+        this.lastMoves = [{ q, r }, ...this.lastMoves.filter(m => !(m.q === q && m.r === r))].slice(0, 2);
+        this.drawLastMarkers(true);
 
         this.turnCount = (this.turnCount || 1) + 1;
 
@@ -602,6 +631,46 @@ export class Game {
         setTimeout(() => this.updateBoardScale(), 100);
     }
 
+    /**
+     * On phones, let the board container use the full screen width: BGA wraps the play area
+     * in padded containers, so we widen ours to the widest ancestor and pull it back to the
+     * left edge.
+     */
+    fitContainerToScreen(container) {
+        container.style.width = '';
+        container.style.marginLeft = '';
+        container.style.marginRight = '';
+
+        const viewportW = document.documentElement.clientWidth || window.innerWidth;
+        if (window.innerWidth > 800) {
+            return container.clientWidth;
+        }
+
+        let ref = null;
+        let widest = 0;
+        for (let el = container.parentElement; el && el !== document.documentElement; el = el.parentElement) {
+            if (el.clientWidth > widest) {
+                widest = el.clientWidth;
+                ref = el;
+            }
+        }
+        const targetW = Math.min(widest || viewportW, viewportW);
+
+        container.style.alignSelf = 'flex-start';
+        container.style.width = `${targetW}px`;
+
+        if (ref) {
+            const cRect = container.getBoundingClientRect();
+            const rRect = ref.getBoundingClientRect();
+            const unit = (container.offsetWidth && cRect.width) ? cRect.width / container.offsetWidth : 1;
+            const shift = (cRect.left - rRect.left) / unit;
+            if (Math.abs(shift) > 0.5) {
+                container.style.marginLeft = `${-shift}px`;
+            }
+        }
+        return targetW;
+    }
+
     updateBoardScale() {
         const container = document.getElementById('yavalath_container');
         const scaler = document.getElementById('yavalath_board_scaler');
@@ -610,7 +679,7 @@ export class Game {
 
         const baseW = this.baseW;
         const baseH = this.baseH;
-        const availableWidth = Math.max(280, (container.clientWidth || window.innerWidth) - 8);
+        const availableWidth = Math.max(280, this.fitContainerToScreen(container) - 2);
 
         // Fill the available width (desktop is capped at the natural 1:1 size)
         let scale = Math.min(1.0, availableWidth / baseW);

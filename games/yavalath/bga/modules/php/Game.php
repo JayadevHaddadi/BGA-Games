@@ -147,6 +147,7 @@ class Game extends \Bga\GameFramework\Table
         $this->globals->set('pie_rule_enabled', $pieRuleEnabled);
         $this->globals->set('pie_rule_used', false);
         $this->globals->set('last_move', null);
+        $this->globals->set('last_moves', []);
 
         $this->tableStats->init(['turns_number', 'win_by_four', 'win_by_opponent_three'], 0);
         $this->playerStats->init(['turns_number', 'stones_placed'], 0);
@@ -173,6 +174,7 @@ class Game extends \Bga\GameFramework\Table
         $result['pie_rule_used'] = (bool) $this->globals->get('pie_rule_used', false);
         $result['turn_count'] = (int) $this->globals->get('turn_count', 1);
         $result['last_move'] = $this->globals->get('last_move', null);
+        $result['last_moves'] = $this->globals->get('last_moves', []);
         return $result;
     }
 
@@ -190,6 +192,16 @@ class Game extends \Bga\GameFramework\Table
             ];
         }
         return $board;
+    }
+
+    /**
+     * Human-readable board coordinate used on the board labels and in the game log.
+     * Column letter = diagonal line (A..), row number = horizontal row from the top (1..).
+     */
+    public function coordLabel(int $q, int $r): string
+    {
+        $radius = (int) $this->globals->get('hex_radius', 4);
+        return chr(65 + $q + $radius) . ($r + $radius + 1);
     }
 
     public function isValidCoord(int $q, int $r): bool
@@ -216,6 +228,14 @@ class Game extends \Bga\GameFramework\Table
 
         static::DbQuery("UPDATE `board` SET `color` = '{$color}', `player_id` = {$playerId} WHERE `coord_q` = {$q} AND `coord_r` = {$r}");
         $this->globals->set('last_move', ['q' => $q, 'r' => $r]);
+
+        // Keep the 2 most recent placements (newest first) for the "last moves" markers
+        $lastMoves = $this->globals->get('last_moves', []);
+        if (!is_array($lastMoves)) {
+            $lastMoves = [];
+        }
+        array_unshift($lastMoves, ['q' => $q, 'r' => $r]);
+        $this->globals->set('last_moves', array_slice($lastMoves, 0, 2));
 
         return $color;
     }
