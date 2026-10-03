@@ -269,11 +269,21 @@
 /* Player panel: one compact line */
 .sg_panel_inventory {
     display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 4px 0 2px 0;
+    font-size: 13px;
+}
+
+.sg_panel_row {
+    display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 4px 10px;
-    padding: 4px 0 2px 0;
-    font-size: 13px;
+}
+
+.sg_panel_label {
+    font-weight: normal;
 }
 
 .sg_panel_under,

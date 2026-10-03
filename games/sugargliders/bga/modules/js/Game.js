@@ -902,16 +902,20 @@ export class Game {
             ).join('');
 
             const underHtml = jumping
-                ? `<span class="sg_panel_tile_item"><img src="${themeUrl}img/tile_${jumping.value}.png" class="sg_panel_tile_img" alt="${jumping.value} pt" /></span>`
-                : `<span class="sg_panel_tile_item sg_panel_none">&ndash;</span>`;
+                ? `<span class="sg_panel_tile_item"><img src="${themeUrl}img/tile_${jumping.value}.png" class="sg_panel_tile_img" alt="" /><span>${jumping.value}</span></span>`
+                : `<span class="sg_panel_tile_item">${_('nothing')}</span>`;
 
             const torpor = this.gliders[pId] && this.gliders[pId].in_torpor
                 ? `<span class="sg_panel_torpor" id="sg_panel_torpor_${pId}">Zz</span>` : '';
 
             inv.innerHTML = `
-                <span class="sg_panel_under" id="sg_panel_under_${pId}">${marker}${underHtml}</span>
-                ${torpor}
-                <span class="sg_panel_reserve" id="sg_panel_reserve_${pId}">${reserveHtml}</span>
+                <div class="sg_panel_row">
+                    <span class="sg_panel_under" id="sg_panel_under_${pId}">${marker}<span class="sg_panel_label">${_('Sitting on:')}</span>${underHtml}</span>
+                    ${torpor}
+                </div>
+                <div class="sg_panel_row">
+                    <span class="sg_panel_reserve" id="sg_panel_reserve_${pId}"><span class="sg_panel_label">${_('Reserve:')}</span>${reserveHtml}</span>
+                </div>
             `;
             this.addTip(`sg_panel_under_${pId}`, _('Fruit under the glider. Its value is the length of the next jump.'));
             if (torpor) this.addTip(`sg_panel_torpor_${pId}`, _('Resting in torpor. If every player enters torpor in a row, the game ends.'));
