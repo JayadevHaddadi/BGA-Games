@@ -86,11 +86,12 @@ class PlayerTurn extends GameState
         $playerName = $this->game->loadPlayersBasicInfos()[$activePlayerId]['player_name'];
 
         // Notify stone placement
-        $this->game->notifyAllPlayers('stonePlaced', clienttranslate('${player_name} placed a stone at (${q}, ${r})'), [
+        $this->game->notifyAllPlayers('stonePlaced', clienttranslate('${player_name} placed a stone at ${coord}'), [
             'player_id' => $activePlayerId,
             'player_name' => $playerName,
             'q' => $q,
             'r' => $r,
+            'coord' => $this->game->coordLabel($q, $r),
             'color' => $color,
             'result' => $result['status'],
             'line' => $result['line'],

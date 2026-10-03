@@ -24,6 +24,13 @@
     box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.45);
 }
 
+@media (max-width: 800px) {
+    #yavalath_container {
+        padding: 8px 0 10px 0;
+        border-radius: 0;
+    }
+}
+
 #yavalath_rules_line {
     margin: 0 0 10px 0;
     padding: 0 8px;
@@ -177,11 +184,66 @@
 .yavalath_ghost_black { fill: url(#yav_stone_black); }
 .yavalath_ghost_red   { fill: url(#yav_stone_red); }
 
-/* Last move ring */
-.yavalath_last_marker {
-    fill: none;
-    stroke: #c0392b;
+/* Last move markers: tinted cell + double ring (dark outline, bright amber).
+   The newest placement is bold; the one before it (3-player games) is lighter. */
+.yavalath_last_new .yavalath_hex {
+    fill: rgba(255, 190, 40, 0.55);
+    stroke: #b86e00;
     stroke-width: 3;
+}
+
+.yavalath_last_prev .yavalath_hex {
+    fill: rgba(255, 190, 40, 0.28);
+    stroke: #b86e00;
+    stroke-width: 2.2;
+}
+
+.yavalath_last_ring {
+    pointer-events: none;
+}
+
+.yavalath_last_ring circle {
+    fill: none;
+}
+
+.yavalath_last_ring_new .yavalath_last_outer { stroke: #3a1f00; stroke-width: 8; }
+.yavalath_last_ring_new .yavalath_last_inner { stroke: #ffc233; stroke-width: 4.5; }
+.yavalath_last_ring_prev .yavalath_last_outer { stroke: #3a1f00; stroke-width: 6; }
+.yavalath_last_ring_prev .yavalath_last_inner { stroke: #ffc233; stroke-width: 3; stroke-dasharray: 9, 6; }
+
+/* One-shot ping when a new stone lands (no looping animation) */
+.yavalath_last_ping {
+    animation: yav_ping 0.5s ease-out 1;
+    transform-origin: center;
+    transform-box: fill-box;
+}
+
+@keyframes yav_ping {
+    from { transform: scale(1.5); opacity: 0.2; }
+    to   { transform: scale(1);   opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .yavalath_last_ping { animation: none; }
+}
+
+/* Colour-blind help: white = triangle, black = square, red = plus (pref 100, on by default) */
+.yavalath_mark {
+    display: none;
+    pointer-events: none;
+}
+
+.yavalath_symbols_on .yavalath_stone_white ~ .yavalath_mark_white { display: inline; fill: #4a3f2c; stroke: none; }
+.yavalath_symbols_on .yavalath_stone_black ~ .yavalath_mark_black { display: inline; fill: #efe6d0; stroke: none; }
+.yavalath_symbols_on .yavalath_stone_red   ~ .yavalath_mark_red   { display: inline; fill: none; stroke: #f7e8d8; stroke-width: 4; stroke-linecap: round; }
+
+/* Board coordinates */
+.yavalath_coord {
+    fill: #4a2c0e;
+    font-family: Georgia, "Times New Roman", serif;
+    font-weight: bold;
+    text-anchor: middle;
+    dominant-baseline: central;
     pointer-events: none;
 }
 
@@ -196,4 +258,5 @@
     fill: rgba(200, 70, 60, 0.4) !important;
     stroke: #8e1f17 !important;
     stroke-width: 4 !important;
+    stroke-dasharray: 7, 4;
 }

@@ -168,7 +168,7 @@ Every change should be committed and pushed to `main`. The GitHub Actions deploy
 
 ### C. Audio & Feedback
 1. **Audio**:
-   * Ship real sound files in `<game>/bga/sounds/` (both `.ogg` and `.mp3`, short, quiet) and play them with `this.bga.sounds.play('<filename-without-ext>')`. This respects the player's BGA volume/mute settings. **Do not** build custom Web Audio synths or in-game mute buttons.
+   * Ship real sound files in `<game>/bga/sounds/` (both `.ogg` and `.mp3`, short, quiet) and play them with `this.bga.sounds.play('<filename-without-ext>')`. This respects the player's BGA volume/mute settings. **Do not** build custom Web Audio synths or in-game mute buttons. **Never** call the deprecated `gameui.playSound` (build warning) — only `this.bga.sounds.play`. Sound files must sit in the top-level `sounds/` folder so BGA preloads them.
    * Sounds fire only for **confirmed game events** (stone placed, result). **Never** on hover, `mouseenter`, or tap-to-stage (Ian/BGA: *"Remove hover-triggered sounds"*, guideline D.4).
 2. **Status Bar Guidance**:
    * Always provide dynamic, informative titles in `this.bga.statusBar.setTitle(...)` guiding the active player.
@@ -189,6 +189,10 @@ Ian reviews each submission against the same UX/UI points. Check all of these **
 | 6 | Button colors | C.3 | Primary = blue, Undo/Pass/Cancel = red (`'alert'`), side actions = `'secondary'`. Only ONE copy of each action (no duplicate swap/undo button inside the play area). |
 
 Extra rules learned with this review:
+* **Board coordinates + log**: label board axes (letters/numbers) and put the same coordinate string in the `stonePlaced`-style notification (`${coord}` computed server-side, e.g. `coordLabel()`), so the log matches the board.
+* **Colour-blind help** (reviewer request on other games): never rely on colour alone. Give each piece colour its own clearly different SILHOUETTE (e.g. triangle / square / plus — not hollow vs filled dot, which look alike), on by default, with a user preference (`gamepreferences.jsonc`, id 100) to turn it off and differentiate win vs lose highlights by line style (solid vs dashed), not just green vs red.
+* **Last-move markers**: make them obvious (tinted cell + double ring dark/bright). In 3-player games mark the last `players-1` placements, newest bold and older dashed. One-shot ping animation only, no looping.
+* **Full-width on phones**: BGA wraps `#game_play_area` in padded containers. Widen the game container to the widest ancestor (`fitContainerToScreen()` pattern in Yavalath `Game.js`) and scale the board from that width; verify with a harness that wraps the play area in padded divs.
 * `:hover` styles must be wrapped in `@media (hover: hover)` so they don't stick on touch screens; mouse-only ghost previews are attached only when `matchMedia('(hover: hover)')` matches.
 * Respect `prefers-reduced-motion`; avoid infinite CSS animations on board elements.
 * Test the UI in the browser pane at 375px and desktop width with a small local harness before pushing (mock `bga`, `_`, `gamedatas`).
