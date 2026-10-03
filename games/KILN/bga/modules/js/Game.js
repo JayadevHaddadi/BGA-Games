@@ -1467,7 +1467,7 @@ export class Game {
         const updateScale = () => {
             const parent = scalerWrapper.parentElement || document.getElementById('game_play_area') || document.body;
             const containerWidth = parent.clientWidth || window.innerWidth;
-            const availableWidth = Math.max(280, containerWidth - 16);
+            const availableWidth = Math.max(280, containerWidth - 4);
             const availableHeight = window.innerHeight - 130;
 
             const isMobile = document.body.classList.contains('mobile_version') ||
@@ -1476,8 +1476,12 @@ export class Game {
                              (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ||
                              ('ontouchstart' in window);
 
-            const unscaledW = Math.max(baseWidth, boardEl.offsetWidth || 0);
-            const unscaledH = Math.max(baseHeight, boardEl.offsetHeight || 0, boardEl.scrollHeight || 0);
+            // Tighten gutters on narrow screens (same table arrangement, less wasted space),
+            // then scale the measured natural size so the layout fills the width.
+            boardEl.classList.toggle('kiln_narrow', containerWidth < 720);
+            boardEl.style.transform = 'none';
+            const unscaledW = boardEl.offsetWidth || baseWidth;
+            const unscaledH = boardEl.offsetHeight || baseHeight;
 
             let scale = availableWidth / unscaledW;
 
