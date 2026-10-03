@@ -15,8 +15,8 @@
     align-items: center;
     width: 100%;
     box-sizing: border-box;
-    margin: 0 auto 16px auto;
-    padding: 16px 8px 14px 8px;
+    margin: 0 auto;
+    padding: 12px 8px 8px 8px;
     border-radius: 10px;
     overflow-x: auto;
     background-color: #cfe0c8;
@@ -116,10 +116,13 @@
 }
 
 #sg_preview {
-    min-height: 20px;
     margin-top: 6px;
     font-size: 14px;
     text-align: center;
+}
+
+#sg_preview:empty {
+    display: none;
 }
 
 /* Hexagons in SVG */
@@ -326,7 +329,7 @@
 
 @media (max-width: 480px) {
     #sg_container {
-        padding: 10px 2px 10px 2px;
+        padding: 8px 2px 6px 2px;
         border-radius: 0;
     }
     .sg_tray_label {
