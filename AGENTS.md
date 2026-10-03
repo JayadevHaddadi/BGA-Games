@@ -229,3 +229,44 @@ Always store these promotional images in `<game>/bga/metadata_assets/` (**never*
 
 
 
+
+---
+
+## 🎨 6. Alpha Reviewer Feedback: "Generated-Looking UI" Rejections (READ BEFORE ANY UI WORK)
+
+**Source**: BGA reviewer (Ian) rejected Sugar Gliders for Public Alpha, citing the *same* issues already raised on earlier games. Quote: *"Feedback given on previous projects should be applied to subsequent adaptations... generic / AI-generated-looking UI patterns; insufficient adaptation to the specific identity of the game; mobile and responsive presentation requiring more care; an interface that feels generated rather than deliberately designed."* Abstract/simple games are NOT an excuse.
+
+**Rule: Before requesting any alpha review, walk the full checklist at https://en.doc.boardgamearena.com/BGA_Studio_Guidelines and the list below. Never ship a UI pass without it.**
+
+### A. Anti-"AI look" rules
+* **No emoji as UI icons** (🎯💤🚫🍃🏆📖 etc.). Use SVG/PNG icons drawn from the game's own art/components, with `aria-label`s.
+* **No custom themed modals/dialogs, gradient "card" widgets, pill badges, or glassmorphism.** Use BGA native elements: status bar, tooltips (`bga.gameui.addTooltip`), game wiki (`GAMEHELP`), standard log.
+* **No decorative/themed fonts**; use the default BGA font. No pure flat/gradient backgrounds — use a subtle textured playmat, slightly blurred, low-contrast so components stay the focus.
+* **No custom header bars, badges or settings UI.** Settings (sound, animation speed) go in BGA's standard preferences menu (`userPreferences`), not custom buttons on the board.
+* **No in-game logos or marketing text** on the play area. No "Cruxy Rules Guide"-style branding.
+* **Take the identity from the game's components**: board art, piece shapes, palette from the physical game. Extra colors come from components, never tinted UI buttons.
+
+### B. Layout & panels
+* Center the play area; leave "no-action" margins around the board. Fluid layout, no fixed widths. Fully playable at 100% scale; never rely on zoom.
+* Player panels: compact, no redundant info, no titles/settings. Don't put always-needed info only there.
+* Group related info (resources/scores) in one place. Provide jump-links/anchors for vertical mobile layouts.
+* **No automatic popups mid-game**; popups only for tutorials, skippable, click-outside-to-close. Rules belong in the wiki/tooltips.
+
+### C. Action bar & feedback
+* ≤ 4 buttons; main action centered; cancel/undo far right, visually separated. Never replace board interactions with buttons. Don't stick custom buttons next to BGA built-in controls. Hide never-relevant buttons; grey out temporarily unavailable ones.
+* Prefer one "Restart turn"/timed confirm over per-action Undo; don't layer Undo+Reset+Confirm.
+* Highlight valid targets and **preview consequences before commit**. Every failed action shows a short plain-text reason (shake/tooltip). Pair color with icon/text.
+* **Game log**: every action says *who* did *what* with icons (e.g. "Marianna jumped to [space] and ate [tile] (+2)"), incl. automatic/forced actions; group tiny events.
+* Animations 0.5s (max 0.8s), purposeful, no looping/bouncing/glow decoration, batch repeats. Scoring end: step-by-step with `displayScoring`, show breakdown.
+* Sound: below BGA default, short, never the only cue.
+
+### D. Accessibility & mobile
+* Colorblind-safe: every player color/piece also has a unique shape/symbol/outline. WCAG AA (4.5:1) contrast for text and icons. Outline player-color names.
+* Tap targets ≥ 32px (aim 40–44px) with spacing; no tight icon clusters.
+* All text translatable (`_()`); labels on every interactive element.
+* **Test at 320–400px portrait and landscape phones, not just desktop**, before every push touching UI. Take screenshots with the pre-installed Chromium/Playwright at 360×740, 390×844, 820×1180, 1440×900 and review them honestly against the checklist.
+* Refresh/reconnect must restore exact state (server is source of truth).
+
+### E. Process
+* Every new game starts from this section, not from a generic template. Re-check the checklist at the end of each UI task and state in the commit/summary which items were verified.
+* Push directly to `main` (no feature branches/PRs) unless the user says otherwise.
