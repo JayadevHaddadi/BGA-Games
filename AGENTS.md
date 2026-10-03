@@ -167,10 +167,31 @@ Every change should be committed and pushed to `main`. The GitHub Actions deploy
    * On desktop, cap `scale` at `1.0` (natural crisp board).
 
 ### C. Audio & Feedback
-1. **Audio Levels**:
-   * Web Audio synthesizer volumes must stay lower than BGA default (e.g. gain $\le 0.18$) to remain subtle and non-intrusive.
+1. **Audio**:
+   * Ship real sound files in `<game>/bga/sounds/` (both `.ogg` and `.mp3`, short, quiet) and play them with `this.bga.sounds.play('<filename-without-ext>')`. This respects the player's BGA volume/mute settings. **Do not** build custom Web Audio synths or in-game mute buttons.
+   * Sounds fire only for **confirmed game events** (stone placed, result). **Never** on hover, `mouseenter`, or tap-to-stage (Ian/BGA: *"Remove hover-triggered sounds"*, guideline D.4).
 2. **Status Bar Guidance**:
    * Always provide dynamic, informative titles in `this.bga.statusBar.setTitle(...)` guiding the active player.
+
+---
+
+## 🧭 4b. Reviewer Feedback Checklist (BGA reviewer "Ian" — applies to EVERY game)
+
+Ian reviews each submission against the same UX/UI points. Check all of these **before** requesting Alpha/Beta review. (Source: Yavalath review, Oct 2026 — "the same main UX/UI issues raised on the other recent submissions also apply here".)
+
+| # | Reviewer point | Guideline | Rule for us |
+| :-- | :--- | :--- | :--- |
+| 1 | "Generic / AI-generated-looking UI" | C.3 | No pill badges, gradient chips, glossy shine ellipses, emoji in buttons/labels (`✔ ↺ 🔊`), looping pulse/glow animations, or rounded "card with big drop shadow" boards. Use the game's physical look (wood, felt, paper, real piece shapes), flat/matte pieces, and plain text. |
+| 2 | Mobile layout & touch-target sizing | C.4, E.3 | Board fills ~100% of the available width (tight `viewBox`, no big padding inside the SVG). Every tappable cell/piece ≥ 32px at a 375px viewport — **measure it** (`getBoundingClientRect`) at 375px for the largest board variant. Use tap-to-stage + Confirm/Undo so a mis-tap is recoverable. No controls in the play area smaller than 32px; put actions in the BGA action bar. |
+| 3 | Hover-triggered sounds | D.4 | No sound on hover or on tentative/staged actions. Native `bga.sounds` files only (see §4.C). |
+| 4 | Thematic treatment / background | C.5 | Give the play area a themed background (CSS gradients are enough, e.g. walnut table) and a board that looks like the real one (Yavalath = hexagonal board, not a rounded square). |
+| 5 | Credits inside gameplay area | — | **Never** show designer/publisher/developer text in the board area or play area. Credits go in `gameinfos.jsonc` (`publisher`, etc.) and the Game Metadata Manager (designers, artists, publisher). Rules reminders are fine; credits are not. |
+| 6 | Button colors | C.3 | Primary = blue, Undo/Pass/Cancel = red (`'alert'`), side actions = `'secondary'`. Only ONE copy of each action (no duplicate swap/undo button inside the play area). |
+
+Extra rules learned with this review:
+* `:hover` styles must be wrapped in `@media (hover: hover)` so they don't stick on touch screens; mouse-only ghost previews are attached only when `matchMedia('(hover: hover)')` matches.
+* Respect `prefers-reduced-motion`; avoid infinite CSS animations on board elements.
+* Test the UI in the browser pane at 375px and desktop width with a small local harness before pushing (mock `bga`, `_`, `gamedatas`).
 
 ---
 

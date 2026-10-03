@@ -1,334 +1,199 @@
 /**
- * Yavalath BGA Stylesheet - Handcrafted Modern Aesthetic
+ * Yavalath BGA Stylesheet
+ * Theme: a hexagonal maple board with turned stones, resting on a walnut table.
  */
 
 #yavalath_container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
     width: 100%;
-    margin: 6px auto 16px auto;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    box-sizing: border-box;
+    margin: 0 auto 12px auto;
+    padding: 12px 4px 16px 4px;
+    border-radius: 6px;
     user-select: none;
     -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    /* Walnut table: fine horizontal grain over a warm dark base */
+    background-color: #3b2a1d;
+    background-image:
+        repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.10) 0, rgba(0, 0, 0, 0.10) 1px, transparent 1px, transparent 7px),
+        repeating-linear-gradient(90deg, rgba(255, 220, 170, 0.04) 0, rgba(255, 220, 170, 0.04) 2px, transparent 2px, transparent 19px),
+        linear-gradient(180deg, #46321f 0%, #33241a 100%);
+    box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.45);
 }
 
-#yavalath_header_info {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    margin-bottom: 12px;
-}
-
-.yavalath_rule_badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 5px 13px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.2px;
-    background: #e8f5e9;
-    color: #1b5e20;
-    border: 1px solid #81c784;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.yavalath_lose_badge {
-    background: #ffebee;
-    color: #b71c1c;
-    border-color: #ef9a9a;
-}
-
-.yavalath_turn_badge {
-    background: #f5f5f5;
-    color: #424242;
-    border-color: #cccccc;
-}
-
-.yavalath_ctrl_btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 5px 13px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 600;
-    background: #ffffff;
-    color: #333333;
-    border: 1px solid #cccccc;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    cursor: pointer;
-    outline: none;
-    transition: all 0.15s ease;
-}
-
-.yavalath_ctrl_btn:hover:not(:disabled) {
-    background: #f0f0f0;
-    border-color: #999999;
-    transform: translateY(-1px);
-}
-
-.yavalath_ctrl_btn:active:not(:disabled) {
-    transform: translateY(0);
-}
-
-.yavalath_ctrl_btn:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-    box-shadow: none;
-}
-
-.yavalath_undo_active {
-    background: #fff3e0 !important;
-    color: #e65100 !important;
-    border-color: #ffb74d !important;
-    font-weight: 700 !important;
-    box-shadow: 0 0 6px rgba(255, 152, 0, 0.4) !important;
-    animation: yav_btn_pulse 1.5s infinite alternate;
-}
-
-#yavalath_swap_btn {
-    background: #e8eaf6;
-    color: #283593;
-    border-color: #9fa8da;
-    font-weight: 700;
-}
-
-#yavalath_swap_btn:hover:not(:disabled) {
-    background: #c5cae9;
-    border-color: #5c6bc0;
-}
-
-@keyframes yav_btn_pulse {
-    from { transform: scale(1); }
-    to { transform: scale(1.04); }
+#yavalath_rules_line {
+    margin: 0 0 10px 0;
+    padding: 0 8px;
+    font-size: 15px;
+    line-height: 1.35;
+    text-align: center;
+    color: #eadfc8;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
 }
 
 #yavalath_board_scaler {
     position: relative;
-    width: 620px;
-    height: 620px;
-    overflow: hidden;
+    width: 700px;
+    height: 700px;
+    max-width: 100%;
+    overflow: visible;
     margin: 0 auto;
-    border-radius: 26px;
-    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.16), 0 3px 8px rgba(0, 0, 0, 0.08);
 }
 
 #yavalath_board_wrapper {
     position: absolute;
     top: 0;
     left: 0;
-    width: 620px;
-    height: 620px;
     transform-origin: 0 0;
 }
 
 #yavalath_board_svg {
-    background: #ede6d6;
     display: block;
+    overflow: visible;
 }
 
-/* Hexagon Cells */
-.yavalath_hex {
-    fill: #faf6ed;
-    stroke: #c2b59f;
-    stroke-width: 1.5;
+/* Board plate */
+.yavalath_plate_shadow {
+    fill: rgba(0, 0, 0, 0.45);
+    stroke: rgba(0, 0, 0, 0.45);
+    stroke-width: 14;
     stroke-linejoin: round;
-    transition: fill 0.15s ease, stroke 0.15s ease, stroke-width 0.15s ease;
-    cursor: default;
+    pointer-events: none;
 }
 
-.yavalath_hex_pip {
-    fill: #a89a84;
-    opacity: 0.55;
+.yavalath_plate {
+    fill: #d8b27a;
+    stroke: #d8b27a;
+    stroke-width: 14;
+    stroke-linejoin: round;
+}
+
+.yavalath_plate_edge {
+    fill: none;
+    stroke: #8a5a2b;
+    stroke-width: 3;
+    stroke-linejoin: round;
     pointer-events: none;
-    transition: opacity 0.15s ease;
+}
+
+/* Hexagon cells: shallow recesses cut into the board */
+.yavalath_hex {
+    fill: rgba(96, 58, 24, 0.16);
+    stroke: #8a5a2b;
+    stroke-width: 1.6;
+    stroke-linejoin: round;
+    cursor: default;
 }
 
 .yavalath_valid_target {
     cursor: pointer;
 }
 
-.yavalath_valid_target:hover .yavalath_hex {
-    fill: #fff9e6;
-    stroke: #d97706;
-    stroke-width: 2.6;
-    filter: drop-shadow(0 0 4px rgba(217, 119, 6, 0.35));
+@media (hover: hover) {
+    .yavalath_valid_target:hover .yavalath_hex {
+        fill: rgba(255, 243, 210, 0.55);
+        stroke: #5a3513;
+        stroke-width: 2.4;
+    }
 }
 
-.yavalath_valid_target:hover .yavalath_hex_pip {
-    opacity: 0.15;
-}
-
-/* 3D Realistic Stones */
+/* Stones */
 .yavalath_stone_group {
     pointer-events: none;
-    filter: url(#yav_stone_shadow);
     transform-origin: center;
     transform-box: fill-box;
+    filter: drop-shadow(0 1.5px 1px rgba(0, 0, 0, 0.4));
 }
 
 .yavalath_stone_drop {
-    animation: yav_drop 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    animation: yav_drop 0.16s ease-out;
 }
 
 @keyframes yav_drop {
-    0% {
-        transform: scale(0.4);
-        opacity: 0;
-    }
-    75% {
-        transform: scale(1.08);
-        opacity: 1;
-    }
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
+    from { transform: scale(0.7); opacity: 0.4; }
+    to   { transform: scale(1);   opacity: 1; }
 }
 
-/* White Stone: Pearl / Shell */
+@media (prefers-reduced-motion: reduce) {
+    .yavalath_stone_drop { animation: none; }
+}
+
+/* Stone that is placed locally but not yet confirmed */
+.yavalath_stone_staged {
+    opacity: 0.6;
+}
+
+/* White stone: ivory */
 .yavalath_stone_white {
     fill: url(#yav_stone_white);
-    stroke: #aaa192;
-    stroke-width: 0.9;
+    stroke: #8c7f66;
+    stroke-width: 1;
 }
 
-/* Black Stone: Slate / Obsidian */
+/* Black stone: ebony */
 .yavalath_stone_black {
     fill: url(#yav_stone_black);
-    stroke: #0a0a0a;
-    stroke-width: 0.9;
+    stroke: #000000;
+    stroke-width: 1;
 }
 
-/* Red Stone: Carnelian Gemstone */
+/* Red stone: lacquered red */
 .yavalath_stone_red {
     fill: url(#yav_stone_red);
-    stroke: #800000;
-    stroke-width: 0.9;
+    stroke: #4a0c07;
+    stroke-width: 1;
 }
 
-/* 3D Specular Highlight on Stone */
-.yavalath_stone_shine {
-    fill: #ffffff;
-    opacity: 0.52;
+/* Turned-edge ring on each stone */
+.yavalath_stone_ring {
+    fill: none;
+    stroke-width: 1;
     pointer-events: none;
-    transform: rotate(-25deg);
-    transform-origin: center;
-    transform-box: fill-box;
 }
 
-.yavalath_stone_black + .yavalath_stone_shine {
-    opacity: 0.35;
-}
+.yavalath_stone_white + .yavalath_stone_ring { stroke: rgba(120, 104, 74, 0.45); }
+.yavalath_stone_black + .yavalath_stone_ring { stroke: rgba(255, 255, 255, 0.16); }
+.yavalath_stone_red + .yavalath_stone_ring   { stroke: rgba(255, 220, 200, 0.28); }
 
-.yavalath_stone_red + .yavalath_stone_shine {
-    opacity: 0.45;
-}
-
-/* Staged / Pending Stone */
+/* Ring on the stone about to be confirmed */
 .yavalath_staged_marker {
     fill: none;
-    stroke: #ff9800;
-    stroke-width: 2.5;
-    stroke-dasharray: 4, 3;
+    stroke: #f2e3c2;
+    stroke-width: 3;
+    stroke-dasharray: 6, 4;
     pointer-events: none;
-    animation: yav_staged_pulse 1.2s infinite ease-in-out;
-    transform-origin: center;
-    transform-box: fill-box;
 }
 
-@keyframes yav_staged_pulse {
-    0%, 100% { stroke-width: 2; opacity: 0.8; }
-    50% { stroke-width: 3.2; opacity: 1; filter: drop-shadow(0 0 4px #ff9800); }
-}
-
-/* Ghost Stone on Hover */
+/* Mouse-only preview of where the stone would go */
 .yavalath_ghost_stone {
     pointer-events: none;
-    opacity: 0.6;
-    animation: yav_ghost_breathing 1.5s ease-in-out infinite alternate;
+    opacity: 0.5;
 }
 
-@keyframes yav_ghost_breathing {
-    from { opacity: 0.48; }
-    to { opacity: 0.72; }
-}
+.yavalath_ghost_white { fill: url(#yav_stone_white); }
+.yavalath_ghost_black { fill: url(#yav_stone_black); }
+.yavalath_ghost_red   { fill: url(#yav_stone_red); }
 
-.yavalath_ghost_white {
-    fill: url(#yav_stone_white);
-    stroke: #ffffff;
-    stroke-width: 1.5;
-}
-
-.yavalath_ghost_black {
-    fill: url(#yav_stone_black);
-    stroke: #888888;
-    stroke-width: 1.5;
-}
-
-.yavalath_ghost_red {
-    fill: url(#yav_stone_red);
-    stroke: #ff8a80;
-    stroke-width: 1.5;
-}
-
-/* Last Move Ring Indicator */
+/* Last move ring */
 .yavalath_last_marker {
     fill: none;
-    stroke: #e65100;
-    stroke-width: 2.6;
-    stroke-dasharray: 4, 3;
+    stroke: #c0392b;
+    stroke-width: 3;
     pointer-events: none;
-    animation: yav_rotate_ring 12s linear infinite;
-    transform-origin: center;
-    transform-box: fill-box;
-    filter: drop-shadow(0 0 3px rgba(230, 81, 0, 0.7));
 }
 
-@keyframes yav_rotate_ring {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-
-/* Winning & Losing Line Highlights */
+/* Winning and losing lines (static, no looping animation) */
 .yavalath_line_win .yavalath_hex {
-    fill: #c8e6c9 !important;
-    stroke: #2e7d32 !important;
-    stroke-width: 3.5 !important;
-    animation: yav_win_pulse 1.4s ease-in-out infinite alternate;
-}
-
-@keyframes yav_win_pulse {
-    from { stroke-width: 3; filter: drop-shadow(0 0 3px #4caf50); }
-    to { stroke-width: 4.5; filter: drop-shadow(0 0 9px #4caf50); }
+    fill: rgba(86, 160, 80, 0.45) !important;
+    stroke: #2f6b2a !important;
+    stroke-width: 4 !important;
 }
 
 .yavalath_line_lose .yavalath_hex {
-    fill: #ffcdd2 !important;
-    stroke: #c62828 !important;
-    stroke-width: 3.5 !important;
-    animation: yav_lose_pulse 1.4s ease-in-out infinite alternate;
-}
-
-@keyframes yav_lose_pulse {
-    from { stroke-width: 3; filter: drop-shadow(0 0 3px #e53935); }
-    to { stroke-width: 4.5; filter: drop-shadow(0 0 9px #e53935); }
-}
-
-#yavalath_attribution {
-    margin-top: 12px;
-    font-size: 13px;
-    color: #555555;
-    text-align: center;
-    letter-spacing: 0.2px;
-}
-
-#yavalath_attribution strong {
-    color: #222222;
+    fill: rgba(200, 70, 60, 0.4) !important;
+    stroke: #8e1f17 !important;
+    stroke-width: 4 !important;
 }

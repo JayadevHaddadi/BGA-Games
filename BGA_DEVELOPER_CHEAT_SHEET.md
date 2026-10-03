@@ -252,5 +252,16 @@ When clicking **"Request PRIVATE ALPHA status"** on BGA Studio (`https://studio.
 - **Never access `document.getElementById('player_board_${pId}')`**: Use `this.bga.playerPanels.getElement(pId)`.
 - **Always audit notification payload variables**: On BGA production (PHP 8 strict mode), referencing an unassigned variable (e.g. `'turn_args' => $turnArgs` where `$turnArgs = $this->getArgs();` was omitted) throws a fatal `ErrorException`, immediately failing the player action. Always verify every variable in `$this->notify->all(...)` before release.
 
+---
 
+## 12. Reviewer UX/UI Feedback (BGA reviewer Ian) — Quick Reference
+
+Full checklist: see **AGENTS.md §4b**. Summary of what gets flagged on submissions:
+
+1. **Generic / AI-looking UI** (C.3): no pill badges, emoji in labels, glossy shine, looping glow/pulse animations, card-style rounded boards. Match the physical game.
+2. **Mobile & tap targets** (C.4, E.3): board must fill the width; interactive cells ≥ 32px at 375px (measure it). Use stage + Confirm/Undo.
+3. **Sounds** (D.4): real files in `sounds/` (`.ogg` + `.mp3`) played via `this.bga.sounds.play('name')`; never on hover or on staging a move. Generate with Python `wave` + `ffmpeg -c:a libvorbis` / `libmp3lame` if you have no assets.
+4. **Theme/background** (C.5): themed table/background around a board that looks like the real one.
+5. **No credits in the play area**: put them in `gameinfos.jsonc` and the GMM.
+6. **No duplicate action buttons** inside the play area; use the action bar only.
 

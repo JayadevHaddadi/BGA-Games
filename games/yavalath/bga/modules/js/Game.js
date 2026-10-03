@@ -3,140 +3,33 @@
  * BGA framework: Gregory Isabelli & Emmanuel Colin & BoardGameArena
  * yavalath implementation : © Jayadev Haddadi
  *
- * Game.js - Polished Client Interface for Yavalath with Local Undo & Realistic Audio
- *
- * Invented by Cameron Browne & Ludi (Computer Program)
- * Published by nestorgames
+ * Game.js - Client interface for Yavalath (staged move + confirm/undo)
  *------
  */
 
+/**
+ * Sound effects use BGA's native sound system (files in /sounds), so they obey the
+ * player's global BGA volume / mute settings. Sounds only play for confirmed game
+ * events (a stone placed, a game result) -- never on hover or on tap-to-stage.
+ */
 class SoundController {
     constructor() {
-        this.ctx = null;
-        this.muted = localStorage.getItem('yavalath_sound_muted') === 'true';
+        this.bga = null;
     }
 
-    init() {
-        if (!this.ctx && typeof (window.AudioContext || window.webkitAudioContext) !== 'undefined') {
-            const AudioCtx = window.AudioContext || window.webkitAudioContext;
-            this.ctx = new AudioCtx();
-        }
-        if (this.ctx && this.ctx.state === 'suspended') {
-            this.ctx.resume();
-        }
-    }
-
-    toggleMute() {
-        this.muted = !this.muted;
-        localStorage.setItem('yavalath_sound_muted', this.muted ? 'true' : 'false');
-        return this.muted;
-    }
-
-    playPlace() {
-        if (this.muted) return;
+    play(id) {
         try {
-            this.init();
-            if (!this.ctx) return;
-            const now = this.ctx.currentTime;
-            const masterGain = 0.12; // Half volume, soft & pleasant
-
-            // Component 1: Physical noise contact transient (sharp "tic" of stone on board)
-            const bufferSize = Math.floor(this.ctx.sampleRate * 0.015);
-            const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-            const output = noiseBuffer.getChannelData(0);
-            for (let i = 0; i < bufferSize; i++) {
-                output[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.28));
+            if (this.bga?.sounds?.play) {
+                this.bga.sounds.play(id);
+            } else if (typeof gameui !== 'undefined' && gameui.playSound) {
+                gameui.playSound(id);
             }
-            const noise = this.ctx.createBufferSource();
-            noise.buffer = noiseBuffer;
-
-            const filter = this.ctx.createBiquadFilter();
-            filter.type = 'bandpass';
-            filter.frequency.setValueAtTime(2600, now);
-            filter.Q.setValueAtTime(2.2, now);
-
-            const noiseGain = this.ctx.createGain();
-            noiseGain.gain.setValueAtTime(masterGain * 0.85, now);
-            noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.015);
-
-            noise.connect(filter);
-            filter.connect(noiseGain);
-            noiseGain.connect(this.ctx.destination);
-            noise.start(now);
-
-            // Component 2: Resonant body tone of stone/wood (the "thock")
-            const oscBody = this.ctx.createOscillator();
-            const gainBody = this.ctx.createGain();
-            oscBody.type = 'sine';
-            oscBody.frequency.setValueAtTime(680, now);
-            oscBody.frequency.exponentialRampToValueAtTime(220, now + 0.04);
-            gainBody.gain.setValueAtTime(masterGain * 0.7, now);
-            gainBody.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
-            oscBody.connect(gainBody);
-            gainBody.connect(this.ctx.destination);
-            oscBody.start(now);
-            oscBody.stop(now + 0.045);
-
-            // Component 3: Micro secondary settle bounce (22ms later)
-            const oscTap = this.ctx.createOscillator();
-            const gainTap = this.ctx.createGain();
-            oscTap.type = 'triangle';
-            oscTap.frequency.setValueAtTime(1300, now + 0.022);
-            oscTap.frequency.exponentialRampToValueAtTime(450, now + 0.038);
-            gainTap.gain.setValueAtTime(masterGain * 0.22, now + 0.022);
-            gainTap.gain.exponentialRampToValueAtTime(0.001, now + 0.038);
-            oscTap.connect(gainTap);
-            gainTap.connect(this.ctx.destination);
-            oscTap.start(now + 0.022);
-            oscTap.stop(now + 0.04);
         } catch (e) {}
     }
 
-    playWin() {
-        if (this.muted) return;
-        try {
-            this.init();
-            if (!this.ctx) return;
-            const now = this.ctx.currentTime;
-            const masterGain = 0.09; // Soft celebratory arpeggio
-            const notes = [523.25, 659.25, 783.99, 1046.50];
-            notes.forEach((freq, idx) => {
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(freq, now + idx * 0.1);
-                gain.gain.setValueAtTime(masterGain, now + idx * 0.1);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.1 + 0.5);
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start(now + idx * 0.1);
-                osc.stop(now + idx * 0.1 + 0.5);
-            });
-        } catch (e) {}
-    }
-
-    playEliminated() {
-        if (this.muted) return;
-        try {
-            this.init();
-            if (!this.ctx) return;
-            const now = this.ctx.currentTime;
-            const masterGain = 0.09;
-            const notes = [329.63, 261.63, 220.00];
-            notes.forEach((freq, idx) => {
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(freq, now + idx * 0.12);
-                gain.gain.setValueAtTime(masterGain, now + idx * 0.12);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.12 + 0.4);
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start(now + idx * 0.12);
-                osc.stop(now + idx * 0.12 + 0.4);
-            });
-        } catch (e) {}
-    }
+    playPlace() { this.play('yav_place'); }
+    playWin() { this.play('yav_win'); }
+    playEliminated() { this.play('yav_lose'); }
 }
 
 const sounds = new SoundController();
@@ -157,31 +50,28 @@ class PlayerTurn {
         this.game.updateBoardInteractions(active);
         this.game.updateTurnStatus(active, args);
 
-        // Manage Pie Rule Swap Button
-        const swapBtn = document.getElementById('yavalath_swap_btn');
+        // Pie Rule swap lives in the action bar only (no duplicate button in the play area)
         if (args.can_swap && active) {
-            if (swapBtn) swapBtn.style.display = 'inline-flex';
             this.game.addActionButton('yavalath_bga_swap_btn', _('Swap Colors (Pie Rule)'), () => {
                 this.game.onPieRuleSwap();
             }, 'secondary');
-        } else {
-            if (swapBtn) swapBtn.style.display = 'none';
         }
     }
 
     onLeavingState() {
         this.game.clearHighlights();
         this.game.clearPendingMove();
-        const swapBtn = document.getElementById('yavalath_swap_btn');
-        if (swapBtn) swapBtn.style.display = 'none';
     }
 }
 
 export class Game {
     constructor(bga) {
         this.bga = bga;
+        sounds.bga = bga;
         this.HEX_RADIUS = 4;
-        this.HEX_SIZE = 30;
+        this.HEX_SIZE = 40;
+        this.baseW = 700;
+        this.baseH = 700;
         this.winLength = 4;
         this.loseLength = 3;
         this.pieRuleEnabled = false;
@@ -258,48 +148,17 @@ export class Game {
         const main = document.getElementById('game_play_area') || document.body;
         main.innerHTML = `
             <div id="yavalath_container">
-                <div id="yavalath_header_info">
-                    <span class="yavalath_rule_badge">
-                        <span>&#10004;</span> Win: ${this.winLength} in a row
-                    </span>
-                    <span class="yavalath_rule_badge yavalath_lose_badge">
-                        <span>&#9888;</span> Lose: ${this.loseLength} in a row
-                    </span>
-                    <span id="yavalath_turn_badge" class="yavalath_rule_badge yavalath_turn_badge">
-                        Turn: ${this.turnCount}
-                    </span>
-                    <button id="yavalath_sound_toggle" class="yavalath_ctrl_btn" type="button">
-                        ${sounds.muted ? '&#128263; Muted' : '&#128266; Sound'}
-                    </button>
-                    <button id="yavalath_swap_btn" class="yavalath_ctrl_btn" type="button" style="display:none;" title="Swap colors with Player 1 (Pie Rule)">
-                        <span>&#8644;</span> Swap Colors (Pie Rule)
-                    </button>
+                <div id="yavalath_rules_line">
+                    ${_('Connect ${win} to win.').replace('${win}', this.winLength)}
+                    ${_('Connect ${lose} and you lose.').replace('${lose}', this.loseLength)}
                 </div>
                 <div id="yavalath_board_scaler">
                     <div id="yavalath_board_wrapper">
                         <svg id="yavalath_board_svg"></svg>
                     </div>
                 </div>
-                <div id="yavalath_attribution">
-                    Invented by <strong>Cameron Browne</strong> &amp; <strong>Ludi</strong> &bull; Published by <strong>nestorgames</strong>
-                </div>
             </div>
         `;
-
-        const soundBtn = document.getElementById('yavalath_sound_toggle');
-        if (soundBtn) {
-            soundBtn.addEventListener('click', () => {
-                const muted = sounds.toggleMute();
-                soundBtn.innerHTML = muted ? '&#128263; Muted' : '&#128266; Sound';
-            });
-        }
-
-        const swapBtn = document.getElementById('yavalath_swap_btn');
-        if (swapBtn) {
-            swapBtn.addEventListener('click', () => {
-                this.onPieRuleSwap();
-            });
-        }
     }
 
     onPieRuleSwap() {
@@ -361,13 +220,26 @@ export class Game {
         if (!svg) return;
 
         const radius = this.HEX_RADIUS;
-        const sizeMap = { 3: 38, 4: 30, 5: 24.5 };
-        const size = sizeMap[radius] || 30;
-        this.HEX_SIZE = size;
-        const svgWidth = 620;
-        const svgHeight = 620;
+        const size = this.HEX_SIZE;
+        const s3 = Math.sqrt(3);
+
+        // Board plate: a flat-top hexagon, like the physical board, hugging the cells.
+        const sideDist = 1.5 * radius * size + size * 1.15;   // centre -> plate edge
+        const cornerDist = sideDist / (s3 / 2);              // centre -> plate corner
+        const pad = 7;
+        const svgWidth = Math.ceil(2 * cornerDist + pad * 2);
+        const svgHeight = Math.ceil(2 * sideDist + pad * 2);
         const centerX = svgWidth / 2;
         const centerY = svgHeight / 2;
+        this.baseW = svgWidth;
+        this.baseH = svgHeight;
+
+        const plate = [];
+        for (let i = 0; i < 6; i++) {
+            const a = (Math.PI / 180) * (60 * i);
+            plate.push(`${(centerX + cornerDist * Math.cos(a)).toFixed(1)},${(centerY + cornerDist * Math.sin(a)).toFixed(1)}`);
+        }
+        const plateStr = plate.join(' ');
 
         svg.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
         svg.setAttribute('width', `${svgWidth}`);
@@ -375,71 +247,60 @@ export class Game {
 
         let html = `
             <defs>
-                <radialGradient id="yav_board_grad" cx="50%" cy="50%" r="58%">
-                    <stop offset="0%" stop-color="#f2ebe0" />
-                    <stop offset="70%" stop-color="#e8decb" />
-                    <stop offset="100%" stop-color="#d4c7b2" />
-                </radialGradient>
-                <radialGradient id="yav_stone_white" cx="35%" cy="30%" r="65%">
-                    <stop offset="0%" stop-color="#ffffff" />
-                    <stop offset="40%" stop-color="#f9f7f2" />
-                    <stop offset="75%" stop-color="#ded7ca" />
-                    <stop offset="100%" stop-color="#b8ad9c" />
-                </radialGradient>
-                <radialGradient id="yav_stone_black" cx="35%" cy="30%" r="65%">
-                    <stop offset="0%" stop-color="#606060" />
-                    <stop offset="28%" stop-color="#2d2d2d" />
-                    <stop offset="75%" stop-color="#141414" />
-                    <stop offset="100%" stop-color="#080808" />
-                </radialGradient>
-                <radialGradient id="yav_stone_red" cx="35%" cy="30%" r="65%">
-                    <stop offset="0%" stop-color="#ff7f72" />
-                    <stop offset="38%" stop-color="#d32f2f" />
-                    <stop offset="75%" stop-color="#9a0007" />
-                    <stop offset="100%" stop-color="#550000" />
-                </radialGradient>
-                <filter id="yav_stone_shadow" x="-30%" y="-30%" width="160%" height="160%">
-                    <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.30" />
-                    <feDropShadow dx="0" dy="4.5" stdDeviation="4" flood-color="#000000" flood-opacity="0.16" />
+                <clipPath id="yav_plate_clip"><polygon points="${plateStr}" /></clipPath>
+                <filter id="yav_grain" x="0" y="0" width="100%" height="100%">
+                    <feTurbulence type="fractalNoise" baseFrequency="0.006 0.16" numOctaves="3" seed="11" />
+                    <feColorMatrix type="matrix" values="0 0 0 0 0.36  0 0 0 0 0.2  0 0 0 0 0.07  0 0 0 -1.1 0.8" />
                 </filter>
+                <radialGradient id="yav_stone_white" cx="40%" cy="35%" r="70%">
+                    <stop offset="0%" stop-color="#fbf6e9" />
+                    <stop offset="100%" stop-color="#d9cfb6" />
+                </radialGradient>
+                <radialGradient id="yav_stone_black" cx="40%" cy="35%" r="70%">
+                    <stop offset="0%" stop-color="#3a3530" />
+                    <stop offset="100%" stop-color="#14110f" />
+                </radialGradient>
+                <radialGradient id="yav_stone_red" cx="40%" cy="35%" r="70%">
+                    <stop offset="0%" stop-color="#c2412f" />
+                    <stop offset="100%" stop-color="#7d1a12" />
+                </radialGradient>
             </defs>
-            <rect width="100%" height="100%" rx="26" fill="url(#yav_board_grad)" stroke="#d2c4ae" stroke-width="2" />
+            <polygon class="yavalath_plate_shadow" points="${plateStr}" transform="translate(0 4)" />
+            <polygon class="yavalath_plate" points="${plateStr}" />
+            <rect width="${svgWidth}" height="${svgHeight}" filter="url(#yav_grain)" clip-path="url(#yav_plate_clip)" opacity="0.55" pointer-events="none" />
+            <polygon class="yavalath_plate_edge" points="${plateStr}" />
         `;
 
+        const stoneR = (size * 0.74).toFixed(1);
+        const ringR = (size * 0.56).toFixed(1);
         for (let q = -radius; q <= radius; q++) {
             for (let r = -radius; r <= radius; r++) {
                 if (q + r >= -radius && q + r <= radius) {
                     const { x, y } = this.axialToPixel(q, r, centerX, centerY, size);
-                    const points = this.getHexCorners(x, y, size);
+                    const points = this.getHexCorners(x, y, size - 1);
                     const key = `${q}_${r}`;
                     const cell = this.boardData[key];
                     const color = cell ? cell.color : null;
+                    const cx = x.toFixed(1);
+                    const cy = y.toFixed(1);
 
                     html += `
-                        <g class="yavalath_cell" data-q="${q}" data-r="${r}" data-cx="${x.toFixed(1)}" data-cy="${y.toFixed(1)}">
+                        <g class="yavalath_cell" data-q="${q}" data-r="${r}" data-cx="${cx}" data-cy="${cy}">
                             <polygon class="yavalath_hex" points="${points}" />
-                            <circle class="yavalath_hex_pip" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="1.8" />
                             <g class="yavalath_stone_group" style="${color ? '' : 'display:none;'}">
-                                <circle class="yavalath_stone_base ${color ? 'yavalath_stone_' + color : ''}"
-                                        cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(size * 0.73).toFixed(1)}" />
-                                <ellipse class="yavalath_stone_shine"
-                                        cx="${(x - size * 0.22).toFixed(1)}" cy="${(y - size * 0.22).toFixed(1)}"
-                                        rx="${(size * 0.24).toFixed(1)}" ry="${(size * 0.13).toFixed(1)}" />
+                                <circle class="yavalath_stone_base ${color ? 'yavalath_stone_' + color : ''}" cx="${cx}" cy="${cy}" r="${stoneR}" />
+                                <circle class="yavalath_stone_ring" cx="${cx}" cy="${cy}" r="${ringR}" />
                             </g>
-                            <circle class="yavalath_ghost_stone"
-                                    cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(size * 0.73).toFixed(1)}"
-                                    style="display:none;" />
+                            <circle class="yavalath_ghost_stone" cx="${cx}" cy="${cy}" r="${stoneR}" style="display:none;" />
                         </g>
                     `;
                 }
             }
         }
 
-        // Concentric Last Move Indicator
-        html += `<circle id="yavalath_last_indicator" class="yavalath_last_marker" cx="0" cy="0" r="${(size * 0.79).toFixed(1)}" style="display:none;" />`;
-
-        // Staged Move Confirmation Indicator
-        html += `<circle id="yavalath_staged_indicator" class="yavalath_staged_marker" cx="0" cy="0" r="${(size * 0.81).toFixed(1)}" style="display:none;" />`;
+        // Last move marker and staged move marker (static rings)
+        html += `<circle id="yavalath_last_indicator" class="yavalath_last_marker" cx="0" cy="0" r="${(size * 0.84).toFixed(1)}" style="display:none;" />`;
+        html += `<circle id="yavalath_staged_indicator" class="yavalath_staged_marker" cx="0" cy="0" r="${(size * 0.84).toFixed(1)}" style="display:none;" />`;
 
         svg.innerHTML = html;
 
@@ -447,29 +308,27 @@ export class Game {
         if (this.lastMove && this.lastMove.q !== undefined && this.lastMove.r !== undefined) {
             const lastCell = svg.querySelector(`.yavalath_cell[data-q="${this.lastMove.q}"][data-r="${this.lastMove.r}"]`);
             if (lastCell) {
-                const cx = lastCell.getAttribute('data-cx');
-                const cy = lastCell.getAttribute('data-cy');
                 const lastIndicator = svg.querySelector('#yavalath_last_indicator');
-                if (lastIndicator && cx && cy) {
-                    lastIndicator.setAttribute('cx', cx);
-                    lastIndicator.setAttribute('cy', cy);
+                if (lastIndicator) {
+                    lastIndicator.setAttribute('cx', lastCell.getAttribute('data-cx'));
+                    lastIndicator.setAttribute('cy', lastCell.getAttribute('data-cy'));
                     lastIndicator.style.display = 'block';
                 }
             }
         }
 
+        const canHover = !!(window.matchMedia && window.matchMedia('(hover: hover)').matches);
         svg.querySelectorAll('.yavalath_cell').forEach(cellEl => {
             cellEl.addEventListener('click', () => {
                 const q = parseInt(cellEl.getAttribute('data-q'), 10);
                 const r = parseInt(cellEl.getAttribute('data-r'), 10);
                 this.onCellClick(q, r);
             });
-            cellEl.addEventListener('mouseenter', () => {
-                this.onCellHover(cellEl, true);
-            });
-            cellEl.addEventListener('mouseleave', () => {
-                this.onCellHover(cellEl, false);
-            });
+            // Ghost-stone preview is a mouse-only visual (no sound, nothing sticky on touch screens)
+            if (canHover) {
+                cellEl.addEventListener('mouseenter', () => this.onCellHover(cellEl, true));
+                cellEl.addEventListener('mouseleave', () => this.onCellHover(cellEl, false));
+            }
         });
     }
 
@@ -510,7 +369,7 @@ export class Game {
 
             if (stoneBase && stoneGroup) {
                 stoneBase.setAttribute('class', `yavalath_stone_base yavalath_stone_${myColor}`);
-                stoneGroup.setAttribute('class', 'yavalath_stone_group yavalath_stone_drop');
+                stoneGroup.setAttribute('class', 'yavalath_stone_group yavalath_stone_staged');
                 stoneGroup.style.display = 'block';
             }
 
@@ -525,16 +384,13 @@ export class Game {
             }
         }
 
-        // Realistic tactile stone placement sound
-        sounds.playPlace();
-
         // Update status bar with prompt and Action Buttons (Confirm & Undo)
         if (this.bga?.statusBar) {
             this.bga.statusBar.setTitle(_('${you}: Click Confirm or choose another cell'));
         }
         this.clearActionButtons();
-        this.addActionButton('btnConfirmMove', _('✔ Confirm Move'), () => this.confirmPendingMove(), 'primary');
-        this.addActionButton('btnUndoMove', _('↺ Undo'), () => this.undoPendingMove(), 'alert');
+        this.addActionButton('btnConfirmMove', _('Confirm move'), () => this.confirmPendingMove(), 'primary');
+        this.addActionButton('btnUndoMove', _('Undo'), () => this.undoPendingMove(), 'alert');
     }
 
     unstageCell(q, r) {
@@ -654,9 +510,6 @@ export class Game {
             this.playerColors = args.player_colors;
         }
 
-        const swapBtn = document.getElementById('yavalath_swap_btn');
-        if (swapBtn) swapBtn.style.display = 'none';
-
         this.updateBoardInteractions(this.isCurrentPlayerActive());
     }
 
@@ -702,12 +555,10 @@ export class Game {
             }
         }
 
-        // Update Turn Counter Badge
         this.turnCount = (this.turnCount || 1) + 1;
-        const turnBadge = document.getElementById('yavalath_turn_badge');
-        if (turnBadge) {
-            turnBadge.textContent = `Turn: ${this.turnCount}`;
-        }
+
+        // Replace BGA's default "move" sound with ours (one sound per confirmed stone)
+        try { this.bga?.gameui?.disableNextMoveSound?.(); } catch (e) {}
 
         // Highlight lines if win/lose
         if (result === 'win' && line && line.length) {
@@ -728,7 +579,6 @@ export class Game {
     }
 
     notif_playerEliminated(notif) {
-        sounds.playEliminated();
         const args = this._getNotifArgs(notif);
         const eliminatedId = args.player_id;
         if (!this.eliminatedPlayers.includes(eliminatedId)) {
@@ -737,14 +587,18 @@ export class Game {
     }
 
     notif_endGameScores(notif) {
-        sounds.playWin();
     }
 
     setupResponsiveScaling() {
+        const container = document.getElementById('yavalath_container');
+        if (typeof ResizeObserver !== 'undefined' && container) {
+            new ResizeObserver(() => this.updateBoardScale()).observe(container);
+        }
         window.addEventListener('resize', () => this.updateBoardScale());
         window.addEventListener('orientationchange', () => {
             setTimeout(() => this.updateBoardScale(), 150);
         });
+        this.updateBoardScale();
         setTimeout(() => this.updateBoardScale(), 100);
     }
 
@@ -754,17 +608,21 @@ export class Game {
         const wrapper = document.getElementById('yavalath_board_wrapper');
         if (!container || !scaler || !wrapper) return;
 
-        const baseWidth = 620;
-        const baseHeight = 620;
-        const containerWidth = container.clientWidth || window.innerWidth;
-        const availableWidth = Math.max(280, containerWidth - 16);
+        const baseW = this.baseW;
+        const baseH = this.baseH;
+        const availableWidth = Math.max(280, (container.clientWidth || window.innerWidth) - 8);
 
-        let scale = Math.min(1.0, availableWidth / baseWidth);
-        const scaledW = Math.round(baseWidth * scale);
-        const scaledH = Math.round(baseHeight * scale);
+        // Fill the available width (desktop is capped at the natural 1:1 size)
+        let scale = Math.min(1.0, availableWidth / baseW);
 
-        scaler.style.width = `${scaledW}px`;
-        scaler.style.height = `${scaledH}px`;
+        // Phone in landscape: also keep the whole board visible vertically
+        const landscape = window.innerWidth > window.innerHeight;
+        if (landscape && window.innerHeight < 600) {
+            scale = Math.min(scale, Math.max(0.3, (window.innerHeight - 120) / baseH));
+        }
+
+        scaler.style.width = `${Math.round(baseW * scale)}px`;
+        scaler.style.height = `${Math.round(baseH * scale)}px`;
         wrapper.style.transform = `scale(${scale})`;
     }
 }
