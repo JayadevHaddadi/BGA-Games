@@ -114,7 +114,7 @@ class Game extends \Bga\GameFramework\Table
             $name = $colorNames[$idx % count($colorNames)];
             $playerColorMap[$player_id] = $name;
 
-            $query_values[] = vsprintf("(%s, %d, '%s', '%s', 0)", [
+            $query_values[] = vsprintf("(%s, %d, '%s', '%s')", [
                 $player_id,
                 $idx + 1,
                 $hex,
@@ -125,7 +125,7 @@ class Game extends \Bga\GameFramework\Table
 
         static::DbQuery(
             sprintf(
-                "INSERT INTO `player` (`player_id`, `player_no`, `player_color`, `player_name`, `player_score`) VALUES %s",
+                "INSERT INTO `player` (`player_id`, `player_no`, `player_color`, `player_name`) VALUES %s",
                 implode(",", $query_values)
             )
         );
@@ -338,7 +338,6 @@ class Game extends \Bga\GameFramework\Table
             $score = (int) $this->playerScore->get((int)$pId);
             $scores[$pId] = $score;
             $result['players'][$pId]['score'] = $score;
-            $result['players'][$pId]['player_score'] = $score;
         }
         $result['scores'] = $scores;
 
@@ -928,7 +927,6 @@ class Game extends \Bga\GameFramework\Table
         // Increment score
         $this->playerScore->inc($playerId, $points);
         $newScore = (int) $this->playerScore->get($playerId);
-        static::DbQuery("UPDATE `player` SET `player_score` = {$newScore} WHERE `player_id` = {$playerId}");
         $this->reloadPlayersBasicInfos();
 
         // Update player stats (delta 2nd, playerId 3rd!)

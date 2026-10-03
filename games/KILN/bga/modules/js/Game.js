@@ -20,8 +20,6 @@ class KilnSoundController {
         try {
             if (this.bga?.sounds?.play) {
                 this.bga.sounds.play(id);
-            } else if (typeof gameui !== 'undefined' && gameui.playSound) {
-                gameui.playSound(id);
             }
         } catch (e) {}
     }
