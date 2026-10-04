@@ -13,7 +13,7 @@ use Bga\GameFramework\UserException;
 
 class Game extends \Bga\GameFramework\Table
 {
-    public const DEFAULT_LAPS = 3;
+    public const DEFAULT_LAPS = 1;
 
     public function __construct()
     {
@@ -189,7 +189,7 @@ class Game extends \Bga\GameFramework\Table
         $this->playerStats->init(['turns_number', 'items_used', 'collisions_count', 'top_speed'], 0);
 
         // Check Option 101: Qualifying Round (1 = Enabled, 2 = Disabled)
-        $qualifyingOption = isset($options[101]) ? (int) $options[101] : (int) $this->tableOptions->get(101, 1);
+        $qualifyingOption = isset($options[101]) ? (int) $options[101] : (int) $this->tableOptions->get(101, 2);
         $qualifyingEnabled = ($qualifyingOption === 1);
 
         $firstRacerId = $carTurnOrder[0];
@@ -213,7 +213,7 @@ class Game extends \Bga\GameFramework\Table
         $this->globals->set('total_laps', $totalLaps);
 
         // Item placement (105: 1 = random, 2 = fixed layout) and track condition (106: 2 = wet race)
-        $placementOption = isset($options[105]) ? (int) $options[105] : (int) $this->tableOptions->get(105, 1);
+        $placementOption = isset($options[105]) ? (int) $options[105] : (int) $this->tableOptions->get(105, 2);
         $weatherOption = isset($options[106]) ? (int) $options[106] : (int) $this->tableOptions->get(106, 1);
         $itemsOption = isset($options[103]) ? (int) $options[103] : (int) $this->tableOptions->get(103, 1);
         $extraOption = isset($options[107]) ? (int) $options[107] : (int) $this->tableOptions->get(107, 1);

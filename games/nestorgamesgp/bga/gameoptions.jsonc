@@ -29,7 +29,7 @@
                 "description": "Standard table seating order determines starting grid positions."
             }
         },
-        "default": 1
+        "default": 2
     },
     "102": {
         "name": "Race Length",
@@ -47,7 +47,7 @@
                 "description": "Official standard championship distance."
             }
         },
-        "default": 3
+        "default": 1
     },
     "103": {
         "name": "Special Items & Hazards",
@@ -97,7 +97,7 @@
                 "description": "Items always start on the same hand-picked straight spaces for the chosen circuit."
             }
         },
-        "default": 1,
+        "default": 2,
         "displaycondition": [
             {
                 "type": "otheroption",
