@@ -1,7 +1,7 @@
 {
   // user preference ids should be between 100 and 199
   "100": {
-    "name": "Colour-blind shapes on flowers",
+    "name": "Colour-blind shapes and patterns on flowers",
     "needReload": false,
     "values": {
       "1": { "name": "On" },

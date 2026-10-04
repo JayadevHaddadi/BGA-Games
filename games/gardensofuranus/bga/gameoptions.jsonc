@@ -1,6 +1,22 @@
 {
-    // Garden board: only the Hexagonal board is supported for now.
-    // TODO: Trapezoid and Rhombus boards (needs board geometry and art).
+    "100": {
+        "name": "Garden board",
+        "values": {
+            "1": {
+                "name": "Hexagonal board",
+                "description": "61 spots, 1 tree and 4 mission decks (1 face-down, 3 face-up)."
+            },
+            "2": {
+                "name": "Trapezoid board",
+                "description": "63 spots, 2 trees and 2 mission decks (1 face-down, 1 face-up)."
+            },
+            "3": {
+                "name": "Rhombus board",
+                "description": "64 spots, 3 trees and 3 mission decks (1 face-down, 2 face-up)."
+            }
+        },
+        "default": 1
+    },
     "101": {
         "name": "Martian powers",
         "values": {

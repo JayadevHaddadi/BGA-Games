@@ -30,6 +30,14 @@ class SoundController {
 
 const sounds = new SoundController();
 
+// Board art geometry (base units; the art files are drawn at 2x). Every board is a triangular lattice:
+// the spot (q, r) is at (ox, oy) + q * vq + r * vr.
+const BOARDS = {
+    1: { w: 560, h: 600, img: 'board_hex.jpg', ox: 280, oy: 300, vq: [58, 33.5], vr: [0, 67] },
+    2: { w: 443.5, h: 830, img: 'board_trapezoid.jpg', ox: 48.0, oy: 582.0, vq: [57.79, 33.36], vr: [0.0, 66.73] },
+    3: { w: 539.5, h: 855.5, img: 'board_rhombus.jpg', ox: 35.8, oy: 427.8, vq: [66.73, 0.0], vr: [33.36, 57.79] },
+};
+
 export class DraftCard {
     constructor(game, bga) {
         this.game = game;
@@ -166,7 +174,15 @@ export class Game {
             penalty: { icon: `<span class="gou_ico_minus"><img src="${this.imgUrl('flower_red.png')}" alt=""><b>-</b></span>`, title: _('Unused flowers'), text: _('At the end, each player scores the mission cards left in hand, then loses points for unused flowers: 1 = -1, 2 = -3, 3 = -6, 4 = -10, 5 = -15, 6 = -21, 7 = -28, 8 = -36, 9 = -45, 10 = -55, 11 = -66, 12 = -78.') },
         };
         if (parseInt(this.gamedatas?.special_powers) === 2) {
-            rules.powers = { icon: `<img src="${this.imgUrl('robby.png')}" alt="">`, title: _('Martian powers'), text: _('Once per game your Martian can use its power. Ali swaps two flowers on a line with him. Bot removes a tree. Marty teleports to any spot without a tree or Martian. Robby swaps places with any other Martian. These four are used before your move or mission card. Bob can plant on a spot that already has a flower and replaces it.') };
+            rules.powers = { icon: `<img src="${this.imgUrl('robby.png')}" alt="">`, title: _('Martian powers'), text: [
+                _('Once per game your Martian can use its power:'),
+                `${_('Ali')} - ${_('Flower swap')}: ${this.powerHelp('ali')}`,
+                `${_('Bot')} - ${_('Nuke a tree')}: ${this.powerHelp('bot')}`,
+                `${_('Marty')} - ${_('Teleport')}: ${this.powerHelp('marty')}`,
+                `${_('Robby')} - ${_('Swap Martians')}: ${this.powerHelp('robby')}`,
+                `${_('Bob')} - ${_('Replace flower')}: ${this.powerHelp('bob')}`,
+                _('Ali, Bot, Marty and Robby use their power before moving or scoring a card; Bob\'s power is part of his move.'),
+            ].join('<br>') };
         }
         return rules;
     }
@@ -223,10 +239,11 @@ export class Game {
 
         const rules = this.getRuleCards();
         const buttons = Object.entries(rules).map(([key, r]) =>
-            `<button type="button" class="gou_rule_btn" id="gou_rule_${key}" data-rule="${key}" aria-label="${r.title}" title="${r.title}: ${r.text.replace(/"/g, '&quot;')}">${r.icon}</button>`
+            `<button type="button" class="gou_rule_btn" id="gou_rule_${key}" data-rule="${key}" aria-label="${r.title}" title="${r.title}: ${r.text.replace(/<br\s*\/?>/g, ' ').replace(/"/g, '&quot;')}">${r.icon}</button>`
         ).join('');
 
         const boardType = parseInt(this.gamedatas?.board_type) || 1;
+        const boardCfg = this.getBoardConfig();
 
         area.innerHTML = `
             <div id="gardensofuranus_container">
@@ -236,7 +253,7 @@ export class Game {
                     <div id="gou_decks_row"></div>
                     <div id="gou_board_col">
                         <div class="game-board-scaler" id="gou_board_scaler">
-                            <div id="garden_board" class="gou_board_type_${boardType}">
+                            <div id="garden_board" class="gou_board_type_${boardType}" style="width:${boardCfg.w}px;height:${boardCfg.h}px;background-image:url('${this.imgUrl(boardCfg.img)}')">
                                 <div id="gou_cells_layer"></div>
                                 <div id="gou_gardeners_layer"></div>
                             </div>
@@ -355,38 +372,18 @@ export class Game {
         });
     }
 
+    getBoardConfig() {
+        return BOARDS[parseInt(this.gamedatas?.board_type)] || BOARDS[1];
+    }
+
     axialToPixel(q, r) {
         q = Number(q);
         r = Number(r);
-        const boardType = parseInt(this.gamedatas?.board_type) || 1;
-        if (boardType === 1) {
-            // Hexagonal board cropped to the play area (560x600), pointy-topped
-            const centerX = 280;
-            const centerY = 300;
-            const stepX = 58.0;
-            const stepY = 33.5;
-            const x = centerX + q * stepX;
-            const y = centerY + (2 * r + q) * stepY;
-            return { x: Math.round(x), y: Math.round(y) };
-        } else if (boardType === 3) {
-            // Rhombus:
-            const startX = 140;
-            const startY = 240;
-            const stepX = 52.0;
-            const stepY = 60.0;
-            const x = startX + q * stepX + r * (stepX * 0.5);
-            const y = startY + r * stepY;
-            return { x: Math.round(x), y: Math.round(y) };
-        } else {
-            // Trapezoid:
-            const startX = 150;
-            const startY = 220;
-            const stepX = 48.0;
-            const stepY = 56.0;
-            const x = startX + q * stepX;
-            const y = startY + r * stepY;
-            return { x: Math.round(x), y: Math.round(y) };
-        }
+        const b = this.getBoardConfig();
+        return {
+            x: Math.round(b.ox + q * b.vq[0] + r * b.vr[0]),
+            y: Math.round(b.oy + q * b.vq[1] + r * b.vr[1]),
+        };
     }
 
     clearActionButtons() {
@@ -599,8 +596,17 @@ export class Game {
             if (color) token.style.background = `#${color}`;
             const owner = this.gamedatas.players?.[g.player_id]?.name || '';
             token.addEventListener('click', () => {
-                if (this.powerMode) this.onSpotClicked(g.q, g.r);
+                if (this.powerMode) {
+                    this.onSpotClicked(g.q, g.r);
+                    return;
+                }
+                // Tap/click lifts the character and names its player (colour-blind friendly)
+                document.querySelectorAll('.gou_gardener_token.gou_lifted').forEach(t => t.classList.remove('gou_lifted'));
+                token.classList.add('gou_lifted');
+                clearTimeout(this.liftTimer);
+                this.liftTimer = setTimeout(() => token.classList.remove('gou_lifted'), 3500);
             });
+            token.dataset.name = `${owner} (${this.martianLabel(g.martian)})`;
             token.title = `${owner} (${this.martianLabel(g.martian)})`;
             token.setAttribute('aria-label', token.title);
             const img = document.createElement('img');
@@ -1448,9 +1454,9 @@ export class Game {
         const board = document.getElementById('garden_board');
         if (!container || !scaler || !board) return;
 
-        const boardType = parseInt(this.gamedatas?.board_type) || 1;
-        const baseWidth = boardType === 1 ? 560 : 700;
-        const baseHeight = boardType === 1 ? 600 : 1016;
+        const boardCfg = this.getBoardConfig();
+        const baseWidth = boardCfg.w;
+        const baseHeight = boardCfg.h;
         const landscape = this.isLandscapeLayout();
         const containerWidth = this.fitContainerToScreen(container) || window.innerWidth;
         let availableWidth;

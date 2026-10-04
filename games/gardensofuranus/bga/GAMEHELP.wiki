@@ -8,10 +8,10 @@ Finish with the most points. You earn points by scoring mission cards, and lose 
 
 ==Setup==
 
-* The garden is a hexagonal board with 61 spots and 1 tree placed on a random spot that is not on the outer edge.
+* Choose a garden board: Hexagonal (61 spots, 1 tree, 4 mission decks), Trapezoid (63 spots, 2 trees, 2 decks) or Rhombus (64 spots, 3 trees, 3 decks). The trees are placed on random spots that are not on the outer edge.
 * Each player receives flowers in 5 colors (blue, red, yellow, green, purple). The amount depends on the number of players: 2 players 30 flowers, 3 players 20, 4 players 15, 5 players 12. Every player's flower reserve is public and shown in the player panel together with the penalty it would cost right now.
 * '''Draft your missions:''' everyone starts with 5 secret mission cards. Keep 1 and pass the other 4 to your neighbor, then keep 1 of the 4 you receive and pass the rest, and so on. The 5th card is the single one that is passed to you, so you keep it automatically and end up with 5 cards.
-* The remaining mission cards are split into 4 decks on the board: 1 face-down deck and 3 face-up decks (the top card is visible). The number on each deck is how many cards are left in it.
+* The remaining mission cards are split into decks next to the board (4, 2 or 3 depending on the board): 1 face-down deck and the others face-up (the top card is visible). The number on each deck is how many cards are left in it.
 * In turn order each player places their gardener on any empty spot. Depending on the table option ''Martian powers'' you either choose your Martian or are dealt a random one (the default is no powers, where Martians only differ in looks).
 
 ==Your turn==
