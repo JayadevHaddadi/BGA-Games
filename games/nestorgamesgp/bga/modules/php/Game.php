@@ -216,7 +216,8 @@ class Game extends \Bga\GameFramework\Table
         $placementOption = isset($options[105]) ? (int) $options[105] : (int) $this->tableOptions->get(105, 1);
         $weatherOption = isset($options[106]) ? (int) $options[106] : (int) $this->tableOptions->get(106, 1);
         $itemsOption = isset($options[103]) ? (int) $options[103] : (int) $this->tableOptions->get(103, 1);
-        $this->setupTrackItems($itemsOption === 2, $placementOption === 1, $weatherOption === 2);
+        $extraOption = isset($options[107]) ? (int) $options[107] : (int) $this->tableOptions->get(107, 1);
+        $this->setupTrackItems($itemsOption === 2, $placementOption === 1, $weatherOption === 2, $extraOption === 2);
 
         if ($qualifyingEnabled) {
             return QualifyingTurn::class;
@@ -945,7 +946,7 @@ class Game extends \Bga\GameFramework\Table
         return $all[$racerId] ?? [];
     }
 
-    public function setupTrackItems(bool $specialItems, bool $randomPlacement, bool $wetRace): void
+    public function setupTrackItems(bool $specialItems, bool $randomPlacement, bool $wetRace, bool $extraSet = false): void
     {
         static::DbQuery("DELETE FROM `track_item`");
         static::DbQuery("DELETE FROM `player_inventory`");
@@ -978,6 +979,30 @@ class Game extends \Bga\GameFramework\Table
                     if (isset($taken[$spaceId])) {
                         continue;
                     }
+                    $taken[$spaceId] = true;
+                    $items[] = ['item_type' => $type, 'space_id' => $spaceId];
+                }
+            }
+        }
+
+        // Advanced rule: a second set of special items (2 mines, 2 rockets, 2 wrenches, 2 turbos)
+        if ($specialItems && $extraSet) {
+            $candidates = array_values(array_diff(Circuit::getItemCandidates(), array_keys($taken)));
+            $extraTypes = ['mine', 'rocket', 'wrench', 'turboboost'];
+            $total = count($extraTypes) * 2;
+            $k = 0;
+            foreach ($extraTypes as $type) {
+                for ($n = 0; $n < 2; $n++, $k++) {
+                    if (empty($candidates)) {
+                        break 2;
+                    }
+                    // Random: any free straight space. Fixed: evenly spaced around the circuit.
+                    $idx = $randomPlacement
+                        ? random_int(0, count($candidates) - 1)
+                        : (int) floor(($k + 0.5) * count($candidates) / $total);
+                    $idx = min($idx, count($candidates) - 1);
+                    $spaceId = $candidates[$idx];
+                    array_splice($candidates, $idx, 1);
                     $taken[$spaceId] = true;
                     $items[] = ['item_type' => $type, 'space_id' => $spaceId];
                 }

@@ -119,5 +119,26 @@
             }
         },
         "default": 1
+    },
+    "107": {
+        "name": "Additional special items",
+        "values": {
+            "1": {
+                "name": "No",
+                "description": "One set of special items: 2 mines, 2 rockets, 2 wrenches and 2 turbo boosts."
+            },
+            "2": {
+                "name": "Yes (advanced rule)",
+                "description": "A second set of special items is added: 4 mines, 4 rockets, 4 wrenches and 4 turbo boosts in total."
+            }
+        },
+        "default": 1,
+        "displaycondition": [
+            {
+                "type": "otheroption",
+                "id": 103,
+                "value": 2
+            }
+        ]
     }
 }
