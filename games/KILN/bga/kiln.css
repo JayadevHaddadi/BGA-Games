@@ -1100,34 +1100,34 @@
 .kiln_cb_on .kiln_tile_red,
 .kiln_cb_on .kiln_disc_red,
 .kiln_cb_on .kiln_dot_red {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='6' fill='%23fff' stroke='%231a1a1a' stroke-width='2.2' stroke-linejoin='round'/%3E%3C/svg%3E"), linear-gradient(135deg, #e53935 0%, #c62828 100%);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 15.88 16.72'%3E%3Cpath transform='translate(-118.960 -74.652)' d='m 133.93968,90.471252 h -3.30514 l -7.4291,-8.592426 v 8.592426 h -3.34509 V 75.552314 h 3.30515 l 7.42909,8.592426 v -8.592426 h 3.34509 z' fill='%23fff' stroke='%231a1a1a' stroke-width='1.4' stroke-linejoin='round' paint-order='stroke'/%3E%3C/svg%3E"), linear-gradient(135deg, #e53935 0%, #c62828 100%);
     background-repeat: no-repeat, no-repeat;
     background-position: center, center;
-    background-size: 37%, 100% 100%;
+    background-size: 52%, 100% 100%;
 }
 .kiln_cb_on .kiln_tile_blue,
 .kiln_cb_on .kiln_disc_blue,
 .kiln_cb_on .kiln_dot_blue {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 1.8 22.2 12 12 22.2 1.8 12Z' fill='%23fff' stroke='%231a1a1a' stroke-width='2.2' stroke-linejoin='round'/%3E%3C/svg%3E"), linear-gradient(135deg, #1e88e5 0%, #1565c0 100%);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 15.87 16.72'%3E%3Cpath transform='translate(-54.411 -74.652)' d='m 69.380059,90.471252 h -4.2238 l -3.27519,-4.531828 -3.27519,4.531828 h -3.29516 V 75.552314 h 3.3351 v 9.013525 l 6.51044,-9.013525 h 4.21382 l -5.3821,7.469495 z' fill='%23fff' stroke='%231a1a1a' stroke-width='1.4' stroke-linejoin='round' paint-order='stroke'/%3E%3C/svg%3E"), linear-gradient(135deg, #1e88e5 0%, #1565c0 100%);
     background-repeat: no-repeat, no-repeat;
     background-position: center, center;
-    background-size: 37%, 100% 100%;
+    background-size: 52%, 100% 100%;
 }
 .kiln_cb_on .kiln_tile_green,
 .kiln_cb_on .kiln_disc_green,
 .kiln_cb_on .kiln_dot_green {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 4 21 20H3Z' fill='%23fff' stroke='%231a1a1a' stroke-width='2.2' stroke-linejoin='round'/%3E%3C/svg%3E"), linear-gradient(135deg, #43a047 0%, #2e7d32 100%);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 11.80 14.80'%3E%3Cpath transform='translate(0.900 0.900)' d='M0 0 H10 V2.4 H6.8 V10.6 H10 V13 H0 V10.6 H3.2 V2.4 H0 Z' fill='%23fff' stroke='%231a1a1a' stroke-width='1.4' stroke-linejoin='round' paint-order='stroke'/%3E%3C/svg%3E"), linear-gradient(135deg, #43a047 0%, #2e7d32 100%);
     background-repeat: no-repeat, no-repeat;
     background-position: center, center;
-    background-size: 37%, 100% 100%;
+    background-size: 52%, 100% 100%;
 }
 .kiln_cb_on .kiln_tile_yellow,
 .kiln_cb_on .kiln_disc_yellow,
 .kiln_cb_on .kiln_dot_yellow {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 3h6v6h6v6h-6v6H9v-6H3V9h6Z' fill='%23fff' stroke='%231a1a1a' stroke-width='2.2' stroke-linejoin='round'/%3E%3C/svg%3E"), linear-gradient(135deg, #fdd835 0%, #f9a825 100%);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 15.91 16.72'%3E%3Cpath transform='translate(-97.351 -74.652)' d='m 112.3599,90.471252 h -11.91251 c -0.599121,0 -1.118361,-0.21055 -1.547731,-0.651701 -0.42937,-0.431125 -0.64905,-0.952486 -0.64905,-1.554056 V 75.552314 h 3.345091 v 11.770721 h 10.7642 z' fill='%23fff' stroke='%231a1a1a' stroke-width='1.4' stroke-linejoin='round' paint-order='stroke'/%3E%3C/svg%3E"), linear-gradient(135deg, #fdd835 0%, #f9a825 100%);
     background-repeat: no-repeat, no-repeat;
     background-position: center, center;
-    background-size: 37%, 100% 100%;
+    background-size: 52%, 100% 100%;
 }
 .kiln_cb_on .kiln_tile_black,
 .kiln_cb_on .kiln_disc_black,
@@ -1135,7 +1135,7 @@
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 5 19 19M19 5 5 19' fill='none' stroke='%23fff' stroke-width='5' stroke-linecap='round'/%3E%3Cpath d='M5 5 19 19M19 5 5 19' fill='none' stroke='%231a1a1a' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E"), linear-gradient(135deg, #455a64 0%, #263238 100%);
     background-repeat: no-repeat, no-repeat;
     background-position: center, center;
-    background-size: 37%, 100% 100%;
+    background-size: 40%, 100% 100%;
 }
 .kiln_cb_on .kiln_main_layout .kiln_score_disc { width: 16px; height: 16px; background-size: 80%, 100% 100%; }
 .kiln_cb_on .kiln_player_color_dot { background-size: 70%, 100% 100%; }
@@ -1163,12 +1163,24 @@
 .kiln_narrow .kiln_opponent_card .kiln_wh_cell { width: 22px !important; height: 22px !important; }
 .kiln_narrow .kiln_opponent_card { padding: 4px 6px; }
 
-/* 2 players, narrow: score track becomes a strip above the table (keeps the same arrangement otherwise) */
+/* 2 players, narrow: score track sits to the left of the opponent mat, kiln and own mat use the full width */
 .kiln_main_layout.kiln_narrow:not(.kiln_multiplayer) {
-    grid-template-columns: auto;
-    grid-template-areas: "track" "top" "center" "bottom";
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+        "track top"
+        "center center"
+        "bottom bottom";
 }
-.kiln_narrow:not(.kiln_multiplayer) #kiln_track_panel { width: 0; min-width: 100%; justify-self: stretch; }
-.kiln_narrow:not(.kiln_multiplayer) .kiln_score_track { grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 2px; }
-.kiln_narrow:not(.kiln_multiplayer) .kiln_track_cell { height: 36px; }
+.kiln_narrow:not(.kiln_multiplayer) #kiln_track_panel { width: 190px; justify-self: start; align-self: start; padding: 5px; }
+.kiln_narrow:not(.kiln_multiplayer) .kiln_score_track { grid-template-columns: repeat(5, 1fr); gap: 2px; }
+.kiln_narrow:not(.kiln_multiplayer) .kiln_track_cell { height: 30px; }
 .kiln_narrow:not(.kiln_multiplayer) .kiln_track_num { font-size: 9px; left: 2px; top: 1px; }
+.kiln_narrow:not(.kiln_multiplayer) #kiln_slot_top { justify-self: center; }
+
+/* Narrow screens: slightly leaner kiln ring so the board fills more of the width */
+.kiln_narrow .kiln_arrow_slot { width: 44px; height: 44px; }
+.kiln_narrow .kiln_arrow_row { margin-left: 48px; margin-right: 48px; }
+.kiln_narrow .kiln_board_grid { grid-template-columns: repeat(6, 48px); grid-template-rows: repeat(6, 48px); gap: 3px; padding: 4px; }
+.kiln_narrow .kiln_board_tile { width: 48px; height: 48px; }
+.kiln_narrow .kiln_outer_tile_disc { width: 40px; height: 40px; }
+.kiln_narrow .kiln_black_rule_badge { left: 4px; top: 4px; }
