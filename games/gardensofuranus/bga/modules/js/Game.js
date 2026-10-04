@@ -382,6 +382,7 @@ export class Game {
         const wrapper = document.createElement('div');
         wrapper.className = 'gou_card_wrapper' + (options.selected ? ' selected' : '');
         wrapper.dataset.cardId = id;
+        wrapper.id = `gou_card_${options.scope || 'c'}_${id}`;
 
         wrapper.innerHTML = `
             <div class="gou_card${options.selected ? ' selected' : ''}" data-card-id="${id}">
@@ -391,8 +392,25 @@ export class Game {
         `;
 
         wrapper.title = `${info.name}: ${info.desc}`;
+        wrapper.dataset.gouTipId = id;
 
         return wrapper;
+    }
+
+    /** Card explanations use BGA tooltips (hover on desktop, tap on touch screens). */
+    registerCardTooltips() {
+        const gui = this.bga?.gameui || (typeof gameui !== 'undefined' ? gameui : null);
+        if (!gui || typeof gui.addTooltipHtml !== 'function') return;
+        document.querySelectorAll('#gardensofuranus_container [data-gou-tip-id]').forEach(el => {
+            const id = parseInt(el.dataset.gouTipId);
+            if (!el.id) return;
+            const info = this.getCardInfo(id);
+            try {
+                if (typeof gui.removeTooltip === 'function') gui.removeTooltip(el.id);
+                gui.addTooltipHtml(el.id, `<div class="gou_tip"><div class="gou_tip_title">${info.name}</div><div>${info.desc}</div></div>`, 0);
+                el.removeAttribute('title');
+            } catch (e) {}
+        });
     }
 
     renderSpots() {
@@ -559,9 +577,12 @@ export class Game {
                 img.className = 'gou_scored_thumb';
                 const info = this.getCardInfo(id);
                 img.title = `${info.name}: ${info.desc}`;
+                img.id = `gou_scored_${pid}_${id}`;
+                img.dataset.gouTipId = id;
                 box.appendChild(img);
             });
         });
+        this.registerCardTooltips();
     }
 
     closeColorPicker() {
@@ -619,7 +640,7 @@ export class Game {
             } else if (d.top_card.face_down) {
                 box.innerHTML = `<div class="gou_card"><img src="${this.imgUrl('cards/card_back.jpg')}" alt=""></div>`;
             } else {
-                box.appendChild(this.createCardElement(d.top_card));
+                box.appendChild(this.createCardElement(d.top_card, { scope: 'deck' }));
             }
             const count = document.createElement('div');
             count.className = 'gou_deck_count';
@@ -634,6 +655,7 @@ export class Game {
             row.appendChild(box);
         });
         if (this.pendingScoreCardId) this.highlightChoosableDecks();
+        this.registerCardTooltips();
     }
 
     highlightChoosableDecks() {
@@ -665,7 +687,7 @@ export class Game {
 
         container.innerHTML = '';
         this.gamedatas.hand_cards.forEach(card => {
-            const wrapper = this.createCardElement(card);
+            const wrapper = this.createCardElement(card, { scope: 'hand' });
             wrapper.addEventListener('click', () => this.onCardClicked(card.card_id));
             const vp = document.createElement('div');
             vp.className = 'gou_card_vp';
@@ -673,6 +695,7 @@ export class Game {
             container.appendChild(wrapper);
         });
         this.updateHandScores();
+        this.registerCardTooltips();
     }
 
     updateHandScores() {
@@ -758,7 +781,7 @@ export class Game {
 
         cards.forEach(card => {
             const isSelected = parseInt(card.card_id) === parseInt(this.selectedCardId);
-            const wrapper = this.createCardElement(card, { selected: isSelected });
+            const wrapper = this.createCardElement(card, { selected: isSelected, scope: 'draft' });
 
             wrapper.addEventListener('click', () => {
                 this.selectedCardId = card.card_id;
@@ -767,6 +790,7 @@ export class Game {
 
             container.appendChild(wrapper);
         });
+        this.registerCardTooltips();
     }
 
     updateSelectMartianUI(args) {
@@ -1105,12 +1129,26 @@ export class Game {
         this.setSpotFlower(args.q2, args.r2, args.color2);
     }
 
-    setupResponsiveScaling() {
-        window.addEventListener('resize', () => this.updateBoardScale());
-        window.addEventListener('orientationchange', () => {
-            setTimeout(() => this.updateBoardScale(), 150);
+    scheduleBoardScale() {
+        if (this.scalePending) return;
+        this.scalePending = true;
+        requestAnimationFrame(() => {
+            this.scalePending = false;
+            this.updateBoardScale();
         });
-        setTimeout(() => this.updateBoardScale(), 100);
+    }
+
+    setupResponsiveScaling() {
+        window.addEventListener('resize', () => this.scheduleBoardScale());
+        window.addEventListener('orientationchange', () => setTimeout(() => this.scheduleBoardScale(), 150));
+        window.addEventListener('load', () => this.scheduleBoardScale());
+        // BGA lays out its padded containers after setup(), so re-measure whenever the surroundings change
+        const container = document.getElementById('gardensofuranus_container');
+        if (typeof ResizeObserver !== 'undefined' && container?.parentElement) {
+            new ResizeObserver(() => this.scheduleBoardScale()).observe(container.parentElement);
+            new ResizeObserver(() => this.scheduleBoardScale()).observe(document.documentElement);
+        }
+        [100, 500, 1500].forEach(ms => setTimeout(() => this.scheduleBoardScale(), ms));
     }
 
     /** On phones, let the container use the full screen width (BGA wraps the play area in padded containers). */
