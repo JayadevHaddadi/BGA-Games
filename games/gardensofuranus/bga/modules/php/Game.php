@@ -1238,6 +1238,19 @@ class Game extends \Bga\GameFramework\Table
         $result['card_scores'] = ($currentPlayerId !== null) ? $this->getHandScores((int)$currentPlayerId) : [];
         $finalScoring = $this->globals->get('final_scoring', null);
         $result['final_scoring'] = $finalScoring ? json_decode((string) $finalScoring, true) : null;
+        $draftWaiting = [];
+        if ((int) $this->globals->get('draft_done', 0) === 0) {
+            $draftRound = (int) $this->globals->get('draft_round', 1);
+            foreach (array_keys($result['players']) as $draftPlayerId) {
+                $kept = (int) $this->getUniqueValueFromDb(
+                    "SELECT COUNT(*) FROM `card` WHERE `card_location` = 'hand' AND `location_arg` = " . (int) $draftPlayerId
+                );
+                if ($kept < $draftRound) {
+                    $draftWaiting[] = (int) $draftPlayerId;
+                }
+            }
+        }
+        $result['draft_waiting'] = $draftWaiting;
         $result['martian_mode'] = (int) $this->globals->get('martian_mode', 1);
         $result['special_powers'] = (int) $this->globals->get('special_powers', 1);
         $result['mission_deck'] = $this->getMissionDeckWithDescriptions();

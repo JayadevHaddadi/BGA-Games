@@ -257,6 +257,7 @@ export class Game {
                     <div id="gou_martian_picker" style="display:none"></div>
                     <div id="gou_decks_row"></div>
                     <div id="gou_board_col">
+                        <div id="gou_place_hint" style="display:none"></div>
                         <div class="game-board-scaler" id="gou_board_scaler">
                             <div id="garden_board" class="gou_board_type_${boardType}" style="width:${boardCfg.w}px;height:${boardCfg.h}px;background-image:url('${this.imgUrl(boardCfg.img)}')">
                                 <div id="gou_cells_layer"></div>
@@ -537,6 +538,9 @@ export class Game {
             }
 
             spot.addEventListener('click', () => this.onSpotClicked(cell.q, cell.r));
+            // Lift the gardener standing here while the pointer is over this (fixed) spot
+            spot.addEventListener('mouseenter', () => { if (window.matchMedia('(hover: hover)').matches) this.liftGardenerAt(cell.q, cell.r, true); });
+            spot.addEventListener('mouseleave', () => this.dropGardeners());
             layer.appendChild(spot);
         });
     }
@@ -602,17 +606,6 @@ export class Game {
             const color = this.gamedatas.players?.[g.player_id]?.color;
             if (color) token.style.background = `#${color}`;
             const owner = this.gamedatas.players?.[g.player_id]?.name || '';
-            token.addEventListener('click', () => {
-                if (this.powerMode) {
-                    this.onSpotClicked(g.q, g.r);
-                    return;
-                }
-                // Tap/click lifts the character and names its player (colour-blind friendly)
-                document.querySelectorAll('.gou_gardener_token.gou_lifted').forEach(t => t.classList.remove('gou_lifted'));
-                token.classList.add('gou_lifted');
-                clearTimeout(this.liftTimer);
-                this.liftTimer = setTimeout(() => token.classList.remove('gou_lifted'), 3500);
-            });
             token.dataset.name = `${owner} (${this.martianLabel(g.martian)})`;
             token.title = `${owner} (${this.martianLabel(g.martian)})`;
             token.setAttribute('aria-label', token.title);
@@ -872,8 +865,9 @@ export class Game {
 
         const active = (isCurrentPlayerActive !== undefined) ? isCurrentPlayerActive : this.isCurrentPlayerActive();
 
-        if (!active) {
-            this.bga?.statusBar?.setTitle?.(_('Waiting for other players to pick their cards...'));
+        const myIdDraft = parseInt(this.bga?.players?.getCurrentPlayerId?.() || 0);
+        if (!active || !this.draftWaitingSet().has(myIdDraft)) {
+            this.bga?.statusBar?.setTitle?.(this.draftWaitingTitle());
             const container = document.getElementById('gou_draft_container');
             if (container) {
                 container.querySelectorAll('.gou_card_wrapper').forEach(w => {
@@ -888,7 +882,7 @@ export class Game {
         const cards = (argCards && argCards.length) ? argCards : (this.gamedatas?.draft_cards || []);
         const sig = cards.map(c => c.card_id).sort().join(',');
         if (!cards.length || (this.pickedSig && this.pickedSig === sig)) {
-            this.bga?.statusBar?.setTitle?.(_('Waiting for other players to pick their cards...'));
+            this.bga?.statusBar?.setTitle?.(this.draftWaitingTitle());
             return;
         }
         this.pickedSig = null;
@@ -914,7 +908,8 @@ export class Game {
                     const chosenId = parseInt(this.selectedCardId);
                     this.pickedSig = cards.map(c => c.card_id).sort().join(',');
                     this.clearActionButtons();
-                    this.bga?.statusBar?.setTitle?.(_('Waiting for other players to pick their cards...'));
+                    this.draftWaitingSet().delete(parseInt(this.bga?.players?.getCurrentPlayerId?.() || 0));
+                    this.bga?.statusBar?.setTitle?.(this.draftWaitingTitle());
                     const container = document.getElementById('gou_draft_container');
                     if (container) {
                         container.querySelectorAll('.gou_card_wrapper').forEach(w => {
@@ -950,6 +945,23 @@ export class Game {
         this.registerCardTooltips();
     }
 
+    /** Draft: players that still have to pick this round, as a Set of ids. */
+    draftWaitingSet() {
+        if (!this.draftWaiting) this.draftWaiting = new Set((this.gamedatas?.draft_waiting || []).map(Number));
+        return this.draftWaiting;
+    }
+
+    draftWaitingTitle() {
+        const players = this.gamedatas?.players || {};
+        const names = [...this.draftWaitingSet()].map(pid => {
+            const p = players[pid];
+            return p ? `<b style="color:#${p.color}">${p.name}</b>` : '';
+        }).filter(Boolean);
+        return names.length
+            ? _('Waiting for ${names} to choose a card...').replace('${names}', names.join(', '))
+            : _('Waiting for other players to pick their cards...');
+    }
+
     /** Banner text for a Martian: icon, name and (when powers are on) its power. */
     martianBanner(m) {
         const icon = `<img src="${this.imgUrl(`${m}.png`)}" alt="" style="height:24px;width:24px;vertical-align:middle;object-fit:contain">`;
@@ -960,8 +972,21 @@ export class Game {
         return text;
     }
 
+    showPlaceHint(m) {
+        const box = document.getElementById('gou_place_hint');
+        if (!box) return;
+        box.innerHTML = `<img src="${this.imgUrl(`${m}.png`)}" alt=""><span>${_('Now place')} <b>${this.martianLabel(m)}</b> ${_('on the board: click one of the highlighted spots')}</span>`;
+        box.style.display = 'flex';
+    }
+
+    hidePlaceHint() {
+        const box = document.getElementById('gou_place_hint');
+        if (box) box.style.display = 'none';
+    }
+
     updateSelectMartianUI(args) {
         this.uiPhase = 'martian';
+        this.hidePlaceHint();
         this.setDraftMode(false);
         document.querySelectorAll('.gou_draft_ready_badge').forEach(b => b.remove());
         this.clearValidMoveHighlights();
@@ -986,7 +1011,8 @@ export class Game {
         if (available.length === 1) {
             this.selectedMartian = available[0];
             this.martianConfirmed = true;
-            this.bga?.statusBar?.setTitle?.(`${_('Your Martian:')} ${this.martianBanner(available[0])} - ${_('Click a highlighted empty spot to place your gardener')}`);
+            this.bga?.statusBar?.setTitle?.(`${_('Place your gardener on the board.')} ${_('Your Martian:')} ${this.martianBanner(available[0])}`);
+            this.showPlaceHint(available[0]);
             markSpots();
             return;
         }
@@ -1001,7 +1027,8 @@ export class Game {
             return;
         }
 
-        this.bga?.statusBar?.setTitle?.(`${this.martianBanner(this.selectedMartian)} - ${_('Click a highlighted empty spot to place your gardener')}`);
+        this.bga?.statusBar?.setTitle?.(`${_('Place your gardener on the board.')} ${this.martianBanner(this.selectedMartian)}`);
+        this.showPlaceHint(this.selectedMartian);
         markSpots();
         this.bga?.statusBar?.addActionButton?.(_('Change Martian'), () => {
             this.martianConfirmed = false;
@@ -1011,6 +1038,7 @@ export class Game {
 
     updatePlayerTurnUI(args) {
         this.uiPhase = 'turn';
+        this.hidePlaceHint();
         this.powerMode = null;
         this.setDraftMode(false);
         this.hideMartianPicker();
@@ -1133,7 +1161,30 @@ export class Game {
         document.querySelectorAll('.garden_spot.valid_move').forEach(el => el.classList.remove('valid_move'));
     }
 
+    gardenerAt(q, r) {
+        return Object.values(this.gamedatas?.gardeners || {}).find(g =>
+            g.q !== null && g.q !== undefined && Number(g.q) === Number(q) && Number(g.r) === Number(r));
+    }
+
+    dropGardeners() {
+        document.querySelectorAll('.gou_gardener_token.gou_lifted').forEach(t => t.classList.remove('gou_lifted'));
+    }
+
+    liftGardenerAt(q, r, hover = false) {
+        const g = this.gardenerAt(q, r);
+        if (!g) return false;
+        this.dropGardeners();
+        document.getElementById(`gardener_${g.player_id}`)?.classList.add('gou_lifted');
+        clearTimeout(this.liftTimer);
+        if (!hover) this.liftTimer = setTimeout(() => this.dropGardeners(), 3500);
+        return true;
+    }
+
     onSpotClicked(q, r) {
+        // Tap/click on a gardener: lift it and show its player's name (unless a power is picking targets)
+        if (!this.powerMode && this.liftGardenerAt(q, r)) {
+            return;
+        }
         // The board is only interactive when placing a gardener or taking a turn; stay silent otherwise
         if ((this.uiPhase !== 'turn' && this.uiPhase !== 'martian') || !this.isCurrentPlayerActive()) {
             return;
@@ -1245,6 +1296,11 @@ export class Game {
         const myId = this.bga?.players?.getCurrentPlayerId?.() || 0;
         const pId = parseInt(args.player_id);
         if (pId === parseInt(myId)) sounds.playCard();
+        this.draftWaitingSet().delete(pId);
+        if (!this.draftWaitingSet().has(parseInt(myId)) && this.uiPhase === 'draft') {
+            this.clearActionButtons();
+            this.bga?.statusBar?.setTitle?.(this.draftWaitingTitle());
+        }
 
         // Display checkmark badge on player's sidebar panel
         const panel = this.bga?.playerPanels?.getElement?.(pId);
@@ -1260,13 +1316,11 @@ export class Game {
             badge.style.display = 'inline-block';
         }
 
-        if (pId === parseInt(myId)) {
-            this.clearActionButtons();
-            this.bga?.statusBar?.setTitle?.(_('Waiting for other players to pick their cards...'));
-        }
+
     }
 
     notif_draftRoundStarted(notif) {
+        this.draftWaiting = new Set(Object.keys(this.gamedatas?.players || {}).map(Number));
         this.selectedCardId = null;
         const args = this._getNotifArgs(notif);
         if (args?.round) {
