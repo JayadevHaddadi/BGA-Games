@@ -1100,7 +1100,7 @@
 .kiln_cb_on .kiln_tile_red,
 .kiln_cb_on .kiln_disc_red,
 .kiln_cb_on .kiln_dot_red {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 15.88 16.72'%3E%3Cpath transform='translate(-118.960 -74.652)' d='m 133.93968,90.471252 h -3.30514 l -7.4291,-8.592426 v 8.592426 h -3.34509 V 75.552314 h 3.30515 l 7.42909,8.592426 v -8.592426 h 3.34509 z' fill='%232e0505'/%3E%3C/svg%3E"), linear-gradient(135deg, #e53935 0%, #c62828 100%);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 15.88 16.72'%3E%3Cpath transform='translate(-118.960 -74.652)' d='m 133.93968,90.471252 h -3.30514 l -7.4291,-8.592426 v 8.592426 h -3.34509 V 75.552314 h 3.30515 l 7.42909,8.592426 v -8.592426 h 3.34509 z' fill='%23520909'/%3E%3C/svg%3E"), linear-gradient(135deg, #e53935 0%, #c62828 100%);
     background-repeat: no-repeat, no-repeat;
     background-position: center, center;
     background-size: 42%, 100% 100%;
@@ -1108,7 +1108,7 @@
 .kiln_cb_on .kiln_tile_blue,
 .kiln_cb_on .kiln_disc_blue,
 .kiln_cb_on .kiln_dot_blue {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 15.87 16.72'%3E%3Cpath transform='translate(-54.411 -74.652)' d='m 69.380059,90.471252 h -4.2238 l -3.27519,-4.531828 -3.27519,4.531828 h -3.29516 V 75.552314 h 3.3351 v 9.013525 l 6.51044,-9.013525 h 4.21382 l -5.3821,7.469495 z' fill='%2303112e'/%3E%3C/svg%3E"), linear-gradient(135deg, #1e88e5 0%, #1565c0 100%);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 15.87 16.72'%3E%3Cpath transform='translate(-54.411 -74.652)' d='m 69.380059,90.471252 h -4.2238 l -3.27519,-4.531828 -3.27519,4.531828 h -3.29516 V 75.552314 h 3.3351 v 9.013525 l 6.51044,-9.013525 h 4.21382 l -5.3821,7.469495 z' fill='%2308245a'/%3E%3C/svg%3E"), linear-gradient(135deg, #1e88e5 0%, #1565c0 100%);
     background-repeat: no-repeat, no-repeat;
     background-position: center, center;
     background-size: 42%, 100% 100%;
@@ -1116,7 +1116,7 @@
 .kiln_cb_on .kiln_tile_green,
 .kiln_cb_on .kiln_disc_green,
 .kiln_cb_on .kiln_dot_green {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 11.80 14.80'%3E%3Cpath transform='translate(0.900 0.900)' d='M0 0 H10 V2.4 H6.8 V10.6 H10 V13 H0 V10.6 H3.2 V2.4 H0 Z' fill='%2304190a'/%3E%3C/svg%3E"), linear-gradient(135deg, #43a047 0%, #2e7d32 100%);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 11.80 14.80'%3E%3Cpath transform='translate(0.900 0.900)' d='M0 0 H10 V2.4 H6.8 V10.6 H10 V13 H0 V10.6 H3.2 V2.4 H0 Z' fill='%230a3410'/%3E%3C/svg%3E"), linear-gradient(135deg, #43a047 0%, #2e7d32 100%);
     background-repeat: no-repeat, no-repeat;
     background-position: center, center;
     background-size: 42%, 100% 100%;
@@ -1124,7 +1124,7 @@
 .kiln_cb_on .kiln_tile_yellow,
 .kiln_cb_on .kiln_disc_yellow,
 .kiln_cb_on .kiln_dot_yellow {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 15.91 16.72'%3E%3Cpath transform='translate(-97.351 -74.652)' d='m 112.3599,90.471252 h -11.91251 c -0.599121,0 -1.118361,-0.21055 -1.547731,-0.651701 -0.42937,-0.431125 -0.64905,-0.952486 -0.64905,-1.554056 V 75.552314 h 3.345091 v 11.770721 h 10.7642 z' fill='%234a2c00'/%3E%3C/svg%3E"), linear-gradient(135deg, #fdd835 0%, #f9a825 100%);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 15.91 16.72'%3E%3Cpath transform='translate(-97.351 -74.652)' d='m 112.3599,90.471252 h -11.91251 c -0.599121,0 -1.118361,-0.21055 -1.547731,-0.651701 -0.42937,-0.431125 -0.64905,-0.952486 -0.64905,-1.554056 V 75.552314 h 3.345091 v 11.770721 h 10.7642 z' fill='%236e4400'/%3E%3C/svg%3E"), linear-gradient(135deg, #fdd835 0%, #f9a825 100%);
     background-repeat: no-repeat, no-repeat;
     background-position: center, center;
     background-size: 42%, 100% 100%;
