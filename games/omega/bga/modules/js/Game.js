@@ -758,7 +758,7 @@ export class Game {
 
         const baseW = this.boardW;
         const baseH = this.boardH;
-        const availableWidth = Math.max(280, this.fitContainerToScreen(container) - 2);
+        const availableWidth = Math.max(280, this.fitContainerToScreen(container));
 
         // Desktop: natural size is capped (about 700px wide); phones fill the width
         const maxScale = 700 / baseW;
