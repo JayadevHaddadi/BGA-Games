@@ -24,6 +24,21 @@ class NextDraftRound extends GameState
     {
         $round = (int) $this->globals->get('draft_round', 1);
 
+        // Already finished (duplicate entry): just continue.
+        if ((int) $this->globals->get('draft_done', 0) === 1) {
+            return SelectMartian::class;
+        }
+
+        // Only advance when every player has kept their card for this round; otherwise go back to picking.
+        foreach (array_keys($this->game->loadPlayersBasicInfos()) as $pId) {
+            $kept = (int) $this->game->getUniqueValueFromDb(
+                "SELECT COUNT(*) FROM `card` WHERE `card_location` = 'hand' AND `location_arg` = " . (int) $pId
+            );
+            if ($kept < $round) {
+                return DraftCard::class;
+            }
+        }
+
         if ($round < 5) {
             // Pass remaining cards to the player on the left
             $playerIds = array_keys($this->game->loadPlayersBasicInfos());
@@ -62,6 +77,7 @@ class NextDraftRound extends GameState
         }
 
         // Draft completed (all 5 rounds finished)
+        $this->globals->set('draft_done', 1);
         // Clean up any remaining cards in draft_hand (e.g. if 6 were dealt)
         $this->game->DbQuery(
             "UPDATE `card` SET `card_location` = 'discard', `location_arg` = 0 WHERE `card_location` = 'draft_hand'"

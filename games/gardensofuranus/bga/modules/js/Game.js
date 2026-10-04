@@ -813,7 +813,8 @@ export class Game {
             return;
         }
 
-        const cards = args?.draft_cards || this.gamedatas?.draft_cards || [];
+        const argCards = args?.draft_cards;
+        const cards = (argCards && argCards.length) ? argCards : (this.gamedatas?.draft_cards || []);
         if (!cards.length) {
             this.bga?.statusBar?.setTitle?.(_('Draft Phase: Card chosen! Waiting for other players...'));
             return;

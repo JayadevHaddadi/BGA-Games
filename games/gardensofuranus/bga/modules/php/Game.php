@@ -182,6 +182,7 @@ class Game extends \Bga\GameFramework\Table
         $this->globals->set('board_type', $boardType);
         $this->globals->set('special_powers', $specialPowers);
         $this->globals->set('draft_round', 1);
+        $this->globals->set('draft_done', 0);
         $this->globals->set('non_plant_moves_streak', 0);
         $this->globals->set('turn_count', 1);
         $this->globals->set('instant_winner', null);
