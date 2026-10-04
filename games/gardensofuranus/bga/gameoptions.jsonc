@@ -1,18 +1,20 @@
 {
     // Garden board: only the Hexagonal board is supported for now.
     // TODO: Trapezoid and Rhombus boards (needs board geometry and art).
-    //
-    // TODO: Special Martian powers (rulebook advanced rule) are not implemented yet.
     "101": {
-        "name": "Martian selection",
+        "name": "Martian powers",
         "values": {
             "1": {
-                "name": "Choose your Martian",
-                "description": "Players take turns choosing their Martian when placing their gardener."
+                "name": "No powers",
+                "description": "Each player is dealt a random Martian. Martians only differ in looks."
             },
             "2": {
-                "name": "Random Martian",
-                "description": "Each player is dealt a random Martian. Martians only differ in looks."
+                "name": "Powers: random Martian",
+                "description": "Each player is dealt a random Martian and can use its special power once per game."
+            },
+            "3": {
+                "name": "Powers: pick your Martian",
+                "description": "Players choose their Martian when placing their gardener. Each Martian can use its special power once per game."
             }
         },
         "default": 1

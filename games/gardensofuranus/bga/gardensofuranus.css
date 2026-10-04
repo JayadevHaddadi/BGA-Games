@@ -508,6 +508,18 @@
     font-weight: 700;
 }
 
+.gou_panel_power {
+    display: flex;
+    align-items: center;
+    flex-basis: 100%;
+    gap: 6px;
+    margin-top: 6px;
+    font-size: 14px;
+}
+
+.gou_panel_power img { width: 24px; height: 24px; object-fit: contain; }
+.gou_panel_power.used { opacity: 0.55; }
+
 .gou_panel_scored {
     display: flex;
     flex-wrap: wrap;

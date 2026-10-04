@@ -10,9 +10,9 @@ Finish with the most points. You earn points by scoring mission cards, and lose 
 
 * The garden is a hexagonal board with 61 spots and 1 tree placed on a random spot that is not on the outer edge.
 * Each player receives flowers in 5 colors (blue, red, yellow, green, purple). The amount depends on the number of players: 2 players 30 flowers, 3 players 20, 4 players 15, 5 players 12. Every player's flower reserve is public and shown in the player panel together with the penalty it would cost right now.
-* '''Draft your missions:''' everyone starts with 5 secret mission cards. Keep 1 and pass the other 4 to your neighbor, then keep 1 of the 4 you receive and pass the rest, and so on until you hold 5 cards.
+* '''Draft your missions:''' everyone starts with 5 secret mission cards. Keep 1 and pass the other 4 to your neighbor, then keep 1 of the 4 you receive and pass the rest, and so on. The 5th card is the single one that is passed to you, so you keep it automatically and end up with 5 cards.
 * The remaining mission cards are split into 4 decks on the board: 1 face-down deck and 3 face-up decks (the top card is visible). The number on each deck is how many cards are left in it.
-* In turn order each player places their gardener on any empty spot. Depending on the table option you either choose your Martian or are dealt a random one; Martians only differ in looks.
+* In turn order each player places their gardener on any empty spot. Depending on the table option ''Martian powers'' you either choose your Martian or are dealt a random one (the default is no powers, where Martians only differ in looks).
 
 ==Your turn==
 
@@ -33,6 +33,17 @@ On your turn you must do '''one''' of the following:
 * '''Edge or tree:''' 1 point for every flower of a color on the edge of the garden or next to a tree.
 * '''Adjacent pairs:''' 1 point for every connection between two adjacent flowers of the two colors on the card.
 * '''Hexagon:''' if 6 flowers of the same color are placed on the corners of a regular hexagon (straight sides) at any moment, the owner of this card wins the game instantly.
+
+==Martian powers (optional)==
+
+If the table option ''Martian powers'' enables them, each Martian can use its special power '''once per game'''. Players in the table panel can see who has already used theirs.
+* '''Ali, flower swap:''' swap two flowers; both flowers and Ali must lie on the same straight line.
+* '''Bot, nuke a tree:''' remove one tree from the board.
+* '''Marty, teleport:''' move to any spot that has no tree and no other Martian.
+* '''Robby, swap Martians:''' swap places with any other Martian.
+* '''Bob, replace flower:''' when moving, land on a spot that already has a flower and plant one of your flowers there; the old flower leaves the game.
+
+Ali, Bot, Marty and Robby use their power '''before''' their normal action: use the power button in the action bar, then still move or score a card as usual. Bob's power is part of his move.
 
 ==End of the game==
 

@@ -26,30 +26,19 @@ class PlayerTurn extends GameState
     {
         $activePlayerId = (int) $this->game->getActivePlayerId();
 
-        $validMoves = $this->game->getValidMoves($activePlayerId);
-        $playerFlowers = $this->game->getPlayerFlowers($activePlayerId);
-        $boardDecks = $this->game->getBoardDecks();
-
-        $gardener = $this->game->getObjectFromDb(
-            "SELECT `martian`, `coord_q` as `q`, `coord_r` as `r`, `power_used` FROM `gardener` WHERE `player_id` = $activePlayerId"
-        );
-
-        $specialPowersEnabled = ((int) $this->globals->get('special_powers', 1) === 2);
-
         return [
-            'valid_moves' => $validMoves,
-            'player_flowers' => $playerFlowers,
-            'board_decks' => $boardDecks,
-            'gardener' => $gardener,
-            'can_use_power' => ($specialPowersEnabled && $gardener && (int)$gardener['power_used'] === 0),
+            'valid_moves' => $this->game->getValidMoves($activePlayerId),
+            'player_flowers' => $this->game->getPlayerFlowers($activePlayerId),
+            'board_decks' => $this->game->getBoardDecks(),
+            'power' => $this->game->getPowerInfo($activePlayerId),
         ];
     }
 
     #[PossibleAction]
-    public function actMoveGardener(int $targetQ, int $targetR, ?string $plantColor = null): string
+    public function actMoveGardener(int $targetQ, int $targetR, ?string $plantColor = null, ?int $replace = 0): string
     {
         $activePlayerId = (int) $this->game->getActivePlayerId();
-        $this->game->moveGardener($activePlayerId, $targetQ, $targetR, $plantColor);
+        $this->game->moveGardener($activePlayerId, $targetQ, $targetR, $plantColor, (bool) $replace);
         return NextPlayer::class;
     }
 
@@ -62,111 +51,12 @@ class PlayerTurn extends GameState
     }
 
     #[PossibleAction]
-    public function actUseSpecialPower(string $powerType, array $args = []): string
+    public function actUseSpecialPower(string $powerType, ?int $q1 = null, ?int $r1 = null, ?int $q2 = null, ?int $r2 = null, ?int $targetPlayerId = null): string
     {
         $activePlayerId = (int) $this->game->getActivePlayerId();
+        $this->game->useSpecialPower($activePlayerId, $powerType, $q1, $r1, $q2, $r2, $targetPlayerId);
 
-        if ((int) $this->globals->get('special_powers', 1) !== 2) {
-            throw new UserException(clienttranslate("Special Martian powers are not enabled in this game."));
-        }
-
-        $gardener = $this->game->getObjectFromDb(
-            "SELECT `martian`, `coord_q` as `q`, `coord_r` as `r`, `power_used` FROM `gardener` WHERE `player_id` = $activePlayerId"
-        );
-        if (!$gardener || (int)$gardener['power_used'] === 1) {
-            throw new UserException(clienttranslate("You have already used your Martian power in this game."));
-        }
-
-        $martian = $gardener['martian'];
-        if ($martian !== $powerType) {
-            throw new UserException(clienttranslate("Invalid power for your Martian."));
-        }
-
-        if ($martian === 'bot') {
-            // Nuke a tree: remove tree at given coordinates
-            $tq = (int) ($args['q'] ?? 0);
-            $tr = (int) ($args['r'] ?? 0);
-            $cell = $this->game->getObjectFromDb("SELECT `has_tree` FROM `cell` WHERE `coord_q` = $tq AND `coord_r` = $tr");
-            if (!$cell || (int)$cell['has_tree'] !== 1) {
-                throw new UserException(clienttranslate("There is no tree at those coordinates."));
-            }
-            $this->game->DbQuery("UPDATE `cell` SET `has_tree` = 0 WHERE `coord_q` = $tq AND `coord_r` = $tr");
-            $this->game->notifyAllPlayers("treeNuked", clienttranslate('${player_name} used Bot to nuke a tree!'), [
-                'player_name' => $this->game->getPlayerNameById($activePlayerId),
-                'q' => $tq,
-                'r' => $tr,
-            ]);
-        } elseif ($martian === 'marty') {
-            // Teleport to any spot with no tree and no Martian
-            $tq = (int) ($args['q'] ?? 0);
-            $tr = (int) ($args['r'] ?? 0);
-            $cell = $this->game->getObjectFromDb("SELECT `has_tree` FROM `cell` WHERE `coord_q` = $tq AND `coord_r` = $tr");
-            if (!$cell || (int)$cell['has_tree'] === 1) {
-                throw new UserException(clienttranslate("Cannot teleport onto a tree or outside the board."));
-            }
-            $hasOther = !empty($this->game->getObjectFromDb("SELECT 1 FROM `gardener` WHERE `coord_q` = $tq AND `coord_r` = $tr AND `player_id` != $activePlayerId LIMIT 1"));
-            if ($hasOther) {
-                throw new UserException(clienttranslate("Cannot teleport onto another Martian."));
-            }
-            $this->game->DbQuery("UPDATE `gardener` SET `coord_q` = $tq, `coord_r` = $tr WHERE `player_id` = $activePlayerId");
-            $this->game->notifyAllPlayers("gardenerTeleported", clienttranslate('${player_name} used Marty to teleport!'), [
-                'player_id' => $activePlayerId,
-                'player_name' => $this->game->getPlayerNameById($activePlayerId),
-                'q' => $tq,
-                'r' => $tr,
-            ]);
-        } elseif ($martian === 'robby') {
-            // Swap positions with another gardener
-            $targetPId = (int) ($args['target_player_id'] ?? 0);
-            $other = $this->game->getObjectFromDb("SELECT `coord_q` as `q`, `coord_r` as `r` FROM `gardener` WHERE `player_id` = $targetPId");
-            if (!$other) {
-                throw new UserException(clienttranslate("Invalid target Martian."));
-            }
-            $myQ = (int) $gardener['q'];
-            $myR = (int) $gardener['r'];
-            $otherQ = (int) $other['q'];
-            $otherR = (int) $other['r'];
-
-            $this->game->DbQuery("UPDATE `gardener` SET `coord_q` = $otherQ, `coord_r` = $otherR WHERE `player_id` = $activePlayerId");
-            $this->game->DbQuery("UPDATE `gardener` SET `coord_q` = $myQ, `coord_r` = $myR WHERE `player_id` = $targetPId");
-            $this->game->notifyAllPlayers("gardenersSwapped", clienttranslate('${player_name} used Robby to swap positions with another Martian!'), [
-                'player_name' => $this->game->getPlayerNameById($activePlayerId),
-                'other_player_name' => $this->game->getPlayerNameById($targetPId),
-                'player_id' => $activePlayerId,
-                'other_player_id' => $targetPId,
-                'q' => $otherQ,
-                'r' => $otherR,
-                'other_q' => $myQ,
-                'other_r' => $myR,
-            ]);
-        } elseif ($martian === 'ali') {
-            // Swap 2 flowers in straight line with Ali
-            $q1 = (int) ($args['q1'] ?? 0);
-            $r1 = (int) ($args['r1'] ?? 0);
-            $q2 = (int) ($args['q2'] ?? 0);
-            $r2 = (int) ($args['r2'] ?? 0);
-
-            $c1 = $this->game->getObjectFromDb("SELECT `flower_color` FROM `cell` WHERE `coord_q` = $q1 AND `coord_r` = $r1");
-            $c2 = $this->game->getObjectFromDb("SELECT `flower_color` FROM `cell` WHERE `coord_q` = $q2 AND `coord_r` = $r2");
-            if (!$c1 || !$c2 || !$c1['flower_color'] || !$c2['flower_color']) {
-                throw new UserException(clienttranslate("Both spots must contain a flower."));
-            }
-
-            $col1 = $c1['flower_color'];
-            $col2 = $c2['flower_color'];
-            $this->game->DbQuery("UPDATE `cell` SET `flower_color` = '$col2' WHERE `coord_q` = $q1 AND `coord_r` = $r1");
-            $this->game->DbQuery("UPDATE `cell` SET `flower_color` = '$col1' WHERE `coord_q` = $q2 AND `coord_r` = $r2");
-            $this->game->notifyAllPlayers("flowersSwapped", clienttranslate('${player_name} used Ali to swap two flowers!'), [
-                'player_name' => $this->game->getPlayerNameById($activePlayerId),
-                'q1' => $q1, 'r1' => $r1, 'color1' => $col2,
-                'q2' => $q2, 'r2' => $r2, 'color2' => $col1,
-            ]);
-        }
-
-        // Mark power as used
-        $this->game->DbQuery("UPDATE `gardener` SET `power_used` = 1 WHERE `player_id` = $activePlayerId");
-
-        // Player continues their turn action!
+        // The power comes before the turn's action: the player still has to move or score
         return self::class;
     }
 

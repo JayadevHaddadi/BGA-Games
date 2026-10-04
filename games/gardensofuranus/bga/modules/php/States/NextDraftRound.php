@@ -59,21 +59,33 @@ class NextDraftRound extends GameState
 
             $newRound = $round + 1;
             $this->globals->set('draft_round', $newRound);
-            $this->notify->all("draftRoundStarted", clienttranslate('Draft Round ${round}: Remaining cards passed to the next player!'), [
-                'round' => $newRound,
-            ]);
 
-            foreach ($playerIds as $pId) {
-                $cards = $this->game->getObjectListFromDb(
-                    "SELECT `card_id`, `card_type`, `color1`, `color2` FROM `card` WHERE `card_location` = 'draft_hand' AND `location_arg` = " . (int)$pId
-                );
-                $this->notify->player((int)$pId, "newDraftHand", '', [
+            if ($newRound < 5) {
+                $this->notify->all("draftRoundStarted", clienttranslate('Draft Round ${round}: Remaining cards passed to the next player!'), [
                     'round' => $newRound,
-                    'draft_cards' => $cards,
                 ]);
+
+                foreach ($playerIds as $pId) {
+                    $cards = $this->game->getObjectListFromDb(
+                        "SELECT `card_id`, `card_type`, `color1`, `color2` FROM `card` WHERE `card_location` = 'draft_hand' AND `location_arg` = " . (int)$pId
+                    );
+                    $this->notify->player((int)$pId, "newDraftHand", '', [
+                        'round' => $newRound,
+                        'draft_cards' => $cards,
+                    ]);
+                }
+
+                return DraftCard::class;
             }
 
-            return DraftCard::class;
+            // Round 5: only one card is left for each player, so there is no choice to make.
+            // Everyone automatically keeps the card they just received.
+            $this->game->DbQuery(
+                "UPDATE `card` SET `card_location` = 'hand' WHERE `card_location` = 'draft_hand'"
+            );
+            $this->notify->all("draftRoundStarted", clienttranslate('The last card of the draft is passed on and each player keeps it automatically.'), [
+                'round' => $newRound,
+            ]);
         }
 
         // Draft completed (all 5 rounds finished)
