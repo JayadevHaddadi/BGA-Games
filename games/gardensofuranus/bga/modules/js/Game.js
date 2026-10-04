@@ -124,6 +124,7 @@ export class Game {
         this.gamedatas = gamedatas;
         sounds.bga = this.bga;
         this.applyShapePreference();
+        this.setupInfoBubble();
         this.createBoardDOM();
         setTimeout(() => this.renderPlayerFlowers(), 500);
         this.renderGardenState();
@@ -287,6 +288,7 @@ export class Game {
 
     /** Rule reminders are BGA tooltips (hover on desktop, tap on touch), not a blocking popup. */
     registerRuleTooltips() {
+        if (this.touchMode) return;
         const gui = this.bga?.gameui || (typeof gameui !== 'undefined' ? gameui : null);
         if (!gui || typeof gui.addTooltipHtml !== 'function') return;
         Object.entries(this.getRuleCards()).forEach(([key, r]) => {
@@ -382,7 +384,63 @@ export class Game {
     }
 
     /** Card explanations use BGA tooltips (hover on desktop, tap on touch screens). */
+    /** Touch screens have no hover: tapping a card or rule icon shows a small info bubble instead. */
+    setupInfoBubble() {
+        this.touchMode = typeof window.matchMedia === 'function' && window.matchMedia('(hover: none)').matches;
+        if (!this.touchMode || document.getElementById('gou_info_bubble')) return;
+        const bubble = document.createElement('div');
+        bubble.id = 'gou_info_bubble';
+        document.body.appendChild(bubble);
+
+        const selector = '[data-gou-tip-id], .gou_rule_btn';
+        document.addEventListener('pointerdown', (e) => {
+            if (!e.target.closest(selector)) this.hideInfoBubble();
+        }, true);
+        document.addEventListener('click', (e) => {
+            const target = e.target.closest(selector);
+            if (!target) return;
+            let title;
+            let text;
+            if (target.classList.contains('gou_rule_btn')) {
+                const rule = this.getRuleCards()[target.dataset.rule];
+                if (!rule) return;
+                title = rule.title;
+                text = rule.text;
+            } else {
+                const info = this.getCardInfo(parseInt(target.dataset.gouTipId));
+                title = info.name;
+                text = info.desc;
+            }
+            this.showInfoBubble(`<div class="gou_tip_title">${title}</div><div>${text}</div>`, target);
+        });
+    }
+
+    showInfoBubble(html, anchor) {
+        const bubble = document.getElementById('gou_info_bubble');
+        if (!bubble) return;
+        bubble.innerHTML = html;
+        bubble.style.display = 'block';
+        const r = anchor.getBoundingClientRect();
+        const w = bubble.offsetWidth;
+        const h = bubble.offsetHeight;
+        const sx = window.scrollX || 0;
+        const sy = window.scrollY || 0;
+        let top = r.bottom + sy + 8;
+        if (r.bottom + 8 + h > window.innerHeight) top = r.top + sy - h - 8;
+        const left = Math.max(8, Math.min(r.left + sx, window.innerWidth + sx - w - 8));
+        bubble.style.top = `${Math.max(sy + 4, top)}px`;
+        bubble.style.left = `${left}px`;
+        clearTimeout(this.bubbleTimer);
+        this.bubbleTimer = setTimeout(() => this.hideInfoBubble(), 8000);
+    }
+
+    hideInfoBubble() {
+        const bubble = document.getElementById('gou_info_bubble');
+        if (bubble) bubble.style.display = 'none';
+    }
+
     registerCardTooltips() {
+        if (this.touchMode) return;
         const gui = this.bga?.gameui || (typeof gameui !== 'undefined' ? gameui : null);
         if (!gui || typeof gui.addTooltipHtml !== 'function') return;
         document.querySelectorAll('#gardensofuranus_container [data-gou-tip-id]').forEach(el => {
@@ -570,7 +628,24 @@ export class Game {
     }
 
     closeColorPicker() {
+        this.pickerSpot = null;
         document.getElementById('gou_color_picker')?.remove();
+    }
+
+    /** Keep the picker at full on-screen size (>= 44px buttons) whatever the board scale is. */
+    layoutColorPicker() {
+        const picker = document.getElementById('gou_color_picker');
+        const board = document.getElementById('garden_board');
+        if (!picker || !board || !this.pickerSpot) return;
+        const pos = this.axialToPixel(this.pickerSpot.q, this.pickerSpot.r);
+        const sc = this.boardScale || 1;
+        const half = 140 / sc;
+        const boardW = board.offsetWidth;
+        const left = boardW < 2 * half ? boardW / 2 : Math.max(half, Math.min(boardW - half, pos.x));
+        const offset = 62 / sc;
+        picker.style.left = `${left}px`;
+        picker.style.top = `${pos.y < 110 / sc ? pos.y + offset : pos.y - offset}px`;
+        picker.style.transform = `translate(-50%, -50%) scale(${1 / sc})`;
     }
 
     openColorPicker(q, r) {
@@ -581,8 +656,7 @@ export class Game {
         const pos = this.axialToPixel(q, r);
         const picker = document.createElement('div');
         picker.id = 'gou_color_picker';
-        picker.style.left = `${Math.max(140, Math.min(board.offsetWidth - 140, pos.x))}px`;
-        picker.style.top = `${pos.y < 110 ? pos.y + 70 : pos.y - 70}px`;
+        this.pickerSpot = { q, r };
         colors.forEach(color => {
             const cnt = this.myFlowers?.[color] || 0;
             const btn = document.createElement('button');
@@ -603,6 +677,7 @@ export class Game {
             picker.appendChild(btn);
         });
         board.appendChild(picker);
+        this.layoutColorPicker();
         this.bga?.statusBar?.setTitle?.(_('Choose the color of the flower to plant'));
         this.clearActionButtons();
         this.bga?.statusBar?.addActionButton?.(_('Cancel'), () => this.updatePlayerTurnUI(this.lastTurnArgs), { color: 'alert' });
@@ -1213,6 +1288,8 @@ export class Game {
         scaler.style.height = `${scaledH}px`;
         board.style.transform = `scale(${scale})`;
         board.style.transformOrigin = 'top left';
+        this.boardScale = scale;
+        this.layoutColorPicker();
     }
 }
 

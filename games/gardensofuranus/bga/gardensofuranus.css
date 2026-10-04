@@ -584,3 +584,19 @@
 /* BGA tooltip content for mission cards */
 .gou_tip { max-width: 260px; font-size: 15px; line-height: 1.4; }
 .gou_tip_title { font-weight: 700; margin-bottom: 2px; }
+
+/* Tap info bubble (touch screens only; hover devices use BGA tooltips) */
+#gou_info_bubble {
+    position: absolute;
+    z-index: 10000;
+    display: none;
+    max-width: min(320px, 90vw);
+    padding: 10px 12px;
+    border: 2px solid #12303d;
+    border-radius: 3px;
+    background: #ffffff;
+    color: #24292f;
+    font-size: 16px;
+    line-height: 1.4;
+    pointer-events: none;
+}
