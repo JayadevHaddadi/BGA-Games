@@ -299,14 +299,11 @@ class PlayerTurnState {
             const canFix = args?.can_fix_car || false;
             const canShortcut = args?.can_use_shortcut || false;
             const carName = racer?.car_name || ('Car #' + activeRId);
-            const turnPos = (this.game.carTurnOrder && this.game.carTurnOrder.length > 0)
-                ? (this.game.carTurnOrder.indexOf(activeRId) + 1)
-                : null;
-            const posLabel = turnPos > 0 ? ` (Box ${turnPos})` : '';
+            const carTag = this.game.isTeamMode ? ` (${carName})` : '';
 
             if (isBellyUp) {
                 this.game.clearHighlights();
-                this.bga.statusBar.setTitle(_('${you} (${car}${pos}): Crashed! Flip your car upright to pass turn.').replace('${car}', carName).replace('${pos}', posLabel));
+                this.bga.statusBar.setTitle(_('${you}${car}: Crashed! Flip your car upright to pass turn.').replace('${car}', carTag));
                 this.game.addActionButton('btnFlipUpright', _('Flip Car Upright'), () => {
                     this.bga.actions.performAction('actFlipCar', {});
                 }, 'primary');
@@ -319,7 +316,7 @@ class PlayerTurnState {
                 const turboActive = args?.turbo_active || false;
                 const rocketTargets = args?.rocket_targets || [];
 
-                let title = _('${you} (${car}${pos}): Roll your dice to drive, or use an item / repair.').replace('${car}', carName).replace('${pos}', posLabel);
+                let title = _('${you}${car}: Roll your dice to drive, or use an item / repair.').replace('${car}', carTag);
                 if (turboActive) {
                     title = _('Turbo Boost active for ${car}! Roll dice (highest die counts 2x)!').replace('${car}', carName);
                 }
@@ -410,7 +407,7 @@ class PlayerTurnState {
         } else {
             const activeRId = args?.active_racer_id || this.game.activeRacerId;
             const racer = this.game.getRacerData(activeRId);
-            const carName = racer?.car_name ? ` (${racer.car_name})` : '';
+            const carName = (this.game.isTeamMode && racer?.car_name) ? ` (${racer.car_name})` : '';
             this.bga.statusBar.setTitle(_('${actplayer}${car} is taking their racing turn...').replace('${car}', carName));
         }
     }
@@ -636,13 +633,15 @@ export class Game {
         this.boardViewport = viewport;
         this.boardContainer = container;
 
-        const PAD = 8; // margin around the board so a drag never starts on a component
+        const PAD = 12; // themed frame around the board; also keeps drags from starting on a component
+        this.boardPad = PAD;
         const updateScale = () => {
-            const availW = container.clientWidth || window.innerWidth;
+            const outerW = container.clientWidth || window.innerWidth;
+            const availW = outerW - 2 * PAD;
             const fit = Math.min(1.0, availW / this.BOARD_WIDTH);
             // Phones: zoom in so roughly half the circuit fills the screen; the player drags to look around
-            const zoomed = availW < 720;
-            let scale = zoomed ? Math.min(1.0, Math.max(fit, (availW - 2 * PAD) / (this.BOARD_WIDTH * 0.5))) : fit;
+            const zoomed = outerW < 720;
+            let scale = zoomed ? Math.min(1.0, Math.max(fit, availW / (this.BOARD_WIDTH * 0.5))) : fit;
             scale = Math.max(0.3, scale);
             this.boardScale = scale;
             this.mobileZoom = zoomed && scale > fit + 0.02;
@@ -651,7 +650,7 @@ export class Game {
             scaler.style.transformOrigin = 'top left';
             sizer.style.width = `${Math.ceil(this.BOARD_WIDTH * scale)}px`;
             sizer.style.height = `${Math.ceil(this.BOARD_HEIGHT * scale)}px`;
-            viewport.style.padding = this.mobileZoom ? `${PAD}px` : '0';
+            viewport.style.padding = `${PAD}px`;
             container.classList.toggle('gp_mobile', this.mobileZoom);
             // Overlay texts are drawn in board units; keep them readable on screen when the board is zoomed out
             board.style.setProperty('--gp-inv', this.mobileZoom ? String(Math.min(2, 1.25 / scale)) : '1');
@@ -704,8 +703,8 @@ export class Game {
         const c = this.getSpaceCoordinates(racer.space_id);
         const vp = this.boardViewport;
         vp.scrollTo({
-            left: c.x * this.boardScale + 8 - vp.clientWidth / 2,
-            top: c.y * this.boardScale + 8 - vp.clientHeight / 2,
+            left: c.x * this.boardScale + this.boardPad - vp.clientWidth / 2,
+            top: c.y * this.boardScale + this.boardPad - vp.clientHeight / 2,
             behavior: smooth ? 'smooth' : 'auto',
         });
     }

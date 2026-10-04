@@ -141,7 +141,7 @@ class Game extends \Bga\GameFramework\Table
                 $pId = $playerIds[$playerIdx];
                 $carNum = (int) floor(($bay - 1) / $numPlayers) + 1;
                 $color = $color_names[($bay - 1) % count($color_names)];
-                $carName = addslashes($players[$pId]["player_name"]) . " #{$carNum} (" . ucfirst($color) . ")";
+                $carName = "Car {$bay} (" . ucfirst($color) . ")";
                 $space = Circuit::getPitBaySpaceId($bay);
                 $racerId = $bay;
 
@@ -166,7 +166,7 @@ class Game extends \Bga\GameFramework\Table
                 $racer_values[] = vsprintf("(%d, %d, '%s', '%s', %d, 0, 6, 0, %d, 0, 270, 0, 0)", [
                     $racerId,
                     $pId,
-                    $pName . ' (' . ucfirst($color) . ')',
+                    'Car ' . $racerId . ' (' . ucfirst($color) . ')',
                     $color,
                     $space,
                     $totalLaps,
