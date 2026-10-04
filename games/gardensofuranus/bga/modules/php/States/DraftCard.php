@@ -22,9 +22,27 @@ class DraftCard extends GameState
         );
     }
 
+    /** Players that still have to pick this round: they hold fewer kept cards than the round number. */
+    private function playersStillPicking(): array
+    {
+        $round = (int) $this->globals->get('draft_round', 1);
+        $needed = [];
+        foreach (array_keys($this->game->loadPlayersBasicInfos()) as $pId) {
+            $kept = (int) $this->game->getUniqueValueFromDb(
+                "SELECT COUNT(*) FROM `card` WHERE `card_location` = 'hand' AND `location_arg` = " . (int) $pId
+            );
+            if ($kept < $round) {
+                $needed[] = (int) $pId;
+            }
+        }
+        return $needed;
+    }
+
     public function onEnteringState(): void
     {
-        $this->gamestate->setAllPlayersMultiactive();
+        // Only players who still have to pick are active (re-entering this state never reactivates
+        // someone who already picked, and moves on if nobody is left).
+        $this->gamestate->setPlayersMultiactive($this->playersStillPicking(), NextDraftRound::class, true);
     }
 
     public function getArgs(): array
@@ -103,9 +121,11 @@ class DraftCard extends GameState
 
         $this->game->giveExtraTime($playerId);
 
-        $transitioned = $this->gamestate->setPlayerNonMultiactive($playerId, NextDraftRound::class);
+        // When this was the last pick of the round the framework itself moves to NextDraftRound.
+        // Returning that state again would run it twice (and discard the final cards), so never return it.
+        $this->gamestate->setPlayerNonMultiactive($playerId, NextDraftRound::class);
 
-        return $transitioned ? NextDraftRound::class : null;
+        return null;
     }
 
     public function zombie(int $playerId): string
@@ -118,7 +138,7 @@ class DraftCard extends GameState
                 "UPDATE `card` SET `card_location` = 'hand', `location_arg` = $playerId WHERE `card_id` = " . (int)$card['card_id']
             );
         }
-        $transitioned = $this->gamestate->setPlayerNonMultiactive($playerId, NextDraftRound::class);
-        return $transitioned ? NextDraftRound::class : DraftCard::class;
+        $this->gamestate->setPlayerNonMultiactive($playerId, NextDraftRound::class);
+        return DraftCard::class;
     }
 }

@@ -30,6 +30,14 @@ class SoundController {
 
 const sounds = new SoundController();
 
+// Board art geometry (base units; the art files are drawn at 2x). Every board is a triangular lattice:
+// the spot (q, r) is at (ox, oy) + q * vq + r * vr.
+const BOARDS = {
+    1: { w: 560, h: 600, img: 'board_hex.jpg', ox: 280, oy: 300, vq: [58, 33.5], vr: [0, 67] },
+    2: { w: 443.5, h: 830, img: 'board_trapezoid.jpg', ox: 48.0, oy: 582.0, vq: [57.79, 33.36], vr: [0.0, 66.73] },
+    3: { w: 539.5, h: 855.5, img: 'board_rhombus.jpg', ox: 35.8, oy: 427.8, vq: [66.73, 0.0], vr: [33.36, 57.79] },
+};
+
 export class DraftCard {
     constructor(game, bga) {
         this.game = game;
@@ -158,13 +166,68 @@ export class Game {
 
     getRuleCards() {
         const svg = (path) => `<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="${path}" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-        return {
+        const rules = {
             turn: { icon: `<img src="${this.imgUrl('bot.png')}" alt="">`, title: _('Your turn'), text: _('Either move your gardener OR score one mission card, never both.') },
             move: { icon: svg('M3 12h15M13 6l6 6-6 6'), title: _('Moving'), text: _('Move in a straight line (6 directions, no turning). Trees block you. Other gardeners do not block you, but you cannot stop on a tree or on another gardener. Stop on an empty spot to plant a flower of your choice; stop on a flower and nothing is planted.') },
             missions: { icon: `<img src="${this.imgUrl('cards/card_back.jpg')}" alt="" class="gou_ico_card">`, title: _('Mission cards'), text: _('The VP shown beside each of your cards is what it would score right now. Scoring a card shows it to everyone, discards it for good, and you draw a replacement from any non-empty deck. The Hexagon card wins instantly if a regular hexagon of one color is formed.') },
             end: { icon: svg('M5 21V4M5 4h12l-3 4.5L17 13H5'), title: _('Game end'), text: _('The game ends when: (1) at the start of a player\'s turn they have no flowers left; (2) every player moves in succession without planting; (3) a player draws the last card from the board; (4) the Hexagon mission is completed.') },
             penalty: { icon: `<span class="gou_ico_minus"><img src="${this.imgUrl('flower_red.png')}" alt=""><b>-</b></span>`, title: _('Unused flowers'), text: _('At the end, each player scores the mission cards left in hand, then loses points for unused flowers: 1 = -1, 2 = -3, 3 = -6, 4 = -10, 5 = -15, 6 = -21, 7 = -28, 8 = -36, 9 = -45, 10 = -55, 11 = -66, 12 = -78.') },
         };
+        if (parseInt(this.gamedatas?.special_powers) === 2) {
+            rules.powers = { icon: `<img src="${this.imgUrl('robby.png')}" alt="">`, title: _('Martian powers'), text: [
+                _('Once per game your Martian can use its power:'),
+                `${_('Ali')} - ${_('Flower swap')}: ${this.powerHelp('ali')}`,
+                `${_('Bot')} - ${_('Nuke a tree')}: ${this.powerHelp('bot')}`,
+                `${_('Marty')} - ${_('Teleport')}: ${this.powerHelp('marty')}`,
+                `${_('Robby')} - ${_('Swap Martians')}: ${this.powerHelp('robby')}`,
+                `${_('Bob')} - ${_('Replace flower')}: ${this.powerHelp('bob')}`,
+                _('Ali, Bot, Marty and Robby use their power before moving or scoring a card; Bob\'s power is part of his move.'),
+            ].join('<br>') };
+        }
+        return rules;
+    }
+
+    powerName(martian) {
+        const names = { ali: _('Flower swap'), bot: _('Nuke a tree'), marty: _('Teleport'), robby: _('Swap Martians'), bob: _('Replace flower') };
+        return names[martian] || '';
+    }
+
+    powerHelp(martian) {
+        const help = {
+            ali: _('Swap two flowers that lie on the same straight line as Ali.'),
+            bot: _('Remove one tree from the board for the rest of the game.'),
+            marty: _('Teleport to any spot without a tree or another Martian.'),
+            robby: _('Swap places with any other Martian.'),
+            bob: _('When planting, plant on a spot that already has a flower; the old flower leaves the game.'),
+        };
+        return help[martian] || '';
+    }
+
+    /** Public power status (available or used) shown in each player panel. */
+    renderPowerStatus() {
+        if (parseInt(this.gamedatas?.special_powers) !== 2) return;
+        Object.values(this.gamedatas.gardeners || {}).forEach(g => {
+            if (!g.martian) return;
+            const panel = this.bga?.playerPanels?.getElement?.(parseInt(g.player_id));
+            if (!panel) return;
+            let box = document.getElementById(`gou_power_${g.player_id}`);
+            if (!box) {
+                box = document.createElement('div');
+                box.id = `gou_power_${g.player_id}`;
+                box.className = 'gou_panel_power';
+                panel.appendChild(box);
+            }
+            const used = parseInt(g.power_used) === 1;
+            box.classList.toggle('used', used);
+            box.title = `${this.powerName(g.martian)}: ${this.powerHelp(g.martian)}`;
+            box.innerHTML = `<img src="${this.imgUrl(`${g.martian}.png`)}" alt=""><span>${this.powerName(g.martian)}: ${used ? _('used') : _('available')}</span>`;
+        });
+    }
+
+    markPowerUsed(playerId) {
+        const g = Object.values(this.gamedatas.gardeners || {}).find(x => String(x.player_id) === String(playerId));
+        if (g) g.power_used = 1;
+        this.renderPowerStatus();
     }
 
     createBoardDOM() {
@@ -176,10 +239,11 @@ export class Game {
 
         const rules = this.getRuleCards();
         const buttons = Object.entries(rules).map(([key, r]) =>
-            `<button type="button" class="gou_rule_btn" id="gou_rule_${key}" data-rule="${key}" aria-label="${r.title}" title="${r.title}: ${r.text.replace(/"/g, '&quot;')}">${r.icon}</button>`
+            `<button type="button" class="gou_rule_btn" id="gou_rule_${key}" data-rule="${key}" aria-label="${r.title}" title="${r.title}: ${r.text.replace(/<br\s*\/?>/g, ' ').replace(/"/g, '&quot;')}">${r.icon}</button>`
         ).join('');
 
         const boardType = parseInt(this.gamedatas?.board_type) || 1;
+        const boardCfg = this.getBoardConfig();
 
         area.innerHTML = `
             <div id="gardensofuranus_container">
@@ -189,7 +253,7 @@ export class Game {
                     <div id="gou_decks_row"></div>
                     <div id="gou_board_col">
                         <div class="game-board-scaler" id="gou_board_scaler">
-                            <div id="garden_board" class="gou_board_type_${boardType}">
+                            <div id="garden_board" class="gou_board_type_${boardType}" style="width:${boardCfg.w}px;height:${boardCfg.h}px;background-image:url('${this.imgUrl(boardCfg.img)}')">
                                 <div id="gou_cells_layer"></div>
                                 <div id="gou_gardeners_layer"></div>
                             </div>
@@ -308,38 +372,18 @@ export class Game {
         });
     }
 
+    getBoardConfig() {
+        return BOARDS[parseInt(this.gamedatas?.board_type)] || BOARDS[1];
+    }
+
     axialToPixel(q, r) {
         q = Number(q);
         r = Number(r);
-        const boardType = parseInt(this.gamedatas?.board_type) || 1;
-        if (boardType === 1) {
-            // Hexagonal board cropped to the play area (560x600), pointy-topped
-            const centerX = 280;
-            const centerY = 300;
-            const stepX = 58.0;
-            const stepY = 33.5;
-            const x = centerX + q * stepX;
-            const y = centerY + (2 * r + q) * stepY;
-            return { x: Math.round(x), y: Math.round(y) };
-        } else if (boardType === 3) {
-            // Rhombus:
-            const startX = 140;
-            const startY = 240;
-            const stepX = 52.0;
-            const stepY = 60.0;
-            const x = startX + q * stepX + r * (stepX * 0.5);
-            const y = startY + r * stepY;
-            return { x: Math.round(x), y: Math.round(y) };
-        } else {
-            // Trapezoid:
-            const startX = 150;
-            const startY = 220;
-            const stepX = 48.0;
-            const stepY = 56.0;
-            const x = startX + q * stepX;
-            const y = startY + r * stepY;
-            return { x: Math.round(x), y: Math.round(y) };
-        }
+        const b = this.getBoardConfig();
+        return {
+            x: Math.round(b.ox + q * b.vq[0] + r * b.vr[0]),
+            y: Math.round(b.oy + q * b.vq[1] + r * b.vr[1]),
+        };
     }
 
     clearActionButtons() {
@@ -551,6 +595,18 @@ export class Game {
             const color = this.gamedatas.players?.[g.player_id]?.color;
             if (color) token.style.background = `#${color}`;
             const owner = this.gamedatas.players?.[g.player_id]?.name || '';
+            token.addEventListener('click', () => {
+                if (this.powerMode) {
+                    this.onSpotClicked(g.q, g.r);
+                    return;
+                }
+                // Tap/click lifts the character and names its player (colour-blind friendly)
+                document.querySelectorAll('.gou_gardener_token.gou_lifted').forEach(t => t.classList.remove('gou_lifted'));
+                token.classList.add('gou_lifted');
+                clearTimeout(this.liftTimer);
+                this.liftTimer = setTimeout(() => token.classList.remove('gou_lifted'), 3500);
+            });
+            token.dataset.name = `${owner} (${this.martianLabel(g.martian)})`;
             token.title = `${owner} (${this.martianLabel(g.martian)})`;
             token.setAttribute('aria-label', token.title);
             const img = document.createElement('img');
@@ -597,6 +653,7 @@ export class Game {
             box.appendChild(pen);
         });
         this.renderScoredCards();
+        this.renderPowerStatus();
     }
 
     renderScoredCards() {
@@ -655,7 +712,7 @@ export class Game {
         picker.style.transform = `translate(-50%, -50%) scale(${1 / sc})`;
     }
 
-    openColorPicker(q, r) {
+    openColorPicker(q, r, opts = {}) {
         this.closeColorPicker();
         const board = document.getElementById('garden_board');
         if (!board) return;
@@ -675,18 +732,24 @@ export class Game {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.closeColorPicker();
-                this.bga.actions.performAction('actMoveGardener', {
-                    targetQ: q,
-                    targetR: r,
-                    plantColor: color,
-                });
+                const params = { targetQ: q, targetR: r, plantColor: color };
+                if (opts.replace) params.replace = 1;
+                this.bga.actions.performAction('actMoveGardener', params);
             });
             picker.appendChild(btn);
         });
         board.appendChild(picker);
         this.layoutColorPicker();
-        this.bga?.statusBar?.setTitle?.(_('Choose the color of the flower to plant'));
         this.clearActionButtons();
+        if (opts.replace) {
+            this.bga?.statusBar?.setTitle?.(_('Bob: choose the color of the flower that replaces the old one, or just move'));
+            this.bga?.statusBar?.addActionButton?.(_('Just move here'), () => {
+                this.closeColorPicker();
+                this.bga.actions.performAction('actMoveGardener', { targetQ: q, targetR: r });
+            }, { color: 'secondary' });
+        } else {
+            this.bga?.statusBar?.setTitle?.(_('Choose the color of the flower to plant'));
+        }
         this.bga?.statusBar?.addActionButton?.(_('Cancel'), () => this.updatePlayerTurnUI(this.lastTurnArgs), { color: 'alert' });
     }
 
@@ -802,7 +865,7 @@ export class Game {
         const active = (isCurrentPlayerActive !== undefined) ? isCurrentPlayerActive : this.isCurrentPlayerActive();
 
         if (!active) {
-            this.bga?.statusBar?.setTitle?.(_('Draft Phase: Waiting for other players to choose a card...'));
+            this.bga?.statusBar?.setTitle?.(_('Waiting for other players to pick their cards...'));
             const container = document.getElementById('gou_draft_container');
             if (container) {
                 container.querySelectorAll('.gou_card_wrapper').forEach(w => {
@@ -813,11 +876,14 @@ export class Game {
             return;
         }
 
-        const cards = args?.draft_cards || this.gamedatas?.draft_cards || [];
-        if (!cards.length) {
-            this.bga?.statusBar?.setTitle?.(_('Draft Phase: Card chosen! Waiting for other players...'));
+        const argCards = args?.draft_cards;
+        const cards = (argCards && argCards.length) ? argCards : (this.gamedatas?.draft_cards || []);
+        const sig = cards.map(c => c.card_id).sort().join(',');
+        if (!cards.length || (this.pickedSig && this.pickedSig === sig)) {
+            this.bga?.statusBar?.setTitle?.(_('Waiting for other players to pick their cards...'));
             return;
         }
+        this.pickedSig = null;
 
         // Default selection to first card or keep existing selection
         if (!this.selectedCardId || !cards.some(c => parseInt(c.card_id) === parseInt(this.selectedCardId))) {
@@ -838,8 +904,9 @@ export class Game {
             () => {
                 if (this.selectedCardId) {
                     const chosenId = parseInt(this.selectedCardId);
+                    this.pickedSig = cards.map(c => c.card_id).sort().join(',');
                     this.clearActionButtons();
-                    this.bga?.statusBar?.setTitle?.(_('Card chosen! Waiting for other players...'));
+                    this.bga?.statusBar?.setTitle?.(_('Waiting for other players to pick their cards...'));
                     const container = document.getElementById('gou_draft_container');
                     if (container) {
                         container.querySelectorAll('.gou_card_wrapper').forEach(w => {
@@ -917,6 +984,7 @@ export class Game {
     }
 
     updatePlayerTurnUI(args) {
+        this.powerMode = null;
         this.setDraftMode(false);
         this.hideMartianPicker();
         this.closeColorPicker();
@@ -937,13 +1005,100 @@ export class Game {
             return;
         }
 
-        this.bga?.statusBar?.setTitle?.(_('Your turn: Move gardener or Score a mission card'));
+        const power = args?.power;
+        const bobReady = !!(power && power.available && power.martian === 'bob');
+        this.bga?.statusBar?.setTitle?.(
+            bobReady
+                ? _('Your turn: Move gardener or Score a mission card (Bob: land on a flower to replace it)')
+                : _('Your turn: Move gardener or Score a mission card')
+        );
 
         if (args?.valid_moves) {
             args.valid_moves.forEach(vm => {
                 const el = document.getElementById(`spot_${vm.q}_${vm.r}`);
                 if (el) el.classList.add('valid_move');
             });
+        }
+
+        if (power && power.available && power.martian !== 'bob') {
+            this.bga?.statusBar?.addActionButton?.(
+                _('Use power: ${name}').replace('${name}', this.powerName(power.martian)),
+                () => this.startPower(power),
+                { color: 'secondary' }
+            );
+        }
+    }
+
+    /** Pick the target(s) of a once-per-game Martian power. */
+    startPower(power) {
+        this.closeColorPicker();
+        this.cancelScoreSelection();
+        this.clearValidMoveHighlights();
+        this.clearActionButtons();
+        this.powerMode = { type: power.martian, stage: 1, first: null, power };
+
+        const mark = (cells) => cells.forEach(c => document.getElementById(`spot_${c.q}_${c.r}`)?.classList.add('valid_move'));
+        const t = power.targets || {};
+        let title = '';
+        switch (power.martian) {
+            case 'bot':
+                mark(t.trees || []);
+                title = _('Nuke a tree: click the tree to remove');
+                break;
+            case 'marty':
+                mark(t.spots || []);
+                title = _('Teleport: click the spot you want to go to');
+                break;
+            case 'robby':
+                mark(t.others || []);
+                title = _('Swap Martians: click the Martian to swap places with');
+                break;
+            case 'ali': {
+                const all = [];
+                (t.axes || []).forEach(line => line.forEach(c => all.push(c)));
+                mark(all);
+                title = _('Flower swap: click the first flower (it must be on a line with Ali)');
+                break;
+            }
+        }
+        this.bga?.statusBar?.setTitle?.(title);
+        this.bga?.statusBar?.addActionButton?.(_('Cancel'), () => this.updatePlayerTurnUI(this.lastTurnArgs), { color: 'alert' });
+    }
+
+    handlePowerClick(q, r) {
+        const mode = this.powerMode;
+        const same = (c) => Number(c.q) === Number(q) && Number(c.r) === Number(r);
+        const t = mode.power.targets || {};
+        const finish = (params) => {
+            this.powerMode = null;
+            this.bga.actions.performAction('actUseSpecialPower', { powerType: mode.type, ...params });
+        };
+        switch (mode.type) {
+            case 'bot':
+            case 'marty':
+                finish({ q1: q, r1: r });
+                break;
+            case 'robby': {
+                const other = (t.others || []).find(same);
+                if (other) finish({ targetPlayerId: other.player_id });
+                break;
+            }
+            case 'ali': {
+                if (mode.stage === 1) {
+                    mode.first = { q, r };
+                    mode.stage = 2;
+                    this.clearValidMoveHighlights();
+                    const partners = new Set();
+                    (t.axes || []).forEach(line => {
+                        if (line.some(same)) line.forEach(c => { if (!same(c)) partners.add(`${c.q}_${c.r}`); });
+                    });
+                    partners.forEach(k => document.getElementById(`spot_${k}`)?.classList.add('valid_move'));
+                    this.bga?.statusBar?.setTitle?.(_('Flower swap: now click the second flower on the same line'));
+                } else {
+                    finish({ q1: mode.first.q, r1: mode.first.r, q2: q, r2: r });
+                }
+                break;
+            }
         }
     }
 
@@ -962,6 +1117,11 @@ export class Game {
             return;
         }
 
+        if (this.powerMode) {
+            this.handlePowerClick(q, r);
+            return;
+        }
+
         if (this.selectedMartian) {
             this.bga.actions.performAction('actSelectMartian', {
                 martian: this.selectedMartian,
@@ -975,6 +1135,11 @@ export class Game {
         const move = this.validMoves.find(m => Number(m.q) === Number(q) && Number(m.r) === Number(r));
         if (move && !move.has_flower) {
             this.openColorPicker(q, r);
+            return;
+        }
+        const power = this.lastTurnArgs?.power;
+        if (move && move.has_flower && power && power.available && power.martian === 'bob') {
+            this.openColorPicker(q, r, { replace: true });
             return;
         }
         this.bga.actions.performAction('actMoveGardener', { targetQ: q, targetR: r });
@@ -1068,13 +1233,7 @@ export class Game {
 
         if (pId === parseInt(myId)) {
             this.clearActionButtons();
-            this.bga?.statusBar?.setTitle?.(_('Card locked in. Waiting for other players to choose...'));
-        } else {
-            const container = document.getElementById('gou_draft_container');
-            const hasChosen = container?.querySelector('.gou_card_wrapper.selected');
-            if (hasChosen) {
-                this.bga?.statusBar?.setTitle?.(_('Card locked in. Waiting for next draft round...'));
-            }
+            this.bga?.statusBar?.setTitle?.(_('Waiting for other players to pick their cards...'));
         }
     }
 
@@ -1119,9 +1278,9 @@ export class Game {
         if (!args.planted) sounds.playMove();
         if (args.planted && args.plant_color) {
             sounds.playPlant();
-            const spot = document.getElementById(`spot_${args.target_q}_${args.target_r}`);
-            if (spot) spot.appendChild(this.createFlowerToken(args.plant_color));
+            this.setSpotFlower(args.target_q, args.target_r, args.plant_color);
         }
+        if (args.replaced) this.markPowerUsed(args.player_id);
     }
 
     notif_handUpdated(notif) {
@@ -1189,11 +1348,13 @@ export class Game {
 
     notif_martianSelected(notif) {
         const args = this._getNotifArgs(notif);
+        setTimeout(() => this.renderPowerStatus(), 0);
         this.setGardenerPos(args.player_id, args.q, args.r, args.martian);
         this.renderGardenState();
     }
 
     notif_treeNuked(notif) {
+        this.markPowerUsed(this._getNotifArgs(notif).player_id);
         const args = this._getNotifArgs(notif);
         const spot = document.getElementById(`spot_${args.q}_${args.r}`);
         if (spot) {
@@ -1203,6 +1364,7 @@ export class Game {
     }
 
     notif_gardenerTeleported(notif) {
+        this.markPowerUsed(this._getNotifArgs(notif).player_id);
         sounds.playMove();
         const args = this._getNotifArgs(notif);
         this.setGardenerPos(args.player_id, args.q, args.r);
@@ -1210,6 +1372,7 @@ export class Game {
     }
 
     notif_gardenersSwapped(notif) {
+        this.markPowerUsed(this._getNotifArgs(notif).player_id);
         sounds.playMove();
         const args = this._getNotifArgs(notif);
         this.setGardenerPos(args.player_id, args.q, args.r);
@@ -1218,6 +1381,7 @@ export class Game {
     }
 
     notif_flowersSwapped(notif) {
+        this.markPowerUsed(this._getNotifArgs(notif).player_id);
         sounds.playPlant();
         const args = this._getNotifArgs(notif);
         this.setSpotFlower(args.q1, args.r1, args.color1);
@@ -1290,9 +1454,9 @@ export class Game {
         const board = document.getElementById('garden_board');
         if (!container || !scaler || !board) return;
 
-        const boardType = parseInt(this.gamedatas?.board_type) || 1;
-        const baseWidth = boardType === 1 ? 560 : 700;
-        const baseHeight = boardType === 1 ? 600 : 1016;
+        const boardCfg = this.getBoardConfig();
+        const baseWidth = boardCfg.w;
+        const baseHeight = boardCfg.h;
         const landscape = this.isLandscapeLayout();
         const containerWidth = this.fitContainerToScreen(container) || window.innerWidth;
         let availableWidth;

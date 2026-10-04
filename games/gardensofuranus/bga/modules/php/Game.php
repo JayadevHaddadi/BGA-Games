@@ -26,6 +26,10 @@ class Game extends \Bga\GameFramework\Table
 
     public const HEX_RADIUS = 4; // Radius 4 = 61 cells for Board 1
 
+    // Cells (axial q, r) of the Trapezoid (63 spots) and Rhombus (64 spots) boards, read from the board art
+    public const TRAPEZOID_CELLS = [[0, -5], [0, -4], [0, -3], [0, -2], [0, -1], [0, 0], [1, -6], [1, -5], [1, -4], [1, -3], [1, -2], [1, -1], [1, 0], [2, -7], [2, -6], [2, -5], [2, -4], [2, -3], [2, -2], [2, -1], [2, 0], [3, -8], [3, -7], [3, -6], [3, -5], [3, -4], [3, -3], [3, -2], [3, -1], [3, 0], [4, -9], [4, -8], [4, -7], [4, -6], [4, -5], [4, -4], [4, -3], [4, -2], [4, -1], [4, 0], [5, -10], [5, -9], [5, -8], [5, -7], [5, -6], [5, -5], [5, -4], [5, -3], [5, -2], [5, -1], [5, 0], [6, -11], [6, -10], [6, -9], [6, -8], [6, -7], [6, -6], [6, -5], [6, -4], [6, -3], [6, -2], [6, -1], [6, 0]];
+    public const RHOMBUS_CELLS = [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4], [0, 5], [0, 6], [0, 7], [1, -1], [1, 0], [1, 1], [1, 2], [1, 3], [1, 4], [1, 5], [1, 6], [2, -2], [2, -1], [2, 0], [2, 1], [2, 2], [2, 3], [2, 4], [2, 5], [3, -3], [3, -2], [3, -1], [3, 0], [3, 1], [3, 2], [3, 3], [3, 4], [4, -4], [4, -3], [4, -2], [4, -1], [4, 0], [4, 1], [4, 2], [4, 3], [5, -5], [5, -4], [5, -3], [5, -2], [5, -1], [5, 0], [5, 1], [5, 2], [6, -6], [6, -5], [6, -4], [6, -3], [6, -2], [6, -1], [6, 0], [6, 1], [7, -7], [7, -6], [7, -5], [7, -4], [7, -3], [7, -2], [7, -1], [7, 0]];
+
     // 6 axial directions in 60-degree order
     public const DIRECTIONS = [
         [1, 0],
@@ -167,9 +171,10 @@ class Game extends \Bga\GameFramework\Table
             $boardType = 1;
         }
 
-        // Martian selection (1=players pick, 2=random). Special powers are not implemented yet (TODO).
-        $martianMode = isset($options[101]) && (int) $options[101] === 2 ? 2 : 1;
-        $specialPowers = 1;
+        // Option 101: 1 = no powers (random Martians), 2 = powers + random Martian, 3 = powers + pick your Martian
+        $powersOption = isset($options[101]) ? (int) $options[101] : 1;
+        $martianMode = ($powersOption === 3) ? 1 : 2;
+        $specialPowers = ($powersOption === 1) ? 1 : 2;
         $martians = ['ali', 'bob', 'bot', 'marty', 'robby'];
         shuffle($martians);
         $assign = [];
@@ -182,6 +187,7 @@ class Game extends \Bga\GameFramework\Table
         $this->globals->set('board_type', $boardType);
         $this->globals->set('special_powers', $specialPowers);
         $this->globals->set('draft_round', 1);
+        $this->globals->set('draft_done', 0);
         $this->globals->set('non_plant_moves_streak', 0);
         $this->globals->set('turn_count', 1);
         $this->globals->set('instant_winner', null);
@@ -311,20 +317,10 @@ class Game extends \Bga\GameFramework\Table
                     $cells[] = ['q' => $q, 'r' => $r];
                 }
             }
-        } elseif ($boardType === 3) {
-            // Rhombus board: 8x8 = 64 spots
-            for ($q = 0; $q < 8; $q++) {
-                for ($r = 0; $r < 8; $r++) {
-                    $cells[] = ['q' => $q, 'r' => $r];
-                }
-            }
         } else {
-            // Trapezoid board: 10 rows, width 6 to 12
-            for ($r = 0; $r < 10; $r++) {
-                $width = 6 + (int) floor($r * 0.7);
-                for ($q = 0; $q < $width; $q++) {
-                    $cells[] = ['q' => $q, 'r' => $r];
-                }
+            $list = ($boardType === 3) ? self::RHOMBUS_CELLS : self::TRAPEZOID_CELLS;
+            foreach ($list as [$q, $r]) {
+                $cells[] = ['q' => $q, 'r' => $r];
             }
         }
         return $cells;
@@ -334,12 +330,9 @@ class Game extends \Bga\GameFramework\Table
     {
         if ($boardType === 1) {
             return (abs($q) === self::HEX_RADIUS || abs($r) === self::HEX_RADIUS || abs($q + $r) === self::HEX_RADIUS);
-        } elseif ($boardType === 3) {
-            return ($q === 0 || $q === 7 || $r === 0 || $r === 7);
-        } else {
-            // Trapezoid boundary: has fewer than 6 valid neighbors
-            return count($this->getValidNeighbors($q, $r)) < 6;
         }
+        // Other boards: a spot on the outer edge has fewer than 6 neighbours
+        return count($this->getValidNeighbors($q, $r)) < 6;
     }
 
     public function isValidCell(int $q, int $r): bool
@@ -510,7 +503,7 @@ class Game extends \Bga\GameFramework\Table
     /**
      * Move gardener and maybe plant a flower
      */
-    public function moveGardener(int $playerId, int $targetQ, int $targetR, ?string $plantColor = null): void
+    public function moveGardener(int $playerId, int $targetQ, int $targetR, ?string $plantColor = null, bool $replace = false): void
     {
         $validMoves = $this->getValidMoves($playerId);
         $found = null;
@@ -526,13 +519,22 @@ class Game extends \Bga\GameFramework\Table
         }
 
         $planted = false;
-        if (!$found['has_flower']) {
-            // Must plant a flower
+        $replaced = false;
+        $mustPlant = !$found['has_flower'] || $replace;
+        if ($mustPlant) {
             if ($plantColor !== null && !in_array($plantColor, self::FLOWER_COLORS, true)) {
                 throw new UserException(clienttranslate("Invalid flower color."));
             }
             if (!$plantColor) {
                 throw new UserException(clienttranslate("You must select a flower color from your reserve to plant on an empty spot."));
+            }
+            if ($found['has_flower']) {
+                // Bob's power: plant on top of another flower, which leaves the game
+                $power = $this->getPowerInfo($playerId);
+                if (!$power || $power['martian'] !== 'bob' || !$power['available']) {
+                    throw new UserException(clienttranslate("You cannot replace a flower: Bob's power is not available."));
+                }
+                $replaced = true;
             }
             $flowerCount = (int) $this->getUniqueValueFromDb(
                 "SELECT `count` FROM `player_flower` WHERE `player_id` = $playerId AND `color` = '$plantColor'"
@@ -549,6 +551,9 @@ class Game extends \Bga\GameFramework\Table
             static::DbQuery(
                 "UPDATE `cell` SET `flower_color` = '$plantColor' WHERE `coord_q` = $targetQ AND `coord_r` = $targetR"
             );
+            if ($replaced) {
+                static::DbQuery("UPDATE `gardener` SET `power_used` = 1 WHERE `player_id` = $playerId");
+            }
             $this->playerStats->inc('flowers_planted', 1, $playerId);
             $this->globals->set('non_plant_moves_streak', 0);
             $planted = true;
@@ -565,9 +570,11 @@ class Game extends \Bga\GameFramework\Table
 
         $this->notifyAllPlayers(
             "gardenerMoved",
-            $planted
-                ? clienttranslate('${player_name} moved their gardener and planted a ${color_name} flower')
-                : clienttranslate('${player_name} moved their gardener onto an existing flower (nothing planted)'),
+            $replaced
+                ? clienttranslate('${player_name} uses Bob\'s power: moved their gardener and replaced a flower with a ${color_name} flower')
+                : ($planted
+                    ? clienttranslate('${player_name} moved their gardener and planted a ${color_name} flower')
+                    : clienttranslate('${player_name} moved their gardener onto an existing flower (nothing planted)')),
             [
                 'i18n' => ['color_name'],
                 'player_id' => $playerId,
@@ -575,20 +582,217 @@ class Game extends \Bga\GameFramework\Table
                 'target_q' => $targetQ,
                 'target_r' => $targetR,
                 'planted' => $planted,
+                'replaced' => $replaced,
                 'plant_color' => $plantColor,
                 'color_name' => $planted ? $this->getColorName($plantColor) : '',
                 'flowers' => $this->getPlayerFlowers($playerId),
             ]
         );
 
-        // Check if hexagon instant win triggered for any player holding the HEXAGON card!
-        if ($planted && $this->checkHexagonInstantWin($plantColor)) {
+        if ($planted) {
+            $this->checkInstantWinAfterChange($plantColor);
+        }
+    }
+
+    /** If a regular hexagon exists (optionally of one colour), the owner of the Hexagon card wins instantly. */
+    public function checkInstantWinAfterChange(?string $color = null): void
+    {
+        if ($this->checkHexagonInstantWin($color)) {
             $hexCardOwner = (int) $this->getUniqueValueFromDb(
                 "SELECT `location_arg` FROM `card` WHERE `card_type` = 'HEXAGON' AND `card_location` = 'hand' LIMIT 1"
             );
             if ($hexCardOwner > 0) {
                 $this->globals->set('instant_winner', $hexCardOwner);
             }
+        }
+    }
+
+    public function powersEnabled(): bool
+    {
+        return (int) $this->globals->get('special_powers', 1) === 2;
+    }
+
+    /** Power state and valid targets for a player's Martian (null when powers are off). */
+    public function getPowerInfo(int $playerId): ?array
+    {
+        if (!$this->powersEnabled()) {
+            return null;
+        }
+        $g = $this->getObjectFromDb(
+            "SELECT `martian`, `coord_q` AS `q`, `coord_r` AS `r`, `power_used` FROM `gardener` WHERE `player_id` = $playerId"
+        );
+        if (!$g) {
+            return null;
+        }
+        $info = ['martian' => $g['martian'], 'available' => ((int) $g['power_used'] === 0), 'targets' => []];
+        if (!$info['available']) {
+            return $info;
+        }
+
+        switch ($g['martian']) {
+            case 'bot':
+                $rows = $this->getObjectListFromDb("SELECT `coord_q` AS `q`, `coord_r` AS `r` FROM `cell` WHERE `has_tree` = 1");
+                $info['targets']['trees'] = array_map(fn($c) => ['q' => (int) $c['q'], 'r' => (int) $c['r']], $rows);
+                break;
+            case 'marty':
+                $rows = $this->getObjectListFromDb(
+                    "SELECT c.`coord_q` AS `q`, c.`coord_r` AS `r` FROM `cell` c
+                     LEFT JOIN `gardener` g ON g.`coord_q` = c.`coord_q` AND g.`coord_r` = c.`coord_r`
+                     WHERE c.`has_tree` = 0 AND g.`player_id` IS NULL"
+                );
+                $info['targets']['spots'] = array_map(fn($c) => ['q' => (int) $c['q'], 'r' => (int) $c['r']], $rows);
+                break;
+            case 'robby':
+                $rows = $this->getObjectListFromDb(
+                    "SELECT `player_id`, `coord_q` AS `q`, `coord_r` AS `r` FROM `gardener` WHERE `player_id` != $playerId AND `coord_q` IS NOT NULL"
+                );
+                $info['targets']['others'] = array_map(fn($c) => ['player_id' => (int) $c['player_id'], 'q' => (int) $c['q'], 'r' => (int) $c['r']], $rows);
+                break;
+            case 'ali':
+                $flowers = $this->getObjectListFromDb("SELECT `coord_q` AS `q`, `coord_r` AS `r` FROM `cell` WHERE `flower_color` IS NOT NULL");
+                $axes = [];
+                foreach ([[1, 0], [0, 1], [1, -1]] as $axis) {
+                    $line = [];
+                    foreach ($flowers as $f) {
+                        if ($this->isOnLine((int) $g['q'], (int) $g['r'], $axis, (int) $f['q'], (int) $f['r'])) {
+                            $line[] = ['q' => (int) $f['q'], 'r' => (int) $f['r']];
+                        }
+                    }
+                    if (count($line) >= 2) {
+                        $axes[] = $line;
+                    }
+                }
+                $info['targets']['axes'] = $axes;
+                break;
+        }
+        return $info;
+    }
+
+    /** Is (fq, fr) on the straight line through (aq, ar) in direction axis (both ways)? */
+    private function isOnLine(int $aq, int $ar, array $axis, int $fq, int $fr): bool
+    {
+        $dq = $fq - $aq;
+        $dr = $fr - $ar;
+        [$aq2, $ar2] = $axis;
+        if ($aq2 !== 0) {
+            if ($dq % $aq2 !== 0) {
+                return false;
+            }
+            $k = intdiv($dq, $aq2);
+            return $dr === $k * $ar2;
+        }
+        if ($dq !== 0) {
+            return false;
+        }
+        return $dr % $ar2 === 0;
+    }
+
+    /** Use the once-per-game power of the player's Martian (before their normal action). */
+    public function useSpecialPower(int $playerId, string $powerType, ?int $q1, ?int $r1, ?int $q2, ?int $r2, ?int $targetPlayerId): void
+    {
+        if (!$this->powersEnabled()) {
+            throw new UserException(clienttranslate("Special Martian powers are not enabled in this game."));
+        }
+        $g = $this->getObjectFromDb(
+            "SELECT `martian`, `coord_q` AS `q`, `coord_r` AS `r`, `power_used` FROM `gardener` WHERE `player_id` = $playerId"
+        );
+        if (!$g || (int) $g['power_used'] === 1) {
+            throw new UserException(clienttranslate("You have already used your Martian power in this game."));
+        }
+        if ($g['martian'] !== $powerType) {
+            throw new UserException(clienttranslate("Invalid power for your Martian."));
+        }
+        $playerName = $this->getPlayerNameById($playerId);
+
+        switch ($powerType) {
+            case 'bot':
+                if ($q1 === null || $r1 === null) {
+                    throw new UserException(clienttranslate("Choose a tree to nuke."));
+                }
+                $cell = $this->getObjectFromDb("SELECT `has_tree` FROM `cell` WHERE `coord_q` = $q1 AND `coord_r` = $r1");
+                if (!$cell || (int) $cell['has_tree'] !== 1) {
+                    throw new UserException(clienttranslate("There is no tree at those coordinates."));
+                }
+                static::DbQuery("UPDATE `cell` SET `has_tree` = 0 WHERE `coord_q` = $q1 AND `coord_r` = $r1");
+                static::DbQuery("UPDATE `gardener` SET `power_used` = 1 WHERE `player_id` = $playerId");
+                $this->notifyAllPlayers("treeNuked", clienttranslate('${player_name} uses Bot\'s power and nukes a tree'), [
+                    'player_id' => $playerId, 'player_name' => $playerName, 'q' => $q1, 'r' => $r1,
+                ]);
+                break;
+
+            case 'marty':
+                if ($q1 === null || $r1 === null) {
+                    throw new UserException(clienttranslate("Choose a spot to teleport to."));
+                }
+                $cell = $this->getObjectFromDb("SELECT `has_tree` FROM `cell` WHERE `coord_q` = $q1 AND `coord_r` = $r1");
+                if (!$cell || (int) $cell['has_tree'] === 1) {
+                    throw new UserException(clienttranslate("You cannot teleport onto a tree or outside the board."));
+                }
+                $occupied = $this->getObjectFromDb("SELECT 1 AS `x` FROM `gardener` WHERE `coord_q` = $q1 AND `coord_r` = $r1 LIMIT 1");
+                if ($occupied) {
+                    throw new UserException(clienttranslate("You cannot teleport onto another Martian."));
+                }
+                static::DbQuery("UPDATE `gardener` SET `coord_q` = $q1, `coord_r` = $r1, `power_used` = 1 WHERE `player_id` = $playerId");
+                $this->notifyAllPlayers("gardenerTeleported", clienttranslate('${player_name} uses Marty\'s power and teleports'), [
+                    'player_id' => $playerId, 'player_name' => $playerName, 'q' => $q1, 'r' => $r1,
+                ]);
+                break;
+
+            case 'robby':
+                $targetPlayerId = (int) $targetPlayerId;
+                $other = $targetPlayerId !== $playerId ? $this->getObjectFromDb(
+                    "SELECT `coord_q` AS `q`, `coord_r` AS `r` FROM `gardener` WHERE `player_id` = $targetPlayerId"
+                ) : null;
+                if (!$other) {
+                    throw new UserException(clienttranslate("Choose another Martian to swap with."));
+                }
+                $myQ = (int) $g['q'];
+                $myR = (int) $g['r'];
+                $otherQ = (int) $other['q'];
+                $otherR = (int) $other['r'];
+                static::DbQuery("UPDATE `gardener` SET `coord_q` = $otherQ, `coord_r` = $otherR, `power_used` = 1 WHERE `player_id` = $playerId");
+                static::DbQuery("UPDATE `gardener` SET `coord_q` = $myQ, `coord_r` = $myR WHERE `player_id` = $targetPlayerId");
+                $this->notifyAllPlayers("gardenersSwapped", clienttranslate('${player_name} uses Robby\'s power and swaps places with ${other_player_name}'), [
+                    'player_id' => $playerId, 'player_name' => $playerName,
+                    'other_player_id' => $targetPlayerId, 'other_player_name' => $this->getPlayerNameById($targetPlayerId),
+                    'q' => $otherQ, 'r' => $otherR, 'other_q' => $myQ, 'other_r' => $myR,
+                ]);
+                break;
+
+            case 'ali':
+                if ($q1 === null || $r1 === null || $q2 === null || $r2 === null || ($q1 === $q2 && $r1 === $r2)) {
+                    throw new UserException(clienttranslate("Choose two different flowers to swap."));
+                }
+                $c1 = $this->getObjectFromDb("SELECT `flower_color` FROM `cell` WHERE `coord_q` = $q1 AND `coord_r` = $r1");
+                $c2 = $this->getObjectFromDb("SELECT `flower_color` FROM `cell` WHERE `coord_q` = $q2 AND `coord_r` = $r2");
+                if (!$c1 || !$c2 || !$c1['flower_color'] || !$c2['flower_color']) {
+                    throw new UserException(clienttranslate("Both spots must contain a flower."));
+                }
+                $sameLine = false;
+                foreach ([[1, 0], [0, 1], [1, -1]] as $axis) {
+                    if ($this->isOnLine((int) $g['q'], (int) $g['r'], $axis, $q1, $r1) && $this->isOnLine((int) $g['q'], (int) $g['r'], $axis, $q2, $r2)) {
+                        $sameLine = true;
+                        break;
+                    }
+                }
+                if (!$sameLine) {
+                    throw new UserException(clienttranslate("Ali and both flowers must lie on the same straight line."));
+                }
+                $col1 = $c1['flower_color'];
+                $col2 = $c2['flower_color'];
+                static::DbQuery("UPDATE `cell` SET `flower_color` = '$col2' WHERE `coord_q` = $q1 AND `coord_r` = $r1");
+                static::DbQuery("UPDATE `cell` SET `flower_color` = '$col1' WHERE `coord_q` = $q2 AND `coord_r` = $r2");
+                static::DbQuery("UPDATE `gardener` SET `power_used` = 1 WHERE `player_id` = $playerId");
+                $this->notifyAllPlayers("flowersSwapped", clienttranslate('${player_name} uses Ali\'s power and swaps two flowers'), [
+                    'player_id' => $playerId, 'player_name' => $playerName,
+                    'q1' => $q1, 'r1' => $r1, 'color1' => $col2,
+                    'q2' => $q2, 'r2' => $r2, 'color2' => $col1,
+                ]);
+                $this->checkInstantWinAfterChange(null);
+                break;
+
+            default:
+                throw new UserException(clienttranslate("Bob's power is used while planting: move onto a flower and choose a color."));
         }
     }
 
