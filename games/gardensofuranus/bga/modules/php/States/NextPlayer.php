@@ -33,6 +33,7 @@ class NextPlayer extends GameState
 
         $endTrigger = $this->game->checkGameEnd();
         if ($endTrigger !== null) {
+            $this->logGameEnd($endTrigger);
             return EndScore::class;
         }
 
@@ -45,6 +46,7 @@ class NextPlayer extends GameState
             "SELECT SUM(`count`) FROM `player_flower` WHERE `player_id` = $nextPlayerId"
         );
         if ($flowersLeft <= 0) {
+            $this->logGameEnd('no_flowers');
             return EndScore::class;
         }
 
@@ -56,5 +58,20 @@ class NextPlayer extends GameState
         }
 
         return PlayerTurn::class;
+    }
+
+    private function logGameEnd(string $reason): void
+    {
+        $text = match ($reason) {
+            'no_flowers' => clienttranslate('the next player has no flowers left'),
+            'stalemate' => clienttranslate('every player moved in succession without planting a flower'),
+            'last_card' => clienttranslate('the last mission card was drawn from the board'),
+            'instant_win' => clienttranslate('the Hexagon mission was completed'),
+            default => $reason,
+        };
+        $this->notify->all('gameEndTriggered', clienttranslate('The game ends: ${reason}'), [
+            'i18n' => ['reason'],
+            'reason' => $text,
+        ]);
     }
 }

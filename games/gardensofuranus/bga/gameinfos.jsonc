@@ -14,7 +14,7 @@
     "medium_additional_time": 35,
     "slow_additional_time": 50,
 
-    "tie_breaker_description": "Highest score in single largest garden",
+    "tie_breaker_description": "",
     "losers_not_ranked": false,
     "solo_mode_ranked": false,
 

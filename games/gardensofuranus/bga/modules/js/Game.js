@@ -233,12 +233,13 @@ export class Game {
     }
 
     getRuleCards() {
+        const svg = (path) => `<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="${path}" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
         return {
-            turn: { icon: '🌱', title: _('Your turn'), text: _('Either move your gardener OR score one mission card — never both.') },
-            move: { icon: '🧭', title: _('Moving'), text: _('Move in a straight line (6 directions, no turning). Trees block you. Other gardeners do not block you, but you cannot stop on a tree or on another gardener. Stop on an empty spot to plant a flower of your choice; stop on a flower and nothing is planted.') },
-            missions: { icon: '🃏', title: _('Mission cards'), text: _('The VP shown beside each of your cards is what it would score right now. Scoring a card discards it for good and you draw a replacement from any non-empty deck. The Hexagon card wins instantly if you form a regular hexagon of one color.') },
-            end: { icon: '🏁', title: _('Game end'), text: _('The game ends when: (1) at the start of a player\'s turn they have no flowers left; (2) every player moves in succession without planting; (3) a player draws the last card from the board; (4) the Hexagon mission is completed.') },
-            penalty: { icon: '📉', title: _('Unused flowers'), text: _('At the end, each player scores the mission cards left in hand, then loses points for unused flowers: 1 → -1, 2 → -3, 3 → -6, 4 → -10, 5 → -15, 6 → -21, 7 → -28, 8 → -36, 9 → -45, 10 → -55, 11 → -66, 12 → -78.') },
+            turn: { icon: `<img src="${this.imgUrl('bot.png')}" alt="">`, title: _('Your turn'), text: _('Either move your gardener OR score one mission card, never both.') },
+            move: { icon: svg('M3 12h15M13 6l6 6-6 6'), title: _('Moving'), text: _('Move in a straight line (6 directions, no turning). Trees block you. Other gardeners do not block you, but you cannot stop on a tree or on another gardener. Stop on an empty spot to plant a flower of your choice; stop on a flower and nothing is planted.') },
+            missions: { icon: `<img src="${this.imgUrl('cards/card_back.jpg')}" alt="" class="gou_ico_card">`, title: _('Mission cards'), text: _('The VP shown beside each of your cards is what it would score right now. Scoring a card shows it to everyone, discards it for good, and you draw a replacement from any non-empty deck. The Hexagon card wins instantly if a regular hexagon of one color is formed.') },
+            end: { icon: svg('M5 21V4M5 4h12l-3 4.5L17 13H5'), title: _('Game end'), text: _('The game ends when: (1) at the start of a player\'s turn they have no flowers left; (2) every player moves in succession without planting; (3) a player draws the last card from the board; (4) the Hexagon mission is completed.') },
+            penalty: { icon: `<span class="gou_ico_minus"><img src="${this.imgUrl('flower_red.png')}" alt=""><b>-</b></span>`, title: _('Unused flowers'), text: _('At the end, each player scores the mission cards left in hand, then loses points for unused flowers: 1 = -1, 2 = -3, 3 = -6, 4 = -10, 5 = -15, 6 = -21, 7 = -28, 8 = -36, 9 = -45, 10 = -55, 11 = -66, 12 = -78.') },
         };
     }
 
@@ -251,17 +252,19 @@ export class Game {
 
         const rules = this.getRuleCards();
         const buttons = Object.entries(rules).map(([key, r]) =>
-            `<button type="button" class="gou_rule_btn" data-rule="${key}" title="${r.icon} ${r.title}: ${r.text.replace(/"/g, '&quot;')}">${r.icon}</button>`
+            `<button type="button" class="gou_rule_btn" data-rule="${key}" aria-label="${r.title}" title="${r.title}: ${r.text.replace(/"/g, '&quot;')}">${r.icon}</button>`
         ).join('');
         const cards = Object.entries(rules).map(([key, r]) =>
-            `<div class="gou_rule_card" id="gou_rule_card_${key}"><div class="gou_rule_card_title">${r.icon} ${r.title}</div><div>${r.text}</div></div>`
+            `<div class="gou_rule_card" id="gou_rule_card_${key}"><div class="gou_rule_card_title"><span class="gou_rule_card_ico">${r.icon}</span>${r.title}</div><div>${r.text}</div></div>`
         ).join('');
 
         const boardType = parseInt(this.gamedatas?.board_type) || 1;
 
         area.innerHTML = `
             <div id="gardensofuranus_container">
+                <div id="gou_final_scoring" style="display:none"></div>
                 <div id="gou_layout">
+                    <div id="gou_martian_picker" style="display:none"></div>
                     <div id="gou_decks_row"></div>
                     <div id="gou_board_col">
                         <div class="game-board-scaler" id="gou_board_scaler">
@@ -302,6 +305,77 @@ export class Game {
         this.renderPlayerFlowers();
         this.renderBoardDecks();
         this.renderHandCards();
+        if (this.gamedatas.final_scoring) this.renderFinalScoring(this.gamedatas.final_scoring);
+    }
+
+    showError(msg) {
+        if (this.bga?.dialogs?.showMessage) {
+            this.bga.dialogs.showMessage(msg, 'error');
+        } else if (typeof gameui !== 'undefined' && typeof gameui.showMessage === 'function') {
+            gameui.showMessage(msg, 'error');
+        }
+    }
+
+    colorLabel(color) {
+        const labels = { blue: _('blue'), red: _('red'), yellow: _('yellow'), green: _('green'), purple: _('purple') };
+        return labels[color] || color;
+    }
+
+    martianLabel(m) {
+        return m ? m.charAt(0).toUpperCase() + m.slice(1) : '';
+    }
+
+    renderFinalScoring(rows) {
+        const box = document.getElementById('gou_final_scoring');
+        if (!box || !rows) return;
+        const players = this.gamedatas.players || {};
+        const body = rows.map(r => {
+            const info = players[r.player_id] || {};
+            const name = `<span class="gou_score_name" style="color:#${info.color || '000'}">${info.name || r.player_id}</span>`;
+            if (r.instant) {
+                return `<tr><td>${name}</td><td colspan="3">${_('Instant win with the Hexagon mission')}</td><td><b>${r.total}</b></td></tr>`;
+            }
+            return `<tr><td>${name}</td><td>${r.during}</td><td>+${r.hand}</td><td>-${r.penalty}</td><td><b>${r.total}</b></td></tr>`;
+        }).join('');
+        box.innerHTML = `
+            <table class="gou_score_table">
+                <caption>${_('Final scoring')}</caption>
+                <thead><tr><th>${_('Player')}</th><th>${_('Scored during game')}</th><th>${_('Cards left in hand')}</th><th>${_('Unused flowers')}</th><th>${_('Total')}</th></tr></thead>
+                <tbody>${body}</tbody>
+            </table>`;
+        box.style.display = 'block';
+    }
+
+    notif_finalScoring(notif) {
+        const args = this._getNotifArgs(notif);
+        this.gamedatas.final_scoring = args.rows;
+        this.renderFinalScoring(args.rows);
+    }
+
+    showMartianPicker(available, args) {
+        const box = document.getElementById('gou_martian_picker');
+        if (!box) return;
+        box.innerHTML = '';
+        available.forEach(m => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'gou_martian_btn' + (m === this.selectedMartian ? ' selected' : '');
+            btn.setAttribute('aria-label', this.martianLabel(m));
+            btn.title = this.martianLabel(m);
+            btn.innerHTML = `<img src="${this.imgUrl(`${m}.png`)}" alt=""><span>${this.martianLabel(m)}</span>`;
+            btn.addEventListener('click', () => {
+                sounds.playClick();
+                this.selectedMartian = m;
+                this.showMartianPicker(available, args);
+            });
+            box.appendChild(btn);
+        });
+        box.style.display = 'flex';
+    }
+
+    hideMartianPicker() {
+        const box = document.getElementById('gou_martian_picker');
+        if (box) box.style.display = 'none';
     }
 
     openRulesModal(rule) {
@@ -539,9 +613,12 @@ export class Game {
             token.style.top = `${pos.y}px`;
             const color = this.gamedatas.players?.[g.player_id]?.color;
             if (color) token.style.background = `#${color}`;
+            const owner = this.gamedatas.players?.[g.player_id]?.name || '';
+            token.title = `${owner} (${this.martianLabel(g.martian)})`;
+            token.setAttribute('aria-label', token.title);
             const img = document.createElement('img');
             img.src = this.imgUrl(`${g.martian || 'bot'}.png`);
-            img.alt = g.martian || '';
+            img.alt = '';
             img.draggable = false;
             token.appendChild(img);
             layer.appendChild(token);
@@ -570,6 +647,8 @@ export class Game {
                 total += n;
                 const item = document.createElement('span');
                 item.className = 'gou_panel_flower';
+                item.title = `${this.colorLabel(color)}: ${n}`;
+                item.setAttribute('aria-label', item.title);
                 item.innerHTML = `<img src="${this.imgUrl(`flower_${color}.png`)}" alt="${color}"><b>${n}</b>`;
                 box.appendChild(item);
             });
@@ -678,6 +757,11 @@ export class Game {
             count.className = 'gou_deck_count';
             count.textContent = d.count || 0;
             box.appendChild(count);
+            const deckTip = d.is_face_down
+                ? _('Face-down mission deck: ${n} card(s) left').replace('${n}', d.count || 0)
+                : _('Face-up mission deck: ${n} card(s) left, top card shown').replace('${n}', d.count || 0);
+            box.title = deckTip;
+            box.setAttribute('aria-label', deckTip);
             box.addEventListener('click', () => this.onDeckClicked(parseInt(idx)));
             row.appendChild(box);
         });
@@ -824,6 +908,7 @@ export class Game {
         this.clearValidMoveHighlights();
         this.clearActionButtons();
 
+        this.hideMartianPicker();
         if (!this.isCurrentPlayerActive()) {
             this.bga?.statusBar?.setTitle?.(_('Waiting for active player to select Martian and spot...'));
             return;
@@ -847,15 +932,8 @@ export class Game {
             return;
         }
 
-        this.bga?.statusBar?.setTitle?.(_('Select your Martian, then click a highlighted empty spot to place your gardener'));
-
-        available.forEach(m => {
-            const label = m.toUpperCase() + (m === this.selectedMartian ? ' ✓' : '');
-            this.bga?.statusBar?.addActionButton?.(label, () => {
-                this.selectedMartian = m;
-                this.updateSelectMartianUI(args);
-            }, { color: (m === this.selectedMartian ? 'primary' : 'secondary') });
-        });
+        this.bga?.statusBar?.setTitle?.(_('Choose your Martian above, then click a highlighted empty spot to place your gardener'));
+        this.showMartianPicker(available, args);
 
         if (args?.empty_spots) {
             args.empty_spots.forEach(sp => {
@@ -866,6 +944,7 @@ export class Game {
     }
 
     updatePlayerTurnUI(args) {
+        this.hideMartianPicker();
         this.closeColorPicker();
         this.cancelScoreSelection();
         this.lastTurnArgs = args;
@@ -899,9 +978,15 @@ export class Game {
     }
 
     onSpotClicked(q, r) {
-        if (!this.isCurrentPlayerActive()) return;
+        if (!this.isCurrentPlayerActive()) {
+            this.showError(_('It is not your turn.'));
+            return;
+        }
         const spotEl = document.getElementById(`spot_${q}_${r}`);
-        if (!spotEl || !spotEl.classList.contains('valid_move')) return;
+        if (!spotEl || !spotEl.classList.contains('valid_move')) {
+            this.showError(_('You cannot go there. Choose one of the highlighted spots.'));
+            return;
+        }
 
         if (this.selectedMartian) {
             this.bga.actions.performAction('actSelectMartian', {
@@ -923,7 +1008,10 @@ export class Game {
     }
 
     onCardClicked(cardId) {
-        if (!this.isCurrentPlayerActive() || !this.lastTurnArgs) return;
+        if (!this.isCurrentPlayerActive() || !this.lastTurnArgs) {
+            this.showError(_('You can only score a mission card on your own turn.'));
+            return;
+        }
         sounds.playClick();
         const decks = this.gamedatas.board_decks || {};
         const anyCards = Object.values(decks).some(d => d.count > 0);
@@ -959,6 +1047,7 @@ export class Game {
             dojo.subscribe('gardenerMoved', this, 'notif_gardenerMoved');
             dojo.subscribe('missionScored', this, 'notif_missionScored');
             dojo.subscribe('handUpdated', this, 'notif_handUpdated');
+            dojo.subscribe('finalScoring', this, 'notif_finalScoring');
             dojo.subscribe('cardScores', this, 'notif_cardScores');
             dojo.subscribe('martianSelected', this, 'notif_martianSelected');
             dojo.subscribe('treeNuked', this, 'notif_treeNuked');
@@ -972,6 +1061,7 @@ export class Game {
             this.bga.notifications.subscribe('gardenerMoved', (notif) => this.notif_gardenerMoved(notif));
             this.bga.notifications.subscribe('missionScored', (notif) => this.notif_missionScored(notif));
             this.bga.notifications.subscribe('handUpdated', (notif) => this.notif_handUpdated(notif));
+            this.bga.notifications.subscribe('finalScoring', (notif) => this.notif_finalScoring(notif));
             this.bga.notifications.subscribe('cardScores', (notif) => this.notif_cardScores(notif));
             this.bga.notifications.subscribe('martianSelected', (notif) => this.notif_martianSelected(notif));
             this.bga.notifications.subscribe('treeNuked', (notif) => this.notif_treeNuked(notif));
@@ -1170,13 +1260,13 @@ export class Game {
         const boardType = parseInt(this.gamedatas?.board_type) || 1;
         const baseWidth = boardType === 1 ? 560 : 700;
         const baseHeight = boardType === 1 ? 600 : 1016;
-        const stripWidth = 50;
         const landscape = window.matchMedia('(min-width: 1300px) and (min-aspect-ratio: 11/10)').matches;
+        const stripWidth = landscape ? 50 : 0;
         const sideWidth = landscape ? 350 : 0;
         const containerWidth = container.clientWidth || window.innerWidth;
         const availableWidth = Math.max(260, containerWidth - sideWidth - stripWidth - 24);
 
-        let scale = Math.min(1.3, availableWidth / baseWidth);
+        let scale = Math.max(0.5, Math.min(1.3, availableWidth / baseWidth));
         if (landscape) {
             scale = Math.min(scale, Math.max(0.5, (window.innerHeight - 170) / baseHeight));
         }

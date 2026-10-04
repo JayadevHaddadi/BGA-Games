@@ -22,6 +22,8 @@ use Bga\Games\gardensofuranus\States\EndScore;
 
 class Game extends \Bga\GameFramework\Table
 {
+    public const FLOWER_COLORS = ['blue', 'red', 'yellow', 'green', 'purple'];
+
     public const HEX_RADIUS = 4; // Radius 4 = 61 cells for Board 1
 
     // 6 axial directions in 60-degree order
@@ -41,12 +43,24 @@ class Game extends \Bga\GameFramework\Table
 
     public function getGameProgression(): int
     {
-        $flowersPlanted = (int) $this->getUniqueValueFromDb("SELECT COUNT(*) FROM `cell` WHERE `flower_color` IS NOT NULL");
-        $totalSpots = (int) $this->getUniqueValueFromDb("SELECT COUNT(*) FROM `cell`");
-        if ($totalSpots <= 0) {
-            return 0;
+        // The game ends when someone runs out of flowers or the mission decks are empty:
+        // progression = the further along of those two clocks.
+        $playerCount = max(1, (int) $this->getUniqueValueFromDb("SELECT COUNT(*) FROM `player`"));
+        $initialFlowers = intdiv(60, $playerCount);
+
+        $remaining = $this->getObjectListFromDb(
+            "SELECT `player_id`, SUM(`count`) AS `left_flowers` FROM `player_flower` GROUP BY `player_id`"
+        );
+        $flowerProgress = 0.0;
+        foreach ($remaining as $row) {
+            $flowerProgress = max($flowerProgress, 1 - ((int) $row['left_flowers'] / max(1, $initialFlowers)));
         }
-        return (int) min(100, round(($flowersPlanted / max(1, $totalSpots - 3)) * 100));
+
+        $boardInitial = max(1, 36 - 5 * $playerCount);
+        $boardLeft = (int) $this->getUniqueValueFromDb("SELECT COUNT(*) FROM `card` WHERE `card_location` LIKE 'deck_%'");
+        $cardProgress = 1 - ($boardLeft / $boardInitial);
+
+        return (int) max(0, min(99, round(max($flowerProgress, $cardProgress) * 100)));
     }
 
     public function ensureSchema(): void
@@ -380,6 +394,18 @@ class Game extends \Bga\GameFramework\Table
         return $result;
     }
 
+    public function getColorName(string $color): string
+    {
+        return match ($color) {
+            'blue' => clienttranslate('blue'),
+            'red' => clienttranslate('red'),
+            'yellow' => clienttranslate('yellow'),
+            'green' => clienttranslate('green'),
+            'purple' => clienttranslate('purple'),
+            default => $color,
+        };
+    }
+
     public function getHandScores(int $playerId): array
     {
         $scores = [];
@@ -502,6 +528,9 @@ class Game extends \Bga\GameFramework\Table
         $planted = false;
         if (!$found['has_flower']) {
             // Must plant a flower
+            if ($plantColor !== null && !in_array($plantColor, self::FLOWER_COLORS, true)) {
+                throw new UserException(clienttranslate("Invalid flower color."));
+            }
             if (!$plantColor) {
                 throw new UserException(clienttranslate("You must select a flower color from your reserve to plant on an empty spot."));
             }
@@ -534,16 +563,23 @@ class Game extends \Bga\GameFramework\Table
             "UPDATE `gardener` SET `coord_q` = $targetQ, `coord_r` = $targetR WHERE `player_id` = $playerId"
         );
 
-        $this->notifyAllPlayers("gardenerMoved", clienttranslate('${player_name} moved their gardener${planted_msg}'), [
-            'player_id' => $playerId,
-            'player_name' => $this->getPlayerNameById($playerId),
-            'target_q' => $targetQ,
-            'target_r' => $targetR,
-            'planted' => $planted,
-            'plant_color' => $plantColor,
-            'planted_msg' => $planted ? sprintf(" and planted a %s flower", $plantColor) : "",
-            'flowers' => $this->getPlayerFlowers($playerId),
-        ]);
+        $this->notifyAllPlayers(
+            "gardenerMoved",
+            $planted
+                ? clienttranslate('${player_name} moved their gardener and planted a ${color_name} flower')
+                : clienttranslate('${player_name} moved their gardener onto an existing flower (nothing planted)'),
+            [
+                'i18n' => ['color_name'],
+                'player_id' => $playerId,
+                'player_name' => $this->getPlayerNameById($playerId),
+                'target_q' => $targetQ,
+                'target_r' => $targetR,
+                'planted' => $planted,
+                'plant_color' => $plantColor,
+                'color_name' => $planted ? $this->getColorName($plantColor) : '',
+                'flowers' => $this->getPlayerFlowers($playerId),
+            ]
+        );
 
         // Check if hexagon instant win triggered for any player holding the HEXAGON card!
         if ($planted && $this->checkHexagonInstantWin($plantColor)) {
@@ -991,6 +1027,8 @@ class Game extends \Bga\GameFramework\Table
         }
         $result['scored_cards'] = $scoredCards;
         $result['card_scores'] = ($currentPlayerId !== null) ? $this->getHandScores((int)$currentPlayerId) : [];
+        $finalScoring = $this->globals->get('final_scoring', null);
+        $result['final_scoring'] = $finalScoring ? json_decode((string) $finalScoring, true) : null;
         $result['martian_mode'] = (int) $this->globals->get('martian_mode', 1);
         $result['special_powers'] = (int) $this->globals->get('special_powers', 1);
         $result['mission_deck'] = $this->getMissionDeckWithDescriptions();

@@ -1,0 +1,49 @@
+==Overview==
+
+'''Gardens of Uranus''' is a quick abstract game for 2–5 players. Friendly Martian gardeners plant flowers on a grid of spots while secretly working toward gardening missions. On your turn you either slide your gardener across the garden and plant a flower, or score one of your mission cards.
+
+==Goal==
+
+Finish with the most points. You earn points by scoring mission cards, and lose points for flowers you never planted.
+
+==Setup==
+
+* The garden is a hexagonal board with 61 spots and 1 tree placed on a random spot that is not on the outer edge.
+* Each player receives flowers in 5 colors (blue, red, yellow, green, purple). The amount depends on the number of players: 2 players 30 flowers, 3 players 20, 4 players 15, 5 players 12. Every player's flower reserve is public and shown in the player panel together with the penalty it would cost right now.
+* '''Draft your missions:''' everyone starts with 5 secret mission cards. Keep 1 and pass the other 4 to your neighbor, then keep 1 of the 4 you receive and pass the rest, and so on until you hold 5 cards.
+* The remaining mission cards are split into 4 decks on the board: 1 face-down deck and 3 face-up decks (the top card is visible). The number on each deck is how many cards are left in it.
+* In turn order each player places their gardener on any empty spot. Depending on the table option you either choose your Martian or are dealt a random one; Martians only differ in looks.
+
+==Your turn==
+
+On your turn you must do '''one''' of the following:
+
+'''1. Move your gardener''' in a straight line along any of the 6 directions, as many steps as you want, without turning. Trees block your movement. Other gardeners do not block you, but you cannot end your move on a tree or on another gardener. Spots you can reach are highlighted.
+* If you stop on an '''empty''' spot, you must plant a flower there: choose the color from your reserve.
+* If you stop on a spot that already has a flower, nothing is planted.
+
+'''2. Score a mission card.''' Instead of moving, choose one of your mission cards. The number next to each card shows what it would score right now. Scoring reveals the card to everyone and discards it for good. Then draw a replacement from any non-empty deck on the board. You may score a card for 0 points to get rid of it.
+
+==Mission cards==
+
+* '''Biggest group:''' 1 point for every flower in the largest connected group of a color.
+* '''Group count:''' 1 point for every separate group of a color (isolated flowers count).
+* '''Straight line:''' 2 points for every flower of a color in the longest straight line along connections, except the first.
+* '''Triangle:''' if the 3 corners of a triangle contain flowers of a color, 1 point for every spot on its sides. Only the biggest triangle scores, and the sides must be straight connections.
+* '''Edge or tree:''' 1 point for every flower of a color on the edge of the garden or next to a tree.
+* '''Adjacent pairs:''' 1 point for every connection between two adjacent flowers of the two colors on the card.
+* '''Hexagon:''' if 6 flowers of the same color are placed on the corners of a regular hexagon (straight sides) at any moment, the owner of this card wins the game instantly.
+
+==End of the game==
+
+The game ends as soon as one of these happens:
+* At the start of a player's turn, that player has no flowers left.
+* Every player moves their gardener in succession without anyone planting a flower.
+* A player draws the last card from the board.
+* A player completes the Hexagon mission.
+
+Then every player scores the mission cards still in their hand and loses points for unused flowers: 1 flower -1, 2 flowers -3, 3 flowers -6, 4 flowers -10, 5 flowers -15, 6 flowers -21, 7 flowers -28, 8 flowers -36, 9 flowers -45, 10 flowers -55, 11 flowers -66, 12 flowers -78. The player with the most points wins. A scoring table shows where every player's points came from.
+
+==Credits==
+
+Game design: Néstor Romeral Andrés. Published by nestorgames.

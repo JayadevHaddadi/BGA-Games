@@ -9,7 +9,14 @@
     align-items: center;
     width: 100%;
     margin: 8px auto 20px auto;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    padding: 12px 8px 16px;
+    border-radius: 10px;
+    background-color: #d6ecf2;
+    background-image:
+        radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0) 65%),
+        radial-gradient(circle, rgba(31, 120, 150, 0.12) 2px, transparent 2.5px),
+        linear-gradient(180deg, #e3f3f7 0%, #c4e2eb 100%);
+    background-size: auto, 34px 34px, auto;
     user-select: none;
     -webkit-user-select: none;
 }
@@ -97,8 +104,11 @@
 
 .garden_spot {
     position: absolute;
-    width: 38px;
-    height: 38px;
+    width: 66px;
+    height: 66px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border-radius: 50%;
     transform: translate(-50%, -50%);
     cursor: pointer;
@@ -108,7 +118,7 @@
 .garden_spot.valid_move::after {
     content: '';
     position: absolute;
-    inset: 3px;
+    inset: 17px;
     border: 3px solid rgba(255, 196, 0, 0.75);
     border-radius: 50%;
     box-shadow: 0 0 7px 3px rgba(255, 196, 0, 0.25);
@@ -148,7 +158,7 @@
     border: 2px solid #fff;
     transform: translate(-50%, -50%);
     z-index: 10;
-    pointer-events: none;
+    pointer-events: auto;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -323,7 +333,6 @@
     border-radius: 6px;
     padding: 10px 14px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
     min-width: 210px;
     max-width: 270px;
     line-height: 1.4;
@@ -470,19 +479,24 @@
     gap: 14px;
     width: 100%;
     grid-template-areas:
+        "picker"
         "decks"
         "board"
         "hand";
 }
 
+#gou_martian_picker { grid-area: picker; }
 #gou_decks_row { grid-area: decks; margin-top: 0; }
 #gou_board_col { grid-area: board; justify-self: center; }
 #gou_hand_area { grid-area: hand; }
 
 #gou_board_col {
     display: flex;
-    align-items: flex-start;
+    flex-direction: column;
+    align-items: center;
     gap: 10px;
+    max-width: 100%;
+    overflow-x: auto;
 }
 
 #gou_hand_area .gou_cards_container {
@@ -497,12 +511,15 @@
     #gou_layout {
         grid-template-columns: auto 350px;
         grid-template-areas:
+            "picker picker"
             "board decks"
             "board hand";
         align-items: start;
         align-content: start;
     }
 
+    #gou_board_col { flex-direction: row; align-items: flex-start; }
+    #gou_reminders { flex-direction: column; }
     #gou_decks_row { justify-content: flex-start; gap: 8px; }
     #gou_hand_area .gou_cards_container { justify-content: flex-start; gap: 8px; }
 }
@@ -510,7 +527,7 @@
 /* Rule reminder icons (side strip) */
 #gou_reminders {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     gap: 8px;
     padding: 8px;
     border-radius: 18px;
@@ -690,4 +707,139 @@
         transform: translate(-50%, -50%) scale(1.22);
         box-shadow: 0 0 0 7px rgba(255, 255, 255, 0);
     }
+}
+
+/* Martian choice (board-side picker instead of action bar buttons) */
+#gou_martian_picker {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+}
+
+.gou_martian_btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-width: 72px;
+    min-height: 72px;
+    padding: 6px 8px;
+    border-radius: 10px;
+    border: 3px solid #12253f;
+    background: #fff;
+    color: #12253f;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.gou_martian_btn img {
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
+}
+
+.gou_martian_btn.selected {
+    background: #12253f;
+    color: #fff;
+}
+
+.gou_martian_btn.selected img {
+    filter: drop-shadow(0 0 2px #fff);
+}
+
+/* Icons for the rule reminder strip */
+.gou_rule_btn img {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+}
+
+.gou_rule_btn .gou_ico_card {
+    width: 15px;
+    height: 22px;
+    border-radius: 2px;
+}
+
+.gou_ico_minus {
+    position: relative;
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+}
+
+.gou_ico_minus b {
+    position: absolute;
+    right: -3px;
+    bottom: -4px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #12253f;
+    color: #fff;
+    font-size: 11px;
+    line-height: 11px;
+    text-align: center;
+}
+
+.gou_rule_card_ico {
+    display: inline-flex;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+
+.gou_rule_card_ico img {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+}
+
+.gou_rule_card_ico .gou_ico_card {
+    width: 15px;
+}
+
+/* Final scoring breakdown */
+#gou_final_scoring {
+    width: 100%;
+    max-width: 720px;
+    margin: 0 auto 14px;
+    overflow-x: auto;
+}
+
+.gou_score_table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    color: #24292f;
+    font-size: 14px;
+}
+
+.gou_score_table caption {
+    padding: 6px;
+    font-weight: 800;
+    text-align: left;
+}
+
+.gou_score_table th,
+.gou_score_table td {
+    padding: 6px 10px;
+    border: 1px solid #c8d4da;
+    text-align: center;
+}
+
+.gou_score_name {
+    font-weight: 800;
+    text-shadow: 0 0 1px #000, 0 0 2px #000;
+}
+
+/* Honor reduced-motion: keep highlights static */
+@media (prefers-reduced-motion: reduce) {
+    .garden_spot.valid_move::after,
+    .gou_gardener_token.gou_my_turn {
+        animation: none;
+    }
+}
+
+@media (min-width: 1300px) and (min-aspect-ratio: 11/10) {
+    #gou_reminders { flex-direction: column; }
 }
