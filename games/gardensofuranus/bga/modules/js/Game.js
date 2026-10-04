@@ -195,8 +195,8 @@ export class Game {
                             </div>
                         </div>
                     </div>
+                    <div id="gou_reminders">${buttons}</div>
                     <div id="gou_hand_area">
-                        <div id="gou_reminders">${buttons}</div>
                         <div id="gou_hand_stack">
                             <section class="gou_section" id="gou_draft_section" style="display:none">
                                 <h3 class="gou_section_title">${_('Draft')}</h3>
@@ -1280,6 +1280,10 @@ export class Game {
         return targetW;
     }
 
+    isLandscapeLayout() {
+        return window.matchMedia('(min-width: 1050px) and (min-aspect-ratio: 11/10)').matches;
+    }
+
     updateBoardScale() {
         const container = document.getElementById('gardensofuranus_container');
         const scaler = document.getElementById('gou_board_scaler');
@@ -1289,11 +1293,19 @@ export class Game {
         const boardType = parseInt(this.gamedatas?.board_type) || 1;
         const baseWidth = boardType === 1 ? 560 : 700;
         const baseHeight = boardType === 1 ? 600 : 1016;
-        const landscape = window.matchMedia('(min-width: 1300px) and (min-aspect-ratio: 11/10)').matches;
-        const stripWidth = 0;
-        const sideWidth = landscape ? 500 : 0;
+        const landscape = this.isLandscapeLayout();
         const containerWidth = this.fitContainerToScreen(container) || window.innerWidth;
-        const availableWidth = Math.max(260, containerWidth - sideWidth - stripWidth - 24);
+        let availableWidth;
+        if (landscape) {
+            // board | rule icons | decks + hand
+            const cardW = Math.max(84, Math.min(108, window.innerWidth * 0.076));
+            const sideWidth = 4 * (cardW + 6) + 24 + 56 + 2 * 14;
+            availableWidth = Math.max(260, containerWidth - sideWidth - 24);
+        } else {
+            // the board column fills the container width, so measure it directly
+            const col = document.getElementById('gou_board_col');
+            availableWidth = Math.max(260, (col && col.clientWidth) || containerWidth - 8);
+        }
 
         let scale = Math.max(0.5, Math.min(1.3, availableWidth / baseWidth));
         if (landscape) {

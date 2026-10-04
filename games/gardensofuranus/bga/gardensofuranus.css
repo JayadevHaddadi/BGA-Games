@@ -37,12 +37,14 @@
         "picker"
         "decks"
         "board"
+        "strip"
         "hand";
 }
 
 #gou_martian_picker { grid-area: picker; }
 #gou_decks_row { grid-area: decks; }
-#gou_board_col { grid-area: board; justify-self: center; }
+#gou_board_col { grid-area: board; }
+#gou_reminders { grid-area: strip; justify-self: center; }
 #gou_hand_area { grid-area: hand; }
 
 #gou_board_col {
@@ -52,25 +54,6 @@
     gap: 10px;
     max-width: 100%;
     overflow-x: auto;
-}
-
-@media (min-width: 1300px) and (min-aspect-ratio: 11/10) {
-    #gardensofuranus_container {
-        --gou-card-w: 108px;
-    }
-
-    #gou_layout {
-        grid-template-columns: auto 500px;
-        grid-template-areas:
-            "picker picker"
-            "board decks"
-            "board hand";
-        align-items: start;
-        align-content: start;
-    }
-
-    #gou_decks_row { justify-content: flex-start; gap: 8px; max-width: none; }
-    #gou_hand_area .gou_cards_container { justify-content: flex-start; gap: 8px; }
 }
 
 @media (max-width: 700px) {
@@ -587,10 +570,6 @@
     text-shadow: 0 0 1px #000, 0 0 2px #000;
 }
 
-@media (min-width: 1300px) and (min-aspect-ratio: 11/10) {
-    #gou_reminders { flex-direction: column; }
-}
-
 /* BGA tooltip content for mission cards */
 .gou_tip { max-width: 260px; font-size: 15px; line-height: 1.4; }
 .gou_tip_title { font-weight: 700; margin-bottom: 2px; }
@@ -611,7 +590,24 @@
     pointer-events: none;
 }
 
-@media (min-width: 1300px) and (min-aspect-ratio: 11/10) {
-    #gou_hand_area { flex-direction: row; align-items: flex-start; }
-    #gou_hand_stack { flex: 1 1 0; }
+/* ---------- Wide screens: board | rule icons | decks + hand ---------- */
+@media (min-width: 1050px) and (min-aspect-ratio: 11/10) {
+    #gardensofuranus_container {
+        --gou-card-w: clamp(84px, 7.6vw, 108px);
+    }
+
+    #gou_layout {
+        grid-template-columns: auto auto calc(4 * (var(--gou-card-w) + 6px) + 24px);
+        grid-template-areas:
+            "picker picker picker"
+            "board . decks"
+            "board strip hand";
+        align-items: start;
+        align-content: start;
+    }
+
+    #gou_board_col { justify-self: start; }
+    #gou_reminders { flex-direction: column; justify-self: center; align-self: start; }
+    #gou_decks_row { justify-content: flex-start; gap: 8px; max-width: none; }
+    #gou_hand_area .gou_cards_container { justify-content: flex-start; gap: 8px; }
 }
