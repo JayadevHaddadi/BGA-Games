@@ -8,10 +8,56 @@
     margin: 0 auto;
     position: relative;
     overflow: hidden;
-    background-color: #1a1a1a;
     border-radius: 8px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
     user-select: none;
+    /* Asphalt with a faint chequered-flag texture and red/white kerb stripes top and bottom */
+    background:
+        linear-gradient(45deg, rgba(255, 255, 255, 0.035) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.035) 75%) 0 0 / 44px 44px,
+        linear-gradient(45deg, rgba(255, 255, 255, 0.035) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.035) 75%) 22px 22px / 44px 44px,
+        radial-gradient(ellipse at 50% 30%, #2f343d 0%, #1b1e24 75%);
+    border-top: 10px solid transparent;
+    border-bottom: 10px solid transparent;
+    border-image: repeating-linear-gradient(90deg, #d32f2f 0 28px, #f5f5f5 28px 56px) 10;
+}
+
+.gp_board_viewport {
+    overflow: hidden;
+    -webkit-overflow-scrolling: touch;
+}
+
+.gp_board_sizer {
+    position: relative;
+}
+
+#gp_game_container.gp_mobile .gp_board_viewport {
+    overflow: auto;
+    touch-action: pan-x pan-y;
+    cursor: grab;
+}
+
+/* Dice tray and qualifying grid stay on screen while the zoomed board is panned */
+#gp_game_container > .gp_dice_tray {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: calc(100% - 16px);
+}
+
+#gp_game_container > .gp_qualifying_panel {
+    position: static;
+    width: auto;
+    margin: 8px;
+}
+
+/* Car numbers: colorblind support preference */
+.gp_car_num {
+    display: none;
+}
+
+#gp_game_container.gp_colorblind .gp_car_num {
+    display: block;
 }
 
 #gp_board_scaler {
@@ -276,7 +322,7 @@
     border: 1.5px solid currentColor;
     border-radius: 12px;
     padding: 2px 7px;
-    font-size: 11px;
+    font-size: calc(11px * var(--gp-inv, 1));
     font-weight: 800;
     white-space: nowrap;
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.8);
@@ -360,7 +406,7 @@
     transform: translate(-50%, -50%);
     background: #fdd835;
     color: #111;
-    font-size: 13px;
+    font-size: calc(13px * var(--gp-inv, 1));
     font-weight: 900;
     padding: 3px 10px;
     border-radius: 12px;
@@ -443,7 +489,7 @@
     transform: translate(-50%, -50%);
     background: rgba(220, 20, 60, 0.95);
     color: #ffffff;
-    font-size: 13px;
+    font-size: calc(13px * var(--gp-inv, 1));
     font-weight: 900;
     padding: 4px 12px;
     border-radius: 14px;
@@ -513,7 +559,7 @@
     transform: translateX(-50%);
     background: #d50000;
     color: #fff;
-    font-size: 11px;
+    font-size: calc(11px * var(--gp-inv, 1));
     font-weight: 900;
     padding: 2px 7px;
     border-radius: 10px;
@@ -962,7 +1008,7 @@
     border-radius: 6px;
     background: rgba(15, 23, 42, 0.96);
     color: #f8fafc;
-    font-size: 12px;
+    font-size: calc(12px * var(--gp-inv, 1));
     line-height: 1.35;
     text-align: left;
     white-space: normal;
@@ -1192,7 +1238,7 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%) rotate(calc(-1 * var(--car-angle, 0deg)));
-    font-size: 12px;
+    font-size: calc(12px * var(--gp-inv, 1));
     font-weight: 700;
     line-height: 1;
     color: #fff;
@@ -1284,4 +1330,70 @@
 
 .gp_standings p {
     margin: 8px 0 0;
+}
+
+/* Item tooltips in the player panel (hover or tap to pin) */
+.gp_car_item_badge {
+    position: relative;
+    cursor: help;
+}
+
+.gp_car_item_badge::after {
+    content: attr(data-tip);
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    width: 230px;
+    padding: 6px 9px;
+    border-radius: 6px;
+    background: rgba(15, 23, 42, 0.97);
+    color: #f8fafc;
+    font-size: 12px;
+    line-height: 1.35;
+    text-align: left;
+    white-space: normal;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 100;
+}
+
+.gp_car_item_badge:hover::after,
+.gp_car_item_badge:focus::after,
+.gp_car_item_badge.gp_item_pinned::after {
+    opacity: 1;
+}
+
+/* Phones: bigger text everywhere outside the zoomed board */
+@media (max-width: 720px) {
+    .gp_team_car_tag,
+    .gp_qual_player_name,
+    .gp_qual_rank,
+    .gp_qual_score,
+    .gp_qual_status_tag,
+    .gp_qual_title,
+    .gp_dice_tray_header,
+    .gp_inv_empty {
+        font-size: 13px;
+    }
+
+    .gp_standings,
+    .gp_standings td,
+    .gp_standings th {
+        font-size: 14px;
+    }
+
+    .gp_team_car_row {
+        padding: 5px 7px;
+    }
+
+    .gp_panel_pip {
+        width: 14px;
+        height: 14px;
+    }
+
+    .gp_car_item_badge::after {
+        font-size: 13px;
+        width: 200px;
+    }
 }

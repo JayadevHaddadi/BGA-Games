@@ -460,9 +460,13 @@ export class Game {
         this.initCircuit(gamedatas.circuit);
         this.gateOpen = !!gamedatas.gate_open;
         this.currentCarModel = (this.bga?.userPreferences?.get?.(100) == 2) ? 'chibi_f1' : 'chibi_kart';
+        this.colorblindMode = this.bga?.userPreferences?.get?.(101) != 2;
+        this.sound.muted = this.bga?.userPreferences?.get?.(102) == 2;
         this.initDom();
+        document.getElementById('gp_game_container')?.classList.toggle('gp_colorblind', this.colorblindMode);
         this.initBoardScaler();
         this.renderBoard();
+        this._updateScale?.();
         this.renderTrackItems();
         this.renderRacers(this.racers);
         this.renderQualifyingBoard(this.qualifyingBoard, this.qualifyingActive);
@@ -514,8 +518,12 @@ export class Game {
             container = document.createElement('div');
             container.id = 'gp_game_container';
             container.innerHTML = `
-                <div id="gp_board_scaler">
-                    <div id="gp_board"></div>
+                <div id="gp_board_viewport" class="gp_board_viewport">
+                    <div id="gp_board_sizer" class="gp_board_sizer">
+                        <div id="gp_board_scaler">
+                            <div id="gp_board"></div>
+                        </div>
+                    </div>
                 </div>
             `;
             main.appendChild(container);
@@ -550,6 +558,7 @@ export class Game {
                 activeCar.classList.add('gp_car_active');
             }
         }
+        this.focusActiveCar(true);
     }
 
     isCurrentPlayerActive() {
@@ -620,23 +629,85 @@ export class Game {
     initBoardScaler() {
         const container = document.getElementById('gp_game_container');
         const scaler = document.getElementById('gp_board_scaler');
-        if (!container || !scaler) return;
+        const sizer = document.getElementById('gp_board_sizer');
+        const viewport = document.getElementById('gp_board_viewport');
+        const board = document.getElementById('gp_board');
+        if (!container || !scaler || !sizer || !viewport) return;
+        this.boardViewport = viewport;
+        this.boardContainer = container;
 
+        const PAD = 8; // margin around the board so a drag never starts on a component
         const updateScale = () => {
             const availW = container.clientWidth || window.innerWidth;
-            let scale = Math.min(1.0, availW / this.BOARD_WIDTH);
-            if (scale < 0.3) scale = 0.3;
+            const fit = Math.min(1.0, availW / this.BOARD_WIDTH);
+            // Phones: zoom in so roughly half the circuit fills the screen; the player drags to look around
+            const zoomed = availW < 720;
+            let scale = zoomed ? Math.min(1.0, Math.max(fit, (availW - 2 * PAD) / (this.BOARD_WIDTH * 0.5))) : fit;
+            scale = Math.max(0.3, scale);
+            this.boardScale = scale;
+            this.mobileZoom = zoomed && scale > fit + 0.02;
 
             scaler.style.transform = `scale(${scale})`;
             scaler.style.transformOrigin = 'top left';
-            container.style.height = `${Math.ceil(this.BOARD_HEIGHT * scale + 60)}px`;
+            sizer.style.width = `${Math.ceil(this.BOARD_WIDTH * scale)}px`;
+            sizer.style.height = `${Math.ceil(this.BOARD_HEIGHT * scale)}px`;
+            viewport.style.padding = this.mobileZoom ? `${PAD}px` : '0';
+            container.classList.toggle('gp_mobile', this.mobileZoom);
+            // Overlay texts are drawn in board units; keep them readable on screen when the board is zoomed out
+            board.style.setProperty('--gp-inv', this.mobileZoom ? String(Math.min(2, 1.25 / scale)) : '1');
+
+            // The dice tray and qualifying panel must stay in view while the board is panned
+            const tray = document.getElementById('gp_dice_tray');
+            const qual = document.getElementById('gp_qualifying_panel');
+            if (this.mobileZoom) {
+                if (tray && tray.parentElement !== container) container.appendChild(tray);
+                if (qual && qual.parentElement !== container) container.appendChild(qual);
+            } else {
+                if (tray && tray.parentElement !== board) board.appendChild(tray);
+                if (qual && qual.parentElement !== board) board.appendChild(qual);
+            }
+            this._lastFocusKey = null;
+            this.focusActiveCar(false);
         };
 
+        // Mouse drag to pan (touch uses native scrolling)
+        let drag = null;
+        viewport.addEventListener('pointerdown', e => {
+            if (e.pointerType !== 'mouse' || !this.mobileZoom) return;
+            drag = { x: e.clientX, y: e.clientY, left: viewport.scrollLeft, top: viewport.scrollTop };
+            viewport.setPointerCapture(e.pointerId);
+        });
+        viewport.addEventListener('pointermove', e => {
+            if (!drag) return;
+            viewport.scrollLeft = drag.left - (e.clientX - drag.x);
+            viewport.scrollTop = drag.top - (e.clientY - drag.y);
+        });
+        const endDrag = () => { drag = null; };
+        viewport.addEventListener('pointerup', endDrag);
+        viewport.addEventListener('pointercancel', endDrag);
+
+        this._updateScale = updateScale;
         window.addEventListener('resize', updateScale);
         if (typeof ResizeObserver !== 'undefined') {
             new ResizeObserver(updateScale).observe(container);
         }
         updateScale();
+    }
+
+    focusActiveCar(smooth = true) {
+        if (!this.mobileZoom || !this.boardViewport) return;
+        const racer = this.getRacerData(this.activeRacerId);
+        if (!racer) return;
+        const key = `${racer.racer_id ?? racer.player_id}:${racer.space_id}`;
+        if (key === this._lastFocusKey) return;
+        this._lastFocusKey = key;
+        const c = this.getSpaceCoordinates(racer.space_id);
+        const vp = this.boardViewport;
+        vp.scrollTo({
+            left: c.x * this.boardScale + 8 - vp.clientWidth / 2,
+            top: c.y * this.boardScale + 8 - vp.clientHeight / 2,
+            behavior: smooth ? 'smooth' : 'auto',
+        });
     }
 
     renderBoard() {
@@ -776,6 +847,15 @@ export class Game {
             case 'wrench': return _('Wrench');
             case 'turboboost': return _('Turbo Boost');
             default: return type;
+        }
+    }
+
+    getItemUseDesc(type) {
+        switch (type) {
+            case 'rocket': return _('Use before rolling: fire at the car directly ahead in a straight line. Roll a die; if it is at least the distance, that car and all cars on its space crash.');
+            case 'wrench': return _('Use before rolling: flip your car upright and recover all 6 dice.');
+            case 'turboboost': return _('Use before rolling: your highest die counts twice this turn (lost if you stall).');
+            default: return '';
         }
     }
 
@@ -982,7 +1062,7 @@ export class Game {
                     const carInv = (this.racerInventories && this.racerInventories[rId]) || [];
                     if (carInv.length > 0) {
                         itemsHtml = `<div class="gp_car_items_row">${carInv.map(type =>
-                            `<span class="gp_car_item_badge" title="${this.getItemName(type)}">${this.getItemIcon(type)}</span>`).join('')}</div>`;
+                            `<span class="gp_car_item_badge" tabindex="0" role="button" data-tip="${this.getItemName(type)} - ${this.getItemUseDesc(type)}" aria-label="${this.getItemName(type)}">${this.getItemIcon(type)}</span>`).join('')}</div>`;
                     }
                 }
 
@@ -997,7 +1077,6 @@ export class Game {
                             ${itemsHtml}
                         </div>
                         <div class="gp_team_car_status">
-                            ${isActiveCar ? `<span class="gp_team_car_tag active_driving">${_('Turn')}</span>` : ''}
                             ${carStatus}
                         </div>
                     </div>
@@ -1005,6 +1084,9 @@ export class Game {
             });
 
             panelInfo.innerHTML = `<div class="gp_team_cars_list">${carsHtml}</div>`;
+            panelInfo.querySelectorAll('.gp_car_item_badge').forEach(badge => {
+                badge.addEventListener('click', () => badge.classList.toggle('gp_item_pinned'));
+            });
         });
     }
 

@@ -8,5 +8,23 @@
       "2": { "name": "Chibi F1" }
     },
     "default": 1
+  },
+  "101": {
+    "name": "Colorblind support",
+    "needReload": true,
+    "values": {
+      "1": { "name": "Show car numbers on the board" },
+      "2": { "name": "Off" }
+    },
+    "default": 1
+  },
+  "102": {
+    "name": "Sound effects",
+    "needReload": true,
+    "values": {
+      "1": { "name": "On" },
+      "2": { "name": "Off" }
+    },
+    "default": 1
   }
 }
