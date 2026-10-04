@@ -28,6 +28,7 @@ Every change should be committed and pushed to `main`. The GitHub Actions deploy
   git commit -m "feat(<game>): description of change"
   git push origin main
   ```
+* **Merge-commit gotcha**: the deployer only diffs `HEAD~1..HEAD`. If a push becomes a *merge commit* (e.g. `git pull` merged another game's work), your game's files are not in that diff and **nothing deploys**. Prefer `git pull --rebase origin main` before pushing; if it already happened, run the workflow manually (Actions → BGA Studio Deployer → Run workflow → pick the game).
 * **Instant Local Fast-Lane (Optional)**: If you need instant 5-second delta-sync to Studio without waiting for the GitHub Actions runner:
   ```bash
   python tools/sync.py <target>
