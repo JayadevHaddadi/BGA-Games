@@ -83,7 +83,9 @@ class EndScore extends GameState
             $this->bga->playerScoreAux->set($pId, $aux);
         }
 
-        $this->game->notifyAllPlayers('raceEnded', clienttranslate('🏁 The race has concluded! Congratulations to the winners!'), [
+        $this->globals->set('final_scores', $scores);
+        $this->globals->set('final_points', $playerPoints);
+        $this->game->notifyAllPlayers('raceEnded', clienttranslate('The race has concluded! Congratulations to the winners!'), [
             'scores' => $scores,
             'player_points' => $playerPoints,
             'all_racers' => $this->game->getAllRacers(),

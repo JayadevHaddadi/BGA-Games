@@ -24,15 +24,23 @@ class Game extends \Bga\GameFramework\Table
 
     public function getGameProgression(): int
     {
-        // Calculate progression based on laps completed by the leader
+        // Progress of the furthest car: completed laps plus how far round the circuit it is
         $lapsTarget = (int) $this->globals->get('total_laps', self::DEFAULT_LAPS);
         if ($lapsTarget <= 0) {
             $lapsTarget = self::DEFAULT_LAPS;
         }
 
-        $maxLaps = (int) $this->getUniqueValueFromDb("SELECT COALESCE(MAX(`laps_completed`), 0) FROM `racer`");
-        $percent = ($maxLaps / $lapsTarget) * 100;
-        return (int) min(100, max(0, round($percent)));
+        $circuitLength = max(1, Circuit::getLastSpaceId() - 8);
+        $best = 0.0;
+        foreach (static::getObjectListFromDb("SELECT `space_id`, `laps_completed`, `finish_rank` FROM `racer`") as $r) {
+            if ((int) $r['finish_rank'] > 0) {
+                return 100;
+            }
+            $spaceId = (int) $r['space_id'];
+            $fraction = Circuit::isPitLane($spaceId) ? 0.0 : min(1.0, $spaceId / $circuitLength);
+            $best = max($best, ((int) $r['laps_completed'] + $fraction) / $lapsTarget);
+        }
+        return (int) min(99, max(0, round($best * 100)));
     }
 
     public function ensureSchema(): void
@@ -236,6 +244,8 @@ class Game extends \Bga\GameFramework\Table
         $result['racer_inventory'] = $this->getRacerInventories();
         $result['car_turn_order'] = $this->globals->get('car_turn_order', []);
         $result['circuit'] = Circuit::getClientData();
+        $result['final_scores'] = $this->globals->get('final_scores', []);
+        $result['final_points'] = $this->globals->get('final_points', []);
         $result['gate_open'] = (bool) $this->globals->get('gate_open', false);
         $result['items_enabled'] = ((int) $this->tableOptions->get(103, 1) === 2);
         return $result;

@@ -234,7 +234,7 @@ class PlayerTurn extends GameState
 
         $playerName = $this->game->loadPlayersBasicInfos()[$activePlayerId]['player_name'];
         $carName = $racer['car_name'] ?: $racer['car_color'];
-        $this->game->notifyAllPlayers('wrenchUsed', clienttranslate('🔧 ${player_name} used a Wrench on ${car_name}! All 6 dice recovered and car flipped upright!'), [
+        $this->game->notifyAllPlayers('wrenchUsed', clienttranslate('${player_name} used a Wrench on ${car_name}! All 6 dice recovered and car flipped upright!'), [
             'player_id' => $activePlayerId,
             'racer_id' => $activeRacerId,
             'car_name' => $carName,
@@ -273,7 +273,7 @@ class PlayerTurn extends GameState
 
         $playerName = $this->game->loadPlayersBasicInfos()[$activePlayerId]['player_name'];
         $carName = $racer['car_name'] ?: $racer['car_color'];
-        $this->game->notifyAllPlayers('turboActivated', clienttranslate('⚡ ${player_name} activated Turbo Boost for ${car_name}! Highest rolled die will count twice!'), [
+        $this->game->notifyAllPlayers('turboActivated', clienttranslate('${player_name} activated Turbo Boost for ${car_name}! Highest rolled die will count twice!'), [
             'player_id' => $activePlayerId,
             'racer_id' => $activeRacerId,
             'car_name' => $carName,
@@ -336,7 +336,7 @@ class PlayerTurn extends GameState
                 $this->game->applyCrash($crashedRId, $targetSpace);
             }
 
-            $this->game->notifyAllPlayers('rocketHit', clienttranslate('🚀 ${player_name} fired a Rocket at ${target_car} (dist ${distance})! Rolled ${roll} — DIRECT HIT! Car(s) crashed!'), [
+            $this->game->notifyAllPlayers('rocketHit', clienttranslate('${player_name} fired a Rocket at ${target_car} (dist ${distance})! Rolled ${roll} — DIRECT HIT! Car(s) crashed!'), [
                 'player_id' => $activePlayerId,
                 'racer_id' => $activeRacerId,
                 'player_name' => $playerName,
@@ -353,7 +353,7 @@ class PlayerTurn extends GameState
                 'racer_inventory' => $this->game->getRacerInventories(),
             ]);
         } else {
-            $this->game->notifyAllPlayers('rocketMiss', clienttranslate('🚀 ${player_name} fired a Rocket at ${target_car} (dist ${distance})! Rolled ${roll} — MISSED!'), [
+            $this->game->notifyAllPlayers('rocketMiss', clienttranslate('${player_name} fired a Rocket at ${target_car} (dist ${distance})! Rolled ${roll} — MISSED!'), [
                 'player_id' => $activePlayerId,
                 'racer_id' => $activeRacerId,
                 'player_name' => $playerName,
@@ -445,7 +445,7 @@ class PlayerTurn extends GameState
                         'all_racers' => $this->game->getAllRacers(),
                     ]);
                 } elseif ($evt['type'] === 'mine_explosion') {
-                    $this->game->notifyAllPlayers('mineExplosion', clienttranslate('💣 BOOM! ${player_name} hit a Mine on space ${space_id}! Rolled ${roll} — Detonation! (Crashed, lost 1 die)'), [
+                    $this->game->notifyAllPlayers('mineExplosion', clienttranslate('BOOM! ${player_name} hit a Mine on space ${space_id}! Rolled ${roll} — Detonation! (Crashed, lost 1 die)'), [
                         'player_id' => $activePlayerId,
                         'player_name' => $playerName,
                         'space_id' => $evt['space_id'],
@@ -453,14 +453,14 @@ class PlayerTurn extends GameState
                         'all_racers' => $this->game->getAllRacers(),
                     ]);
                 } elseif ($evt['type'] === 'mine_safe') {
-                    $this->game->notifyAllPlayers('mineSafe', clienttranslate('🛡️ Phew! ${player_name} drove past a Mine on space ${space_id}! Rolled ${roll} — Disarmed/Safe!'), [
+                    $this->game->notifyAllPlayers('mineSafe', clienttranslate('Phew! ${player_name} drove past a Mine on space ${space_id}! Rolled ${roll} — Disarmed/Safe!'), [
                         'player_id' => $activePlayerId,
                         'player_name' => $playerName,
                         'space_id' => $evt['space_id'],
                         'roll' => $evt['roll'],
                     ]);
                 } elseif ($evt['type'] === 'oil_slide_crash') {
-                    $this->game->notifyAllPlayers('oilSlideCrash', clienttranslate('🛢️ SLIP! ${player_name} hit an Oil Spill on space ${from_space} and slid into corner ${to_space}, crashing!'), [
+                    $this->game->notifyAllPlayers('oilSlideCrash', clienttranslate('SLIP! ${player_name} hit an Oil Spill on space ${from_space} and slid into corner ${to_space}, crashing!'), [
                         'player_id' => $activePlayerId,
                         'player_name' => $playerName,
                         'from_space' => $evt['from_space'],
@@ -468,7 +468,7 @@ class PlayerTurn extends GameState
                         'all_racers' => $this->game->getAllRacers(),
                     ]);
                 } elseif ($evt['type'] === 'teleport') {
-                    $this->game->notifyAllPlayers('carTeleported', clienttranslate('🌀 ${car_name} (${player_name}) landed on a teleport pad and was sent from space ${from_space} to space ${to_space}!'), [
+                    $this->game->notifyAllPlayers('carTeleported', clienttranslate('${car_name} (${player_name}) landed on a teleport pad and was sent from space ${from_space} to space ${to_space}!'), [
                         'player_id' => $activePlayerId,
                         'racer_id' => $activeRacerId,
                         'car_name' => $carName,
@@ -478,8 +478,8 @@ class PlayerTurn extends GameState
                     ]);
                 } elseif ($evt['type'] === 'gate_toggle') {
                     $this->game->notifyAllPlayers('gateToggled', $evt['open']
-                        ? clienttranslate('🚧 ${player_name} stopped on a gate switch: the gate is now OPEN, the shortcut is available!')
-                        : clienttranslate('🚧 ${player_name} stopped on a gate switch: the gate is now CLOSED.'), [
+                        ? clienttranslate('${player_name} stopped on a gate switch: the gate is now OPEN, the shortcut is available!')
+                        : clienttranslate('${player_name} stopped on a gate switch: the gate is now CLOSED.'), [
                         'player_id' => $activePlayerId,
                         'player_name' => $playerName,
                         'open' => $evt['open'],
@@ -488,7 +488,7 @@ class PlayerTurn extends GameState
                 } elseif ($evt['type'] === 'item_pickup') {
                     $pCar = $this->game->getRacer($evt['racer_id'] ?? $activeRacerId);
                     $carLabel = ($pCar['car_name'] ?? '') ?: $carName;
-                    $this->game->notifyAllPlayers('itemPickedUp', clienttranslate('🎁 ${car_name} (${player_name}) picked up a ${item_type}!'), [
+                    $this->game->notifyAllPlayers('itemPickedUp', clienttranslate('${car_name} (${player_name}) picked up a ${item_type}!'), [
                         'player_id' => $activePlayerId,
                         'racer_id' => $evt['racer_id'] ?? $activeRacerId,
                         'car_name' => $carLabel,
@@ -505,7 +505,7 @@ class PlayerTurn extends GameState
 
         if ($res['finished']) {
             $totalLaps = (int) $this->globals->get('total_laps', 3);
-            $this->game->notifyAllPlayers('racerFinished', clienttranslate('🏁 ${car_name} (${player_name}) has completed ${total_laps} laps and finished the race!'), [
+            $this->game->notifyAllPlayers('racerFinished', clienttranslate('${car_name} (${player_name}) has completed ${total_laps} laps and finished the race!'), [
                 'player_id' => $activePlayerId,
                 'racer_id' => $activeRacerId,
                 'car_name' => $carName,

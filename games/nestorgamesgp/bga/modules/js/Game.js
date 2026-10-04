@@ -223,7 +223,7 @@ class QualifyingTurnState {
 
             if (rolled.length === 0) {
                 this.bga.statusBar.setTitle(_('${you} must roll to qualify for pole position!'));
-                this.game.addActionButton('btnRollQual', _('🎲 Roll First Die'), () => {
+                this.game.addActionButton('btnRollQual', _('Roll First Die'), () => {
                     this.game.sound.playRoll();
                     this.bga.actions.performAction('actRoll', {});
                 }, 'primary');
@@ -234,13 +234,13 @@ class QualifyingTurnState {
                 );
 
                 if (diceLeft > 0) {
-                    this.game.addActionButton('btnRollQualAgain', _('⚠️ Push Luck: Roll Again') + ` (${diceLeft} left)`, () => {
+                    this.game.addActionButton('btnRollQualAgain', _('Push Luck: Roll Again') + ` (${diceLeft} left)`, () => {
                         this.game.sound.playRoll();
                         this.bga.actions.performAction('actRoll', {});
-                    }, 'alert');
+                    }, 'secondary');
                 }
 
-                this.game.addActionButton('btnStopQual', _('🛑 Stop & Lock') + ` (${score} pts)`, () => {
+                this.game.addActionButton('btnStopQual', _('Stop & Lock') + ` (${score} pts)`, () => {
                     this.bga.actions.performAction('actStop', {});
                 }, 'primary');
             }
@@ -307,9 +307,9 @@ class PlayerTurnState {
             if (isBellyUp) {
                 this.game.clearHighlights();
                 this.bga.statusBar.setTitle(_('${you} (${car}${pos}): Crashed! Flip your car upright to pass turn.').replace('${car}', carName).replace('${pos}', posLabel));
-                this.game.addActionButton('btnFlipUpright', _('🔄 Flip Car Upright (Pass)'), () => {
+                this.game.addActionButton('btnFlipUpright', _('Flip Car Upright'), () => {
                     this.bga.actions.performAction('actFlipCar', {});
-                }, 'alert');
+                }, 'primary');
                 return;
             }
 
@@ -321,46 +321,47 @@ class PlayerTurnState {
 
                 let title = _('${you} (${car}${pos}): Roll your dice to drive, or use an item / repair.').replace('${car}', carName).replace('${pos}', posLabel);
                 if (turboActive) {
-                    title = _('⚡ Turbo Boost active for ${car}! Roll dice (highest die counts 2x)!').replace('${car}', carName);
+                    title = _('Turbo Boost active for ${car}! Roll dice (highest die counts 2x)!').replace('${car}', carName);
                 }
                 this.bga.statusBar.setTitle(title);
 
-                this.game.addActionButton('btnRollRace', _('🏎️ Roll Die to Race'), () => {
+                this.game.addActionButton('btnRollRace', _('Roll Die to Race'), () => {
                     this.game.sound.playRoll();
                     this.bga.actions.performAction('actRoll', {});
                 }, 'primary');
 
                 if (inv.includes('wrench')) {
-                    this.game.addActionButton('btnUseWrench', _('🔧 Wrench (Full Repair)'), () => {
+                    this.game.addActionButton('btnUseWrench', _('Wrench (Full Repair)'), () => {
                         this.bga.actions.performAction('actUseWrench', {});
                     }, 'secondary');
                 }
 
                 if (inv.includes('turboboost') && !turboActive) {
-                    this.game.addActionButton('btnUseTurbo', _('⚡ Turbo (2x Roll)'), () => {
+                    this.game.addActionButton('btnUseTurbo', _('Turbo (2x Roll)'), () => {
                         this.bga.actions.performAction('actUseTurbo', {});
                     }, 'secondary');
                 }
 
                 if (inv.includes('rocket')) {
                     if (rocketTargets.length > 0) {
-                        rocketTargets.slice(0, 2).forEach(target => {
+                        // Rulebook: the rocket flies at the car right in front of you
+                        rocketTargets.slice(0, 1).forEach(target => {
                             const tId = target.racer_id ?? target.player_id;
                             const tName = target.car_name || target.player_name;
                             this.game.addActionButton(
                                 `btnRocket_${tId}`,
-                                _('🚀 Rocket ${name} (${dist} sp)').replace('${name}', tName).replace('${dist}', target.distance),
+                                _('Rocket ${name} (${dist} sp)').replace('${name}', tName).replace('${dist}', target.distance),
                                 () => {
                                     this.bga.actions.performAction('actFireRocket', { targetPlayerId: tId });
                                 },
-                                'alert'
+                                'secondary'
                             );
                         });
                     }
                 }
 
                 if (canFix && !inv.includes('wrench')) {
-                    this.game.addActionButton('btnFixCar', _('🛠️ Fix Car (+1 Die)'), () => {
+                    this.game.addActionButton('btnFixCar', _('Fix Car (+1 Die)'), () => {
                         this.bga.actions.performAction('actFixCar', {});
                     }, 'secondary');
                 }
@@ -370,7 +371,7 @@ class PlayerTurnState {
 
                 if (isCorner) {
                     this.bga.statusBar.setTitle(
-                        _('⚠️ CORNER ALERT: ${you} have ${mp} MP (${count}/${avail} dice). Roll again = CRASH danger, or Drive?'),
+                        _('CORNER ALERT: ${you} have ${mp} MP (${count}/${avail} dice). Roll again = CRASH danger, or Drive?'),
                         { mp: currentMp, count: rolled.length, avail: available }
                     );
                 } else {
@@ -387,18 +388,18 @@ class PlayerTurnState {
                 const diceLeft = args?.dice_remaining ?? 0;
                 if (diceLeft > 0) {
                     const rollBtnLabel = isCorner
-                        ? _('🚨 Push Luck in Corner (CRASH RISK!)') + ` (${diceLeft} left)`
-                        : _('🎲 Push Luck: Roll Again') + ` (${diceLeft} left)`;
+                        ? _('Push Luck in Corner (CRASH RISK!)') + ` (${diceLeft} left)`
+                        : _('Push Luck: Roll Again') + ` (${diceLeft} left)`;
 
                     this.game.addActionButton('btnRollMore', rollBtnLabel, () => {
                         this.game.sound.playRoll();
                         this.bga.actions.performAction('actRoll', {});
-                    }, 'alert');
+                    }, 'secondary');
                 }
 
                 const driveLabel = currentMp === 1
-                    ? _('🏁 Drive 1 Space')
-                    : _('🏁 Drive ${mp} Spaces').replace('${mp}', currentMp);
+                    ? _('Drive 1 Space')
+                    : _('Drive ${mp} Spaces').replace('${mp}', currentMp);
 
                 this.game.addActionButton('btnDrive', driveLabel, () => {
                     this.game.sound.playEngineRev();
@@ -455,6 +456,7 @@ export class Game {
         this.racerInventories = gamedatas.racer_inventory || {};
         this.itemsEnabled = !!gamedatas.items_enabled;
         this.racersStarted = gamedatas.racers_started || {};
+        this.playerNames = Object.fromEntries(Object.entries(gamedatas.players || {}).map(([id, p]) => [id, p.player_name]));
         this.initCircuit(gamedatas.circuit);
         this.gateOpen = !!gamedatas.gate_open;
         this.currentCarModel = (this.bga?.userPreferences?.get?.(100) == 2) ? 'chibi_f1' : 'chibi_kart';
@@ -466,7 +468,40 @@ export class Game {
         this.renderQualifyingBoard(this.qualifyingBoard, this.qualifyingActive);
         this.updateActiveCarHighlight();
         this.updatePlayerPanels();
+        if (gamedatas.final_scores && Object.keys(gamedatas.final_scores).length > 0) {
+            this.renderStandings(gamedatas.final_scores, gamedatas.final_points || {});
+        }
         this.setupNotifications();
+    }
+
+    renderStandings(scores, playerPoints) {
+        const main = document.getElementById('gp_game_container')?.parentElement;
+        if (!main) return;
+        let box = document.getElementById('gp_standings');
+        if (!box) {
+            box = document.createElement('div');
+            box.id = 'gp_standings';
+            box.className = 'gp_standings';
+            main.appendChild(box);
+        }
+        const rows = Object.values(scores).sort((a, b) => a.rank - b.rank).map(r => `
+            <tr>
+                <td>${r.rank}</td>
+                <td><span class="gp_standings_car gp_color_${r.car_color}">${this.getCarSvg('chibi_kart')}<span class="gp_mini_num">${r.racer_id}</span></span></td>
+                <td>${this.playerNames[r.player_id] || ''}</td>
+                <td>${r.laps}</td>
+                <td><strong>${r.points}</strong></td>
+            </tr>`).join('');
+        const totals = Object.entries(playerPoints || {})
+            .sort((a, b) => b[1] - a[1])
+            .map(([pId, pts]) => `${this.playerNames[pId] || pId}: ${pts}`).join(' · ');
+        box.innerHTML = `
+            <h3>${_('Final standings')}</h3>
+            <table>
+                <thead><tr><th>${_('Pos.')}</th><th>${_('Car')}</th><th>${_('Player')}</th><th>${_('Laps')}</th><th>${_('Points')}</th></tr></thead>
+                <tbody>${rows}</tbody>
+            </table>
+            <p>${_('Player totals')}: ${totals}</p>`;
     }
 
     initDom() {
@@ -755,27 +790,24 @@ export class Game {
         }
     }
 
-    getItemHtml(type) {
-        const svgs = {
+    get ITEM_SVGS() {
+        return {
             spill: '<svg viewBox="0 0 32 32"><path d="M16 6c4 5 8 8 8 13a8 8 0 0 1-16 0c0-5 4-8 8-13z" fill="#111827"/><ellipse cx="13" cy="17" rx="2.2" ry="3.6" fill="#a78bfa" opacity=".8" transform="rotate(20 13 17)"/><circle cx="19.5" cy="21" r="1.6" fill="#38bdf8" opacity=".7"/></svg>',
             mine: '<svg viewBox="0 0 32 32"><g stroke="#111827" stroke-width="2.4" stroke-linecap="round"><path d="M16 4v5M16 23v5M4 16h5M23 16h5M7.5 7.5l3.5 3.5M21 21l3.5 3.5M24.5 7.5L21 11M11 21l-3.5 3.5"/></g><circle cx="16" cy="16" r="8" fill="#1f2937"/><circle cx="16" cy="16" r="3" fill="#ef4444"/><circle cx="13.5" cy="13" r="1.6" fill="#9ca3af" opacity=".7"/></svg>',
             rocket: '<svg viewBox="0 0 32 32"><g transform="rotate(45 16 16)"><path d="M16 3c4 4 5 9 5 14v5H11v-5c0-5 1-10 5-14z" fill="#f8fafc"/><path d="M16 3c2 2 3.200 4 3.800 6h-7.600c.6-2 1.800-4 3.800-6z" fill="#dc2626"/><circle cx="16" cy="13" r="2.200" fill="#0ea5e9"/><path d="M11 17l-4 5h4zM21 17l4 5h-4z" fill="#dc2626"/><path d="M13 22h6l-3 7z" fill="#fbbf24"/></g></svg>',
             wrench: '<svg viewBox="0 0 32 32"><path d="M23.500 5a6 6 0 0 0-5.600 8.200L6.300 24.800a2.300 2.300 0 0 0 3.300 3.300l11.600-11.600A6 6 0 0 0 28 10.500l-3.800 3.800-3.300-.7-.7-3.300L24 6.500A6 6 0 0 0 23.500 5z" fill="#f1f5f9" stroke="#334155" stroke-width="1.200" stroke-linejoin="round"/></svg>',
             turboboost: '<svg viewBox="0 0 32 32"><path d="M18.500 3L7 18h8l-2 11 12-16h-8z" fill="#1f2937" stroke="#fff" stroke-width="1" stroke-linejoin="round"/></svg>',
         };
-        const svg = svgs[type];
+    }
+
+    getItemHtml(type) {
+        const svg = this.ITEM_SVGS[type];
         return svg ? `<div class="gp_item_badge gp_item_badge_${type}">${svg}</div>` : '';
     }
 
     getItemIcon(type) {
-        switch (type) {
-            case 'rocket': return '🚀';
-            case 'wrench': return '🔧';
-            case 'turboboost': return '⚡';
-            case 'mine': return '💣';
-            case 'spill': return '🛢️';
-            default: return '📦';
-        }
+        const svg = this.ITEM_SVGS[type];
+        return svg ? `<span class="gp_item_badge gp_item_badge_${type} gp_item_badge_mini">${svg}</span>` : '';
     }
 
     renderQualifyingBoard(boardData, active = true) {
@@ -803,25 +835,25 @@ export class Game {
         let rowsHtml = '';
         entries.forEach((item, idx) => {
             const rank = idx + 1;
-            const medal = rank === 1 ? '🥇 P1' : (rank === 2 ? '🥈 P2' : (rank === 3 ? '🥉 P3' : `#${rank}`));
+            const medal = rank === 1 ? 'P1' : (rank === 2 ? 'P2' : (rank === 3 ? 'P3' : `#${rank}`));
             const isRolling = item.player_id == activeId || item.status === 'rolling';
 
             let dicePipsHtml = '';
             if (item.dice && item.dice.length > 0) {
                 dicePipsHtml = item.dice.map(d => `<span class="gp_qual_die gp_die_${d}">${d}</span>`).join('');
             } else if (isRolling) {
-                dicePipsHtml = '<span class="gp_qual_status_tag gp_qual_tag_rolling">🎲 Rolling...</span>';
+                dicePipsHtml = '<span class="gp_qual_status_tag gp_qual_tag_rolling">' + _('Rolling...') + '</span>';
             } else {
-                dicePipsHtml = '<span class="gp_qual_status_tag gp_qual_tag_waiting">⏳ Waiting</span>';
+                dicePipsHtml = '<span class="gp_qual_status_tag gp_qual_tag_waiting">' + _('Waiting') + '</span>';
             }
 
             let scoreBadge = '';
             if (item.status === 'locked') {
-                scoreBadge = `<span class="gp_qual_score gp_score_locked">🌟 ${item.score} pts</span>`;
+                scoreBadge = `<span class="gp_qual_score gp_score_locked">${item.score} pts</span>`;
             } else if (item.status === 'busted') {
-                scoreBadge = '<span class="gp_qual_score gp_score_busted">😭 0 pts</span>';
+                scoreBadge = '<span class="gp_qual_score gp_score_busted">0 pts</span>';
             } else if (isRolling) {
-                scoreBadge = `<span class="gp_qual_score gp_score_rolling">⚡ ${item.score} pts</span>`;
+                scoreBadge = `<span class="gp_qual_score gp_score_rolling">${item.score} pts</span>`;
             } else {
                 scoreBadge = '<span class="gp_qual_score gp_score_waiting">—</span>';
             }
@@ -849,8 +881,7 @@ export class Game {
 
         panel.innerHTML = `
             <div class="gp_qual_header">
-                <span class="gp_qual_icon">🏁</span>
-                <span class="gp_qual_title">QUALIFYING GRID</span>
+                <span class="gp_qual_title">${_('Qualifying grid')}</span>
             </div>
             <div class="gp_qual_list">
                 ${rowsHtml}
@@ -895,7 +926,6 @@ export class Game {
     updatePlayerPanels() {
         if (!this.racers) return;
 
-        // Group racers by player_id
         const playersRacers = {};
         Object.values(this.racers).forEach(racer => {
             const pId = racer.player_id;
@@ -907,10 +937,7 @@ export class Game {
 
         Object.entries(playersRacers).forEach(([pIdStr, cars]) => {
             const pId = parseInt(pIdStr, 10);
-            let panel = null;
-            if (this.bga?.playerPanels && typeof this.bga.playerPanels.getElement === 'function') {
-                panel = this.bga.playerPanels.getElement(pId);
-            }
+            const panel = this.bga?.playerPanels?.getElement?.(pId);
             if (!panel) return;
 
             let panelInfo = document.getElementById(`gp_panel_info_${pId}`);
@@ -921,175 +948,63 @@ export class Game {
                 panel.appendChild(panelInfo);
             }
 
-            let inventoryHtml = '';
-            if (this.itemsEnabled) {
-                const inv = (this.playerInventories && this.playerInventories[pId]) || [];
-                if (inv.length > 0) {
-                    const itemBadges = inv.map(type => {
-                        return `<span class="gp_inv_badge" title="${this.getItemName(type)}">${this.getItemIcon(type)}</span>`;
-                    }).join(' ');
-                    inventoryHtml = `
-                        <div class="gp_panel_row gp_panel_inv_row">
-                            <span class="gp_panel_label">🎒 Items:</span>
-                            <div class="gp_inv_list">${itemBadges}</div>
-                        </div>
-                    `;
-                } else {
-                    inventoryHtml = `
-                        <div class="gp_panel_row gp_panel_inv_row">
-                            <span class="gp_panel_label">🎒 Items:</span>
-                            <span class="gp_inv_empty">None</span>
-                        </div>
-                    `;
-                }
+            if (this.carTurnOrder && this.carTurnOrder.length > 0) {
+                cars.sort((a, b) => {
+                    const idxA = this.carTurnOrder.indexOf(a.racer_id ?? a.player_id);
+                    const idxB = this.carTurnOrder.indexOf(b.racer_id ?? b.player_id);
+                    return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
+                });
             }
 
-            if (cars.length === 1) {
-                // Solo Mode
-                const racer = cars[0];
+            let carsHtml = '';
+            cars.forEach(racer => {
                 const rId = racer.racer_id ?? racer.player_id;
+                const isActiveCar = (this.activeRacerId == rId);
                 const diceAvailable = racer.dice_available ?? 6;
                 const lostDice = Math.max(0, 6 - diceAvailable);
                 const laps = racer.laps_completed ?? 0;
-                const isBellyUp = racer.is_belly_up;
-                const finished = racer.finish_rank > 0;
 
-                let pipsHtml = '';
-                for (let i = 0; i < diceAvailable; i++) {
-                    pipsHtml += '<span class="gp_panel_pip gp_pip_active" title="Available die">🎲</span>';
-                }
-                for (let i = 0; i < lostDice; i++) {
-                    pipsHtml += '<span class="gp_panel_pip gp_pip_lost" title="Lost die in pit box">❌</span>';
-                }
+                let pips = '';
+                for (let i = 0; i < diceAvailable; i++) pips += `<span class="gp_panel_pip gp_pip_active"></span>`;
+                for (let i = 0; i < lostDice; i++) pips += `<span class="gp_panel_pip gp_pip_lost"></span>`;
 
-                let statusHtml = '';
-                if (finished) {
-                    statusHtml = `<span class="gp_panel_tag gp_tag_finished">🏁 Finished (#${racer.finish_rank})</span>`;
-                } else if (isBellyUp) {
-                    statusHtml = '<span class="gp_panel_tag gp_tag_belly_up">💥 Belly-Up</span>';
+                let carStatus;
+                if (racer.finish_rank > 0) {
+                    carStatus = `<span class="gp_team_car_tag finished" title="${_('Finished the race')}">${_('Finished')} P${racer.finish_rank}</span>`;
+                } else if (racer.is_belly_up) {
+                    carStatus = `<span class="gp_team_car_tag belly_up" title="${_('Crashed: flip the car upright on its next turn')}">${_('Crashed')}</span>`;
                 } else {
-                    statusHtml = '<span class="gp_panel_tag gp_tag_racing">🏎️ Racing</span>';
+                    carStatus = `<span class="gp_team_car_tag lap" title="${_('Current lap')}">${_('Lap')} ${Math.min(totalLaps, laps + 1)}/${totalLaps}</span>`;
                 }
 
-                const shortcutHtml = racer.shortcut_used
-                    ? '<span class="gp_panel_shortcut gp_shortcut_used" title="Shortcut already used this race">⚡ Shortcut: Used</span>'
-                    : '<span class="gp_panel_shortcut gp_shortcut_avail" title="Shortcut available from space 8">⚡ Shortcut: Ready</span>';
-
-                let soloCarItems = '';
+                let itemsHtml = '';
                 if (this.itemsEnabled) {
-                    const carInv = (this.racerInventories && this.racerInventories[rId]) || (this.playerInventories && this.playerInventories[pId]) || [];
+                    const carInv = (this.racerInventories && this.racerInventories[rId]) || [];
                     if (carInv.length > 0) {
-                        const itemBadges = carInv.map(type => {
-                            return `<span class="gp_inv_badge" title="${this.getItemName(type)}">${this.getItemIcon(type)}</span>`;
-                        }).join(' ');
-                        soloCarItems = `
-                            <div class="gp_panel_row gp_panel_inv_row">
-                                <span class="gp_panel_label">🎒 Items:</span>
-                                <div class="gp_inv_list">${itemBadges}</div>
-                            </div>
-                        `;
-                    } else {
-                        soloCarItems = `
-                            <div class="gp_panel_row gp_panel_inv_row">
-                                <span class="gp_panel_label">🎒 Items:</span>
-                                <span class="gp_inv_empty">None</span>
-                            </div>
-                        `;
+                        itemsHtml = `<div class="gp_car_items_row">${carInv.map(type =>
+                            `<span class="gp_car_item_badge" title="${this.getItemName(type)}">${this.getItemIcon(type)}</span>`).join('')}</div>`;
                     }
                 }
 
-                panelInfo.innerHTML = `
-                    <div class="gp_panel_row gp_panel_color_row">
-                        <span class="gp_panel_label">Car:</span>
-                        <span class="gp_mini_car_svg gp_color_${racer.car_color}">${this.getCarSvg('chibi_kart')}</span>
-                        <span class="gp_color_badge gp_bg_${racer.car_color}">${(racer.car_color || '').toUpperCase()}</span>
-                    </div>
-                    <div class="gp_panel_row">
-                        <span class="gp_panel_label">🎲 Dice Pool:</span>
-                        <strong class="gp_panel_val">${diceAvailable} / 6</strong>
-                        <div class="gp_panel_pips_row">${pipsHtml}</div>
-                    </div>
-                    <div class="gp_panel_row">
-                        <span class="gp_panel_label">🏁 Lap:</span>
-                        <strong class="gp_panel_val">${Math.min(totalLaps, laps + 1)} / ${totalLaps}</strong>
-                        <span class="gp_panel_sub">(${racer.discs_remaining ?? Math.max(0, totalLaps - laps)} discs left)</span>
-                    </div>
-                    <div class="gp_panel_row gp_panel_status_row">
-                        ${statusHtml}
-                        ${shortcutHtml}
-                    </div>
-                    ${soloCarItems}
-                `;
-            } else {
-                // Team Mode: Render each car in the team fleet sorted by pitlane turn order
-                if (this.carTurnOrder && this.carTurnOrder.length > 0) {
-                    cars.sort((a, b) => {
-                        const idxA = this.carTurnOrder.indexOf(a.racer_id ?? a.player_id);
-                        const idxB = this.carTurnOrder.indexOf(b.racer_id ?? b.player_id);
-                        return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
-                    });
-                }
-
-                let carsHtml = '';
-                cars.forEach(racer => {
-                    const rId = racer.racer_id ?? racer.player_id;
-                    const isActiveCar = (this.activeRacerId == rId);
-                    const diceAvailable = racer.dice_available ?? 6;
-                    const lostDice = Math.max(0, 6 - diceAvailable);
-                    const laps = racer.laps_completed ?? 0;
-                    const isBellyUp = racer.is_belly_up;
-                    const finished = racer.finish_rank > 0;
-
-                    let carPips = '';
-                    for (let i = 0; i < diceAvailable; i++) carPips += '🎲';
-                    for (let i = 0; i < lostDice; i++) carPips += '❌';
-
-                    let carStatus = '';
-                    if (finished) {
-                        carStatus = `<span class="gp_team_car_tag finished">🏁 P${racer.finish_rank}</span>`;
-                    } else if (isBellyUp) {
-                        carStatus = `<span class="gp_team_car_tag belly_up">💥 Flip</span>`;
-                    } else {
-                        carStatus = `<span class="gp_team_car_tag lap">Lap ${Math.min(totalLaps, laps + 1)}/${totalLaps}</span>`;
-                    }
-
-                    let carItemsHtml = '';
-                    if (this.itemsEnabled) {
-                        const carInv = (this.racerInventories && this.racerInventories[rId]) || [];
-                        if (carInv.length > 0) {
-                            const itemBadges = carInv.map(type => {
-                                return `<span class="gp_car_item_badge" title="${this.getItemName(type)}">${this.getItemIcon(type)}</span>`;
-                            }).join(' ');
-                            carItemsHtml = `<div class="gp_car_items_row">${itemBadges}</div>`;
-                        }
-                    }
-
-                    carsHtml += `
-                        <div class="gp_team_car_row ${isActiveCar ? 'active_turn' : ''}" id="gp_team_car_row_${rId}">
-                            <div class="gp_team_car_icon gp_mini_car_svg gp_color_${racer.car_color}">
-                                ${this.getCarSvg('chibi_kart')}
-                            </div>
-                            <div class="gp_team_car_info">
-                                <span class="gp_team_car_pips">${carPips}</span>
-                                ${carItemsHtml}
-                            </div>
-                            <div class="gp_team_car_status">
-                                ${isActiveCar ? '<span class="gp_team_car_tag active_driving">▶ TURN</span>' : ''}
-                                ${carStatus}
-                            </div>
+                const carLabel = `${_('Car')} ${rId} (${racer.car_color})`;
+                carsHtml += `
+                    <div class="gp_team_car_row ${isActiveCar ? 'active_turn' : ''}" id="gp_team_car_row_${rId}">
+                        <div class="gp_team_car_icon gp_mini_car_svg gp_color_${racer.car_color}" title="${carLabel}">
+                            ${this.getCarSvg('chibi_kart')}<span class="gp_mini_num">${rId}</span>
                         </div>
-                    `;
-                });
-
-                panelInfo.innerHTML = `
-                    <div class="gp_team_header">
-                        <span class="gp_team_title">🏎️ Team Fleet (${cars.length} Cars)</span>
-                    </div>
-                    <div class="gp_team_cars_list">
-                        ${carsHtml}
+                        <div class="gp_team_car_info">
+                            <span class="gp_team_car_pips" title="${_('Dice available')}: ${diceAvailable}/6" aria-label="${_('Dice available')}: ${diceAvailable}/6">${pips}</span>
+                            ${itemsHtml}
+                        </div>
+                        <div class="gp_team_car_status">
+                            ${isActiveCar ? `<span class="gp_team_car_tag active_driving">${_('Turn')}</span>` : ''}
+                            ${carStatus}
+                        </div>
                     </div>
                 `;
-            }
+            });
+
+            panelInfo.innerHTML = `<div class="gp_team_cars_list">${carsHtml}</div>`;
         });
     }
 
@@ -1159,10 +1074,15 @@ export class Game {
         el.dataset.angle = racer.facing_direction ?? 270;
 
         // Cute rounded vector SVG racecar
-        el.innerHTML = this.getCarSvg(this.currentCarModel || 'chibi_kart');
+        el.innerHTML = this.getCarSvg(this.currentCarModel || 'chibi_kart') + `<span class="gp_car_num">${rId}</span>`;
 
         this.updateCarPosition(el, racer.space_id, racer.facing_direction);
         return el;
+    }
+
+    setCarTransform(el, angle) {
+        el.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
+        el.style.setProperty('--car-angle', `${angle}deg`);
     }
 
     updateCarPosition(el, spaceId, facingDir) {
@@ -1173,7 +1093,7 @@ export class Game {
         el.dataset.angle = dir;
         el.style.left = `${coords.x}px`;
         el.style.top = `${coords.y}px`;
-        el.style.transform = `translate(-50%, -50%) rotate(${dir}deg)`;
+        this.setCarTransform(el, dir);
     }
 
     initCircuit(circuit) {
@@ -1257,7 +1177,7 @@ export class Game {
     }
 
     /* =====================================================================
-     *  🎯 Request 2: Destination Highlight & Breadcrumb Path Preview
+     *  Request 2: Destination Highlight & Breadcrumb Path Preview
      * ===================================================================== */
 
     clearHighlights() {
@@ -1341,35 +1261,27 @@ export class Game {
         marker.style.top = `${coords.y}px`;
 
         let badgeText = `+${mp}`;
-        let badgeIcon = '🏁';
         if (alertType === 'crash') {
-            badgeText = `💥 CRASH! (+${mp})`;
-            badgeIcon = '💥';
+            badgeText = _('CRASH! (+${mp})').replace('${mp}', mp);
         } else if (alertType === 'bump') {
-            badgeText = `⏩ BUMP! (+${mp})`;
-            badgeIcon = '⏩';
+            badgeText = _('BUMP! (+${mp})').replace('${mp}', mp);
         } else if (crossedFinish) {
-            badgeText = `🏁 +1 LAP! (+${mp})`;
-            badgeIcon = '🏁';
+            badgeText = _('+1 LAP! (+${mp})').replace('${mp}', mp);
         } else if (isShortcut) {
-            badgeText = `⚡ SHORTCUT (+${mp})`;
-            badgeIcon = '⚡';
+            badgeText = _('SHORTCUT (+${mp})').replace('${mp}', mp);
         } else if (this.canUseShortcutAt(destSpaceId, this.getRacerData(this.activeRacerId)?.shortcut_used)) {
-            badgeText = `⚡ SHORTCUT SPACE (+${mp})`;
-            badgeIcon = '⚡';
+            badgeText = _('SHORTCUT SPACE (+${mp})').replace('${mp}', mp);
             marker.title = _('Shortcut space: next turn from here you jump straight to the shortcut exit (once per car).');
         } else if (this.circuit.teleports.includes(destSpaceId)) {
-            badgeText = `🌀 TELEPORT (+${mp})`;
-            badgeIcon = '🌀';
+            badgeText = _('TELEPORT (+${mp})').replace('${mp}', mp);
             marker.title = _('Teleport pad: you will be sent to the other teleport pad.');
         } else if (this.circuit.gate_switches.includes(destSpaceId)) {
-            badgeText = `🚧 GATE SWITCH (+${mp})`;
-            badgeIcon = '🚧';
+            badgeText = _('GATE SWITCH (+${mp})').replace('${mp}', mp);
             marker.title = this.gateOpen
                 ? _('Gate switch: stopping here will CLOSE the gate.')
                 : _('Gate switch: stopping here will OPEN the gate (shortcut).');
         } else {
-            badgeText = `🏁 Space ${destSpaceId} (+${mp})`;
+            badgeText = _('Space ${space} (+${mp})').replace('${space}', destSpaceId).replace('${mp}', mp);
         }
 
         marker.innerHTML = `
@@ -1382,7 +1294,6 @@ export class Game {
                 </svg>
             </div>
             <div class="gp_dest_badge">
-                <span class="gp_badge_icon">${badgeIcon}</span>
                 <span class="gp_badge_text">${badgeText}</span>
             </div>
         `;
@@ -1402,7 +1313,7 @@ export class Game {
     }
 
     /* =====================================================================
-     *  🏎️ Cute Event Bursts, Hazards & Animations
+     *  Cute Event Bursts, Hazards & Animations
      * ===================================================================== */
 
     spawnImpactBurst(x, y, text, type = 'bump') {
@@ -1430,7 +1341,7 @@ export class Game {
         beacon.style.left = `${coords.x}px`;
         beacon.style.top = `${coords.y}px`;
         beacon.innerHTML = `
-            <div class="gp_corner_hazard_badge">⚠️ CORNER: CRASH RISK!</div>
+            <div class="gp_corner_hazard_badge">CORNER: CRASH RISK!</div>
         `;
         layer.appendChild(beacon);
     }
@@ -1447,7 +1358,7 @@ export class Game {
         flash.className = 'gp_lap_flash';
         flash.style.left = `${x}px`;
         flash.style.top = `${y}px`;
-        flash.innerHTML = '🏁 +1 LAP!';
+        flash.innerHTML = _('+1 LAP!');
         layer.appendChild(flash);
         setTimeout(() => flash.remove(), 1000);
     }
@@ -1459,7 +1370,7 @@ export class Game {
         flash.className = 'gp_lap_flash gp_start_flash';
         flash.style.left = `${x}px`;
         flash.style.top = `${y}px`;
-        flash.innerHTML = '🟢 GO! RACE START!';
+        flash.innerHTML = _('GO! RACE START!');
         layer.appendChild(flash);
         setTimeout(() => flash.remove(), 1000);
     }
@@ -1494,8 +1405,8 @@ export class Game {
         carEl.classList.add('gp_driving');
         carEl.style.zIndex = '35';
 
-        // Pacing: snappy 75-140ms per space so motion is lively and never dragging
-        const stepTime = Math.max(75, Math.min(140, Math.floor(1100 / Math.max(1, steps.length))));
+        // Pacing: the whole drive takes about 0.8s however many spaces are crossed (BGA animation guideline)
+        const stepTime = Math.max(25, Math.min(110, Math.floor(800 / Math.max(1, steps.length))));
         const transMs = Math.round(stepTime * 0.95);
         carEl.style.transition = `left ${transMs}ms linear, top ${transMs}ms linear, transform ${transMs}ms cubic-bezier(0.2, 0, 0.3, 1)`;
 
@@ -1512,7 +1423,7 @@ export class Game {
 
             carEl.style.left = `${coords.x}px`;
             carEl.style.top = `${coords.y}px`;
-            carEl.style.transform = `translate(-50%, -50%) rotate(${currentAngle}deg)`;
+            this.setCarTransform(carEl, currentAngle);
 
             // Corner tire screech
             if (coords.type === 'corner') {
@@ -1549,7 +1460,7 @@ export class Game {
         const finalFacing = racerData?.facing_direction ?? (this.getSpaceCoordinates(finalSpace)?.dir ?? 270);
         currentAngle = this.normalizeAngle(currentAngle, finalFacing);
         carEl.dataset.angle = currentAngle;
-        carEl.style.transform = `translate(-50%, -50%) rotate(${currentAngle}deg)`;
+        this.setCarTransform(carEl, currentAngle);
 
         await this.waitMs(200);
         carEl.classList.remove('gp_car_arrive');
@@ -1570,7 +1481,7 @@ export class Game {
         carEl.style.transition = 'left 0.28s cubic-bezier(0.25, 1, 0.5, 1), top 0.28s cubic-bezier(0.25, 1, 0.5, 1), transform 0.25s ease';
         carEl.style.left = `${coords.x}px`;
         carEl.style.top = `${coords.y}px`;
-        carEl.style.transform = `translate(-50%, -50%) rotate(${currentAngle}deg)`;
+        this.setCarTransform(carEl, currentAngle);
 
         carEl.classList.add('gp_car_bumped');
         this.sound.playBump();
@@ -1616,7 +1527,7 @@ export class Game {
         // Header showing total dice stats
         const header = document.createElement('div');
         header.className = 'gp_dice_tray_header';
-        header.innerHTML = `🎲 <strong>Dice Pool:</strong> ${dice.length} / ${available} rolled (${diceLeft} remaining to roll)`;
+        header.innerHTML = `<strong>${_('Dice Pool')}:</strong> ` + _('${rolled} / ${available} rolled (${left} remaining to roll)').replace('${rolled}', dice.length).replace('${available}', available).replace('${left}', diceLeft);
         tray.appendChild(header);
 
         // Row of rolled dice
@@ -1634,13 +1545,13 @@ export class Game {
         const banner = document.createElement('div');
         if (isQualifying) {
             banner.className = 'gp_tray_warning gp_tray_safe';
-            banner.innerText = '⏱️ QUALIFYING: Duplicate roll = 0 pts (bust)';
+            banner.innerText = _('QUALIFYING: Duplicate roll = 0 pts (bust)');
         } else if (isCorner) {
             banner.className = 'gp_tray_warning gp_tray_danger';
-            banner.innerText = '⚠️ IN CORNER: Duplicate roll = CRASH + lose 1 die!';
+            banner.innerText = _('IN CORNER: Duplicate roll = CRASH + lose 1 die!');
         } else {
             banner.className = 'gp_tray_warning gp_tray_safe';
-            banner.innerText = '🛡️ ON STRAIGHT: Duplicate roll = engine stalls (safe)';
+            banner.innerText = _('ON STRAIGHT: Duplicate roll = engine stalls (safe)');
         }
         tray.appendChild(banner);
     }
@@ -1715,7 +1626,7 @@ export class Game {
         const pId = args.player_id;
         const racer = this.getRacerData(pId);
         const spaceId = racer?.space_id ?? this.circuit.last;
-        this.spawnBustBadge(spaceId, '😭 BUSTED! (0 pts)', 'bust');
+        this.spawnBustBadge(spaceId, _('BUSTED! (0 pts)'), 'bust');
 
         const carEl = this.getCarElement(pId);
         if (carEl) {
@@ -1795,7 +1706,7 @@ export class Game {
 
         const racer = this.getRacerData(rId);
         const spaceId = racer?.space_id ?? 1;
-        this.spawnBustBadge(spaceId, '💥 CRASH! -1 🎲', 'crash');
+        this.spawnBustBadge(spaceId, _('CRASH! -1 die'), 'crash');
 
         const carEl = this.getCarElement(rId);
         if (carEl) {
@@ -1819,7 +1730,7 @@ export class Game {
         const rId = args.racer_id ?? args.player_id;
         const racer = this.getRacerData(rId);
         const spaceId = racer?.space_id ?? 1;
-        this.spawnBustBadge(spaceId, '💨 STALLED! 😵', 'stall');
+        this.spawnBustBadge(spaceId, _('STALLED!'), 'stall');
 
         const carEl = this.getCarElement(rId);
         if (carEl) {
@@ -1835,7 +1746,7 @@ export class Game {
         this.clearActionButtons();
 
         const rId = args.racer_id ?? args.player_id;
-        // 🏎️ Cute animated drive through track spaces
+        // Cute animated drive through track spaces
         await this.animateCarDrive(rId, args.steps, args.final_space, args.racer);
         if (args.teleport) {
             await this.animateTeleport(rId, args.teleport.to_space);
@@ -1962,6 +1873,7 @@ export class Game {
 
     notif_raceEnded(notif) {
         const args = this._getNotifArgs(notif);
+        this.renderStandings(args.scores || {}, args.player_points || {});
         this.sound.playLapFanfare();
         this.clearActionButtons();
         this.clearHighlights();
@@ -1990,7 +1902,7 @@ export class Game {
             this.racerInventories = args.racer_inventory;
         }
         const space = args.racer?.space_id ?? 1;
-        this.spawnBustBadge(space, '🔧 FULL REPAIR! (6 🎲)', 'stall');
+        this.spawnBustBadge(space, _('FULL REPAIR! (6 dice)'), 'stall');
         this.updatePlayerPanels();
     }
 
@@ -2010,7 +1922,7 @@ export class Game {
         const rId = args.racer_id ?? args.player_id;
         const racer = this.getRacerData(rId);
         const space = racer?.space_id ?? 1;
-        this.spawnBustBadge(space, '⚡ TURBO BOOST! (2x)', 'stall');
+        this.spawnBustBadge(space, _('TURBO BOOST! (2x)'), 'stall');
         this.updatePlayerPanels();
     }
 
@@ -2031,7 +1943,7 @@ export class Game {
         if (args.racer_inventory) {
             this.racerInventories = args.racer_inventory;
         }
-        this.spawnBustBadge(args.space_id, `🚀 BOOM! Roll ${args.roll} (Hit!)`, 'crash');
+        this.spawnBustBadge(args.space_id, _('BOOM! Roll ${roll} (Hit!)').replace('${roll}', args.roll), 'crash');
         const targetId = args.target_id;
         const targetCar = this.getCarElement(targetId);
         if (targetCar) {
@@ -2060,7 +1972,7 @@ export class Game {
         const rId = args.racer_id ?? args.player_id;
         const racer = this.getRacerData(rId);
         const space = racer?.space_id ?? 1;
-        this.spawnBustBadge(space, `🚀 MISSED! Roll ${args.roll} < Dist ${args.distance}`, 'stall');
+        this.spawnBustBadge(space, _('MISSED! Roll ${roll} < Dist ${dist}').replace('${roll}', args.roll).replace('${dist}', args.distance), 'stall');
         this.updatePlayerPanels();
     }
 
@@ -2071,7 +1983,7 @@ export class Game {
             this.racers = args.all_racers;
             this.renderRacers(args.all_racers);
         }
-        this.spawnBustBadge(args.space_id, `💣 BOOM! Roll ${args.roll}`, 'crash');
+        this.spawnBustBadge(args.space_id, _('BOOM! Roll ${roll}').replace('${roll}', args.roll), 'crash');
         const rId = args.racer_id ?? args.player_id;
         const carEl = this.getCarElement(rId);
         if (carEl) {
@@ -2089,7 +2001,7 @@ export class Game {
         if (this.sound && typeof this.sound.playChime === 'function') {
             this.sound.playChime();
         }
-        this.spawnBustBadge(args.space_id, `🛡️ MINE SAFE! (Roll ${args.roll})`, 'stall');
+        this.spawnBustBadge(args.space_id, _('MINE SAFE! (Roll ${roll})').replace('${roll}', args.roll), 'stall');
     }
 
     async notif_oilSlideCrash(notif) {
@@ -2101,7 +2013,7 @@ export class Game {
             this.racers = args.all_racers;
             this.renderRacers(args.all_racers);
         }
-        this.spawnBustBadge(args.to_space, '🛢️ SLIP & CRASH!', 'crash');
+        this.spawnBustBadge(args.to_space, _('SLIP & CRASH!'), 'crash');
         const rId = args.racer_id ?? args.player_id;
         const carEl = this.getCarElement(rId);
         if (carEl) {
@@ -2119,7 +2031,7 @@ export class Game {
         if (this.sound && typeof this.sound.playChime === 'function') {
             this.sound.playChime();
         }
-        this.spawnBustBadge(args.space_id, `🎁 +1 ${this.getItemName(args.item_type)}`, 'stall');
+        this.spawnBustBadge(args.space_id, `+1 ${this.getItemName(args.item_type)}`, 'stall');
         if (args.track_items) {
             this.trackItems = args.track_items;
             this.renderTrackItems(args.track_items);

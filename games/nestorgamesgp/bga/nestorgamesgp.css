@@ -30,7 +30,7 @@
     background-size: contain;
 }
 
-/* 🎯 Highlights Layer (under racers, above track) */
+/* Highlights Layer (under racers, above track) */
 .gp_highlights_layer {
     position: absolute;
     top: 0;
@@ -51,7 +51,7 @@
     z-index: 10;
 }
 
-/* 🏎️ Vector Formula Racecars */
+/* Vector Formula Racecars */
 .gp_car {
     position: absolute;
     width: 34px;
@@ -70,20 +70,15 @@
     filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45));
 }
 
-/* 🏎️ Active Driving State */
+/* Active Driving State */
 .gp_car.gp_driving {
     z-index: 35 !important;
-    animation: gp_drive_wobble 0.12s infinite alternate;
 }
 
 .gp_car.gp_driving .gp_car_svg {
     filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.55)) brightness(1.12);
 }
 
-@keyframes gp_drive_wobble {
-    0% { margin-top: -1px; }
-    100% { margin-top: 1px; }
-}
 
 /* Arrival Bounce */
 .gp_car.gp_car_arrive {
@@ -98,7 +93,7 @@
 
 /* Bumped Car Shiver */
 .gp_car.gp_car_bumped {
-    animation: gp_bump_shake 0.35s ease;
+    animation: gp_bump_shake 0.5s ease;
 }
 
 @keyframes gp_bump_shake {
@@ -110,7 +105,7 @@
 
 /* Crashing Tumble */
 .gp_car.gp_car_crashing {
-    animation: gp_crash_tumble 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+    animation: gp_crash_tumble 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97);
 }
 
 @keyframes gp_crash_tumble {
@@ -119,7 +114,7 @@
     100% { transform: translate(-50%, -50%) scale(1) rotate(360deg); }
 }
 
-/* 💥 Crashed Belly-up State & Billowing Smoke Animation */
+/* Crashed Belly-up State & Billowing Smoke Animation */
 .gp_car.gp_belly_up {
     filter: grayscale(40%) brightness(75%);
 }
@@ -129,63 +124,27 @@
     opacity: 0.85;
 }
 
-/* Smoke puff 1 */
+/* Crash marker: static badge, no looping decoration */
 .gp_car.gp_belly_up::before {
-    content: '💨';
+    content: '!';
     position: absolute;
-    top: -18px;
-    left: 2px;
-    font-size: 20px;
-    pointer-events: none;
-    z-index: 20;
-    animation: gp_smoke_billow_1 1.6s ease-out infinite;
-}
-
-/* Smoke puff 2 & Crash flame */
-.gp_car.gp_belly_up::after {
-    content: '💥';
-    position: absolute;
-    top: -12px;
-    right: -2px;
-    font-size: 16px;
+    top: -6px;
+    right: -6px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #c62828;
+    border: 1px solid #fff;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 14px;
+    text-align: center;
     pointer-events: none;
     z-index: 21;
-    animation: gp_smoke_billow_2 1.6s ease-out infinite 0.8s;
 }
 
-@keyframes gp_smoke_billow_1 {
-    0% {
-        transform: translateY(6px) scale(0.6);
-        opacity: 0.9;
-        filter: drop-shadow(0 0 2px rgba(255, 60, 0, 0.8));
-    }
-    50% {
-        transform: translateY(-8px) scale(1.1) rotate(-10deg);
-        opacity: 0.8;
-    }
-    100% {
-        transform: translateY(-22px) scale(1.5) rotate(15deg);
-        opacity: 0;
-    }
-}
-
-@keyframes gp_smoke_billow_2 {
-    0% {
-        transform: translateY(4px) scale(0.7);
-        opacity: 0.9;
-        filter: drop-shadow(0 0 4px rgba(255, 120, 0, 0.8));
-    }
-    50% {
-        transform: translateY(-6px) scale(1.2) rotate(12deg);
-        opacity: 0.7;
-    }
-    100% {
-        transform: translateY(-18px) scale(1.6) rotate(-10deg);
-        opacity: 0;
-    }
-}
-
-/* 🎨 8 Player Colors */
+/* 8 Player Colors */
 .gp_color_red { color: #e53935; }
 .gp_color_blue { color: #1e88e5; }
 .gp_color_green { color: #43a047; }
@@ -200,7 +159,7 @@
     display: inline-block;
     padding: 1px 6px;
     border-radius: 4px;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -258,7 +217,7 @@
     font-size: 12px;
 }
 
-/* 🏁 Destination Highlight Marker */
+/* Destination Highlight Marker */
 .gp_dest_marker {
     position: absolute;
     width: 52px;
@@ -291,27 +250,16 @@
     border: 2px solid currentColor;
     background: radial-gradient(circle, currentColor 0%, transparent 68%);
     opacity: 0.35;
-    animation: gp_dest_pulse 1.3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-@keyframes gp_dest_pulse {
-    0% { transform: scale(0.85); opacity: 0.6; }
-    50% { transform: scale(1.18); opacity: 0.15; }
-    100% { transform: scale(0.85); opacity: 0.6; }
-}
 
 .gp_dest_reticle {
     width: 44px;
     height: 44px;
     z-index: 2;
     filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.7));
-    animation: gp_reticle_spin 10s linear infinite;
 }
 
-@keyframes gp_reticle_spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
 
 .gp_dest_svg {
     width: 100%;
@@ -337,13 +285,8 @@
     gap: 4px;
     z-index: 10;
     pointer-events: none;
-    animation: gp_badge_bob 1.3s ease-in-out infinite alternate;
 }
 
-@keyframes gp_badge_bob {
-    0% { transform: translateX(-50%) translateY(0); }
-    100% { transform: translateX(-50%) translateY(-3px); }
-}
 
 /* Alert varieties for crash, bump, shortcut */
 .gp_dest_marker.gp_dest_crash {
@@ -353,13 +296,8 @@
     background: #b71c1c;
     border-color: #ff5252;
     color: #ffffff;
-    animation: gp_crash_alert 0.6s infinite alternate;
 }
 
-@keyframes gp_crash_alert {
-    0% { transform: translateX(-50%) scale(1); box-shadow: 0 0 4px #ff1744; }
-    100% { transform: translateX(-50%) scale(1.1); box-shadow: 0 0 14px #ff1744; }
-}
 
 .gp_dest_marker.gp_dest_bump {
     color: #ff9800 !important;
@@ -379,7 +317,7 @@
     color: #ffffff;
 }
 
-/* 🟢 Path Breadcrumb Dots */
+/* Path Breadcrumb Dots */
 .gp_path_dot {
     position: absolute;
     width: 10px;
@@ -390,19 +328,14 @@
     box-shadow: 0 0 6px currentColor;
     pointer-events: none;
     z-index: 7;
-    animation: gp_dot_stream 1s ease-in-out infinite alternate;
 }
 
 .gp_path_dot.gp_dot_shortcut {
     color: #00e5ff !important;
 }
 
-@keyframes gp_dot_stream {
-    0% { transform: translate(-50%, -50%) scale(0.75); opacity: 0.45; }
-    100% { transform: translate(-50%, -50%) scale(1.15); opacity: 0.95; }
-}
 
-/* 🏁 Skid Marks on Asphalt */
+/* Skid Marks on Asphalt */
 .gp_skid_mark {
     position: absolute;
     width: 26px;
@@ -412,7 +345,7 @@
     border-bottom: 3px solid rgba(25, 25, 25, 0.55);
     border-radius: 2px;
     z-index: 5;
-    animation: gp_skid_fade 1.2s forwards;
+    animation: gp_skid_fade 0.8s forwards;
 }
 
 @keyframes gp_skid_fade {
@@ -421,7 +354,7 @@
     100% { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
 }
 
-/* 🏁 Lap Finish Banner */
+/* Lap Finish Banner */
 .gp_lap_flash {
     position: absolute;
     transform: translate(-50%, -50%);
@@ -435,7 +368,7 @@
     box-shadow: 0 0 14px rgba(253, 216, 53, 0.9);
     pointer-events: none;
     z-index: 40;
-    animation: gp_lap_float 1s ease-out forwards;
+    animation: gp_lap_float 0.8s ease-out forwards;
 }
 
 .gp_start_flash {
@@ -450,7 +383,7 @@
     100% { opacity: 0; transform: translate(-50%, -100%) scale(1); }
 }
 
-/* 🎲 Push-Your-Luck Dice Tray */
+/* Push-Your-Luck Dice Tray */
 .gp_dice_tray {
     position: absolute;
     top: 180px;
@@ -504,7 +437,7 @@
     100% { transform: scale(1) rotate(0deg); opacity: 1; }
 }
 
-/* 😭 Cute Sad Bust & Stall Badges */
+/* Cute Sad Bust & Stall Badges */
 .gp_bust_badge {
     position: absolute;
     transform: translate(-50%, -50%);
@@ -521,7 +454,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    animation: gp_bust_float 1.6s ease-out forwards;
+    animation: gp_bust_float 0.8s ease-out forwards;
 }
 
 .gp_bust_badge.gp_bust_stall {
@@ -544,9 +477,9 @@
     100% { opacity: 0; transform: translate(-50%, -120%) scale(0.85); }
 }
 
-/* 🥺 Sad Head-Shaking Car Wobble on Bust */
+/* Sad Head-Shaking Car Wobble on Bust */
 .gp_car.gp_car_sad_wobble {
-    animation: gp_sad_wobble 0.9s ease-in-out;
+    animation: gp_sad_wobble 0.5s ease-in-out;
 }
 
 @keyframes gp_sad_wobble {
@@ -559,7 +492,7 @@
     100% { transform: translate(-50%, -50%) rotate(0deg) scale(1); }
 }
 
-/* ⚠️ Corner Hazard Caution Beacon */
+/* Corner Hazard Caution Beacon */
 .gp_corner_hazard {
     position: absolute;
     width: 52px;
@@ -570,13 +503,8 @@
     z-index: 7;
     border: 2px dashed #ff1744;
     background: radial-gradient(circle, rgba(255, 23, 68, 0.40) 0%, rgba(255, 23, 68, 0.08) 68%, transparent 100%);
-    animation: gp_corner_pulse 0.9s infinite alternate;
 }
 
-@keyframes gp_corner_pulse {
-    0% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.65; }
-    100% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
-}
 
 .gp_corner_hazard_badge {
     position: absolute;
@@ -585,7 +513,7 @@
     transform: translateX(-50%);
     background: #d50000;
     color: #fff;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 900;
     padding: 2px 7px;
     border-radius: 10px;
@@ -593,10 +521,9 @@
     white-space: nowrap;
     box-shadow: 0 0 10px rgba(255, 23, 68, 0.85);
     letter-spacing: 0.5px;
-    animation: gp_badge_bob 1.0s ease-in-out infinite alternate;
 }
 
-/* 🎲 Dice Tray Contextual Hazard Banner */
+/* Dice Tray Contextual Hazard Banner */
 .gp_tray_warning {
     width: 100%;
     text-align: center;
@@ -612,7 +539,6 @@
     background: rgba(213, 0, 0, 0.90);
     color: #ffffff;
     border: 1px solid #ff5252;
-    animation: gp_danger_flash 1.0s infinite alternate;
 }
 
 .gp_tray_warning.gp_tray_safe {
@@ -621,12 +547,8 @@
     border: 1px solid #64b5f6;
 }
 
-@keyframes gp_danger_flash {
-    0% { box-shadow: 0 0 4px rgba(255, 23, 68, 0.5); }
-    100% { box-shadow: 0 0 12px rgba(255, 23, 68, 0.9); }
-}
 
-/* 💥 Cute Event / Impact Bursts */
+/* Cute Event / Impact Bursts */
 .gp_impact_burst {
     position: absolute;
     transform: translate(-50%, -50%);
@@ -638,7 +560,7 @@
     pointer-events: none;
     z-index: 55;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
-    animation: gp_impact_pop 1.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    animation: gp_impact_pop 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
 @keyframes gp_impact_pop {
@@ -680,14 +602,14 @@
     box-shadow: 0 0 18px rgba(253, 216, 53, 0.95);
 }
 
-/* 📱 Responsive Mobile Standard */
+/* Responsive Mobile Standard */
 @media (max-width: 600px) {
     #gp_game_container {
         border-radius: 0;
     }
 }
 
-/* 🏎️ Player Panel Sidebar Stats */
+/* Player Panel Sidebar Stats */
 .gp_panel_info {
     margin-top: 6px;
     padding: 6px 8px;
@@ -741,12 +663,12 @@
 }
 
 .gp_panel_sub {
-    font-size: 10px;
+    font-size: 11px;
     color: #888;
 }
 
 .gp_panel_tag {
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 800;
     padding: 1px 6px;
     border-radius: 4px;
@@ -762,7 +684,6 @@
     background: #b71c1c;
     color: #ffcdd2;
     border: 1px solid #d32f2f;
-    animation: gp_danger_flash 1s infinite alternate;
 }
 
 .gp_tag_finished {
@@ -772,7 +693,7 @@
 }
 
 .gp_panel_shortcut {
-    font-size: 9px;
+    font-size: 11px;
     padding: 1px 5px;
     border-radius: 3px;
     font-weight: 700;
@@ -791,7 +712,7 @@
     border: 1px solid rgba(120, 120, 120, 0.3);
 }
 
-/* 🏁 Cute Qualifying Leaderboard on the Left */
+/* Cute Qualifying Leaderboard on the Left */
 .gp_qualifying_panel {
     position: absolute;
     top: 50px;
@@ -914,7 +835,7 @@
     height: 16px;
     background: #ffffff;
     color: #111;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 900;
     border-radius: 3px;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
@@ -922,7 +843,7 @@
 }
 
 .gp_qual_status_tag {
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 700;
     padding: 1px 4px;
     border-radius: 3px;
@@ -932,7 +853,6 @@
     background: rgba(255, 193, 7, 0.25);
     color: #ffd54f;
     border: 1px solid rgba(255, 193, 7, 0.4);
-    animation: gp_danger_flash 1s infinite alternate;
 }
 
 .gp_qual_tag_waiting {
@@ -946,7 +866,7 @@
 }
 
 .gp_qual_score {
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 800;
     padding: 2px 5px;
     border-radius: 4px;
@@ -976,7 +896,7 @@
     color: #666;
 }
 
-/* 🎁 Special Track Items Layer & Tokens */
+/* Special Track Items Layer & Tokens */
 .gp_items_layer {
     position: absolute;
     top: 0;
@@ -1013,7 +933,6 @@
     padding: 2px;
     background: color-mix(in srgb, var(--gp-item-color, #475569) 38%, transparent);
     box-shadow: 0 0 6px 1px color-mix(in srgb, var(--gp-item-color, #475569) 60%, transparent);
-    animation: gp_item_glow 2.2s infinite ease-in-out;
 }
 
 .gp_item_badge svg {
@@ -1029,10 +948,6 @@
 .gp_item_badge_turboboost { --gp-item-color: #facc15; }
 .gp_item_badge_shortcut { --gp-item-color: #22d3ee; }
 
-@keyframes gp_item_glow {
-    0%, 100% { box-shadow: 0 0 4px 1px color-mix(in srgb, var(--gp-item-color, #475569) 45%, transparent); }
-    50% { box-shadow: 0 0 10px 3px color-mix(in srgb, var(--gp-item-color, #475569) 65%, transparent); }
-}
 
 .gp_track_item::after,
 .gp_gate::after {
@@ -1088,7 +1003,7 @@
     font-style: italic;
 }
 
-/* 🌟 Active Car Glowing Pulsing Turn Aura */
+/* Active car turn ring */
 .gp_car.gp_car_active {
     z-index: 25;
 }
@@ -1102,25 +1017,12 @@
     height: 44px;
     border-radius: 50%;
     transform: translate(-50%, -50%);
-    box-shadow: 0 0 0 3px #facc15, 0 0 15px 4px rgba(250, 204, 21, 0.7);
+    box-shadow: 0 0 0 3px #facc15;
     pointer-events: none;
-    animation: gp_active_car_pulse 1.4s infinite ease-in-out;
 }
 
-@keyframes gp_active_car_pulse {
-    0%, 100% {
-        transform: translate(-50%, -50%) scale(0.92);
-        opacity: 0.75;
-        box-shadow: 0 0 0 2px #facc15, 0 0 10px 2px rgba(250, 204, 21, 0.6);
-    }
-    50% {
-        transform: translate(-50%, -50%) scale(1.15);
-        opacity: 1;
-        box-shadow: 0 0 0 3.5px #fef08a, 0 0 18px 6px rgba(254, 240, 138, 0.9);
-    }
-}
 
-/* 🏎️ Team Mode Player Panel Fleet */
+/* Team Mode Player Panel Fleet */
 .gp_team_header {
     display: flex;
     align-items: center;
@@ -1185,14 +1087,14 @@
 }
 
 .gp_team_car_pips {
-    font-size: 10px;
+    font-size: 11px;
     letter-spacing: -1px;
     opacity: 0.9;
 }
 
 .gp_team_car_status {
     margin-left: 6px;
-    font-size: 10px;
+    font-size: 11px;
 }
 
 .gp_team_car_tag {
@@ -1200,7 +1102,7 @@
     padding: 1px 5px;
     border-radius: 4px;
     font-weight: 600;
-    font-size: 9px;
+    font-size: 11px;
     text-transform: uppercase;
 }
 
@@ -1214,7 +1116,6 @@
     background: #b71c1c;
     color: #ffcdd2;
     border: 1px solid #f44336;
-    animation: gp_status_pulse 1.2s infinite;
 }
 
 .gp_team_car_tag.lap {
@@ -1228,14 +1129,13 @@
     color: #0f172a;
     border: 1px solid #fde047;
     font-weight: 800;
-    animation: gp_status_pulse 1.2s infinite;
 }
 
 .gp_turn_pos_badge {
     display: inline-block;
     padding: 0 4px;
     border-radius: 3px;
-    font-size: 8px;
+    font-size: 11px;
     font-weight: 700;
     background: rgba(255, 255, 255, 0.15);
     color: #e2e8f0;
@@ -1284,4 +1184,104 @@
 .gp_gate.gp_item_pinned {
     z-index: 40;
     opacity: 1;
+}
+
+/* Car numbers: colorblind-safe identifier on every car (kept upright while the car rotates) */
+.gp_car_num {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(calc(-1 * var(--car-angle, 0deg)));
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    color: #fff;
+    text-shadow: 0 0 2px #000, 0 0 2px #000, 0 0 3px #000;
+    pointer-events: none;
+    z-index: 3;
+}
+
+.gp_mini_car_svg {
+    position: relative;
+}
+
+.gp_mini_num {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    color: #fff;
+    text-shadow: 0 0 2px #000, 0 0 2px #000;
+    pointer-events: none;
+}
+
+/* Dice pips in player panels: plain shapes, no emoji */
+.gp_panel_pip {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    margin-right: 3px;
+    border-radius: 3px;
+    box-sizing: border-box;
+    vertical-align: middle;
+}
+
+.gp_pip_active {
+    background: #f1f5f9;
+    border: 1px solid #94a3b8;
+}
+
+.gp_pip_lost {
+    border: 1px dashed #94a3b8;
+    background: transparent;
+}
+
+.gp_item_badge_mini {
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    padding: 2px;
+    box-shadow: none;
+}
+
+/* Final standings (shown below the board once the race is over) */
+.gp_standings {
+    max-width: 1024px;
+    margin: 12px auto;
+    padding: 10px 14px;
+    background: rgba(18, 18, 24, 0.92);
+    color: #f1f5f9;
+    border-radius: 8px;
+}
+
+.gp_standings h3 {
+    margin: 0 0 8px;
+    font-size: 16px;
+}
+
+.gp_standings table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.gp_standings th,
+.gp_standings td {
+    padding: 4px 8px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.gp_standings_car {
+    position: relative;
+    display: inline-block;
+    width: 28px;
+    height: 28px;
+    vertical-align: middle;
+}
+
+.gp_standings p {
+    margin: 8px 0 0;
 }
