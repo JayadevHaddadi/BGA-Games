@@ -97,6 +97,10 @@ class DraftCard extends GameState
             'round' => $round,
         ]);
 
+        $this->notify->player($playerId, 'handUpdated', '', [
+            'hand_cards' => $this->game->getPlayerCards($playerId),
+        ]);
+
         $this->game->giveExtraTime($playerId);
 
         $transitioned = $this->gamestate->setPlayerNonMultiactive($playerId, NextDraftRound::class);

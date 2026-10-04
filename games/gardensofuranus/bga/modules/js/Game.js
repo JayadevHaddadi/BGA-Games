@@ -173,10 +173,7 @@ export class Game {
 
         const rules = this.getRuleCards();
         const buttons = Object.entries(rules).map(([key, r]) =>
-            `<button type="button" class="gou_rule_btn" data-rule="${key}" aria-label="${r.title}" title="${r.title}: ${r.text.replace(/"/g, '&quot;')}">${r.icon}</button>`
-        ).join('');
-        const cards = Object.entries(rules).map(([key, r]) =>
-            `<div class="gou_rule_card" id="gou_rule_card_${key}"><div class="gou_rule_card_title"><span class="gou_rule_card_ico">${r.icon}</span>${r.title}</div><div>${r.text}</div></div>`
+            `<button type="button" class="gou_rule_btn" id="gou_rule_${key}" data-rule="${key}" aria-label="${r.title}" title="${r.title}: ${r.text.replace(/"/g, '&quot;')}">${r.icon}</button>`
         ).join('');
 
         const boardType = parseInt(this.gamedatas?.board_type) || 1;
@@ -197,30 +194,20 @@ export class Game {
                         <div id="gou_reminders">${buttons}</div>
                     </div>
                     <div id="gou_hand_area">
-                        <div class="gou_cards_container" id="gou_cards_container"></div>
-                    </div>
-                </div>
-                <div id="gou_rules_modal" style="display:none">
-                    <div class="gou_rules_panel">
-                        <button type="button" id="gou_rules_close" aria-label="${_('Close')}">${_('Close')}</button>
-                        <h3>${_('Rules reminders')}</h3>
-                        ${cards}
+                        <section class="gou_section" id="gou_draft_section" style="display:none">
+                            <h3 class="gou_section_title">${_('Draft')}</h3>
+                            <div class="gou_cards_container" id="gou_draft_container"></div>
+                        </section>
+                        <section class="gou_section" id="gou_hand_section">
+                            <h3 class="gou_section_title">${_('Hand')}</h3>
+                            <div class="gou_cards_container" id="gou_cards_container"></div>
+                        </section>
                     </div>
                 </div>
             </div>
         `;
 
-        document.getElementById('gou_reminders')?.addEventListener('click', (e) => {
-            const btn = e.target.closest('.gou_rule_btn');
-            if (btn) this.openRulesModal(btn.dataset.rule);
-        });
-        document.getElementById('gou_rules_close')?.addEventListener('click', () => this.closeRulesModal());
-        document.getElementById('gou_rules_modal')?.addEventListener('click', (e) => {
-            if (e.target.id === 'gou_rules_modal') this.closeRulesModal();
-        });
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') this.closeRulesModal();
-        });
+        this.registerRuleTooltips();
 
         this.renderSpots();
         this.renderPlayerFlowers();
@@ -298,21 +285,18 @@ export class Game {
         if (box) box.style.display = 'none';
     }
 
-    openRulesModal(rule) {
-        const modal = document.getElementById('gou_rules_modal');
-        if (!modal) return;
-        modal.style.display = 'flex';
-        document.querySelectorAll('.gou_rule_card').forEach(c => c.classList.remove('highlighted'));
-        const target = document.getElementById(`gou_rule_card_${rule}`);
-        if (target) {
-            target.classList.add('highlighted');
-            setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 60);
-        }
-    }
-
-    closeRulesModal() {
-        const modal = document.getElementById('gou_rules_modal');
-        if (modal) modal.style.display = 'none';
+    /** Rule reminders are BGA tooltips (hover on desktop, tap on touch), not a blocking popup. */
+    registerRuleTooltips() {
+        const gui = this.bga?.gameui || (typeof gameui !== 'undefined' ? gameui : null);
+        if (!gui || typeof gui.addTooltipHtml !== 'function') return;
+        Object.entries(this.getRuleCards()).forEach(([key, r]) => {
+            const id = `gou_rule_${key}`;
+            if (!document.getElementById(id)) return;
+            try {
+                gui.addTooltipHtml(id, `<div class="gou_tip"><div class="gou_tip_title">${r.title}</div><div>${r.text}</div></div>`, 0);
+                document.getElementById(id).removeAttribute('title');
+            } catch (e) {}
+        });
     }
 
     axialToPixel(q, r) {
@@ -698,12 +682,27 @@ export class Game {
         this.registerCardTooltips();
     }
 
+    setDraftMode(on) {
+        this.inDraft = !!on;
+        const section = document.getElementById('gou_draft_section');
+        if (section) section.style.display = on ? 'block' : 'none';
+        if (!on) {
+            const draft = document.getElementById('gou_draft_container');
+            if (draft) draft.innerHTML = '';
+        }
+        this.updateHandScores();
+    }
+
     updateHandScores() {
         const scores = this.gamedatas.card_scores || {};
         document.querySelectorAll('#gou_cards_container .gou_card_wrapper').forEach(w => {
             const id = parseInt(w.dataset.cardId);
             const label = w.querySelector('.gou_card_vp');
             if (!label) return;
+            if (this.inDraft) {
+                label.textContent = '';
+                return;
+            }
             if (this.getCardInfo(id).type === 'HEXAGON') {
                 label.textContent = scores[id] > 0 ? _('Instant win: ACTIVE') : _('Instant win: not active');
             } else if (scores[id] !== undefined) {
@@ -716,12 +715,13 @@ export class Game {
 
     updateDraftUI(args, isCurrentPlayerActive) {
         this.clearActionButtons();
+        this.setDraftMode(true);
 
         const active = (isCurrentPlayerActive !== undefined) ? isCurrentPlayerActive : this.isCurrentPlayerActive();
 
         if (!active) {
             this.bga?.statusBar?.setTitle?.(_('Draft Phase: Waiting for other players to choose a card...'));
-            const container = document.getElementById('gou_cards_container');
+            const container = document.getElementById('gou_draft_container');
             if (container) {
                 container.querySelectorAll('.gou_card_wrapper').forEach(w => {
                     w.style.pointerEvents = 'none';
@@ -758,7 +758,7 @@ export class Game {
                     const chosenId = parseInt(this.selectedCardId);
                     this.clearActionButtons();
                     this.bga?.statusBar?.setTitle?.(_('Card chosen! Waiting for other players...'));
-                    const container = document.getElementById('gou_cards_container');
+                    const container = document.getElementById('gou_draft_container');
                     if (container) {
                         container.querySelectorAll('.gou_card_wrapper').forEach(w => {
                             w.style.pointerEvents = 'none';
@@ -775,7 +775,7 @@ export class Game {
             { color: 'primary' }
         );
 
-        const container = document.getElementById('gou_cards_container');
+        const container = document.getElementById('gou_draft_container');
         if (!container) return;
         container.innerHTML = '';
 
@@ -794,6 +794,7 @@ export class Game {
     }
 
     updateSelectMartianUI(args) {
+        this.setDraftMode(false);
         document.querySelectorAll('.gou_draft_ready_badge').forEach(b => b.remove());
         this.clearValidMoveHighlights();
         this.clearActionButtons();
@@ -834,6 +835,7 @@ export class Game {
     }
 
     updatePlayerTurnUI(args) {
+        this.setDraftMode(false);
         this.hideMartianPicker();
         this.closeColorPicker();
         this.cancelScoreSelection();
@@ -986,7 +988,7 @@ export class Game {
             this.clearActionButtons();
             this.bga?.statusBar?.setTitle?.(_('Card locked in. Waiting for other players to choose...'));
         } else {
-            const container = document.getElementById('gou_cards_container');
+            const container = document.getElementById('gou_draft_container');
             const hasChosen = container?.querySelector('.gou_card_wrapper.selected');
             if (hasChosen) {
                 this.bga?.statusBar?.setTitle?.(_('Card locked in. Waiting for next draft round...'));
