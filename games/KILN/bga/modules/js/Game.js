@@ -622,12 +622,31 @@ export class Game {
 
         this.buildMainLayout();
         this.setupBoardScaler();
+        this.setupPanelGlyphs();
         this.setupNotifications();
         this.updateScores(this.scores);
 
         // Ensure sidebar player panel score counters are synced even if playerPanels mount asynchronously
         setTimeout(() => this.updateScores(), 100);
         setTimeout(() => this.updateScores(), 500);
+    }
+
+    /**
+     * Colorblind: big tile letter (K/I/L/N) next to each player's name in the BGA player panel.
+     * Shown only when the colorblind preference is on (CSS .kiln_cb_off hides it).
+     */
+    setupPanelGlyphs() {
+        Object.keys(this.gamedatas.players || {}).forEach(pId => {
+            const panel = this.bga?.playerPanels?.getElement?.(pId);
+            if (!panel || panel.querySelector('.kiln_panel_glyph')) return;
+            const color = this.playerColors[pId] || 'red';
+            const glyph = document.createElement('span');
+            glyph.className = `kiln_panel_glyph kiln_tile_${color}`;
+            glyph.setAttribute('aria-label', color);
+            glyph.title = this.gamedatas.players[pId]?.name || '';
+            const nameEl = panel.querySelector('.player-name, .player_name');
+            if (nameEl) nameEl.prepend(glyph); else panel.prepend(glyph);
+        });
     }
 
     buildMainLayout() {
