@@ -1009,6 +1009,11 @@ class Game extends \Bga\GameFramework\Table
     {
         $result = [];
         $result['players'] = $this->loadPlayersBasicInfos();
+        $scores = [];
+        foreach (array_keys($result['players']) as $scorePlayerId) {
+            $scores[(int) $scorePlayerId] = (int) $this->playerScore->get((int) $scorePlayerId);
+        }
+        $result['scores'] = $scores;
         $result['board_type'] = (int) $this->globals->get('board_type', 1);
         $result['cells'] = $this->getGardenCells();
         $result['gardeners'] = $this->getGardeners();

@@ -125,6 +125,8 @@ export class Game {
         sounds.bga = this.bga;
         this.applyShapePreference();
         this.setupInfoBubble();
+        setTimeout(() => this.syncScoreCounters(), 0);
+        setTimeout(() => this.syncScoreCounters(), 800);
         this.createBoardDOM();
         setTimeout(() => this.renderPlayerFlowers(), 500);
         this.renderGardenState();
@@ -192,17 +194,19 @@ export class Game {
                                 <div id="gou_gardeners_layer"></div>
                             </div>
                         </div>
-                        <div id="gou_reminders">${buttons}</div>
                     </div>
                     <div id="gou_hand_area">
-                        <section class="gou_section" id="gou_draft_section" style="display:none">
-                            <h3 class="gou_section_title">${_('Draft')}</h3>
-                            <div class="gou_cards_container" id="gou_draft_container"></div>
-                        </section>
-                        <section class="gou_section" id="gou_hand_section">
-                            <h3 class="gou_section_title">${_('Hand')}</h3>
-                            <div class="gou_cards_container" id="gou_cards_container"></div>
-                        </section>
+                        <div id="gou_reminders">${buttons}</div>
+                        <div id="gou_hand_stack">
+                            <section class="gou_section" id="gou_draft_section" style="display:none">
+                                <h3 class="gou_section_title">${_('Draft')}</h3>
+                                <div class="gou_cards_container" id="gou_draft_container"></div>
+                            </section>
+                            <section class="gou_section" id="gou_hand_section">
+                                <h3 class="gou_section_title">${_('Hand')}</h3>
+                                <div class="gou_cards_container" id="gou_cards_container"></div>
+                            </section>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -258,6 +262,9 @@ export class Game {
     notif_finalScoring(notif) {
         const args = this._getNotifArgs(notif);
         this.gamedatas.final_scoring = args.rows;
+        this.gamedatas.scores = this.gamedatas.scores || {};
+        (args.rows || []).forEach(r => { this.gamedatas.scores[r.player_id] = r.total; });
+        this.syncScoreCounters();
         this.renderFinalScoring(args.rows);
     }
 
@@ -1143,10 +1150,21 @@ export class Game {
             this.gamedatas.scored_cards[args.player_id].push(parseInt(args.card_id));
             this.renderScoredCards();
         }
-        const counter = this.bga?.playerPanels?.getScoreCounter?.(args.player_id);
-        if (counter && args.new_score !== undefined) {
-            counter.toValue(args.new_score);
+        if (args.new_score !== undefined) {
+            if (!this.gamedatas.scores) this.gamedatas.scores = {};
+            this.gamedatas.scores[args.player_id] = args.new_score;
+            const counter = this.bga?.playerPanels?.getScoreCounter?.(parseInt(args.player_id));
+            if (counter) counter.toValue(args.new_score);
         }
+    }
+
+    /** The panel score shows "-" until told otherwise: always push real values (0 included). */
+    syncScoreCounters() {
+        const scores = this.gamedatas.scores || {};
+        Object.keys(scores).forEach(pid => {
+            const counter = this.bga?.playerPanels?.getScoreCounter?.(parseInt(pid));
+            if (counter && typeof counter.setValue === 'function') counter.setValue(Number(scores[pid]) || 0);
+        });
     }
 
     setGardenerPos(playerId, q, r, martian) {
@@ -1272,8 +1290,8 @@ export class Game {
         const baseWidth = boardType === 1 ? 560 : 700;
         const baseHeight = boardType === 1 ? 600 : 1016;
         const landscape = window.matchMedia('(min-width: 1300px) and (min-aspect-ratio: 11/10)').matches;
-        const stripWidth = landscape ? 50 : 0;
-        const sideWidth = landscape ? 350 : 0;
+        const stripWidth = 0;
+        const sideWidth = landscape ? 500 : 0;
         const containerWidth = this.fitContainerToScreen(container) || window.innerWidth;
         const availableWidth = Math.max(260, containerWidth - sideWidth - stripWidth - 24);
 

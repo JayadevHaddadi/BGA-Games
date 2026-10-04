@@ -5,7 +5,7 @@
  */
 
 #gardensofuranus_container {
-    --gou-card-w: clamp(96px, 27vw, 140px);
+    --gou-card-w: clamp(90px, 25vw, 140px);
     --gou-ink: #12303d;
     --gou-line: #7fb2c2;
     box-sizing: border-box;
@@ -56,11 +56,11 @@
 
 @media (min-width: 1300px) and (min-aspect-ratio: 11/10) {
     #gardensofuranus_container {
-        --gou-card-w: 92px;
+        --gou-card-w: 108px;
     }
 
     #gou_layout {
-        grid-template-columns: auto 350px;
+        grid-template-columns: auto 500px;
         grid-template-areas:
             "picker picker"
             "board decks"
@@ -69,12 +69,13 @@
         align-content: start;
     }
 
-    #gou_board_col { flex-direction: row; align-items: flex-start; }
-    #gou_decks_row { justify-content: flex-start; gap: 8px; }
+    #gou_decks_row { justify-content: flex-start; gap: 8px; max-width: none; }
     #gou_hand_area .gou_cards_container { justify-content: flex-start; gap: 8px; }
 }
 
 @media (max-width: 700px) {
+    .gou_cards_container { gap: 10px; }
+
     #gardensofuranus_container {
         margin: 4px 0 12px;
         padding: 8px 2px 12px;
@@ -303,8 +304,17 @@
 #gou_hand_area {
     display: flex;
     flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+}
+
+#gou_hand_stack {
+    display: flex;
+    flex-direction: column;
     gap: 12px;
     width: 100%;
+    min-width: 0;
 }
 
 #gou_hand_area .gou_cards_container { margin-top: 0; }
@@ -599,4 +609,9 @@
     font-size: 16px;
     line-height: 1.4;
     pointer-events: none;
+}
+
+@media (min-width: 1300px) and (min-aspect-ratio: 11/10) {
+    #gou_hand_area { flex-direction: row; align-items: flex-start; }
+    #gou_hand_stack { flex: 1 1 0; }
 }
