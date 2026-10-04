@@ -104,6 +104,7 @@ export class EndScore {
     }
 
     onEnteringState(args) {
+        this.game.uiPhase = 'end';
         this.game.bga?.statusBar?.setTitle?.(_('Game Over! Final scores calculated.'));
     }
 }
@@ -114,6 +115,7 @@ export class Game {
         this.selectedCardId = null;
         this.selectedTargetMove = null;
         this.validMoves = [];
+        this.martianConfirmed = false;
         this.pendingScoreCardId = null;
         this.myFlowers = {};
         this.selectedMartian = null;
@@ -176,11 +178,8 @@ export class Game {
         if (parseInt(this.gamedatas?.special_powers) === 2) {
             rules.powers = { icon: `<img src="${this.imgUrl('robby.png')}" alt="">`, title: _('Martian powers'), text: [
                 _('Once per game your Martian can use its power:'),
-                `${_('Ali')} - ${_('Flower swap')}: ${this.powerHelp('ali')}`,
-                `${_('Bot')} - ${_('Nuke a tree')}: ${this.powerHelp('bot')}`,
-                `${_('Marty')} - ${_('Teleport')}: ${this.powerHelp('marty')}`,
-                `${_('Robby')} - ${_('Swap Martians')}: ${this.powerHelp('robby')}`,
-                `${_('Bob')} - ${_('Replace flower')}: ${this.powerHelp('bob')}`,
+                ...['ali', 'bot', 'marty', 'robby', 'bob'].map(m =>
+                    `<img src="${this.imgUrl(`${m}.png`)}" alt="" style="height:22px;width:22px;vertical-align:middle;object-fit:contain"> <b>${this.martianLabel(m)}</b> - ${this.powerName(m)}: ${this.powerHelp(m)}`),
                 _('Ali, Bot, Marty and Robby use their power before moving or scoring a card; Bob\'s power is part of his move.'),
             ].join('<br>') };
         }
@@ -205,7 +204,7 @@ export class Game {
 
     /** Public power status (available or used) shown in each player panel. */
     renderPowerStatus() {
-        if (parseInt(this.gamedatas?.special_powers) !== 2) return;
+        const powersOn = parseInt(this.gamedatas?.special_powers) === 2;
         Object.values(this.gamedatas.gardeners || {}).forEach(g => {
             if (!g.martian) return;
             const panel = this.bga?.playerPanels?.getElement?.(parseInt(g.player_id));
@@ -218,9 +217,15 @@ export class Game {
                 panel.appendChild(box);
             }
             const used = parseInt(g.power_used) === 1;
-            box.classList.toggle('used', used);
-            box.title = `${this.powerName(g.martian)}: ${this.powerHelp(g.martian)}`;
-            box.innerHTML = `<img src="${this.imgUrl(`${g.martian}.png`)}" alt=""><span>${this.powerName(g.martian)}: ${used ? _('used') : _('available')}</span>`;
+            box.classList.toggle('used', powersOn && used);
+            const name = this.martianLabel(g.martian);
+            if (powersOn) {
+                box.title = `${name} - ${this.powerName(g.martian)}: ${this.powerHelp(g.martian)}`;
+                box.innerHTML = `<img src="${this.imgUrl(`${g.martian}.png`)}" alt=""><span>${name}: ${this.powerName(g.martian)} (${used ? _('used') : _('available')})</span>`;
+            } else {
+                box.title = name;
+                box.innerHTML = `<img src="${this.imgUrl(`${g.martian}.png`)}" alt=""><span>${name}</span>`;
+            }
         });
     }
 
@@ -345,7 +350,7 @@ export class Game {
             btn.innerHTML = `<img src="${this.imgUrl(`${m}.png`)}" alt=""><span>${this.martianLabel(m)}</span>`;
             btn.addEventListener('click', () => {
                 this.selectedMartian = m;
-                this.showMartianPicker(available, args);
+                this.updateSelectMartianUI(args);
             });
             box.appendChild(btn);
         });
@@ -437,7 +442,9 @@ export class Game {
     /** Card explanations use BGA tooltips (hover on desktop, tap on touch screens). */
     /** Touch screens have no hover: tapping a card or rule icon shows a small info bubble instead. */
     setupInfoBubble() {
-        this.touchMode = typeof window.matchMedia === 'function' && window.matchMedia('(hover: none)').matches;
+        const mq = (q) => typeof window.matchMedia === 'function' && window.matchMedia(q).matches;
+        this.touchMode = mq('(hover: none)') || mq('(any-pointer: coarse)') || mq('(pointer: coarse)')
+            || (navigator.maxTouchPoints || 0) > 0 || ('ontouchstart' in window);
         if (!this.touchMode || document.getElementById('gou_info_bubble')) return;
         const bubble = document.createElement('div');
         bubble.id = 'gou_info_bubble';
@@ -463,7 +470,7 @@ export class Game {
                 text = info.desc;
             }
             this.showInfoBubble(`<div class="gou_tip_title">${title}</div><div>${text}</div>`, target);
-        });
+        }, true);
     }
 
     showInfoBubble(html, anchor) {
@@ -859,6 +866,7 @@ export class Game {
     }
 
     updateDraftUI(args, isCurrentPlayerActive) {
+        this.uiPhase = 'draft';
         this.clearActionButtons();
         this.setDraftMode(true);
 
@@ -942,7 +950,18 @@ export class Game {
         this.registerCardTooltips();
     }
 
+    /** Banner text for a Martian: icon, name and (when powers are on) its power. */
+    martianBanner(m) {
+        const icon = `<img src="${this.imgUrl(`${m}.png`)}" alt="" style="height:24px;width:24px;vertical-align:middle;object-fit:contain">`;
+        let text = `${icon} <b>${this.martianLabel(m)}</b>`;
+        if (parseInt(this.gamedatas?.special_powers) === 2) {
+            text += ` - ${this.powerName(m)}: ${this.powerHelp(m)}`;
+        }
+        return text;
+    }
+
     updateSelectMartianUI(args) {
+        this.uiPhase = 'martian';
         this.setDraftMode(false);
         document.querySelectorAll('.gou_draft_ready_badge').forEach(b => b.remove());
         this.clearValidMoveHighlights();
@@ -957,33 +976,41 @@ export class Game {
         const available = args?.available_martians || ['bot', 'ali', 'marty', 'bob', 'robby'];
         if (!this.selectedMartian || !available.includes(this.selectedMartian)) {
             this.selectedMartian = available[0];
+            this.martianConfirmed = false;
         }
+        const markSpots = () => (args?.empty_spots || []).forEach(sp => {
+            document.getElementById(`spot_${sp.q}_${sp.r}`)?.classList.add('valid_move');
+        });
 
+        // Dealt a random Martian: nothing to choose, just place it
         if (available.length === 1) {
             this.selectedMartian = available[0];
-            this.bga?.statusBar?.setTitle?.(
-                _('You are ${martian}. Click a highlighted empty spot to place your gardener').replace('${martian}', available[0].toUpperCase())
-            );
-            if (args?.empty_spots) {
-                args.empty_spots.forEach(sp => {
-                    document.getElementById(`spot_${sp.q}_${sp.r}`)?.classList.add('valid_move');
-                });
-            }
+            this.martianConfirmed = true;
+            this.bga?.statusBar?.setTitle?.(`${_('Your Martian:')} ${this.martianBanner(available[0])} - ${_('Click a highlighted empty spot to place your gardener')}`);
+            markSpots();
             return;
         }
 
-        this.bga?.statusBar?.setTitle?.(_('Choose your Martian above, then click a highlighted empty spot to place your gardener'));
-        this.showMartianPicker(available, args);
-
-        if (args?.empty_spots) {
-            args.empty_spots.forEach(sp => {
-                const el = document.getElementById(`spot_${sp.q}_${sp.r}`);
-                if (el) el.classList.add('valid_move');
-            });
+        if (!this.martianConfirmed) {
+            this.bga?.statusBar?.setTitle?.(`${_('Selected Martian:')} ${this.martianBanner(this.selectedMartian)}`);
+            this.showMartianPicker(available, args);
+            this.bga?.statusBar?.addActionButton?.(_('Confirm selected Martian'), () => {
+                this.martianConfirmed = true;
+                this.updateSelectMartianUI(args);
+            }, { color: 'primary' });
+            return;
         }
+
+        this.bga?.statusBar?.setTitle?.(`${this.martianBanner(this.selectedMartian)} - ${_('Click a highlighted empty spot to place your gardener')}`);
+        markSpots();
+        this.bga?.statusBar?.addActionButton?.(_('Change Martian'), () => {
+            this.martianConfirmed = false;
+            this.updateSelectMartianUI(args);
+        }, { color: 'secondary' });
     }
 
     updatePlayerTurnUI(args) {
+        this.uiPhase = 'turn';
         this.powerMode = null;
         this.setDraftMode(false);
         this.hideMartianPicker();
@@ -1107,13 +1134,15 @@ export class Game {
     }
 
     onSpotClicked(q, r) {
-        if (!this.isCurrentPlayerActive()) {
-            this.showError(_('It is not your turn.'));
+        // The board is only interactive when placing a gardener or taking a turn; stay silent otherwise
+        if ((this.uiPhase !== 'turn' && this.uiPhase !== 'martian') || !this.isCurrentPlayerActive()) {
             return;
         }
         const spotEl = document.getElementById(`spot_${q}_${r}`);
         if (!spotEl || !spotEl.classList.contains('valid_move')) {
-            this.showError(_('You cannot go there. Choose one of the highlighted spots.'));
+            this.showError(this.uiPhase === 'martian' && !this.martianConfirmed
+                ? _('Choose and confirm your Martian first.')
+                : _('You cannot go there. Choose one of the highlighted spots.'));
             return;
         }
 

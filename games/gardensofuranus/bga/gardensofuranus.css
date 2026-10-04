@@ -625,7 +625,7 @@
 
 /* Lift a gardener and show its owner (tap on touch, hover on desktop): colour-blind friendly */
 .gou_gardener_token.gou_lifted {
-    transform: translate(-50%, -50%) translateY(-10px) scale(1.25);
+    transform: translate(-50%, calc(-50% - 40px));
     z-index: 30;
 }
 
@@ -647,7 +647,7 @@
 
 @media (hover: hover) {
     .gou_gardener_token:hover {
-        transform: translate(-50%, -50%) translateY(-10px) scale(1.25);
+        transform: translate(-50%, calc(-50% - 40px));
         z-index: 30;
     }
 
