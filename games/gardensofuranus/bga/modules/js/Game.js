@@ -9,104 +9,23 @@
 
 const _ = (str) => (typeof window !== 'undefined' && typeof window._ === 'function' ? window._(str) : (typeof globalThis !== 'undefined' && typeof globalThis._ === 'function' ? globalThis._(str) : str));
 
+// Sounds are real files in sounds/ (ogg + mp3), played through BGA so volume/mute settings apply.
+// Only confirmed game events play a sound, never hover or tentative selections.
 class SoundController {
     constructor() {
-        this.ctx = null;
-        this.muted = localStorage.getItem('gou_sound_muted') === 'true';
+        this.bga = null;
     }
 
-    init() {
-        if (!this.ctx && typeof (window.AudioContext || window.webkitAudioContext) !== 'undefined') {
-            const AudioCtx = window.AudioContext || window.webkitAudioContext;
-            this.ctx = new AudioCtx();
-        }
-        if (this.ctx && this.ctx.state === 'suspended') {
-            this.ctx.resume();
-        }
-    }
-
-    toggleMute() {
-        this.muted = !this.muted;
-        localStorage.setItem('gou_sound_muted', this.muted ? 'true' : 'false');
-        return this.muted;
-    }
-
-    playClick() {
-        if (this.muted) return;
+    play(id) {
         try {
-            this.init();
-            if (!this.ctx) return;
-            const now = this.ctx.currentTime;
-            const gain = this.ctx.createGain();
-            const osc = this.ctx.createOscillator();
-            gain.gain.setValueAtTime(0.04, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
-            osc.frequency.setValueAtTime(600, now);
-            osc.frequency.exponentialRampToValueAtTime(800, now + 0.04);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start(now);
-            osc.stop(now + 0.04);
+            this.bga?.sounds?.play?.(id);
         } catch (e) {}
     }
 
-    playPlant() {
-        if (this.muted) return;
-        try {
-            this.init();
-            if (!this.ctx) return;
-            const now = this.ctx.currentTime;
-            const gain = this.ctx.createGain();
-            const osc = this.ctx.createOscillator();
-            gain.gain.setValueAtTime(0.08, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-            osc.frequency.setValueAtTime(520, now);
-            osc.frequency.exponentialRampToValueAtTime(880, now + 0.12);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start(now);
-            osc.stop(now + 0.15);
-        } catch (e) {}
-    }
-
-    playMove() {
-        if (this.muted) return;
-        try {
-            this.init();
-            if (!this.ctx) return;
-            const now = this.ctx.currentTime;
-            const gain = this.ctx.createGain();
-            const osc = this.ctx.createOscillator();
-            gain.gain.setValueAtTime(0.06, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-            osc.frequency.setValueAtTime(320, now);
-            osc.frequency.exponentialRampToValueAtTime(440, now + 0.08);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start(now);
-            osc.stop(now + 0.08);
-        } catch (e) {}
-    }
-
-    playScore() {
-        if (this.muted) return;
-        try {
-            this.init();
-            if (!this.ctx) return;
-            const now = this.ctx.currentTime;
-            [523.25, 659.25, 783.99].forEach((freq, idx) => {
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.frequency.setValueAtTime(freq, now + idx * 0.08);
-                gain.gain.setValueAtTime(0.07, now + idx * 0.08);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.25);
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start(now + idx * 0.08);
-                osc.stop(now + idx * 0.08 + 0.25);
-            });
-        } catch (e) {}
-    }
+    playMove() { this.play('gou_move'); }
+    playPlant() { this.play('gou_plant'); }
+    playScore() { this.play('gou_score'); }
+    playCard() { this.play('gou_card'); }
 }
 
 const sounds = new SoundController();
@@ -203,6 +122,8 @@ export class Game {
 
     setup(gamedatas) {
         this.gamedatas = gamedatas;
+        sounds.bga = this.bga;
+        this.applyShapePreference();
         this.createBoardDOM();
         setTimeout(() => this.renderPlayerFlowers(), 500);
         this.renderGardenState();
@@ -281,7 +202,7 @@ export class Game {
                 </div>
                 <div id="gou_rules_modal" style="display:none">
                     <div class="gou_rules_panel">
-                        <button type="button" id="gou_rules_close" aria-label="${_('Close')}">✕</button>
+                        <button type="button" id="gou_rules_close" aria-label="${_('Close')}">${_('Close')}</button>
                         <h3>${_('Rules reminders')}</h3>
                         ${cards}
                     </div>
@@ -364,7 +285,6 @@ export class Game {
             btn.title = this.martianLabel(m);
             btn.innerHTML = `<img src="${this.imgUrl(`${m}.png`)}" alt=""><span>${this.martianLabel(m)}</span>`;
             btn.addEventListener('click', () => {
-                sounds.playClick();
                 this.selectedMartian = m;
                 this.showMartianPicker(available, args);
             });
@@ -442,53 +362,6 @@ export class Game {
         }
     }
 
-    getTooltipElement() {
-        let el = document.getElementById('gou_cursor_tooltip');
-        if (!el) {
-            el = document.createElement('div');
-            el.id = 'gou_cursor_tooltip';
-            document.body.appendChild(el);
-            document.addEventListener('touchstart', (e) => {
-                if (!e.target.closest('.gou_card_wrapper')) {
-                    this.hideTooltip();
-                }
-            }, { passive: true });
-        }
-        return el;
-    }
-
-    showTooltip(info, clientX, clientY) {
-        const tooltip = this.getTooltipElement();
-        tooltip.innerHTML = `
-            <div class="gou_popup_title">${info.name}</div>
-            <div class="gou_popup_desc">${info.desc}</div>
-            <div class="gou_popup_tag">${info.type}</div>
-        `;
-        tooltip.classList.add('visible');
-
-        const w = 260;
-        const h = 110;
-        let left = clientX + 16;
-        let top = clientY + 12;
-
-        if (left + w > window.innerWidth - 12) {
-            left = Math.max(10, clientX - w - 16);
-        }
-        if (top + h > window.innerHeight - 12) {
-            top = Math.max(10, clientY - h - 12);
-        }
-
-        tooltip.style.left = `${left}px`;
-        tooltip.style.top = `${top}px`;
-    }
-
-    hideTooltip() {
-        const tooltip = document.getElementById('gou_cursor_tooltip');
-        if (tooltip) {
-            tooltip.classList.remove('visible');
-        }
-    }
-
     getCardInfo(cardId) {
         const id = parseInt(cardId);
         if (this.gamedatas?.mission_deck?.[id]) {
@@ -517,33 +390,7 @@ export class Game {
             <div class="gou_card_title_label">${info.name}</div>
         `;
 
-        // Desktop mouse tracking for white rectangular tooltip to the right of mouse
-        wrapper.addEventListener('mouseenter', (e) => {
-            this.showTooltip(info, e.clientX, e.clientY);
-        });
-        wrapper.addEventListener('mousemove', (e) => {
-            this.showTooltip(info, e.clientX, e.clientY);
-        });
-        wrapper.addEventListener('mouseleave', () => {
-            this.hideTooltip();
-        });
-
-        // Mobile touch & hold (long press) support
-        let touchTimer = null;
-        wrapper.addEventListener('touchstart', (e) => {
-            const touch = e.touches[0];
-            touchTimer = setTimeout(() => {
-                this.showTooltip(info, touch.clientX, touch.clientY);
-            }, 280);
-        }, { passive: true });
-
-        wrapper.addEventListener('touchend', () => {
-            if (touchTimer) clearTimeout(touchTimer);
-        });
-        wrapper.addEventListener('touchmove', () => {
-            if (touchTimer) clearTimeout(touchTimer);
-            this.hideTooltip();
-        });
+        wrapper.title = `${info.name}: ${info.desc}`;
 
         return wrapper;
     }
@@ -565,9 +412,8 @@ export class Game {
 
             if (parseInt(cell.has_tree) === 1) {
                 spot.classList.add('has_tree');
-                spot.innerHTML = '🌲';
-                spot.style.fontSize = '24px';
-                spot.style.textAlign = 'center';
+                spot.innerHTML = '<svg class="gou_tree" viewBox="0 0 40 40" role="img" aria-label="' + _('Tree') + '"><circle cx="20" cy="20" r="17" fill="#8e9aa0" stroke="#4b565c" stroke-width="2"/><path d="M10 27 L20 11 L30 27 Z" fill="#4b565c"/></svg>';
+                spot.title = _('Tree: blocks movement');
             } else if (cell.flower_color) {
                 spot.appendChild(this.createFlowerToken(cell.flower_color));
             }
@@ -582,10 +428,34 @@ export class Game {
         return `${base}img/${name}`;
     }
 
+    flowerSrc(color) {
+        return this.imgUrl(`flower_${color}${this.shapesOn ? '' : '_plain'}.png`);
+    }
+
+    applyShapePreference() {
+        const read = () => {
+            try {
+                const v = this.bga?.userPreferences?.get?.(100);
+                return v === undefined || v === null ? 1 : Number(v);
+            } catch (e) { return 1; }
+        };
+        this.shapesOn = read() !== 2;
+        if (this.bga?.userPreferences) {
+            this.bga.userPreferences.onChange = (prefId, value) => {
+                if (Number(prefId) !== 100) return;
+                this.shapesOn = Number(value) !== 2;
+                document.querySelectorAll('img[data-flower]').forEach(img => {
+                    img.src = this.flowerSrc(img.dataset.flower);
+                });
+            };
+        }
+    }
+
     createFlowerToken(color) {
         const token = document.createElement('img');
         token.className = 'gou_flower_token';
-        token.src = this.imgUrl(`flower_${color}.png`);
+        token.dataset.flower = color;
+        token.src = this.flowerSrc(color);
         token.alt = color;
         token.draggable = false;
         return token;
@@ -649,14 +519,14 @@ export class Game {
                 item.className = 'gou_panel_flower';
                 item.title = `${this.colorLabel(color)}: ${n}`;
                 item.setAttribute('aria-label', item.title);
-                item.innerHTML = `<img src="${this.imgUrl(`flower_${color}.png`)}" alt="${color}"><b>${n}</b>`;
+                item.innerHTML = `<img data-flower="${color}" src="${this.flowerSrc(color)}" alt="${this.colorLabel(color)}"><b>${n}</b>`;
                 box.appendChild(item);
             });
             const penalty = (total * (total + 1)) / 2;
             const pen = document.createElement('div');
             pen.className = 'gou_panel_penalty';
             pen.title = _('Unused flowers cost points at the end of the game. Plant them to shrink this penalty.');
-            pen.textContent = `${total} ${_('flowers left')} → ${penalty > 0 ? '-' : ''}${penalty} VP`;
+            pen.textContent = `${total} ${_('flowers left')}: ${penalty > 0 ? '-' : ''}${penalty} VP`;
             box.appendChild(pen);
         });
         this.renderScoredCards();
@@ -688,9 +558,7 @@ export class Game {
                 img.title = this.getCardInfo(id).name;
                 img.className = 'gou_scored_thumb';
                 const info = this.getCardInfo(id);
-                img.addEventListener('mouseenter', (e) => this.showTooltip(info, e.clientX, e.clientY));
-                img.addEventListener('mousemove', (e) => this.showTooltip(info, e.clientX, e.clientY));
-                img.addEventListener('mouseleave', () => this.hideTooltip());
+                img.title = `${info.name}: ${info.desc}`;
                 box.appendChild(img);
             });
         });
@@ -717,7 +585,7 @@ export class Game {
             btn.className = 'gou_color_btn';
             btn.disabled = cnt <= 0;
             btn.title = `${color} (${cnt})`;
-            btn.innerHTML = `<img src="${this.imgUrl(`flower_${color}.png`)}" alt="${color}"><b>${cnt}</b>`;
+            btn.innerHTML = `<img data-flower="${color}" src="${this.flowerSrc(color)}" alt="${this.colorLabel(color)}"><b>${cnt}</b>`;
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.closeColorPicker();
@@ -864,7 +732,6 @@ export class Game {
             _('Keep Selected Card'),
             () => {
                 if (this.selectedCardId) {
-                    sounds.playClick();
                     const chosenId = parseInt(this.selectedCardId);
                     this.clearActionButtons();
                     this.bga?.statusBar?.setTitle?.(_('Card chosen! Waiting for other players...'));
@@ -894,7 +761,6 @@ export class Game {
             const wrapper = this.createCardElement(card, { selected: isSelected });
 
             wrapper.addEventListener('click', () => {
-                sounds.playClick();
                 this.selectedCardId = card.card_id;
                 this.updateDraftUI(args, true);
             });
@@ -1000,7 +866,6 @@ export class Game {
 
         const move = this.validMoves.find(m => Number(m.q) === Number(q) && Number(m.r) === Number(r));
         if (move && !move.has_flower) {
-            sounds.playClick();
             this.openColorPicker(q, r);
             return;
         }
@@ -1012,7 +877,6 @@ export class Game {
             this.showError(_('You can only score a mission card on your own turn.'));
             return;
         }
-        sounds.playClick();
         const decks = this.gamedatas.board_decks || {};
         const anyCards = Object.values(decks).some(d => d.count > 0);
         if (!anyCards) {
@@ -1075,10 +939,10 @@ export class Game {
     }
 
     notif_cardDrafted(notif) {
-        sounds.playClick();
         const args = this._getNotifArgs(notif);
         const myId = this.bga?.players?.getCurrentPlayerId?.() || 0;
         const pId = parseInt(args.player_id);
+        if (pId === parseInt(myId)) sounds.playCard();
 
         // Display checkmark badge on player's sidebar panel
         const panel = this.bga?.playerPanels?.getElement?.(pId);
@@ -1090,24 +954,23 @@ export class Game {
                 badge.className = 'gou_draft_ready_badge';
                 panel.appendChild(badge);
             }
-            badge.innerHTML = `✓ Card Locked In`;
+            badge.textContent = _('Card locked in');
             badge.style.display = 'inline-block';
         }
 
         if (pId === parseInt(myId)) {
             this.clearActionButtons();
-            this.bga?.statusBar?.setTitle?.(_('✓ Card locked in! Waiting for other players to choose...'));
+            this.bga?.statusBar?.setTitle?.(_('Card locked in. Waiting for other players to choose...'));
         } else {
             const container = document.getElementById('gou_cards_container');
             const hasChosen = container?.querySelector('.gou_card_wrapper.selected');
             if (hasChosen) {
-                this.bga?.statusBar?.setTitle?.(_('✓ Card locked in! Waiting for next draft round...'));
+                this.bga?.statusBar?.setTitle?.(_('Card locked in. Waiting for next draft round...'));
             }
         }
     }
 
     notif_draftRoundStarted(notif) {
-        sounds.playMove();
         this.selectedCardId = null;
         const args = this._getNotifArgs(notif);
         if (args?.round) {
@@ -1120,7 +983,6 @@ export class Game {
     }
 
     notif_newDraftHand(notif) {
-        sounds.playMove();
         const args = this._getNotifArgs(notif);
         this.selectedCardId = null;
         if (args?.draft_cards) {
@@ -1134,7 +996,6 @@ export class Game {
     }
 
     notif_gardenerMoved(notif) {
-        sounds.playMove();
         const args = this._getNotifArgs(notif);
         if (args.flowers) {
             if (!this.gamedatas.all_flowers) this.gamedatas.all_flowers = {};
@@ -1147,6 +1008,7 @@ export class Game {
             gToken.style.left = `${pos.x}px`;
             gToken.style.top = `${pos.y}px`;
         }
+        if (!args.planted) sounds.playMove();
         if (args.planted && args.plant_color) {
             sounds.playPlant();
             const spot = document.getElementById(`spot_${args.target_q}_${args.target_r}`);
@@ -1251,6 +1113,40 @@ export class Game {
         setTimeout(() => this.updateBoardScale(), 100);
     }
 
+    /** On phones, let the container use the full screen width (BGA wraps the play area in padded containers). */
+    fitContainerToScreen(container) {
+        container.style.width = '';
+        container.style.marginLeft = '';
+        container.style.marginRight = '';
+
+        const viewportW = document.documentElement.clientWidth || window.innerWidth;
+        if (window.innerWidth > 800) {
+            return container.clientWidth;
+        }
+
+        let ref = null;
+        let widest = 0;
+        for (let el = container.parentElement; el && el !== document.documentElement; el = el.parentElement) {
+            if (el.clientWidth > widest) {
+                widest = el.clientWidth;
+                ref = el;
+            }
+        }
+        const targetW = Math.min(widest || viewportW, viewportW);
+        container.style.width = `${targetW}px`;
+
+        if (ref) {
+            const cRect = container.getBoundingClientRect();
+            const rRect = ref.getBoundingClientRect();
+            const unit = (container.offsetWidth && cRect.width) ? cRect.width / container.offsetWidth : 1;
+            const shift = (cRect.left - rRect.left) / unit;
+            if (Math.abs(shift) > 0.5) {
+                container.style.marginLeft = `${-shift}px`;
+            }
+        }
+        return targetW;
+    }
+
     updateBoardScale() {
         const container = document.getElementById('gardensofuranus_container');
         const scaler = document.getElementById('gou_board_scaler');
@@ -1263,7 +1159,7 @@ export class Game {
         const landscape = window.matchMedia('(min-width: 1300px) and (min-aspect-ratio: 11/10)').matches;
         const stripWidth = landscape ? 50 : 0;
         const sideWidth = landscape ? 350 : 0;
-        const containerWidth = container.clientWidth || window.innerWidth;
+        const containerWidth = this.fitContainerToScreen(container) || window.innerWidth;
         const availableWidth = Math.max(260, containerWidth - sideWidth - stripWidth - 24);
 
         let scale = Math.max(0.5, Math.min(1.3, availableWidth / baseWidth));
