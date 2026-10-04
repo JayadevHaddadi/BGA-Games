@@ -1,0 +1,12 @@
+{
+  // user preference ids should be between 100 and 199
+  "100": {
+    "name": "Colorblind support (symbols on stones)",
+    "needReload": false,
+    "values": {
+      "1": { "name": "On", "cssPref": "omega_cb_on" },
+      "0": { "name": "Off", "cssPref": "omega_cb_off" }
+    },
+    "default": 1
+  }
+}

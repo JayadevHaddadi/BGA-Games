@@ -1,135 +1,39 @@
 /**
  * Omega BGA Stylesheet
+ * Theme: a hexagonal wooden board with matte stones, resting on a walnut table.
+ * Scores and player info are shown only in the standard BGA player panels.
  */
 
 #omega_container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
     width: 100%;
-    margin: 0 auto;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    box-sizing: border-box;
+    margin: 0 auto 12px auto;
+    padding: 10px 0 12px 0;
+    border-radius: 2px;
     user-select: none;
     -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    /* Walnut table: fine grain over a warm dark base */
+    background-color: #3b2a1d;
+    background-image:
+        repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.10) 0, rgba(0, 0, 0, 0.10) 1px, transparent 1px, transparent 7px),
+        repeating-linear-gradient(90deg, rgba(255, 220, 170, 0.04) 0, rgba(255, 220, 170, 0.04) 2px, transparent 2px, transparent 19px),
+        linear-gradient(180deg, #46321f 0%, #33241a 100%);
 }
 
-#omega_score_bar {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 12px;
-    margin-bottom: 14px;
-    padding: 8px 16px;
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.omega_score_item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 15px;
-    color: #222;
-    padding: 6px 14px;
-    background: #f8f9fa;
-    border-radius: 20px;
-    border: 2px solid transparent;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    transition: all 0.25s ease;
-}
-
-.omega_score_item.omega_score_active {
-    background: #ffffff;
-    border-color: #ff9800;
-    box-shadow: 0 0 12px rgba(255, 152, 0, 0.4);
-    transform: translateY(-1px);
-}
-
-.omega_order_badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: #e9ecef;
-    color: #495057;
-    font-size: 11px;
-    font-weight: 700;
-    margin-right: 2px;
-    border: 1px solid rgba(0, 0, 0, 0.12);
-    cursor: help;
-    transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease;
-}
-
-.omega_order_badge:hover {
-    transform: scale(1.18);
-    background: #ff9800;
-    color: #ffffff;
-}
-
-.omega_tiebreak_hint {
-    display: flex;
-    align-items: center;
-    font-size: 12px;
-    color: #777;
-    cursor: help;
-    padding: 2px 6px;
-    font-style: italic;
-    white-space: nowrap;
-}
-
-.omega_color_pip {
-    display: inline-block;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    border: 1px solid rgba(0, 0, 0, 0.2);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
-}
-
-.omega_pip_white {
-    background: radial-gradient(circle at 35% 35%, #ffffff 0%, #e0e0e0 70%, #9e9e9e 100%);
-}
-
-.omega_pip_black {
-    background: radial-gradient(circle at 35% 35%, #555555 0%, #212121 70%, #000 100%);
-}
-
-.omega_pip_red {
-    background: radial-gradient(circle at 35% 35%, #ff7b7b 0%, #d32f2f 70%, #7f0000 100%);
-}
-
-.omega_pip_blue {
-    background: radial-gradient(circle at 35% 35%, #64b5f6 0%, #1976d2 70%, #0d47a1 100%);
-}
-
-.omega_player_name {
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.omega_score_val {
-    font-weight: 700;
-    font-size: 19px;
-    color: #111;
-    min-width: 24px;
-    text-align: right;
-}
-
-.omega_score_breakdown {
-    color: #666;
-    font-size: 12px;
-    font-weight: 500;
+@media (max-width: 800px) {
+    #omega_container {
+        padding: 6px 0 8px 0;
+        border-radius: 0;
+    }
 }
 
 #omega_board_scaler {
     position: relative;
-    width: 620px;
-    height: 620px;
-    overflow: hidden;
+    overflow: visible;
     margin: 0 auto;
 }
 
@@ -137,23 +41,27 @@
     position: absolute;
     top: 0;
     left: 0;
-    width: 620px;
-    height: 620px;
     transform-origin: 0 0;
 }
 
 #omega_board_svg {
-    background: #eae5da;
-    border-radius: 18px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16), inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+    display: block;
+    background: none;
 }
 
-/* Hexagons */
+/* Wooden board plate (flat, matte) */
+.omega_board_plate {
+    fill: #cfae7c;
+    stroke: #6e5232;
+    stroke-width: 3;
+    stroke-linejoin: miter;
+}
+
+/* Cells */
 .omega_hex {
-    fill: #fcf9f2;
-    stroke: #b3ab9c;
+    fill: #e6d3ac;
+    stroke: #9c7b4a;
     stroke-width: 1.5;
-    transition: fill 0.15s ease, stroke 0.15s ease;
     cursor: default;
 }
 
@@ -161,99 +69,97 @@
     cursor: pointer;
 }
 
-.omega_valid_target:hover .omega_hex {
-    fill: #fff8e1;
-    stroke: #ff9800;
-    stroke-width: 2.5;
+@media (hover: hover) {
+    .omega_valid_target:hover .omega_hex {
+        fill: #f1e2c0;
+        stroke: #3b2a1d;
+        stroke-width: 2.5;
+    }
 }
 
-/* Stones */
+/* Stones: flat, matte */
 .omega_stone {
-    filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.38));
     pointer-events: none;
-    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), filter 0.2s ease;
-}
-
-/* Subtle, elegant halo indicator for player's own color stones */
-.omega_stone.omega_stone_own {
-    filter: drop-shadow(0 0 5px rgba(255, 205, 70, 0.95)) drop-shadow(0 3px 5px rgba(0, 0, 0, 0.42));
-}
-
-.omega_stone_white {
-    fill: url(#omega_grad_white);
-    stroke: #888;
-    stroke-width: 0.8;
-}
-
-.omega_stone_black {
-    fill: url(#omega_grad_black);
-    stroke: #111;
-    stroke-width: 0.8;
-}
-
-.omega_stone_red {
-    fill: url(#omega_grad_red);
-    stroke: #660000;
-    stroke-width: 0.8;
-}
-
-.omega_stone_blue {
-    fill: url(#omega_grad_blue);
-    stroke: #063479;
-    stroke-width: 0.8;
-}
-
-/* Specular glass/resin shine on stones */
-.omega_stone_shine {
-    fill: rgba(255, 255, 255, 0.42);
-    pointer-events: none;
-}
-
-/* Last placed reminder marker - centered pip on the stone */
-.omega_last_marker {
-    fill: #ffb300;
-    stroke: #ffffff;
     stroke-width: 1.5;
+}
+
+.omega_stone_white { fill: #f2efe6; stroke: #7d7767; }
+.omega_stone_black { fill: #262626; stroke: #000000; }
+.omega_stone_red   { fill: #c62828; stroke: #6a1010; }
+.omega_stone_blue  { fill: #1f5fae; stroke: #0b2f66; }
+
+/* Colour-blind symbols: one distinct silhouette per colour (pref 100, on by default) */
+.omega_sym {
+    display: none;
     pointer-events: none;
-    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
-    animation: omega-pulse 2s infinite ease-in-out;
+    stroke: none;
 }
 
-@keyframes omega-pulse {
-    0%, 100% {
-        opacity: 0.95;
-    }
-    50% {
-        opacity: 0.35;
-    }
+.omega_cb_on .omega_sym {
+    display: inline;
 }
 
-/* Ghost stone on hover */
+.omega_sym_white { fill: #3a362c; }
+.omega_sym_black { fill: #f2efe6; }
+.omega_sym_red   { fill: #ffffff; }
+.omega_sym_blue  { fill: #ffffff; }
+
+/* Last placed stones: double ring (dark under bright), static */
+.omega_last_marker {
+    pointer-events: none;
+}
+
+.omega_last_ring_dark {
+    fill: none;
+    stroke: #1a1109;
+    stroke-width: 6;
+}
+
+.omega_last_ring_light {
+    fill: none;
+    stroke: #ffc531;
+    stroke-width: 3;
+}
+
+/* Ghost stone preview (mouse only) */
 .omega_ghost_stone {
     opacity: 0.55;
     pointer-events: none;
-}
-
-.omega_ghost_white {
-    fill: #ffffff;
-    stroke: #aaa;
     stroke-width: 1;
 }
 
-.omega_ghost_black {
-    fill: #222222;
-    stroke: #111;
-    stroke-width: 1;
+.omega_ghost_white { fill: #f2efe6; stroke: #7d7767; }
+.omega_ghost_black { fill: #262626; stroke: #000000; }
+.omega_ghost_red   { fill: #c62828; stroke: #6a1010; }
+.omega_ghost_blue  { fill: #1f5fae; stroke: #0b2f66; }
+
+/* Extra info inside the standard BGA player panel */
+.omega_panel_info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+    font-size: 13px;
+    cursor: help;
 }
 
-.omega_ghost_red {
-    fill: #d32f2f;
-    stroke: #900;
-    stroke-width: 1;
+.omega_panel_stone {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1px solid #000;
+    flex: none;
 }
 
-.omega_ghost_blue {
-    fill: #1976d2;
-    stroke: #004;
-    stroke-width: 1;
+.omega_panel_stone_white { background: #f2efe6; border-color: #7d7767; }
+.omega_panel_stone_black { background: #262626; }
+.omega_panel_stone_red   { background: #c62828; border-color: #6a1010; }
+.omega_panel_stone_blue  { background: #1f5fae; border-color: #0b2f66; }
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation: none !important;
+        transition: none !important;
+    }
 }

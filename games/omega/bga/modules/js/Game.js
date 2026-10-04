@@ -7,131 +7,21 @@
  *------
  */
 
-class SoundController {
-    constructor() {
-        this.ctx = null;
-        this.muted = false;
-    }
-
-    init() {
-        if (!this.ctx && typeof (window.AudioContext || window.webkitAudioContext) !== 'undefined') {
-            const AudioCtx = window.AudioContext || window.webkitAudioContext;
-            this.ctx = new AudioCtx();
-        }
-    }
-
-    playClick() {
-        if (this.muted) return;
+// Native BGA sounds (files in /sounds). Played only for confirmed game events,
+// never on hover, tap-to-stage or the local Reset click.
+const sounds = {
+    bga: null,
+    play(id) {
         try {
-            this.init();
-            if (!this.ctx) return;
-            const now = this.ctx.currentTime;
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(700, now);
-            osc.frequency.exponentialRampToValueAtTime(350, now + 0.025);
-            gain.gain.setValueAtTime(0.001, now);
-            gain.gain.linearRampToValueAtTime(0.03, now + 0.002);
-            gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.025);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start(now);
-            osc.stop(now + 0.03);
+            this.bga?.sounds?.play?.(id);
         } catch (e) {}
-    }
+    },
+    playPlace() { this.play('omega_place'); },
+    playReset() { this.play('omega_undo'); },
+    playChime() { this.play('omega_end'); },
+};
 
-    playPlace() {
-        if (this.muted) return;
-        try {
-            this.init();
-            if (!this.ctx) return;
-            const now = this.ctx.currentTime;
-
-            // 1. Crisp light stone contact transient (mineral tap)
-            const oscClick = this.ctx.createOscillator();
-            const gainClick = this.ctx.createGain();
-            oscClick.type = 'sine';
-            oscClick.frequency.setValueAtTime(1450, now);
-            oscClick.frequency.exponentialRampToValueAtTime(550, now + 0.018);
-            gainClick.gain.setValueAtTime(0.001, now);
-            gainClick.gain.linearRampToValueAtTime(0.12, now + 0.002);
-            gainClick.gain.exponentialRampToValueAtTime(0.0001, now + 0.028);
-            oscClick.connect(gainClick);
-            gainClick.connect(this.ctx.destination);
-            oscClick.start(now);
-            oscClick.stop(now + 0.03);
-
-            // 2. Meditative mineral body resonance (soothing stone marimba/lithophone tone)
-            const oscBody = this.ctx.createOscillator();
-            const gainBody = this.ctx.createGain();
-            oscBody.type = 'sine';
-            oscBody.frequency.setValueAtTime(720, now);
-            oscBody.frequency.exponentialRampToValueAtTime(690, now + 0.24);
-            gainBody.gain.setValueAtTime(0.001, now);
-            gainBody.gain.linearRampToValueAtTime(0.14, now + 0.004);
-            gainBody.gain.exponentialRampToValueAtTime(0.0001, now + 0.24);
-            oscBody.connect(gainBody);
-            gainBody.connect(this.ctx.destination);
-            oscBody.start(now);
-            oscBody.stop(now + 0.25);
-
-            // 3. Delicate crystalline harmonic overtone (subtle glassy ceramic sheen)
-            const oscHarmonic = this.ctx.createOscillator();
-            const gainHarmonic = this.ctx.createGain();
-            oscHarmonic.type = 'sine';
-            oscHarmonic.frequency.setValueAtTime(1440, now);
-            gainHarmonic.gain.setValueAtTime(0.001, now);
-            gainHarmonic.gain.linearRampToValueAtTime(0.04, now + 0.003);
-            gainHarmonic.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
-            oscHarmonic.connect(gainHarmonic);
-            gainHarmonic.connect(this.ctx.destination);
-            oscHarmonic.start(now);
-            oscHarmonic.stop(now + 0.13);
-        } catch (e) {}
-    }
-
-    playReset() {
-        if (this.muted) return;
-        try {
-            this.init();
-            if (!this.ctx) return;
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(160, this.ctx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(240, this.ctx.currentTime + 0.12);
-            gain.gain.setValueAtTime(0.18, this.ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start();
-            osc.stop(this.ctx.currentTime + 0.12);
-        } catch (e) {}
-    }
-
-    playChime() {
-        if (this.muted) return;
-        try {
-            this.init();
-            if (!this.ctx) return;
-            [523.25, 659.25, 783.99].forEach((freq, idx) => {
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.value = freq;
-                gain.gain.setValueAtTime(0.15, this.ctx.currentTime + idx * 0.1);
-                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + idx * 0.1 + 0.3);
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start(this.ctx.currentTime + idx * 0.1);
-                osc.stop(this.ctx.currentTime + idx * 0.1 + 0.3);
-            });
-        } catch (e) {}
-    }
-}
-
-const sounds = new SoundController();
+const COLOR_ORDER = { white: 1, black: 2, red: 3, blue: 4 };
 
 class PlayerTurn {
     constructor(game, bga) {
@@ -191,21 +81,21 @@ class PlayerTurn {
             } else {
                 // All stones staged for this turn!
                 this.bga.statusBar.setTitle(
-                    _('[Turn ${turn}/${maxTurns}] All stones placed! Review your turn, then click <b>Confirm Turn</b>.'),
+                    _('[Turn ${turn}/${maxTurns}] All stones placed! Review your turn, then click <b>Confirm turn</b>.'),
                     {
                         turn: turn,
                         maxTurns: maxTurns
                     }
                 );
 
-                this.game.addActionButton('btnConfirmTurn', _('✓ Confirm Turn'), () => {
+                this.game.addActionButton('btnConfirmTurn', _('Confirm turn'), () => {
                     this.game.confirmTurn();
                 }, 'primary');
             }
 
             // Pie Rule swap button (only on turn 2 before any stones placed/staged)
             if (args && args.pie_rule_available && staged.length === 0) {
-                this.game.addActionButton('btnSwapColors', _('Swap Colors (Pie Rule)'), () => {
+                this.game.addActionButton('btnSwapColors', _('Swap colors (Pie Rule)'), () => {
                     this.bga.actions.performAction('actSwapColors', {});
                 }, 'secondary');
             }
@@ -213,9 +103,9 @@ class PlayerTurn {
             // Reset turn button (whenever at least 1 stone is staged or server has partial placements)
             const serverPlacedCount = (args && args.placed_this_turn && args.placed_this_turn.length) || 0;
             if (staged.length > 0 || serverPlacedCount > 0) {
-                this.game.addActionButton('btnUndoTurn', _('↺ Reset Turn'), () => {
+                this.game.addActionButton('btnUndoTurn', _('Reset turn'), () => {
                     this.game.resetLocalTurn();
-                }, 'danger');
+                }, 'alert');
             }
         } else {
             this.bga.statusBar.setTitle(
@@ -237,13 +127,18 @@ class PlayerTurn {
 export class Game {
     constructor(bga) {
         this.bga = bga;
+        sounds.bga = bga;
         this.HEX_RADIUS = 4;
-        this.HEX_SIZE = 30; // pixels
+        this.HEX_SIZE = 40; // SVG units; the whole board is scaled to fit the screen
         this.currentArgs = null;
         this.boardData = {};
         this.playerColors = {};
         this.activeColors = ['white', 'black'];
         this.stagedStones = [];
+        this.cellEls = {};
+        this.cellPos = {};
+        this.boardW = 620;
+        this.boardH = 620;
 
         // Register State Handlers
         this.playerTurn = new PlayerTurn(this, bga);
@@ -302,8 +197,6 @@ export class Game {
     setup(gamedatas) {
         this.gamedatas = gamedatas;
         this.HEX_RADIUS = gamedatas.hex_radius || 4;
-        const hexSizeByRadius = { 2: 52, 3: 40, 4: 30, 5: 24, 6: 20 };
-        this.HEX_SIZE = hexSizeByRadius[this.HEX_RADIUS] || 30;
         this.boardData = gamedatas.board || {};
         this.playerColors = gamedatas.player_colors || {};
         this.activeColors = gamedatas.active_colors || ['white', 'black'];
@@ -323,7 +216,6 @@ export class Game {
 
         this.initDom();
         this.renderBoard();
-        this.updateStonesOwnership();
         this.updateLastPlacedMarkers(this.lastPlacedCoords);
         this.updateScoresDisplay(gamedatas.scores || {});
         this.setupNotifications();
@@ -359,24 +251,6 @@ export class Game {
         return order.filter(c => !stagedColors.includes(c));
     }
 
-    updateStonesOwnership() {
-        const myColor = this.getMyColor();
-        document.querySelectorAll('.omega_cell').forEach(cell => {
-            const q = cell.getAttribute('data-q');
-            const r = cell.getAttribute('data-r');
-            const key = `${q}_${r}`;
-            const stone = cell.querySelector('.omega_stone');
-            if (stone) {
-                const occupiedColor = (this.boardData[key] && this.boardData[key].color);
-                if (occupiedColor && myColor && occupiedColor === myColor) {
-                    stone.classList.add('omega_stone_own');
-                } else {
-                    stone.classList.remove('omega_stone_own');
-                }
-            }
-        });
-    }
-
     getRemainingColors(placed) {
         placed = placed || [];
         return this.activeColors.filter(c => !placed.includes(c));
@@ -406,9 +280,9 @@ export class Game {
                      document.getElementById('game_play_area') ||
                      document.body;
 
+        // Board only: scores and player info live in the standard BGA player panels.
         main.innerHTML = `
             <div id="omega_container">
-                <div id="omega_score_bar"></div>
                 <div id="omega_board_scaler">
                     <div id="omega_board_wrapper">
                         <svg id="omega_board_svg"></svg>
@@ -429,10 +303,32 @@ export class Game {
         return points.join(' ');
     }
 
-    axialToPixel(q, r, cx, cy, size) {
-        const x = cx + size * (Math.sqrt(3) * q + (Math.sqrt(3) / 2) * r);
-        const y = cy + size * (3 / 2 * r);
-        return { x, y };
+    axialToPixel(q, r, size) {
+        return {
+            x: size * (Math.sqrt(3) * q + (Math.sqrt(3) / 2) * r),
+            y: size * (3 / 2 * r),
+        };
+    }
+
+    // Colour-blind symbol (distinct silhouette per colour), centred on (x, y)
+    symbolPath(color, x, y, s) {
+        const f = (n) => n.toFixed(1);
+        switch (color) {
+            case 'white': // triangle
+                return `M${f(x)},${f(y - s)} L${f(x + s * 0.95)},${f(y + s * 0.7)} L${f(x - s * 0.95)},${f(y + s * 0.7)} Z`;
+            case 'black': { // square
+                const h = s * 0.75;
+                return `M${f(x - h)},${f(y - h)} H${f(x + h)} V${f(y + h)} H${f(x - h)} Z`;
+            }
+            case 'red': { // plus
+                const a = s * 0.3, b = s;
+                return `M${f(x - a)},${f(y - b)} H${f(x + a)} V${f(y - a)} H${f(x + b)} V${f(y + a)} H${f(x + a)} V${f(y + b)} H${f(x - a)} V${f(y + a)} H${f(x - b)} V${f(y - a)} H${f(x - a)} Z`;
+            }
+            case 'blue': // diamond
+                return `M${f(x)},${f(y - s)} L${f(x + s)},${f(y)} L${f(x)},${f(y + s)} L${f(x - s)},${f(y)} Z`;
+            default:
+                return '';
+        }
     }
 
     renderBoard() {
@@ -441,73 +337,42 @@ export class Game {
 
         const radius = this.HEX_RADIUS;
         const size = this.HEX_SIZE;
-        const svgWidth = 620;
-        const svgHeight = 620;
-        const centerX = svgWidth / 2;
-        const centerY = svgHeight / 2;
 
-        svg.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
-        svg.setAttribute('width', `${svgWidth}`);
-        svg.setAttribute('height', `${svgHeight}`);
+        // Tight geometry: a flat-top hexagonal board hugging the cells
+        const apothem = (1.5 * radius + 1) * size + size * 0.25;
+        const circum = apothem / Math.cos(Math.PI / 6);
+        this.boardW = Math.ceil(2 * circum);
+        this.boardH = Math.ceil(2 * apothem);
 
-        // Define 3D radial gradients for all stones
-        let html = `
-            <defs>
-                <radialGradient id="omega_grad_white" cx="35%" cy="35%" r="65%">
-                    <stop offset="0%" stop-color="#ffffff"/>
-                    <stop offset="70%" stop-color="#e0e0e0"/>
-                    <stop offset="100%" stop-color="#9e9e9e"/>
-                </radialGradient>
-                <radialGradient id="omega_grad_black" cx="35%" cy="35%" r="65%">
-                    <stop offset="0%" stop-color="#555555"/>
-                    <stop offset="70%" stop-color="#212121"/>
-                    <stop offset="100%" stop-color="#000000"/>
-                </radialGradient>
-                <radialGradient id="omega_grad_red" cx="35%" cy="35%" r="65%">
-                    <stop offset="0%" stop-color="#ff7b7b"/>
-                    <stop offset="70%" stop-color="#d32f2f"/>
-                    <stop offset="100%" stop-color="#7f0000"/>
-                </radialGradient>
-                <radialGradient id="omega_grad_blue" cx="35%" cy="35%" r="65%">
-                    <stop offset="0%" stop-color="#64b5f6"/>
-                    <stop offset="70%" stop-color="#1976d2"/>
-                    <stop offset="100%" stop-color="#0d47a1"/>
-                </radialGradient>
-                <filter id="omega_glow" x="-30%" y="-30%" width="160%" height="160%">
-                    <feGaussianBlur stdDeviation="2.5" result="blur" />
-                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                </filter>
-            </defs>
-        `;
+        svg.setAttribute('viewBox', `${-this.boardW / 2} ${-this.boardH / 2} ${this.boardW} ${this.boardH}`);
+        svg.setAttribute('width', `${this.boardW}`);
+        svg.setAttribute('height', `${this.boardH}`);
+
+        const boardPoints = [];
+        for (let i = 0; i < 6; i++) {
+            const a = (Math.PI / 3) * i;
+            boardPoints.push(`${(circum * Math.cos(a)).toFixed(1)},${(circum * Math.sin(a)).toFixed(1)}`);
+        }
+
+        let html = `<polygon class="omega_board_plate" points="${boardPoints.join(' ')}" />`;
 
         for (let q = -radius; q <= radius; q++) {
             for (let r = -radius; r <= radius; r++) {
                 if (q + r >= -radius && q + r <= radius) {
-                    const { x, y } = this.axialToPixel(q, r, centerX, centerY, size);
+                    const { x, y } = this.axialToPixel(q, r, size);
                     const points = this.getHexCorners(x, y, size);
-                    const key = `${q}_${r}`;
-                    const cell = this.boardData[key];
-                    const color = cell ? cell.color : null;
-                    const shineX = (x - size * 0.18).toFixed(1);
-                    const shineY = (y - size * 0.22).toFixed(1);
+                    this.cellPos[`${q}_${r}`] = { x, y };
 
                     html += `
                         <g class="omega_cell" data-q="${q}" data-r="${r}">
                             <polygon class="omega_hex" points="${points}" />
-                            <circle class="omega_stone ${color ? 'omega_stone_' + color : ''}"
-                                    cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(size * 0.68).toFixed(1)}"
-                                    style="${color ? '' : 'display:none;'}" />
-                            <ellipse class="omega_stone_shine"
-                                    cx="${shineX}" cy="${shineY}"
-                                    rx="${(size * 0.26).toFixed(1)}" ry="${(size * 0.14).toFixed(1)}"
-                                    transform="rotate(-25 ${shineX} ${shineY})"
-                                    style="${color ? '' : 'display:none;'}" />
-                            <circle class="omega_ghost_stone"
-                                    cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(size * 0.68).toFixed(1)}"
-                                    style="display:none;" />
-                            <circle class="omega_last_marker"
-                                    cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="6"
-                                    style="display:none;" />
+                            <circle class="omega_stone" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(size * 0.68).toFixed(1)}" style="display:none;" />
+                            <path class="omega_sym" d="" />
+                            <circle class="omega_ghost_stone" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(size * 0.68).toFixed(1)}" style="display:none;" />
+                            <g class="omega_last_marker" style="display:none;">
+                                <circle class="omega_last_ring_dark" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(size * 0.8).toFixed(1)}" />
+                                <circle class="omega_last_ring_light" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(size * 0.8).toFixed(1)}" />
+                            </g>
                         </g>
                     `;
                 }
@@ -516,20 +381,43 @@ export class Game {
 
         svg.innerHTML = html;
 
-        // Add event listeners to cells
+        // Paint the stones that are already on the board (setup / reload)
+        this.cellEls = {};
+        const hoverCapable = window.matchMedia && window.matchMedia('(hover: hover)').matches;
         svg.querySelectorAll('.omega_cell').forEach(cellEl => {
-            cellEl.addEventListener('click', () => {
-                const q = parseInt(cellEl.getAttribute('data-q'), 10);
-                const r = parseInt(cellEl.getAttribute('data-r'), 10);
-                this.onCellClick(q, r);
-            });
-            cellEl.addEventListener('mouseenter', () => {
-                this.onCellHover(cellEl, true);
-            });
-            cellEl.addEventListener('mouseleave', () => {
-                this.onCellHover(cellEl, false);
-            });
+            const q = parseInt(cellEl.getAttribute('data-q'), 10);
+            const r = parseInt(cellEl.getAttribute('data-r'), 10);
+            this.cellEls[`${q}_${r}`] = cellEl;
+            cellEl.addEventListener('click', () => this.onCellClick(q, r));
+            // Ghost preview is for mouse users only; touch uses tap-to-stage
+            if (hoverCapable) {
+                cellEl.addEventListener('mouseenter', () => this.onCellHover(cellEl, true));
+                cellEl.addEventListener('mouseleave', () => this.onCellHover(cellEl, false));
+            }
+            const cell = this.boardData[`${q}_${r}`];
+            if (cell && cell.color) this.paintStone(q, r, cell.color);
         });
+    }
+
+    // Show / hide the stone (and its colour-blind symbol) on one cell
+    paintStone(q, r, color) {
+        const cell = this.cellEls[`${q}_${r}`];
+        if (!cell) return;
+        const stone = cell.querySelector('.omega_stone');
+        const sym = cell.querySelector('.omega_sym');
+        const ghost = cell.querySelector('.omega_ghost_stone');
+        if (ghost) ghost.style.display = 'none';
+        if (color) {
+            const pos = this.cellPos[`${q}_${r}`];
+            stone.setAttribute('class', `omega_stone omega_stone_${color}`);
+            stone.style.display = '';
+            sym.setAttribute('class', `omega_sym omega_sym_${color}`);
+            sym.setAttribute('d', this.symbolPath(color, pos.x, pos.y, this.HEX_SIZE * 0.3));
+        } else {
+            stone.setAttribute('class', 'omega_stone');
+            stone.style.display = 'none';
+            sym.setAttribute('d', '');
+        }
     }
 
     onCellClick(q, r) {
@@ -543,35 +431,16 @@ export class Game {
         if (!remaining.length) return; // All stones already staged, awaiting confirm or reset
 
         const colorToPlace = remaining[0];
-        sounds.playPlace();
 
-        // 1. Stage locally (0ms instantaneous visual feedback)
+        // Stage locally (instant visual feedback, silent until the turn is confirmed)
         this.stagedStones.push({ q, r, color: colorToPlace });
         this.boardData[key] = { q, r, color: colorToPlace, staged: true };
+        this.paintStone(q, r, colorToPlace);
+        this.cellEls[key]?.classList.remove('omega_valid_target');
 
-        const myColor = this.getMyColor();
-        const isOwn = (myColor && colorToPlace === myColor);
-
-        const cell = document.querySelector(`.omega_cell[data-q="${q}"][data-r="${r}"]`);
-        if (cell) {
-            const stone = cell.querySelector('.omega_stone');
-            const shine = cell.querySelector('.omega_stone_shine');
-            const ghost = cell.querySelector('.omega_ghost_stone');
-            if (ghost) ghost.style.display = 'none';
-            if (stone) {
-                stone.setAttribute('class', `omega_stone omega_stone_${colorToPlace}${isOwn ? ' omega_stone_own' : ''}`);
-                stone.style.display = 'block';
-            }
-            if (shine) {
-                shine.style.display = 'block';
-            }
-            cell.classList.remove('omega_valid_target');
-        }
-
-        // 2. Advance controls and status bar prompts
         this.playerTurn.updateControls(this.currentArgs, true);
 
-        // 3. Update board interactions (disable cell targeting if all stones are now staged)
+        // Disable cell targeting if all stones are now staged
         const nextRemaining = this.getRemainingColorsForCurrentTurn();
         this.updateBoardInteractions(nextRemaining.length > 0);
     }
@@ -586,10 +455,8 @@ export class Game {
         if (isHover) {
             const remaining = this.getRemainingColorsForCurrentTurn();
             if (remaining.length) {
-                const nextColor = remaining[0];
-                ghost.setAttribute('class', `omega_ghost_stone omega_ghost_${nextColor}`);
-                ghost.style.display = 'block';
-                sounds.playClick();
+                ghost.setAttribute('class', `omega_ghost_stone omega_ghost_${remaining[0]}`);
+                ghost.style.display = '';
             }
         } else {
             ghost.style.display = 'none';
@@ -612,53 +479,29 @@ export class Game {
     }
 
     resetLocalTurn() {
-        sounds.playReset();
-
-        // 1. Remove all staged stones from boardData and DOM (0ms instantaneous reset)
+        // Remove all staged stones locally (silent: local undo is not a confirmed event)
         if (this.stagedStones && this.stagedStones.length > 0) {
             this.stagedStones.forEach(st => {
-                const key = `${st.q}_${st.r}`;
-                delete this.boardData[key];
-
-                const cell = document.querySelector(`.omega_cell[data-q="${st.q}"][data-r="${st.r}"]`);
-                if (cell) {
-                    const stone = cell.querySelector('.omega_stone');
-                    const shine = cell.querySelector('.omega_stone_shine');
-                    if (stone) {
-                        stone.style.display = 'none';
-                        stone.setAttribute('class', 'omega_stone');
-                    }
-                    if (shine) {
-                        shine.style.display = 'none';
-                    }
-                }
+                delete this.boardData[`${st.q}_${st.r}`];
+                this.paintStone(st.q, st.r, null);
             });
             this.stagedStones = [];
         }
 
-        // 2. If server had any partial placements, reset server state too
+        // If server had any partial placements, reset server state too
         if (this.currentArgs && this.currentArgs.placed_this_turn && this.currentArgs.placed_this_turn.length > 0) {
             this.bga.actions.performAction('actUndoTurn', {});
             this.currentArgs.placed_this_turn = [];
         }
 
-        // 3. Refresh controls and board interactions
         this.playerTurn.updateControls(this.currentArgs, true);
         this.updateBoardInteractions(true);
     }
 
     updateBoardInteractions(active) {
-        const cells = document.querySelectorAll('.omega_cell');
-        cells.forEach(c => {
-            const q = c.getAttribute('data-q');
-            const r = c.getAttribute('data-r');
-            const key = `${q}_${r}`;
+        Object.entries(this.cellEls).forEach(([key, c]) => {
             const occupied = this.boardData[key] && this.boardData[key].color;
-            if (active && !occupied) {
-                c.classList.add('omega_valid_target');
-            } else {
-                c.classList.remove('omega_valid_target');
-            }
+            c.classList.toggle('omega_valid_target', !!(active && !occupied));
         });
     }
 
@@ -669,19 +512,19 @@ export class Game {
         });
         if (!Array.isArray(coords)) return;
         coords.forEach(pt => {
-            const cell = document.querySelector(`.omega_cell[data-q="${pt.q}"][data-r="${pt.r}"]`);
-            if (cell) {
-                const marker = cell.querySelector('.omega_last_marker');
-                if (marker) marker.style.display = 'block';
-            }
+            const marker = this.cellEls[`${pt.q}_${pt.r}`]?.querySelector('.omega_last_marker');
+            if (marker) marker.style.display = '';
         });
     }
 
+    // Scores go to the BGA score counter; colour / turn order / group breakdown
+    // go into the standard player panel (nothing is duplicated in the play area).
     updateScoresDisplay(scores) {
         if (!scores) return;
         this.currentScores = scores;
 
-        // 1. Synchronize BGA sidebar player panel scores next to star ⭐ icon
+        const totalPlayers = Object.keys(scores).length;
+
         for (const [playerId, data] of Object.entries(scores)) {
             const scoreVal = data.score !== undefined ? data.score : 0;
             const counter = this.bga?.playerPanels?.getScoreCounter?.(playerId);
@@ -692,68 +535,41 @@ export class Game {
                     counter.setValue(scoreVal);
                 }
             }
-            const scoreEl = document.getElementById(`player_score_${playerId}`);
-            if (scoreEl) {
-                scoreEl.textContent = `${scoreVal}`;
+
+            const panel = this.bga?.playerPanels?.getElement?.(playerId);
+            if (!panel) continue;
+
+            let info = panel.querySelector('.omega_panel_info');
+            if (!info) {
+                info = document.createElement('div');
+                info.className = 'omega_panel_info';
+                panel.appendChild(info);
             }
-        }
 
-        // 2. Render Omega in-game score bar
-        const bar = document.getElementById('omega_score_bar');
-        if (!bar) return;
-
-        const activePlayerId = this.getActivePlayerId();
-
-        // Always display in canonical game color order: White -> Black -> Red -> Blue
-        const colorOrder = { 'white': 1, 'black': 2, 'red': 3, 'blue': 4 };
-        const sortedEntries = Object.entries(scores).sort((a, b) => {
-            const oa = colorOrder[a[1]?.color] || 99;
-            const ob = colorOrder[b[1]?.color] || 99;
-            return oa - ob;
-        });
-
-        const totalPlayers = sortedEntries.length;
-
-        let html = '';
-        for (const [playerId, data] of sortedEntries) {
-            const pInfo = this.bga?.players?.getPlayer?.(playerId) || {};
-            const pName = pInfo.name || `Player ${playerId}`;
             const color = data.color || 'white';
-            const orderNum = colorOrder[color] || 1;
+            const orderNum = COLOR_ORDER[color] || 1;
             const groupsStr = data.groups?.length ? data.groups.join(' × ') : '0';
-            const isActive = String(playerId) === String(activePlayerId);
 
-            let tieTooltip = '';
+            let tieTooltip;
             if (orderNum === 1) {
-                tieTooltip = _('Turn Order #1 (Opening turn — loses tiebreak to later players)');
+                tieTooltip = _('Turn order #1: opening turn, loses ties against later players.');
             } else if (orderNum === totalPlayers) {
-                tieTooltip = _('Turn Order #${order} (Last turn in round — WINS tiebreak vs all players)').replace('${order}', orderNum);
+                tieTooltip = _('Turn order #${order}: last turn in the round, wins ties against all earlier players.').replace('${order}', orderNum);
             } else {
-                tieTooltip = _('Turn Order #${order} (Wins tiebreak vs earlier turns)').replace('${order}', orderNum);
+                tieTooltip = _('Turn order #${order}: wins ties against earlier turns.').replace('${order}', orderNum);
             }
 
-            html += `
-                <div class="omega_score_item omega_score_${color} ${isActive ? 'omega_score_active' : ''}">
-                    <span class="omega_order_badge" title="${tieTooltip}">#${orderNum}</span>
-                    <span class="omega_color_pip omega_pip_${color}"></span>
-                    <strong class="omega_player_name">${pName}</strong>:
-                    <span class="omega_score_val">${data.score}</span>
-                    <span class="omega_score_breakdown">(${groupsStr})</span>
-                </div>
+            info.title = tieTooltip;
+            info.innerHTML = `
+                <span class="omega_panel_stone omega_panel_stone_${color}"></span>
+                <span class="omega_panel_order">#${orderNum}</span>
+                <span class="omega_panel_groups">${_('Groups')}: ${groupsStr}</span>
             `;
         }
-
-        html += `
-            <div class="omega_tiebreak_hint" title="${_('Official rule: in case of a tie in score, the last of the tied players in turn order wins.')}">
-                ⚖️ ${_('Tiebreak: later turn (#) wins')}
-            </div>
-        `;
-
-        bar.innerHTML = html;
     }
 
     clearHighlights() {
-        document.querySelectorAll('.omega_cell').forEach(c => {
+        Object.values(this.cellEls).forEach(c => {
             c.classList.remove('omega_valid_target');
             const ghost = c.querySelector('.omega_ghost_stone');
             if (ghost) ghost.style.display = 'none';
@@ -797,66 +613,33 @@ export class Game {
 
     async notif_turnConfirmed(notif) {
         const args = this._getNotifArgs(notif);
-        const { stones, scores, last_placed_coords, player_id } = args;
+        const { stones, scores, last_placed_coords } = args;
 
         this.stagedStones = [];
 
         (stones || []).forEach(st => {
-            const key = `${st.q}_${st.r}`;
-            this.boardData[key] = { q: st.q, r: st.r, color: st.color };
-
-            const cell = document.querySelector(`.omega_cell[data-q="${st.q}"][data-r="${st.r}"]`);
-            if (cell) {
-                const stone = cell.querySelector('.omega_stone');
-                const shine = cell.querySelector('.omega_stone_shine');
-                const ghost = cell.querySelector('.omega_ghost_stone');
-                if (ghost) ghost.style.display = 'none';
-                if (stone) {
-                    stone.setAttribute('class', `omega_stone omega_stone_${st.color}`);
-                    stone.style.display = 'block';
-                }
-                if (shine) {
-                    shine.style.display = 'block';
-                }
-                cell.classList.remove('omega_valid_target');
-            }
+            this.boardData[`${st.q}_${st.r}`] = { q: st.q, r: st.r, color: st.color };
+            this.paintStone(st.q, st.r, st.color);
+            this.cellEls[`${st.q}_${st.r}`]?.classList.remove('omega_valid_target');
         });
 
         if (last_placed_coords !== undefined) {
             this.updateLastPlacedMarkers(last_placed_coords);
         }
 
-        if (String(player_id) !== String(this.getCurrentPlayerId())) {
-            sounds.playPlace();
-        }
+        // Confirmed turn: the one deliberate place sound, for every player
+        sounds.playPlace();
 
         if (scores) {
             this.updateScoresDisplay(scores);
         }
-        this.updateStonesOwnership();
     }
 
     async notif_stonePlaced(notif) {
         const args = this._getNotifArgs(notif);
         const { q, r, color, placed_this_turn, remaining_colors, scores, last_placed_coords } = args;
-        const key = `${q}_${r}`;
-        this.boardData[key] = { q, r, color };
-
-        // Update DOM cell
-        const cell = document.querySelector(`.omega_cell[data-q="${q}"][data-r="${r}"]`);
-        if (cell) {
-            const stone = cell.querySelector('.omega_stone');
-            const shine = cell.querySelector('.omega_stone_shine');
-            const ghost = cell.querySelector('.omega_ghost_stone');
-            if (ghost) ghost.style.display = 'none';
-            if (stone) {
-                stone.setAttribute('class', `omega_stone omega_stone_${color}`);
-                stone.style.display = 'block';
-            }
-            if (shine) {
-                shine.style.display = 'block';
-            }
-        }
+        this.boardData[`${q}_${r}`] = { q, r, color };
+        this.paintStone(q, r, color);
 
         if (last_placed_coords !== undefined) {
             this.updateLastPlacedMarkers(last_placed_coords);
@@ -885,18 +668,7 @@ export class Game {
             if (this.boardData[key]) {
                 this.boardData[key].color = null;
             }
-            const cell = document.querySelector(`.omega_cell[data-q="${pt.q}"][data-r="${pt.r}"]`);
-            if (cell) {
-                const stone = cell.querySelector('.omega_stone');
-                const shine = cell.querySelector('.omega_stone_shine');
-                if (stone) {
-                    stone.style.display = 'none';
-                    stone.setAttribute('class', 'omega_stone');
-                }
-                if (shine) {
-                    shine.style.display = 'none';
-                }
-            }
+            this.paintStone(pt.q, pt.r, null);
         });
 
         if (last_placed_coords !== undefined) {
@@ -921,7 +693,6 @@ export class Game {
         this.playerColors = args.player_colors;
         sounds.playChime();
         this.updateScoresDisplay(args.scores);
-        this.updateStonesOwnership();
     }
 
     async notif_endGameScores(notif) {
@@ -931,11 +702,52 @@ export class Game {
     }
 
     setupResponsiveScaling() {
-        window.addEventListener('resize', () => this.updateBoardScale());
-        window.addEventListener('orientationchange', () => {
-            setTimeout(() => this.updateBoardScale(), 150);
-        });
-        setTimeout(() => this.updateBoardScale(), 100);
+        const update = () => this.updateBoardScale();
+        window.addEventListener('resize', update);
+        window.addEventListener('orientationchange', () => setTimeout(update, 150));
+        const area = document.getElementById('omega_container')?.parentElement;
+        if (area && typeof ResizeObserver !== 'undefined') {
+            new ResizeObserver(update).observe(area);
+        }
+        setTimeout(update, 0);
+        setTimeout(update, 300);
+    }
+
+    // BGA wraps the play area in padded containers. On phones, widen our container
+    // to the widest ancestor so the board can use the full screen width.
+    fitContainerToScreen(container) {
+        container.style.width = '';
+        container.style.marginLeft = '';
+        container.style.marginRight = '';
+
+        const viewportW = document.documentElement.clientWidth || window.innerWidth;
+        if (window.innerWidth > 800) {
+            return container.clientWidth;
+        }
+
+        let ref = null;
+        let widest = 0;
+        for (let el = container.parentElement; el && el !== document.documentElement; el = el.parentElement) {
+            if (el.clientWidth > widest) {
+                widest = el.clientWidth;
+                ref = el;
+            }
+        }
+        const targetW = Math.min(widest || viewportW, viewportW);
+
+        container.style.alignSelf = 'flex-start';
+        container.style.width = `${targetW}px`;
+
+        if (ref) {
+            const cRect = container.getBoundingClientRect();
+            const rRect = ref.getBoundingClientRect();
+            const unit = (container.offsetWidth && cRect.width) ? cRect.width / container.offsetWidth : 1;
+            const shift = (cRect.left - rRect.left) / unit;
+            if (Math.abs(shift) > 0.5) {
+                container.style.marginLeft = `${-shift}px`;
+            }
+        }
+        return targetW;
     }
 
     updateBoardScale() {
@@ -944,17 +756,24 @@ export class Game {
         const wrapper = document.getElementById('omega_board_wrapper');
         if (!container || !scaler || !wrapper) return;
 
-        const baseWidth = 620;
-        const baseHeight = 620;
-        const containerWidth = container.clientWidth || window.innerWidth;
-        const availableWidth = Math.max(280, containerWidth - 16);
+        const baseW = this.boardW;
+        const baseH = this.boardH;
+        const availableWidth = Math.max(280, this.fitContainerToScreen(container) - 2);
 
-        let scale = Math.min(1.0, availableWidth / baseWidth);
-        const scaledW = Math.round(baseWidth * scale);
-        const scaledH = Math.round(baseHeight * scale);
+        // Desktop: natural size is capped (about 700px wide); phones fill the width
+        const maxScale = 700 / baseW;
+        let scale = Math.min(maxScale, availableWidth / baseW);
 
-        scaler.style.width = `${scaledW}px`;
-        scaler.style.height = `${scaledH}px`;
+        // Phone in landscape: keep the whole board visible vertically
+        const landscape = window.innerWidth > window.innerHeight;
+        if (landscape && window.innerHeight < 600) {
+            scale = Math.min(scale, Math.max(0.2, (window.innerHeight - 120) / baseH));
+        }
+
+        scaler.style.width = `${Math.round(baseW * scale)}px`;
+        scaler.style.height = `${Math.round(baseH * scale)}px`;
+        wrapper.style.width = `${baseW}px`;
+        wrapper.style.height = `${baseH}px`;
         wrapper.style.transform = `scale(${scale})`;
     }
 }
