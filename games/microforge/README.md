@@ -1,18 +1,40 @@
-# MicroForge ⚙️🤖
+# MicroForge 🌸🤖
 
-*A 2–6 player tactical game of miniature automation, dynamic markets, conveyor logistics, and deterministic mecha warfare.*
+*A 2–6 player tactical game of cheerful toy automation, dynamic markets, conveyor logistics, and deterministic friendly skirmishes in a blooming nature valley.*
 
 ---
 
 ## 🎨 Visual Concepts
-Concept art files are available in this directory:
-* **Tabletop Gameplay Mockup**: [`concept_art/tabletop_gameplay_mockup.jpg`](concept_art/tabletop_gameplay_mockup.jpg)
-* **Box Cover Artwork**: [`metadata_assets/box_art_concept.jpg`](metadata_assets/box_art_concept.jpg)
+* 🌸 **Bright Nature Tabletop Gameplay Mockup**: [`concept_art/happy_nature_bots_mockup.jpg`](concept_art/happy_nature_bots_mockup.jpg)
+* ☀️ **Happy Toy Bots Box Art**: [`metadata_assets/happy_nature_box_art.jpg`](metadata_assets/happy_nature_box_art.jpg)
 
 ---
 
-## 📖 The Setting: The Clockwork Workshop
-Long after the master inventor departed, the vast mahogany workshop came alive. Tiny brass automata, clockwork golems, and tinker bots awoke under the warm glow of hearth lamps. To expand their autonomous society, rival bot factions compete across the workbench—mining raw ore, piping steam and crystals, trading at high-tech ports, and fielding miniature tactical mechs to secure the Central Reactor.
+## 📖 The Setting: The Sunny Bloom Valley
+Nestled in a hidden, sunlit meadow filled with blooming wild orchids, rainbow quartz crystals, and sparkling streamlets, a community of cheerful, smiling toy automata and colorful chibi bots awaken. Under warm blue skies, these friendly little tinkerers build pastel workshops, wooden watermills, and winding irrigation flumes to harvest solar nectar, river stones, and prism crystals—competing joyfully to construct the most prosperous automated garden valley!
+
+---
+
+## 🚶‍♂️ Movement Cost Formula (Triangular Scaling)
+Transporting resources and moving units follows an escalating triangular cost formula:
+* **1 hex** = **1 Credit**
+* **2 hexes** = **3 Credits** (1 + 2)
+* **3 hexes** = **6 Credits** (1 + 2 + 3)
+* **4 hexes** = **10 Credits** (1 + 2 + 3 + 4)
+* **Formula**: $\text{Cost} = \frac{N(N+1)}{2}$
+
+*Strategic Design*: Short-distance local distribution is very cheap and efficient; long-distance continent-crossing transit is expensive, making forward hubs and local outposts deeply rewarding!
+
+---
+
+## 💰 Economic Calibration & Starting Capital
+* **Starting Money**: Each player begins with a uniform **25 Credits** (or 30 Credits).
+* **Trading Vault / Depot**: Generates **+5 to +10 Credits** per round.
+* **Worker Bots**: Each Bot assigned to an Extractor or Factory boosts production by **+5 units/value**.
+* **Operating Upkeep**:
+  * Extractors and Factories cost **2 to 3 Credits** to run each round, requiring players to balance industrial expansion with active trade.
+* **Decommission / Scrapping (50% Refund)**:
+  * Players can demolish any building or decommission a Bot to immediately reclaim **50% of its initial cost in Credits**.
 
 ---
 
