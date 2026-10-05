@@ -36,6 +36,8 @@ class ResolveCombat extends GameState
             $this->game->finalizeAttack($attacker, $target);
         }
 
+        $this->game->endTurnCleanup($attacker);
+
         // Hand the turn back to the attacker so turn order continues from them
         if ((int) $this->game->getActivePlayerId() !== $attacker) {
             $this->game->gamestate->changeActivePlayer($attacker);

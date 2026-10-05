@@ -8,12 +8,14 @@
  *  - click a building slot to see what can be built there;
  *  - click a port badge (or a hex with your Dock) to trade.
  */
-const RES_COLORS = { iron: '#8a8f98', crystal: '#4aa3c7' };
+const RES_COLORS = { iron: '#3f7a1f', crystal: '#1f7fb0' };
 const GOODS = ['iron', 'crystal', 'bot', 'mech'];
 const TOKENS = ['iron', 'crystal'];
 const BUILDINGS = ['extractor', 'factory', 'tower'];
 const DIRS = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
-const TILE_COLORS = { iron: '#c3c6cc', crystal: '#9fd0e6' };
+const TILE_COLORS = { iron: '#a9d07c', crystal: '#9fd0e6' };
+const NO_RESOURCE_COLOR = '#c3c6cc';
+const SEA_COLOR = '#6f95b0';
 const BUILDING_NAMES = { extractor: 'Extractor', factory: 'Factory', tower: 'Guard Tower' };
 const BUILDING_NEUTRAL = '#7a6a58'; // buildings are universal: no player colour
 const MISSION_TEXT = {
@@ -29,7 +31,7 @@ const MISSION_TEXT = {
     tokens: ['Treasure Pile ${n}', 'Hold ${n} resource tokens on hexes you control.'],
     hexes: ['Land Grab ${n}', 'Control ${n} hexes.'],
     double_tiles: ['Rich Land ${n}', 'Control ${n} hex(es) with two resources.'],
-    ports: ['Harbor Boss ${n}', 'Control the hexes next to ${n} different ports.'],
+    ports: ['Harbor Boss ${n}', 'Control ${n} different Port tiles.'],
     center: ['King of the Hill', 'Control the central hex.'],
     credits: ['Piggy Bank ${n}', 'Have ${n} Credits.'],
 };
@@ -88,6 +90,8 @@ export class Game {
         this.slotSel = null; // { hex, kind: 'bld', idx }
         this.missionSel = null; // mission id whose card was clicked
         this.tradeSel = null; // { hex, mode: null | 'buy' | 'sell' } port or Dock opened in the banner
+        this.tradeQty = 1;
+        this.notice = null;
         this.pushArgs = null;
         this.pushActive = false;
         this.bga.states.register('PlayerTurn', new PlayerTurn(this));
@@ -98,7 +102,7 @@ export class Game {
         this.data = gamedatas;
         this.data.hexes.forEach(h => { h.edges = h.edges || '111111'; });
         this.bga.gameArea.getElement().insertAdjacentHTML('beforeend',
-            '<div id="mf_boards"></div><div id="mf_top"><div id="mf_market"></div><div id="mf_missions"></div></div><div id="mf_board"></div><div id="mf_ports"></div><div id="mf_panel"></div>');
+            '<div id="mf_boards"></div><div id="mf_notice"></div><div id="mf_top"><div id="mf_market"></div><div id="mf_missions"></div></div><div id="mf_board"></div><div id="mf_ports"></div><div id="mf_panel"></div>');
         this.bga.notifications.setupPromiseNotifications();
         this.render();
         // The player panels on the right may mount after setup
@@ -112,6 +116,10 @@ export class Game {
 
     notif_gameUpdate(args) {
         Object.assign(this.data, args.state);
+        if (args.failure) {
+            this.notice = _('ATTACK FAILURE on hex ${hex}: attack power ${power}, but pushing the weakest defender needs ${need}. You need twice the defender\'s power to push it (three times to kill it); a Guard Tower adds 1 per point of defender power. The attackers returned.')
+                .replace('${hex}', args.hex).replace('${power}', args.power).replace('${need}', args.need);
+        }
         this.clearSel();
         this.slotSel = null;
         this.missionSel = null;
@@ -287,7 +295,7 @@ export class Game {
         const terms = {};
         goods.forEach(g => {
             const price = d.prices[g];
-            const step = g === 'mech' ? 2 : 1;
+            const step = (g === 'mech' || g === 'crystal') ? 2 : 1;
             let buy = price;
             let sell = Math.max(d.price_min[g], price - step);
             if (port) {
@@ -299,10 +307,16 @@ export class Game {
         return { port, terms };
     }
 
-    portText(p) {
+    /** What this port does: it sells one good cheaper, or pays more for one good. */
+    portPerk(p) {
         const d = this.data;
-        return `${_('Port')} ${this.portLetter(p)}: ${_('buy cheaper')} (-${d.port_discount}): ${p.supply_item_1}, ${p.supply_item_2}`
-            + ` | ${_('pays more')} (+${d.port_bonus}) ${_('for')}: ${[p.demanded_item_1, p.demanded_item_2, p.demanded_item_3].filter(Boolean).join(', ')}`;
+        return p.supply_item_1
+            ? `${_('buy')} ${p.supply_item_1} ${_('cheaper')} (-${d.port_discount})`
+            : `${_('sell')} ${p.demanded_item_1} ${_('for more')} (+${d.port_bonus})`;
+    }
+
+    portText(p) {
+        return `${_('Port')} ${this.portLetter(p)}: ${this.portPerk(p)}`;
     }
 
     // ------------------------------------------------------------------ rendering
@@ -312,6 +326,7 @@ export class Game {
         if (this.selFrom !== null && this.moveTotal() > 0) this.dists = this.distances(this.selFrom);
         this.renderPlayerBoards();
         this.renderSidebar();
+        this.renderNotice();
         this.renderMarket();
         this.renderMissions();
         this.renderBoard();
@@ -385,6 +400,10 @@ export class Game {
         } else {
             sb.setTitle(_('${you} may move, build, extract, manufacture and trade, then end your turn'));
             sb.addActionButton(_('End turn'), () => this.act('actEndTurn'), { color: 'primary' });
+            if ((this.args.undo_count || 0) > 0) {
+                sb.addActionButton(_('Undo'), () => this.act('actUndo'), { color: 'alert' });
+                sb.addActionButton(_('Undo all'), () => this.act('actUndoAll'), { color: 'alert' });
+            }
         }
     }
 
@@ -404,14 +423,16 @@ export class Game {
         const goods = Object.keys(info.terms);
         const buys = goods.map(g => `${g} ${info.terms[g].buy}`).join(', ');
         const sells = goods.map(g => `${g} ${info.terms[g].sell}`).join(', ');
-        const perks = info.port ? ` (${_('cheaper to buy')}: ${[info.port.supply_item_1, info.port.supply_item_2].filter(Boolean).join(', ')}; ${_('pays more')}: ${[info.port.demanded_item_1, info.port.demanded_item_2, info.port.demanded_item_3].filter(Boolean).join(', ')})` : ` (${_('normal prices')})`;
+        const perks = info.port ? ` (${this.portPerk(info.port)})` : ` (${_('normal prices')})`;
+        const overview = `${name}${perks}. ${_('You pay')}: ${buys}. ${_('You get')}: ${sells}.`;
         if (hex.owner_id !== me) {
-            sb.setTitle(`${name}${perks}. ${_('You pay')}: ${buys}. ${_('You get')}: ${sells}. ${_('Stand one of your units on this hex to trade here.')}`);
+            sb.setTitle(`${overview} ${_('Stand one of your units on this hex to trade here.')}`);
             cancel();
             return;
         }
+        const qty = this.tradeQty;
         if (!t.mode) {
-            sb.setTitle(`${name}${perks}. ${_('You pay')}: ${buys}. ${_('You get')}: ${sells}.`);
+            sb.setTitle(`${overview} ${_('Quantity')}: ${qty} (${_('change it in the panel below')}).`);
             sb.addActionButton(_('Buy'), () => { this.tradeSel.mode = 'buy'; this.render(); }, { color: 'primary' });
             sb.addActionButton(_('Sell'), () => { this.tradeSel.mode = 'sell'; this.render(); }, { color: 'secondary' });
             cancel();
@@ -419,17 +440,15 @@ export class Game {
         }
         const credits = d.player_state[me].credits;
         const supply = d.player_state[me].supply;
-        sb.setTitle(t.mode === 'buy'
-            ? `${name}: ${_('buy which good?')} (${_('click the port again to go back')})`
-            : `${name}: ${_('sell which good?')} (${_('click the port again to go back')})`);
+        sb.setTitle(`${name}: ${t.mode === 'buy' ? _('buy') : _('sell')} ${qty} ${_('of which good? All at the current price; the price then moves one step per item.')} (${_('click the hex again to go back')})`);
         goods.forEach(g => {
             const have = this.availOf(t.hex, (g === 'bot' || g === 'mech') ? g + 's' : g);
             if (t.mode === 'buy') {
-                const price = info.terms[g].buy;
-                const noSupply = (g === 'bot' || g === 'mech') && supply[g] < 1;
-                sb.addActionButton(`${g} (${price})`, () => this.act('actBuy', { hexId: t.hex, good: g }), { color: 'primary', disabled: credits < price || noSupply });
+                const total = info.terms[g].buy * qty;
+                const noSupply = (g === 'bot' || g === 'mech') && supply[g] < qty;
+                sb.addActionButton(`${g} x${qty} (${total})`, () => this.act('actBuy', { hexId: t.hex, good: g, qty }), { color: 'primary', disabled: credits < total || noSupply });
             } else {
-                sb.addActionButton(`${g} (+${info.terms[g].sell})`, () => this.act('actSell', { hexId: t.hex, good: g }), { color: 'secondary', disabled: have < 1 });
+                sb.addActionButton(`${g} x${qty} (+${info.terms[g].sell * qty})`, () => this.act('actSell', { hexId: t.hex, good: g, qty }), { color: 'secondary', disabled: have < qty });
             }
         });
     }
@@ -513,7 +532,7 @@ export class Game {
                     + `<div>${_('Building needs iron on the tile')}: ${BUILDINGS.map(b => `${b} ${d.build_iron[b]}`).join(', ')}.</div>`
                     + `<div>${_('Moving: every piece pays 1 Credit for 1 step, 3 for 2 steps, 6 for 3 steps, 10 for 4. A moved piece gets its coins under it and cannot move again this turn.')}</div>`
                     + `<div>${_('Buildings and resource tokens belong to whoever controls their hex (has units on it). Bots only hold hexes and attack.')}</div>`
-                    + `<div>${_('Attacks (moving onto an enemy hex) resolve when you end your turn. A bot has power 1, a mech power 4. Each defending bot needs power 2 to be pushed away and 3 to be killed; a defending Guard Tower adds 1 to both. A mech defends as power 4.')}</div>`
+                    + `<div>${_('Attack power: bot = 1, mech = 4. Attackers walk onto the enemy tile and the attack is resolved when you end your turn. To push a defender you need twice its power (a bot 2, a mech 8), to kill it three times; each Guard Tower adds 1 per point of defender power. If the attack is too weak it FAILS and the attackers return.')}</div>`
                     + '</div>';
             }
             return `<div class="mf_pboard" style="border-color:${this.colorOf(pid)}">`
@@ -543,6 +562,14 @@ export class Game {
             const bots = d.units.filter(u => u.owner_id === pid && u.unit_type === 'bot').length;
             box.innerHTML = `${_('Credits')}: ${s.credits} | VP: ${s.vp}/${d.vp_target} | ${_('Missions bought')}: ${s.missions_bought} | ${_('Bots')}: ${bots}`;
         });
+    }
+
+    renderNotice() {
+        const el = document.getElementById('mf_notice');
+        if (!el) return;
+        el.innerHTML = this.notice ? `<div class="mf_failure">${this.notice} <i>(${_('click to dismiss')})</i></div>` : '';
+        const box = el.querySelector('.mf_failure');
+        if (box) box.addEventListener('click', () => { this.notice = null; this.render(); });
     }
 
     renderMarket() {
@@ -593,12 +620,9 @@ export class Game {
     renderBoard() {
         const size = 40;
         const R = this.data.hex_radius;
-        const ext = R * size * 1.75 + 135; // room for the sea-side labels
+        const ext = (R + 1) * size * 1.8 + 75; // land, the port ring and the Dock labels
         const me = this.me();
         const parts = [`<svg viewBox="${-ext} ${-ext} ${ext * 2} ${ext * 2}" width="100%" style="max-width:700px">`];
-        // Tiles with two resources are split down the middle in the two resource colours
-        parts.push('<defs>' + this.data.hexes.filter(h => h.resource_type_2).map(h =>
-            `<linearGradient id="mf_g${h.hex_id}" x1="0" x2="1" y1="0" y2="0"><stop offset="50%" stop-color="${TILE_COLORS[h.resource_type]}"/><stop offset="50%" stop-color="${TILE_COLORS[h.resource_type_2]}"/></linearGradient>`).join('') + '</defs>');
         for (const h of this.data.hexes) {
             const { x, y } = this.hexPos(h, size);
             const pts = [0, 1, 2, 3, 4, 5].map(i => {
@@ -611,22 +635,36 @@ export class Game {
             const isPending = this.pending && this.pending.to === h.hex_id;
             const attackable = target && this.isEnemyHex(h);
             const retreat = this.pushActive && this.pushArgs && this.pushArgs.options.includes(h.hex_id);
-            const fill = h.resource_type_2 ? `url(#mf_g${h.hex_id})` : (h.resource_type ? TILE_COLORS[h.resource_type] : '#d9c7a0');
+            const fill = h.is_port ? SEA_COLOR : (h.resource_type ? TILE_COLORS[h.resource_type] : NO_RESOURCE_COLOR);
             const stroke = isPending ? '#ffe600' : (retreat ? '#32cd32' : (attackable ? '#ff3b3b' : (target ? '#ffffff' : (h.owner_id ? this.colorOf(h.owner_id) : '#5a4630'))));
             parts.push(`<g class="mf_hex" data-hex="${h.hex_id}" style="cursor:pointer">`
-                + `<polygon points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="${isPending || retreat ? 7 : (sel || target ? 5 : (h.owner_id ? 4 : 1.5))}"><title>${[h.resource_type, h.resource_type_2].filter(Boolean).join(' + ') || _('no resource')}</title></polygon>`);
-            // Paths: open edges as roads, blocked edges as a dashed cliff line on the border
+                + `<polygon points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="${isPending || retreat ? 7 : (sel || target ? 5 : (h.owner_id ? 4 : 1.5))}"><title>${h.is_port ? _('Port') : (h.resource_type || _('no resource'))}</title></polygon>`);
+            // Paths: a road runs to the neighbour only when both tiles have the connection; a one-sided connection is a stub
             DIRS.forEach(([dq, dr], dIdx) => {
+                const nb = this.data.hexes.find(o => o.coord_q === h.coord_q + dq && o.coord_r === h.coord_r + dr);
+                if (!nb) return;
                 const vx = Math.sqrt(3) * (dq + dr / 2), vy = 1.5 * dr;
                 const len = Math.hypot(vx, vy);
                 const ux = vx / len, uy = vy / len;
                 const mx = x + ux * size * 0.87, my = y + uy * size * 0.87;
-                if (h.edges[dIdx] === '1') {
-                    parts.push(`<line x1="${x}" y1="${y}" x2="${mx}" y2="${my}" stroke="#8b6b3d" stroke-width="3"/>`);
+                const mine = h.edges[dIdx] === '1';
+                const theirs = nb.edges[(dIdx + 3) % 6] === '1';
+                if (mine && theirs) {
+                    parts.push(`<line x1="${x}" y1="${y}" x2="${mx}" y2="${my}" stroke="#8b6b3d" stroke-width="3.5"/>`);
+                } else if (mine) {
+                    parts.push(`<line x1="${x}" y1="${y}" x2="${x + ux * size * 0.45}" y2="${y + uy * size * 0.45}" stroke="#8b6b3d" stroke-width="2" stroke-dasharray="3 2"/>`);
                 } else {
-                    parts.push(`<line x1="${mx - uy * size * 0.45}" y1="${my + ux * size * 0.45}" x2="${mx + uy * size * 0.45}" y2="${my - ux * size * 0.45}" stroke="#2b2118" stroke-width="3" stroke-dasharray="3 2"/>`);
+                    parts.push(`<line x1="${mx - uy * size * 0.4}" y1="${my + ux * size * 0.4}" x2="${mx + uy * size * 0.4}" y2="${my - ux * size * 0.4}" stroke="#2b2118" stroke-width="2.5" stroke-dasharray="3 2"/>`);
                 }
             });
+            if (h.is_port) {
+                const pr = this.data.ports.find(p => p.adjacent_hex_id === h.hex_id);
+                if (pr) {
+                    parts.push(`<text x="${x}" y="${y - 6}" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff" pointer-events="none">${_('Port')} ${this.portLetter(pr)}</text>`
+                        + `<text x="${x}" y="${y + 6}" text-anchor="middle" font-size="9" fill="#fff" pointer-events="none">${pr.supply_item_1 ? `${_('buy')} ${pr.supply_item_1}` : `${_('sell')} ${pr.demanded_item_1}`}</text>`
+                        + `<text x="${x}" y="${y + 17}" text-anchor="middle" font-size="9" fill="#fff" pointer-events="none">${pr.supply_item_1 ? `-${this.data.port_discount}` : `+${this.data.port_bonus}`}</text>`);
+                }
+            }
             const blds = this.data.buildings.filter(b => b.hex_id === h.hex_id);
             // Production areas (dotted): click one to build, extract or sell. Filled with the owner's colour when built.
             const built = blds.filter(b => b.building_type !== 'dock');
@@ -657,7 +695,7 @@ export class Game {
                 parts.push(g.type === 'bot'
                     ? `<circle cx="${sx}" cy="${sy}" r="6" fill="${this.colorOf(g.owner)}" stroke="${outline}" stroke-width="${nSel > 0 ? 3 : 1.5}"/>`
                     : `<rect x="${sx - 6}" y="${sy - 6}" width="12" height="12" fill="${this.colorOf(g.owner)}" stroke="${outline}" stroke-width="${nSel > 0 ? 3 : 1.5}"/>`);
-                parts.push(`<text x="${sx + 8}" y="${sy + 3}" font-size="9" fill="#2b2118" pointer-events="none">${nSel > 0 ? nSel + '/' : ''}${g.n}${g.attack ? '>' + g.attack : ''}</text>`);
+                parts.push(`<text x="${sx + 8}" y="${sy + 3}" font-size="9" fill="#2b2118" pointer-events="none">${nSel > 0 ? nSel + '/' : ''}${g.n}${g.attack ? ' atk' : ''}</text>`);
                 if (g.moved) {
                     parts.push(`<text x="${sx}" y="${sy + 15}" text-anchor="middle" font-size="7" fill="#7a5d00" pointer-events="none">${g.moved}c</text>`);
                 }
@@ -705,17 +743,9 @@ export class Game {
                 const dot = ({ d }) => Math.sqrt(3) * (d[0] + d[1] / 2) * Math.sqrt(3) * (h.coord_q + h.coord_r / 2) + 1.5 * d[1] * 1.5 * h.coord_r;
                 return dot(b) - dot(a);
             }).map(o => o.i);
-        for (const p of this.data.ports) {
-            const dd = this.data;
-            const cheap = [p.supply_item_1, p.supply_item_2].filter(Boolean).join(', ');
-            const more = [p.demanded_item_1, p.demanded_item_2, p.demanded_item_3].filter(Boolean).join(', ');
-            parts.push(seaLabel(byId[p.adjacent_hex_id], p.edge_dir,
-                [`${_('Port')} ${this.portLetter(p)}`, `${_('buy cheaper')}: ${cheap}`, `${_('pays more')}: ${more}`], p.adjacent_hex_id, this.portText(p)));
-        }
         for (const b of this.data.buildings.filter(x => x.building_type === 'dock')) {
             const h = byId[b.hex_id];
-            const portDirs = this.data.ports.filter(p => p.adjacent_hex_id === h.hex_id).map(p => p.edge_dir);
-            const dir = seaDirs(h).find(i => !portDirs.includes(i));
+            const dir = seaDirs(h)[0];
             if (dir === undefined) continue;
             parts.push(seaLabel(h, dir, [_('Dock'), `${_('normal price')}:`, this.data.dock_goods.join(', ')], h.hex_id, _('Home Dock: iron and bots at the normal price')));
         }
@@ -735,10 +765,8 @@ export class Game {
     }
 
     renderPorts() {
-        const html = this.data.ports.map(p => `<button class="mf_portrow" data-hex="${p.adjacent_hex_id}">${this.portText(p)}</button>`).join('');
         const el = document.getElementById('mf_ports');
-        el.innerHTML = `<div class="mf_hint">${_('Ports (click one to trade there)')}</div>` + html;
-        el.querySelectorAll('.mf_portrow').forEach(b => b.addEventListener('click', () => this.onPortClick(Number(b.dataset.hex))));
+        if (el) el.innerHTML = '';
     }
 
     // ------------------------------------------------------------------ interaction
@@ -779,6 +807,9 @@ export class Game {
         }
         if (hexId === this.selFrom) this.clearSel();
         this.selectedHex = hexId;
+        if (this.moveTotal() === 0 && this.tradeInfo(this.hexById(hexId))) {
+            this.tradeSel = this.tradeSel && this.tradeSel.hex === hexId ? { hex: hexId, mode: null } : { hex: hexId, mode: null };
+        }
         this.render();
     }
 
@@ -872,7 +903,10 @@ export class Game {
             lines.push(`<div class="mf_row"><b>${_('Hex')} ${hid}</b> ${mine ? _('(you control this hex)') : _('(not controlled by you)')}`
                 + (mine ? `<div class="mf_hint">${_('Click your bots, mechs or resources on the hex to select them, then click a highlighted hex to move them.')}</div>` : '') + '</div>');
 
-            lines.push(this.tradeSection(hex, hid, avail, canAct));
+            if (this.tradeSel && this.tradeSel.hex === hid) {
+                lines.push(`<div class="mf_row"><b>${_('Quantity')}</b> <button class="mf_qty" data-d="-1">-</button> ${this.tradeQty} <button class="mf_qty" data-d="1">+</button>`
+                    + ` <span class="mf_hint">${_('All items are traded at the current price, then the price moves one step per item.')}</span></div>`);
+            }
 
             if (mine) {
                 d.buildings.filter(b => b.hex_id === hid).forEach(b => {
@@ -895,5 +929,9 @@ export class Game {
         const el = document.getElementById('mf_panel');
         el.innerHTML = lines.join('');
         this.bindButtons(el);
+        el.querySelectorAll('.mf_qty').forEach(b => b.addEventListener('click', () => {
+            this.tradeQty = Math.max(1, Math.min(20, this.tradeQty + Number(b.dataset.d)));
+            this.render();
+        }));
     }
 }

@@ -24,3 +24,5 @@
 .mf_mission_sel { outline: 2px solid #ffe600; }
 .mf_missioninfo { font-size: 12px; margin-top: 6px; }
 .mf_sidebar { font-size: 12px; padding: 4px 6px; }
+.mf_failure { background: #7a1f1f; color: #fff; padding: 8px 10px; margin: 6px auto; max-width: 900px; cursor: pointer; font-weight: bold; }
+.mf_qty { min-width: 32px; min-height: 32px; }

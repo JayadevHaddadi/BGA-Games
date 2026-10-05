@@ -25,12 +25,14 @@ class PlayerTurn extends GameState
     {
         return [
             'can_claim_mission' => !$this->globals->get('claimed_this_turn', false),
+            'undo_count' => $this->game->undoCount(),
         ];
     }
 
     #[PossibleAction]
     public function actMove(int $fromHexId, int $toHexId, string $pieces, int $activePlayerId): string
     {
+        $this->game->pushUndo();
         $this->game->movePieces($activePlayerId, $fromHexId, $toHexId, $pieces);
         return PlayerTurn::class;
     }
@@ -38,6 +40,7 @@ class PlayerTurn extends GameState
     #[PossibleAction]
     public function actBuild(int $hexId, string $buildingType, int $slot, int $activePlayerId): string
     {
+        $this->game->pushUndo();
         $this->game->build($activePlayerId, $hexId, $buildingType, $slot);
         return PlayerTurn::class;
     }
@@ -45,6 +48,7 @@ class PlayerTurn extends GameState
     #[PossibleAction]
     public function actSellBuilding(int $buildingId, int $activePlayerId): string
     {
+        $this->game->pushUndo();
         $this->game->sellBuilding($activePlayerId, $buildingId);
         return PlayerTurn::class;
     }
@@ -52,6 +56,7 @@ class PlayerTurn extends GameState
     #[PossibleAction]
     public function actProduce(int $buildingId, string $kind, int $activePlayerId): string
     {
+        $this->game->pushUndo();
         $this->game->produce($activePlayerId, $buildingId, $kind);
         return PlayerTurn::class;
     }
@@ -59,21 +64,24 @@ class PlayerTurn extends GameState
     #[PossibleAction]
     public function actManufacture(int $buildingId, string $product, int $activePlayerId): string
     {
+        $this->game->pushUndo();
         $this->game->manufacture($activePlayerId, $buildingId, $product);
         return PlayerTurn::class;
     }
 
     #[PossibleAction]
-    public function actBuy(int $hexId, string $good, int $activePlayerId): string
+    public function actBuy(int $hexId, string $good, int $qty, int $activePlayerId): string
     {
-        $this->game->buyGood($activePlayerId, $hexId, $good);
+        $this->game->pushUndo();
+        $this->game->buyGood($activePlayerId, $hexId, $good, $qty);
         return PlayerTurn::class;
     }
 
     #[PossibleAction]
-    public function actSell(int $hexId, string $good, int $activePlayerId): string
+    public function actSell(int $hexId, string $good, int $qty, int $activePlayerId): string
     {
-        $this->game->sellGood($activePlayerId, $hexId, $good);
+        $this->game->pushUndo();
+        $this->game->sellGood($activePlayerId, $hexId, $good, $qty);
         return PlayerTurn::class;
     }
 
@@ -81,6 +89,7 @@ class PlayerTurn extends GameState
     #[PossibleAction]
     public function actClaimMission(string $missionId, int $activePlayerId): string
     {
+        $this->game->pushUndo();
         $vp = $this->game->claimMission($activePlayerId, $missionId);
         $this->bga->playerScore->set($activePlayerId, $vp);
         if ($vp >= Game::VP_TARGET) {
@@ -88,6 +97,30 @@ class PlayerTurn extends GameState
             return EndScore::class;
         }
         return PlayerTurn::class;
+    }
+
+    #[PossibleAction]
+    public function actUndo(int $activePlayerId): string
+    {
+        $this->game->undo($activePlayerId, false);
+        $this->syncScores();
+        return PlayerTurn::class;
+    }
+
+    #[PossibleAction]
+    public function actUndoAll(int $activePlayerId): string
+    {
+        $this->game->undo($activePlayerId, true);
+        $this->syncScores();
+        return PlayerTurn::class;
+    }
+
+    /** The BGA score counters follow the VP in the database (an undone mission may have changed them). */
+    private function syncScores(): void
+    {
+        foreach (array_keys($this->game->loadPlayersBasicInfos()) as $pid) {
+            $this->bga->playerScore->set((int) $pid, $this->game->getPlayerState((int) $pid)['vp']);
+        }
     }
 
     #[PossibleAction]

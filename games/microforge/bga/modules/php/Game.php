@@ -33,9 +33,9 @@ class Game extends \Bga\GameFramework\Table
     public const PRODUCTS = ['bot', 'mech'];
     public const GOODS = ['iron', 'crystal', 'bot', 'mech'];
     // Allowed price range per good, and the middle band prices start in. Raw: 1-10, products: 2-20.
-    public const PRICE_MIN = ['iron' => 1, 'crystal' => 1, 'bot' => 1, 'mech' => 2];
-    public const PRICE_MAX = ['iron' => 10, 'crystal' => 10, 'bot' => 10, 'mech' => 20];
-    public const PRICE_START = ['iron' => [4, 7], 'crystal' => [4, 7], 'bot' => [4, 7], 'mech' => [8, 14]];
+    public const PRICE_MIN = ['iron' => 1, 'crystal' => 2, 'bot' => 1, 'mech' => 2];
+    public const PRICE_MAX = ['iron' => 10, 'crystal' => 20, 'bot' => 10, 'mech' => 20];
+    public const PRICE_START = ['iron' => [4, 7], 'crystal' => [8, 14], 'bot' => [4, 7], 'mech' => [8, 14]];
     // The home Dock is a plain port: only iron and bots, at the normal board price
     public const DOCK_GOODS = ['bot', 'iron'];
     // Real ports: Credits off when buying their cheap goods
@@ -68,11 +68,6 @@ class Game extends \Bga\GameFramework\Table
             ['hexes', 9], ['ports', 3], ['center', 1], ['double_tiles', 2], ['credits', 30],
         ],
     ];
-
-    // Tile value budget by distance from the centre. Value costs: path 1, resource 2, building slot 2.
-    // Every tile has 4-6 paths (base 4 = value 4), 0-2 resources and 0-2 building slots, so the centre
-    // (budget 14) is exactly a maxed tile (6 paths + 2 resources + 2 slots) and the outer rim is a bare junction.
-    public const RING_BUDGET = [14, 10, 8, 6];
 
     // Axial neighbour directions
     public const DIRS = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
@@ -116,6 +111,8 @@ class Game extends \Bga\GameFramework\Table
                 ['building', 'used', "tinyint(3) unsigned NOT NULL DEFAULT 0"],
                 ['unit', 'assigned_to', "int(10) unsigned DEFAULT NULL"],
                 ['unit', 'attack_target', "smallint(5) DEFAULT NULL"],
+                ['unit', 'attack_from', "smallint(5) DEFAULT NULL"],
+                ['hex_tile', 'is_port', "tinyint(3) unsigned NOT NULL DEFAULT 0"],
                 ['unit', 'moved_cost', "tinyint(3) unsigned NOT NULL DEFAULT 0"],
                 ['item', 'moved_cost', "tinyint(3) unsigned NOT NULL DEFAULT 0"],
                 ['player_state', 'missions_bought', "smallint(5) unsigned NOT NULL DEFAULT 0"],
@@ -199,10 +196,11 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Hex board: 19 hexes (radius 2) for 2-3 players, 37 hexes (radius 3) for 4-6 players.
-     * Each tile spends a value budget by ring (see RING_BUDGET) on paths, resources and building slots.
-     * Players start on evenly spaced outer hexes with a Dock,
-     * an Extractor and 3 Bots. Trade ports (2 x players) sit on the perimeter.
+     * Land: 19 hexes (radius 2) for 2-3 players, 37 hexes (radius 3) for 4-6 players. Every tile holds either nothing
+     * (25%), an iron mine (50%) or a crystal deposit (25%), 0-2 building slots (never 0 on level 2 or on an empty tile)
+     * and some paths (level 1 = the centre: 6, level 2: 5-6, level 3 and beyond: 4-5). A path only works when both
+     * tiles have it. Players start on evenly spaced outer tiles with a Dock, an Extractor, iron and 3 Bots.
+     * Ports are tiles of their own just outside the land, each joined by path to the 2 land tiles next to it.
      */
     protected function generateBoard(array $playerIds): void
     {
@@ -217,6 +215,8 @@ class Game extends \Bga\GameFramework\Table
         static::DbQuery("DELETE FROM `trade_port`");
         static::DbQuery("DELETE FROM `claimed_mission`");
 
+        $angle = fn(array $h) => atan2(1.5 * $h['r'], sqrt(3) * ($h['q'] + $h['r'] / 2));
+
         $hexes = [];
         $id = 0;
         for ($q = -$radius; $q <= $radius; $q++) {
@@ -227,62 +227,60 @@ class Game extends \Bga\GameFramework\Table
                 }
                 $ring = max(abs($q), abs($r), abs($s));
                 $row = $this->rollTile($ring);
-                $row += ['id' => $id, 'q' => $q, 'r' => $r, 'ring' => $ring, 'owner' => null];
+                $row += ['id' => $id, 'q' => $q, 'r' => $r, 'ring' => $ring, 'owner' => null, 'port' => false];
                 $hexes[$id] = $row;
                 $id++;
             }
         }
 
-        // Outer ring ordered by angle
         $perimeter = array_values(array_filter($hexes, fn($h) => $h['ring'] === $radius));
-        usort($perimeter, function ($a, $b) {
-            $ax = sqrt(3) * ($a['q'] + $a['r'] / 2);
-            $ay = 1.5 * $a['r'];
-            $bx = sqrt(3) * ($b['q'] + $b['r'] / 2);
-            $by = 1.5 * $b['r'];
-            return atan2($ay, $ax) <=> atan2($by, $bx);
-        });
+        usort($perimeter, fn($a, $b) => $angle($a) <=> $angle($b));
         $perimeterCount = count($perimeter);
 
-        // Home hexes: one deposit (rotating iron / crystal), room for an extractor + a factory
+        // Home tiles: an iron mine with room for an Extractor and a Factory
         shuffle($playerIds);
         $homes = [];
         foreach ($playerIds as $i => $pid) {
             $hid = $perimeter[(int) floor($i * $perimeterCount / $n)]['id'];
-            $hexes[$hid]['res'] = self::RAW[$i % 2];
-            $hexes[$hid]['res2'] = null;
+            $hexes[$hid]['res'] = 'iron';
             $hexes[$hid]['rs'] = 1;
             $hexes[$hid]['bs'] = 2;
-            $hexes[$hid]['paths'] = max($hexes[$hid]['paths'], 5);
             $hexes[$hid]['owner'] = $pid;
             $homes[$pid] = $hid;
         }
 
-        // Trade ports: 2 x players, evenly spread around the perimeter, 3 random demanded goods each.
-        // A port hangs off the outward edge of its hex facing away from the centre; that path always stays open.
+        // Port tiles: the non-corner spots of the ring just outside the land each touch exactly 2 land tiles
+        $outer = $radius + 1;
+        $spots = [];
+        for ($q = -$outer; $q <= $outer; $q++) {
+            for ($r = -$outer; $r <= $outer; $r++) {
+                $abs = [abs($q), abs($r), abs(-$q - $r)];
+                if (max($abs) === $outer && count(array_filter($abs, fn($a) => $a === $outer)) === 1) {
+                    $spots[] = ['q' => $q, 'r' => $r];
+                }
+            }
+        }
+        usort($spots, fn($a, $b) => $angle($a) <=> $angle($b));
         $portCount = 2 * $n;
-        $portRows = [];
-        $protected = []; // hex_id => [dir, ...]
+        $portTileIds = [];
         for ($p = 0; $p < $portCount; $p++) {
-            $hex = $perimeter[(int) floor(($p + 0.5) * $perimeterCount / $portCount) % $perimeterCount];
-            $dir = $this->outwardDir($hex, $hexes, $radius);
-            $protected[$hex['id']][] = $dir;
-            $goods = self::GOODS;
-            shuffle($goods);
-            $portRows[] = [$p, $hex['id'], $goods, $dir]; // goods 0-1 demanded (+bonus when sold), goods 2-3 cheap to buy
+            $spot = $spots[(int) floor(($p + 0.5) * count($spots) / $portCount) % count($spots)];
+            $hexes[$id] = ['res' => null, 'rs' => 0, 'bs' => 0, 'minp' => 0, 'maxp' => 0, 'id' => $id, 'q' => $spot['q'], 'r' => $spot['r'],
+                'ring' => $outer, 'owner' => null, 'port' => true];
+            $portTileIds[$p] = $id;
+            $id++;
         }
 
-        $edges = $this->generateEdges($hexes, $protected);
+        $edges = $this->generateEdges($hexes);
 
         $values = [];
         foreach ($hexes as $h) {
             $res = $h['res'] === null ? 'NULL' : "'{$h['res']}'";
-            $res2 = $h['res2'] === null ? 'NULL' : "'{$h['res2']}'";
             $owner = $h['owner'] === null ? 'NULL' : (int) $h['owner'];
-            $e = $edges[$h['id']];
-            $values[] = "({$h['id']}, {$h['q']}, {$h['r']}, {$h['ring']}, {$res}, {$res2}, {$h['rs']}, {$h['bs']}, {$owner}, '{$e}')";
+            $isPort = $h['port'] ? 1 : 0;
+            $values[] = "({$h['id']}, {$h['q']}, {$h['r']}, {$h['ring']}, {$res}, NULL, {$h['rs']}, {$h['bs']}, {$owner}, '{$edges[$h['id']]}', {$isPort})";
         }
-        static::DbQuery("INSERT INTO `hex_tile` (`hex_id`, `coord_q`, `coord_r`, `ring`, `resource_type`, `resource_type_2`, `resource_slots`, `building_slots`, `owner_id`, `edges`) VALUES " . implode(',', $values));
+        static::DbQuery("INSERT INTO `hex_tile` (`hex_id`, `coord_q`, `coord_r`, `ring`, `resource_type`, `resource_type_2`, `resource_slots`, `building_slots`, `owner_id`, `edges`, `is_port`) VALUES " . implode(',', $values));
 
         foreach ($homes as $pid => $hid) {
             static::DbQuery("INSERT INTO `building` (`hex_id`, `building_type`, `owner_id`, `slot`) VALUES ({$hid}, 'dock', {$pid}, 0), ({$hid}, 'extractor', {$pid}, 0)");
@@ -294,131 +292,132 @@ class Game extends \Bga\GameFramework\Table
             }
         }
 
+        // Every port improves exactly one good: either it sells it cheaper or it pays more for it
         $portValues = [];
-        foreach ($portRows as [$p, $hid, $goods, $dir]) {
-            $portValues[] = "({$p}, {$hid}, '{$goods[0]}', '{$goods[1]}', '', {$dir}, '{$goods[2]}', '{$goods[3]}')";
+        foreach ($portTileIds as $p => $tileId) {
+            $good = self::GOODS[bga_rand(0, count(self::GOODS) - 1)];
+            if (bga_rand(0, 1) === 0) {
+                $portValues[] = "({$p}, {$tileId}, '{$good}', '', '', 0, '', '')"; // pays more when sold here
+            } else {
+                $portValues[] = "({$p}, {$tileId}, '', '', '', 0, '{$good}', '')"; // cheaper to buy here
+            }
         }
         static::DbQuery("INSERT INTO `trade_port` (`port_id`, `adjacent_hex_id`, `demanded_item_1`, `demanded_item_2`, `demanded_item_3`, `edge_dir`, `supply_item_1`, `supply_item_2`) VALUES " . implode(',', $portValues));
     }
 
-    /** Spend the ring's value budget: 4 base paths, then random upgrades (path +1, resource +2, building slot +2). */
+    /** One land tile: resource (25% none, 50% iron, 25% crystal), building slots and the range of path connections. */
     protected function rollTile(int $ring): array
     {
-        $left = self::RING_BUDGET[min($ring, count(self::RING_BUDGET) - 1)] - 4;
-        $paths = 4;
-        $res = 0;
-        $slots = 0;
-        while ($left > 0) {
-            $opts = [];
-            if ($paths < 6) {
-                $opts[] = 'p';
-            }
-            if ($res < 2 && $left >= 2) {
-                $opts[] = 'r';
-            }
-            if ($slots < 2 && $left >= 2) {
-                $opts[] = 'b';
-            }
-            if (empty($opts)) {
-                break;
-            }
-            $pick = $opts[bga_rand(0, count($opts) - 1)];
-            if ($pick === 'p') {
-                $paths++;
-                $left--;
-            } elseif ($pick === 'r') {
-                $res++;
-                $left -= 2;
-            } else {
-                $slots++;
-                $left -= 2;
+        $x = bga_rand(1, 4);
+        $res = $x === 1 ? null : ($x <= 3 ? 'iron' : 'crystal');
+        if ($ring === 0) {
+            $slots = 2;
+        } elseif ($ring === 1) {
+            $slots = bga_rand(1, 2); // level 2 tiles always have a building slot
+        } else {
+            $y = bga_rand(1, 4);
+            $slots = $y === 1 ? 0 : ($y <= 3 ? 1 : 2);
+            if ($res === null) {
+                $slots = max(1, $slots); // an empty tile is at least a building site
             }
         }
-        $types = self::RAW;
-        shuffle($types);
-        if ($ring === 0 && $res === 2) {
-            $types = ['iron', 'crystal']; // the Mother Lode
-        }
-        return [
-            'res' => $res >= 1 ? $types[0] : null,
-            'res2' => $res >= 2 ? $types[1] : null,
-            'rs' => $res,
-            'bs' => $slots,
-            'paths' => $paths,
-        ];
-    }
-
-    /** Direction index (into DIRS) of the outward-facing edge of a perimeter hex that points furthest from the centre. */
-    protected function outwardDir(array $hex, array $hexes, int $radius): int
-    {
-        $x = sqrt(3) * ($hex['q'] + $hex['r'] / 2);
-        $y = 1.5 * $hex['r'];
-        $best = -1;
-        $bestDot = -INF;
-        foreach (self::DIRS as $d => [$dq, $dr]) {
-            $nq = $hex['q'] + $dq;
-            $nr = $hex['r'] + $dr;
-            if (max(abs($nq), abs($nr), abs(-$nq - $nr)) <= $radius) {
-                continue; // internal edge
-            }
-            $dot = sqrt(3) * ($dq + $dr / 2) * $x + 1.5 * $dr * $y;
-            if ($dot > $bestDot) {
-                $bestDot = $dot;
-                $best = $d;
-            }
-        }
-        return $best;
+        [$minp, $maxp] = $ring === 0 ? [6, 6] : ($ring === 1 ? [5, 6] : [4, 5]);
+        return ['res' => $res, 'rs' => $res === null ? 0 : 1, 'bs' => $slots, 'minp' => $minp, 'maxp' => $maxp];
     }
 
     /**
-     * Shared edges: start fully open, then block edges until each tile is near its target path count
-     * (outward edges first; never below 4 paths on either side; port edges stay open).
+     * Every tile lists its own connections (a path is only usable when BOTH tiles have it). A land tile offers as many
+     * as its level asks for, limited by the neighbours it actually has. Ports connect to the 2 land tiles beside them.
+     * Afterwards missing links are opened until the whole board is reachable.
      * Returns hex_id => 6-char open/closed mask indexed like DIRS.
      */
-    protected function generateEdges(array $hexes, array $protected): array
+    protected function generateEdges(array $hexes): array
     {
         $byCoord = [];
         foreach ($hexes as $h) {
             $byCoord["{$h['q']}_{$h['r']}"] = $h['id'];
         }
+        $links = []; // id => [dir => neighbour id]
         $open = [];
         foreach ($hexes as $h) {
-            $open[$h['id']] = array_fill(0, 6, true);
-        }
-        $order = array_keys($hexes);
-        shuffle($order);
-        foreach ($order as $hid) {
-            $h = $hexes[$hid];
-            while (count(array_filter($open[$hid])) > $h['paths']) {
-                $outward = [];
-                $inward = [];
-                foreach (self::DIRS as $d => [$dq, $dr]) {
-                    if (!$open[$hid][$d] || in_array($d, $protected[$hid] ?? [], true)) {
-                        continue;
-                    }
-                    $nid = $byCoord[($h['q'] + $dq) . '_' . ($h['r'] + $dr)] ?? null;
-                    if ($nid === null) {
-                        $outward[] = [$d, null];
-                    } elseif (count(array_filter($open[$nid])) > 4) {
-                        $inward[] = [$d, $nid];
-                    }
-                }
-                $cands = !empty($outward) ? $outward : $inward;
-                if (empty($cands)) {
-                    break;
-                }
-                [$d, $nid] = $cands[bga_rand(0, count($cands) - 1)];
-                $open[$hid][$d] = false;
-                if ($nid !== null) {
-                    $open[$nid][($d + 3) % 6] = false;
+            $open[$h['id']] = array_fill(0, 6, false);
+            foreach (self::DIRS as $d => [$dq, $dr]) {
+                $nid = $byCoord[($h['q'] + $dq) . '_' . ($h['r'] + $dr)] ?? null;
+                if ($nid !== null && !($h['port'] && $hexes[$nid]['port'])) {
+                    $links[$h['id']][$d] = $nid;
                 }
             }
         }
+        // Port links are always open on both sides
+        $forced = [];
+        foreach ($hexes as $h) {
+            if (!$h['port']) {
+                continue;
+            }
+            foreach ($links[$h['id']] ?? [] as $d => $nid) {
+                $open[$h['id']][$d] = true;
+                $open[$nid][($d + 3) % 6] = true;
+                $forced[$nid][] = ($d + 3) % 6;
+            }
+        }
+        foreach ($hexes as $h) {
+            if ($h['port']) {
+                continue;
+            }
+            $f = $forced[$h['id']] ?? [];
+            $cands = array_values(array_filter(array_keys($links[$h['id']] ?? []), fn($d) => !in_array($d, $f, true) && !$hexes[$links[$h['id']][$d]]['port']));
+            shuffle($cands);
+            $target = bga_rand($h['minp'], $h['maxp']);
+            foreach (array_slice($cands, 0, max(0, $target - count($f))) as $d) {
+                $open[$h['id']][$d] = true;
+            }
+        }
+
+        // Connectivity repair
+        for ($guard = 0; $guard < 200; $guard++) {
+            $seen = $this->reachableSet($hexes, $links, $open);
+            if (count($seen) === count($hexes)) {
+                break;
+            }
+            $fixed = false;
+            foreach ($seen as $id => $_) {
+                foreach ($links[$id] ?? [] as $d => $nid) {
+                    if (!isset($seen[$nid])) {
+                        $open[$id][$d] = true;
+                        $open[$nid][($d + 3) % 6] = true;
+                        $fixed = true;
+                        break 2;
+                    }
+                }
+            }
+            if (!$fixed) {
+                break;
+            }
+        }
+
         $result = [];
         foreach ($open as $hid => $mask) {
             $result[$hid] = implode('', array_map(fn($b) => $b ? '1' : '0', $mask));
         }
         return $result;
+    }
+
+    /** Hexes reachable from the first one over paths that are open on both sides. */
+    protected function reachableSet(array $hexes, array $links, array $open): array
+    {
+        $first = array_key_first($hexes);
+        $seen = [$first => true];
+        $queue = [$first];
+        while (!empty($queue)) {
+            $cur = array_shift($queue);
+            foreach ($links[$cur] ?? [] as $d => $nid) {
+                if (!isset($seen[$nid]) && $open[$cur][$d] && $open[$nid][($d + 3) % 6]) {
+                    $seen[$nid] = true;
+                    $queue[] = $nid;
+                }
+            }
+        }
+        return $seen;
     }
 
     // ------------------------------------------------------------------
@@ -452,8 +451,8 @@ class Game extends \Bga\GameFramework\Table
     {
         $hexes = static::getObjectListFromDb("SELECT * FROM `hex_tile` ORDER BY `hex_id`");
         foreach ($hexes as &$h) {
-            foreach (['hex_id', 'coord_q', 'coord_r', 'ring', 'resource_slots', 'building_slots'] as $k) {
-                $h[$k] = (int) $h[$k];
+            foreach (['hex_id', 'coord_q', 'coord_r', 'ring', 'resource_slots', 'building_slots', 'is_port'] as $k) {
+                $h[$k] = (int) ($h[$k] ?? 0);
             }
             $h['owner_id'] = $h['owner_id'] === null ? null : (int) $h['owner_id'];
             $h['edges'] = $h['edges'] ?? '111111';
@@ -632,7 +631,7 @@ class Game extends \Bga\GameFramework\Table
     /** A hex is controlled by whoever has units on it. */
     protected function refreshControl(int $hexId): void
     {
-        $owner = static::getUniqueValueFromDb("SELECT `owner_id` FROM `unit` WHERE `hex_id` = {$hexId} LIMIT 1");
+        $owner = static::getUniqueValueFromDb("SELECT `owner_id` FROM `unit` WHERE `hex_id` = {$hexId} AND `attack_target` IS NULL LIMIT 1");
         static::DbQuery("UPDATE `hex_tile` SET `owner_id` = " . ($owner === null ? 'NULL' : (int) $owner) . " WHERE `hex_id` = {$hexId}");
     }
 
@@ -668,7 +667,7 @@ class Game extends \Bga\GameFramework\Table
 
     protected function priceStep(string $good): int
     {
-        return $good === 'mech' ? 2 : 1;
+        return in_array($good, ['mech', 'crystal'], true) ? 2 : 1;
     }
 
     protected function adjustCredits(int $playerId, int $delta): void
@@ -837,14 +836,18 @@ class Game extends \Bga\GameFramework\Table
         foreach ($moves as [$table, $ids, $newCoins]) {
             $list = implode(',', $ids);
             if ($table === 'unit') {
-                $set = $isAttack ? "`attack_target` = {$toHexId}, `moved_cost` = {$newCoins}" : "`hex_id` = {$toHexId}, `moved_cost` = {$newCoins}";
+                $set = $isAttack
+                    ? "`hex_id` = {$toHexId}, `attack_target` = {$toHexId}, `attack_from` = {$fromHexId}, `moved_cost` = {$newCoins}"
+                    : "`hex_id` = {$toHexId}, `moved_cost` = {$newCoins}";
                 static::DbQuery("UPDATE `unit` SET {$set} WHERE `unit_id` IN ({$list})");
             } else {
                 static::DbQuery("UPDATE `item` SET `hex_id` = {$toHexId}, `moved_cost` = {$newCoins}, `owner_id` = {$playerId} WHERE `item_id` IN ({$list})");
             }
         }
         if ($isAttack) {
-            // The pieces stay where they are until the attack is resolved at the end of the turn
+            // The attackers stand on the target tile; the attack is resolved when the turn ends
+            $this->refreshControl($fromHexId);
+            $this->refreshControl($toHexId);
             $this->notifyUpdate(clienttranslate('${player_name} sends ${count} piece(s) to attack hex ${hex} (paid ${cost} Credits)'), [
                 'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'count' => $count, 'hex' => $toHexId, 'cost' => $cost,
             ]);
@@ -944,84 +947,68 @@ class Game extends \Bga\GameFramework\Table
         ]);
     }
 
-    /** Buy 1 at a Port/Dock hex you control; the piece or token appears on that hex. */
-    public function buyGood(int $playerId, int $hexId, string $good): void
+    /** Buy $qty at a Port/Dock hex you control, all at the current price; the price then rises $qty steps. */
+    public function buyGood(int $playerId, int $hexId, string $good, int $qty = 1): void
     {
         $this->assertGood($good);
+        if ($qty < 1 || $qty > 20) {
+            throw new UserException(clienttranslate("Choose a quantity between 1 and 20."));
+        }
         $terms = $this->tradeTerms($playerId, $hexId);
         if (!isset($terms[$good])) {
             throw new UserException(clienttranslate("This trading post does not deal in that good."));
         }
-        if (in_array($good, ['bot', 'mech'], true) && $this->playerSupply($playerId)[$good] < 1) {
-            throw new UserException(clienttranslate("None left on your player board."));
+        if (in_array($good, ['bot', 'mech'], true) && $this->playerSupply($playerId)[$good] < $qty) {
+            throw new UserException(clienttranslate("Not enough left on your player board."));
         }
-        $cost = $terms[$good]['buy'];
+        $cost = $qty * $terms[$good]['buy'];
         $this->spendCredits($playerId, $cost);
         if (in_array($good, ['bot', 'mech'], true)) {
-            $this->addUnit($playerId, $good, $hexId);
+            for ($i = 0; $i < $qty; $i++) {
+                $this->addUnit($playerId, $good, $hexId);
+            }
         } else {
-            $this->addItems($playerId, $good, $hexId, 1);
+            $this->addItems($playerId, $good, $hexId, $qty);
         }
         $prices = $this->globals->get('prices');
-        $prices[$good] = min(self::PRICE_MAX[$good], (int) $prices[$good] + $this->priceStep($good));
+        $prices[$good] = min(self::PRICE_MAX[$good], (int) $prices[$good] + $qty * $this->priceStep($good));
         $this->globals->set('prices', $prices);
-        $this->notifyUpdate(clienttranslate('${player_name} buys ${good} for ${price} Credits'), [
-            'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'good' => $good, 'price' => $cost,
+        $this->notifyUpdate(clienttranslate('${player_name} buys ${qty} ${good} for ${price} Credits'), [
+            'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'good' => $good, 'qty' => $qty, 'price' => $cost,
         ]);
     }
 
-    /** Sell 1 piece or token standing on a Port/Dock hex you control; the board price then drops one step. */
-    public function sellGood(int $playerId, int $hexId, string $good): void
+    /** Sell $qty standing on a Port/Dock hex you control, all at the current price; the price then drops $qty steps. */
+    public function sellGood(int $playerId, int $hexId, string $good, int $qty = 1): void
     {
         $this->assertGood($good);
+        if ($qty < 1 || $qty > 20) {
+            throw new UserException(clienttranslate("Choose a quantity between 1 and 20."));
+        }
         $terms = $this->tradeTerms($playerId, $hexId);
         if (!isset($terms[$good])) {
             throw new UserException(clienttranslate("This trading post does not deal in that good."));
         }
         if (in_array($good, ['bot', 'mech'], true)) {
-            $row = static::getObjectListFromDb("SELECT `unit_id` FROM `unit` WHERE `owner_id` = {$playerId} AND `unit_type` = '{$good}' AND `assigned_to` IS NULL AND `attack_target` IS NULL AND `hex_id` = {$hexId} LIMIT 1");
-            if (empty($row)) {
-                throw new UserException(clienttranslate("You need a free piece of that kind on this hex."));
+            $rows = static::getObjectListFromDb("SELECT `unit_id` FROM `unit` WHERE `owner_id` = {$playerId} AND `unit_type` = '{$good}' AND `attack_target` IS NULL AND `hex_id` = {$hexId} LIMIT {$qty}");
+            if (count($rows) < $qty) {
+                throw new UserException(clienttranslate("You do not have that many on this hex."));
             }
-            static::DbQuery("DELETE FROM `unit` WHERE `unit_id` = " . (int) $row[0]['unit_id']);
+            static::DbQuery("DELETE FROM `unit` WHERE `unit_id` IN (" . implode(',', array_map(fn($r) => (int) $r['unit_id'], $rows)) . ")");
             $this->refreshControl($hexId);
         } else {
-            $this->deleteItems($this->findItems($playerId, $good, $hexId, 1));
+            $this->deleteItems($this->findItems($playerId, $good, $hexId, $qty));
         }
-        $gain = $terms[$good]['sell'];
+        $gain = $qty * $terms[$good]['sell'];
         $this->adjustCredits($playerId, $gain);
         $prices = $this->globals->get('prices');
-        $prices[$good] = max(self::PRICE_MIN[$good], (int) $prices[$good] - $this->priceStep($good));
+        $prices[$good] = max(self::PRICE_MIN[$good], (int) $prices[$good] - $qty * $this->priceStep($good));
         $this->globals->set('prices', $prices);
-        $this->notifyUpdate(clienttranslate('${player_name} sells ${good} for ${gain} Credits'), [
-            'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'good' => $good, 'gain' => $gain,
+        $this->notifyUpdate(clienttranslate('${player_name} sells ${qty} ${good} for ${gain} Credits'), [
+            'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'good' => $good, 'qty' => $qty, 'gain' => $gain,
         ]);
     }
 
-    /** Shuffles the mission deck (10 of the 20 level 1 cards, then 10 of the 20 level 2 cards) and turns 5 face up. */
-    protected function setupMissions(): void
-    {
-        $deck = [];
-        foreach ([1, 2] as $level) {
-            $idx = range(0, count(self::MISSION_POOL[$level]) - 1);
-            shuffle($idx);
-            foreach (array_slice($idx, 0, self::MISSION_DECK_PER_LEVEL) as $i) {
-                $deck[] = "{$level}_{$i}";
-            }
-        }
-        $faceup = array_splice($deck, 0, self::MISSION_FACEUP);
-        $this->globals->set('mission_deck', $deck);
-        $this->globals->set('mission_faceup', $faceup);
-    }
-
-    public static function missionDef(string $id): array
-    {
-        [$level, $i] = array_map('intval', explode('_', $id));
-        [$type, $n] = self::MISSION_POOL[$level][$i];
-        return ['id' => $id, 'level' => $level, 'type' => $type, 'n' => $n, 'vp' => self::MISSION_VP_BY_LEVEL[$level]];
-    }
-
-    /** Everything counts what the player controls: hexes with their units, and the buildings / tokens standing there. */
     public function missionMet(int $playerId, string $type, int $n): bool
     {
         $q = fn(string $sql) => (int) static::getUniqueValueFromDb($sql);
@@ -1250,23 +1237,38 @@ class Game extends \Bga\GameFramework\Table
         }
     }
 
-    /** If the hex is empty of defenders the attackers move in; otherwise they stay where they were. */
+    /**
+     * Attackers already stand on the target tile. If no defender is left they hold it; otherwise the attack failed and
+     * they return to the tile they came from.
+     */
     public function finalizeAttack(int $attackerId, int $targetHexId): void
     {
-        $remaining = (int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `unit` WHERE `hex_id` = {$targetHexId} AND `owner_id` <> {$attackerId}");
-        if ($remaining === 0) {
-            $froms = static::getObjectListFromDb("SELECT DISTINCT `hex_id` AS h FROM `unit` WHERE `owner_id` = {$attackerId} AND `attack_target` = {$targetHexId}");
-            static::DbQuery("UPDATE `unit` SET `hex_id` = {$targetHexId}, `attack_target` = NULL WHERE `owner_id` = {$attackerId} AND `attack_target` = {$targetHexId}");
-            foreach ($froms as $row) {
-                $this->refreshControl((int) $row['h']);
-            }
+        $attackers = static::getObjectListFromDb("SELECT `unit_type`, `attack_from` FROM `unit` WHERE `owner_id` = {$attackerId} AND `attack_target` = {$targetHexId}");
+        $remaining = static::getObjectListFromDb("SELECT `unit_type` FROM `unit` WHERE `hex_id` = {$targetHexId} AND `owner_id` <> {$attackerId}");
+        if (empty($remaining)) {
+            static::DbQuery("UPDATE `unit` SET `attack_target` = NULL, `attack_from` = NULL WHERE `owner_id` = {$attackerId} AND `attack_target` = {$targetHexId}");
             $this->refreshControl($targetHexId);
             $this->notifyUpdate(clienttranslate('${player_name} takes hex ${hex}'), [
                 'player_id' => $attackerId, 'player_name' => $this->playerName($attackerId), 'hex' => $targetHexId,
             ]);
         } else {
-            static::DbQuery("UPDATE `unit` SET `attack_target` = NULL WHERE `owner_id` = {$attackerId} AND `attack_target` = {$targetHexId}");
-            $this->notifyUpdate(clienttranslate('The attack on hex ${hex} is repelled'), ['hex' => $targetHexId]);
+            $power = 0;
+            foreach ($attackers as $a) {
+                $power += self::unitPower($a['unit_type']);
+            }
+            $lightest = min(array_map(fn($r) => self::unitPower($r['unit_type']), $remaining));
+            $defenderId = (int) static::getUniqueValueFromDb("SELECT `owner_id` FROM `unit` WHERE `hex_id` = {$targetHexId} AND `owner_id` <> {$attackerId} LIMIT 1");
+            $towers = (int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `building` WHERE `hex_id` = {$targetHexId} AND `building_type` = 'tower'");
+            $need = (self::PUSH_NEED + $towers) * $lightest;
+            $froms = array_unique(array_map(fn($a) => (int) $a['attack_from'], $attackers));
+            static::DbQuery("UPDATE `unit` SET `hex_id` = `attack_from`, `attack_target` = NULL, `attack_from` = NULL WHERE `owner_id` = {$attackerId} AND `attack_target` = {$targetHexId}");
+            foreach ($froms as $f) {
+                $this->refreshControl($f);
+            }
+            $this->refreshControl($targetHexId);
+            $this->notifyUpdate(clienttranslate('ATTACK FAILURE on hex ${hex}: attack power ${power}, but pushing the weakest defender needs ${need} (twice its power, +1 per Guard Tower for every point of its power). The attackers return.'), [
+                'hex' => $targetHexId, 'power' => $power, 'need' => $need, 'failure' => 1, 'attacker_id' => $attackerId,
+            ]);
         }
         $this->globals->set('push', null);
     }
@@ -1275,16 +1277,90 @@ class Game extends \Bga\GameFramework\Table
     // Turn upkeep (called by NextPlayer): there are no rounds, only turns
     // ------------------------------------------------------------------
 
-    /** Start of a player's turn: Extractors may produce again, moved pieces are free again, the player is paid. */
+    /** End of a turn: the coins under the player's pieces come off and the undo history is dropped. */
+    public function endTurnCleanup(int $playerId): void
+    {
+        static::DbQuery("UPDATE `unit` SET `moved_cost` = 0 WHERE `owner_id` = {$playerId}");
+        static::DbQuery("UPDATE `item` i JOIN `hex_tile` h ON h.`hex_id` = i.`hex_id` SET i.`moved_cost` = 0 WHERE i.`owner_id` = {$playerId} OR h.`owner_id` = {$playerId}");
+        $this->globals->set('undo_stack', []);
+    }
+
+    /** Start of a player's turn: Extractors may produce again and the player is paid. */
     public function startTurn(int $playerId): void
     {
         static::DbQuery("UPDATE `building` b JOIN `hex_tile` h ON h.`hex_id` = b.`hex_id` SET b.`used` = 0 WHERE h.`owner_id` = {$playerId} OR h.`owner_id` IS NULL");
-        static::DbQuery("UPDATE `unit` SET `moved_cost` = 0 WHERE `owner_id` = {$playerId}");
-        static::DbQuery("UPDATE `item` i JOIN `hex_tile` h ON h.`hex_id` = i.`hex_id` SET i.`moved_cost` = 0 WHERE i.`owner_id` = {$playerId} OR h.`owner_id` = {$playerId}");
+        $this->globals->set('undo_stack', []);
         $income = $this->playerIncome($playerId);
         $this->adjustCredits($playerId, $income);
         $this->notifyUpdate(clienttranslate('${player_name} starts a turn and receives ${income} Credits'), [
             'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'income' => $income,
+        ]);
+    }
+
+    // ------------------------------------------------------------------
+    // Local undo: a snapshot of the changing tables is taken before every action of the turn
+    // ------------------------------------------------------------------
+
+    public function undoCount(): int
+    {
+        return count($this->globals->get('undo_stack', []));
+    }
+
+    public function pushUndo(): void
+    {
+        $stack = $this->globals->get('undo_stack', []);
+        $stack[] = [
+            'hex_owner' => static::getObjectListFromDb("SELECT `hex_id`, `owner_id` FROM `hex_tile`"),
+            'building' => static::getObjectListFromDb("SELECT * FROM `building`"),
+            'unit' => static::getObjectListFromDb("SELECT * FROM `unit`"),
+            'item' => static::getObjectListFromDb("SELECT * FROM `item`"),
+            'player_state' => static::getObjectListFromDb("SELECT * FROM `player_state`"),
+            'claimed_mission' => static::getObjectListFromDb("SELECT * FROM `claimed_mission`"),
+            'prices' => $this->globals->get('prices'),
+            'mission_deck' => $this->globals->get('mission_deck', []),
+            'mission_faceup' => $this->globals->get('mission_faceup', []),
+            'claimed_this_turn' => $this->globals->get('claimed_this_turn', false),
+        ];
+        $this->globals->set('undo_stack', $stack);
+    }
+
+    protected function replaceTable(string $table, array $rows): void
+    {
+        static::DbQuery("DELETE FROM `{$table}`");
+        foreach ($rows as $row) {
+            $cols = implode(',', array_map(fn($c) => "`{$c}`", array_keys($row)));
+            $vals = implode(',', array_map(fn($v) => $v === null ? 'NULL' : "'" . addslashes((string) $v) . "'", array_values($row)));
+            static::DbQuery("INSERT INTO `{$table}` ({$cols}) VALUES ({$vals})");
+        }
+    }
+
+    protected function restoreSnapshot(array $snap): void
+    {
+        foreach (['building', 'unit', 'item', 'player_state', 'claimed_mission'] as $table) {
+            $this->replaceTable($table, $snap[$table]);
+        }
+        foreach ($snap['hex_owner'] as $row) {
+            static::DbQuery("UPDATE `hex_tile` SET `owner_id` = " . ($row['owner_id'] === null ? 'NULL' : (int) $row['owner_id']) . " WHERE `hex_id` = " . (int) $row['hex_id']);
+        }
+        $this->globals->set('prices', $snap['prices']);
+        $this->globals->set('mission_deck', $snap['mission_deck']);
+        $this->globals->set('mission_faceup', $snap['mission_faceup']);
+        $this->globals->set('claimed_this_turn', $snap['claimed_this_turn']);
+    }
+
+    /** Undo the last action ($all = false) or everything done this turn ($all = true). */
+    public function undo(int $playerId, bool $all): void
+    {
+        $stack = $this->globals->get('undo_stack', []);
+        if (empty($stack)) {
+            throw new UserException(clienttranslate("Nothing to undo."));
+        }
+        $snap = $all ? $stack[0] : $stack[count($stack) - 1];
+        $stack = $all ? [] : array_slice($stack, 0, -1);
+        $this->restoreSnapshot($snap);
+        $this->globals->set('undo_stack', $stack);
+        $this->notifyUpdate($all ? clienttranslate('${player_name} undoes all actions of this turn') : clienttranslate('${player_name} undoes the last action'), [
+            'player_id' => $playerId, 'player_name' => $this->playerName($playerId),
         ]);
     }
 }
