@@ -32,13 +32,15 @@ class Game extends \Bga\GameFramework\Table
     public const PRICE_MIN = ['iron' => 1, 'crystal' => 1, 'fuel' => 1, 'bot' => 2, 'mech' => 2, 'core' => 2];
     public const PRICE_MAX = ['iron' => 10, 'crystal' => 10, 'fuel' => 10, 'bot' => 20, 'mech' => 20, 'core' => 20];
     public const PRICE_START = ['iron' => [4, 7], 'crystal' => [4, 7], 'fuel' => [4, 7], 'bot' => [8, 14], 'mech' => [8, 14], 'core' => [8, 14]];
-    // Goods the starting Dock trades (bots and two raw materials)
-    public const DOCK_GOODS = ['bot', 'iron', 'fuel'];
+    // The home Dock is a plain port: only iron and bots, at the normal board price
+    public const DOCK_GOODS = ['bot', 'iron'];
+    // Real ports: Credits off when buying their cheap goods
+    public const PORT_DISCOUNT = 2;
 
     // Player board: supply of pieces each player starts with (bots/mechs/buildings not yet on the map)
-    public const SUPPLY = ['bot' => 20, 'mech' => 6, 'vault' => 5, 'factory' => 5, 'extractor' => 5];
+    public const SUPPLY = ['bot' => 20, 'mech' => 6, 'vault' => 5, 'factory' => 5, 'extractor' => 5, 'turret' => 5];
     // Construction cost: iron tokens that must be standing on the tile being built on
-    public const BUILD_IRON = ['extractor' => 1, 'factory' => 2, 'vault' => 3];
+    public const BUILD_IRON = ['extractor' => 1, 'factory' => 2, 'vault' => 3, 'turret' => 2];
     public const BASE_INCOME = 10;
     // Income of the 1st, 2nd, ... active Vault; +VAULT_BOT_BONUS per assigned bot
     public const VAULT_INCOME = [12, 10, 8, 6, 4];
@@ -100,6 +102,8 @@ class Game extends \Bga\GameFramework\Table
                 ['building', 'slot', "tinyint(3) unsigned NOT NULL DEFAULT 0"],
                 ['building', 'used', "tinyint(3) unsigned NOT NULL DEFAULT 0"],
                 ['unit', 'assigned_to', "int(10) unsigned DEFAULT NULL"],
+                ['trade_port', 'supply_item_1', "varchar(16) NOT NULL DEFAULT ''"],
+                ['trade_port', 'supply_item_2', "varchar(16) NOT NULL DEFAULT ''"],
             ] as [$table, $col, $def]) {
                 if (empty(static::getObjectListFromDb("SHOW COLUMNS FROM `{$table}` LIKE '{$col}'"))) {
                     static::DbQuery("ALTER TABLE `{$table}` ADD COLUMN `{$col}` {$def}");
@@ -245,7 +249,7 @@ class Game extends \Bga\GameFramework\Table
             $protected[$hex['id']][] = $dir;
             $goods = self::GOODS;
             shuffle($goods);
-            $portRows[] = [$p, $hex['id'], $goods, $dir];
+            $portRows[] = [$p, $hex['id'], $goods, $dir]; // goods 0-2 demanded (+bonus when sold), goods 3-4 cheap to buy
         }
 
         $edges = $this->generateEdges($hexes, $protected);
@@ -272,9 +276,9 @@ class Game extends \Bga\GameFramework\Table
 
         $portValues = [];
         foreach ($portRows as [$p, $hid, $goods, $dir]) {
-            $portValues[] = "({$p}, {$hid}, '{$goods[0]}', '{$goods[1]}', '{$goods[2]}', {$dir})";
+            $portValues[] = "({$p}, {$hid}, '{$goods[0]}', '{$goods[1]}', '{$goods[2]}', {$dir}, '{$goods[3]}', '{$goods[4]}')";
         }
-        static::DbQuery("INSERT INTO `trade_port` (`port_id`, `adjacent_hex_id`, `demanded_item_1`, `demanded_item_2`, `demanded_item_3`, `edge_dir`) VALUES " . implode(',', $portValues));
+        static::DbQuery("INSERT INTO `trade_port` (`port_id`, `adjacent_hex_id`, `demanded_item_1`, `demanded_item_2`, `demanded_item_3`, `edge_dir`, `supply_item_1`, `supply_item_2`) VALUES " . implode(',', $portValues));
     }
 
     /** Spend the ring's value budget: 4 base paths, then random upgrades (path +1, resource +2, building slot +2). */
@@ -421,6 +425,7 @@ class Game extends \Bga\GameFramework\Table
         $result['price_min'] = self::PRICE_MIN;
         $result['price_max'] = self::PRICE_MAX;
         $result['port_bonus'] = self::PORT_BONUS;
+        $result['port_discount'] = self::PORT_DISCOUNT;
         return $result;
     }
 
@@ -674,7 +679,7 @@ class Game extends \Bga\GameFramework\Table
         foreach (['bot', 'mech'] as $t) {
             $supply[$t] = self::SUPPLY[$t] - (int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `unit` WHERE `owner_id` = {$playerId} AND `unit_type` = '{$t}'");
         }
-        foreach (['vault', 'factory', 'extractor'] as $t) {
+        foreach (['vault', 'factory', 'extractor', 'turret'] as $t) {
             $supply[$t] = self::SUPPLY[$t] - (int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `building` WHERE `owner_id` = {$playerId} AND `building_type` = '{$t}'");
         }
         return $supply;
@@ -697,37 +702,37 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Hexes where the player can trade the given good, because they control a hex with their Dock
-     * (Dock goods only) or touching a Trade Port (every good).
+     * What the player can trade on a hex they control, with the Credits price of each good:
+     * a real port trades every good (cheap goods cost PORT_DISCOUNT less, demanded goods pay PORT_BONUS more);
+     * the home Dock trades iron and bots at the plain board price.
      */
-    protected function tradeHexes(int $playerId, string $good): array
+    public function tradeTerms(int $playerId, int $hexId): array
     {
-        $ids = [];
-        $ports = static::getObjectListFromDb(
-            "SELECT DISTINCT p.`adjacent_hex_id` AS hid FROM `trade_port` p JOIN `hex_tile` h ON h.`hex_id` = p.`adjacent_hex_id` WHERE h.`owner_id` = {$playerId}"
-        );
-        foreach ($ports as $row) {
-            $ids[] = (int) $row['hid'];
+        $this->assertControls($playerId, $hexId);
+        $ports = static::getObjectListFromDb("SELECT * FROM `trade_port` WHERE `adjacent_hex_id` = {$hexId} LIMIT 1");
+        $port = $ports[0] ?? null;
+        $hasDock = (int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `building` WHERE `hex_id` = {$hexId} AND `owner_id` = {$playerId} AND `building_type` = 'dock'") > 0;
+        if ($port === null && !$hasDock) {
+            throw new UserException(clienttranslate("There is no Port or Dock on this hex."));
         }
-        if (in_array($good, self::DOCK_GOODS, true)) {
-            $docks = static::getObjectListFromDb(
-                "SELECT DISTINCT b.`hex_id` AS hid FROM `building` b JOIN `hex_tile` h ON h.`hex_id` = b.`hex_id`
-                 WHERE b.`building_type` = 'dock' AND b.`owner_id` = {$playerId} AND h.`owner_id` = {$playerId}"
-            );
-            foreach ($docks as $row) {
-                $ids[] = (int) $row['hid'];
+        $goods = $port !== null ? self::GOODS : self::DOCK_GOODS;
+        $prices = $this->globals->get('prices');
+        $terms = [];
+        foreach ($goods as $g) {
+            $price = (int) $prices[$g];
+            $buy = $price;
+            $sell = max(self::PRICE_MIN[$g], $price - $this->priceStep($g));
+            if ($port !== null) {
+                if (in_array($g, [$port['supply_item_1'], $port['supply_item_2']], true)) {
+                    $buy = max(self::PRICE_MIN[$g], $price - self::PORT_DISCOUNT);
+                }
+                if (in_array($g, [$port['demanded_item_1'], $port['demanded_item_2'], $port['demanded_item_3']], true)) {
+                    $sell += self::PORT_BONUS;
+                }
             }
+            $terms[$g] = ['buy' => $buy, 'sell' => $sell];
         }
-        return array_values(array_unique($ids));
-    }
-
-    protected function hasPortBonus(int $playerId, string $good): bool
-    {
-        return (int) static::getUniqueValueFromDb(
-            "SELECT COUNT(*) FROM `trade_port` p JOIN `hex_tile` h ON h.`hex_id` = p.`adjacent_hex_id`
-             WHERE h.`owner_id` = {$playerId}
-             AND (p.`demanded_item_1` = '{$good}' OR p.`demanded_item_2` = '{$good}' OR p.`demanded_item_3` = '{$good}')"
-        ) > 0;
+        return $terms;
     }
 
     // ------------------------------------------------------------------
@@ -906,61 +911,54 @@ class Game extends \Bga\GameFramework\Table
         ]);
     }
 
-    /** Buy 1 at the board price; bots/mechs appear on the trading hex (needs supply), tokens likewise. */
-    public function buyGood(int $playerId, string $good): void
+    /** Buy 1 at a Port/Dock hex you control; the piece or token appears on that hex. */
+    public function buyGood(int $playerId, int $hexId, string $good): void
     {
         $this->assertGood($good);
-        $hexes = $this->tradeHexes($playerId, $good);
-        if (empty($hexes)) {
-            throw new UserException(clienttranslate("You have no Dock or Port access for this good. Move a unit onto it."));
+        $terms = $this->tradeTerms($playerId, $hexId);
+        if (!isset($terms[$good])) {
+            throw new UserException(clienttranslate("This trading post does not deal in that good."));
         }
         if (in_array($good, ['bot', 'mech'], true) && $this->playerSupply($playerId)[$good] < 1) {
             throw new UserException(clienttranslate("None left on your player board."));
         }
-        $prices = $this->globals->get('prices');
-        $price = (int) $prices[$good];
-        $this->spendCredits($playerId, $price);
+        $cost = $terms[$good]['buy'];
+        $this->spendCredits($playerId, $cost);
         if (in_array($good, ['bot', 'mech'], true)) {
-            $this->addUnit($playerId, $good, $hexes[0]);
+            $this->addUnit($playerId, $good, $hexId);
         } else {
-            $this->addItems($playerId, $good, $hexes[0], 1);
+            $this->addItems($playerId, $good, $hexId, 1);
         }
-        $prices[$good] = min(self::PRICE_MAX[$good], $price + $this->priceStep($good));
+        $prices = $this->globals->get('prices');
+        $prices[$good] = min(self::PRICE_MAX[$good], (int) $prices[$good] + $this->priceStep($good));
         $this->globals->set('prices', $prices);
         $this->notifyUpdate(clienttranslate('${player_name} buys ${good} for ${price} Credits'), [
-            'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'good' => $good, 'price' => $price,
+            'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'good' => $good, 'price' => $cost,
         ]);
     }
 
-    /** Sell 1 standing on a Dock/Port hex at (price - step) plus any port bonus; the price then drops by one step. */
-    public function sellGood(int $playerId, string $good): void
+    /** Sell 1 piece or token standing on a Port/Dock hex you control; the board price then drops one step. */
+    public function sellGood(int $playerId, int $hexId, string $good): void
     {
         $this->assertGood($good);
-        $hexes = $this->tradeHexes($playerId, $good);
-        if (empty($hexes)) {
-            throw new UserException(clienttranslate("You have no Dock or Port access for this good. Move a unit onto it."));
+        $terms = $this->tradeTerms($playerId, $hexId);
+        if (!isset($terms[$good])) {
+            throw new UserException(clienttranslate("This trading post does not deal in that good."));
         }
-        $list = implode(',', $hexes);
         if (in_array($good, ['bot', 'mech'], true)) {
-            $row = static::getObjectListFromDb("SELECT `unit_id`, `hex_id` FROM `unit` WHERE `owner_id` = {$playerId} AND `unit_type` = '{$good}' AND `assigned_to` IS NULL AND `hex_id` IN ({$list}) LIMIT 1");
+            $row = static::getObjectListFromDb("SELECT `unit_id` FROM `unit` WHERE `owner_id` = {$playerId} AND `unit_type` = '{$good}' AND `assigned_to` IS NULL AND `hex_id` = {$hexId} LIMIT 1");
             if (empty($row)) {
-                throw new UserException(clienttranslate("Selling needs a free piece standing on your Dock or Port hex."));
+                throw new UserException(clienttranslate("You need a free piece of that kind on this hex."));
             }
             static::DbQuery("DELETE FROM `unit` WHERE `unit_id` = " . (int) $row[0]['unit_id']);
-            $this->refreshControl((int) $row[0]['hex_id']);
+            $this->refreshControl($hexId);
         } else {
-            $row = static::getObjectListFromDb("SELECT `item_id` FROM `item` WHERE `owner_id` = {$playerId} AND `kind` = '{$good}' AND `hex_id` IN ({$list}) LIMIT 1");
-            if (empty($row)) {
-                throw new UserException(clienttranslate("Selling needs the good standing on your Dock or Port hex."));
-            }
-            $this->deleteItems([(int) $row[0]['item_id']]);
+            $this->deleteItems($this->findItems($playerId, $good, $hexId, 1));
         }
-        $prices = $this->globals->get('prices');
-        $price = (int) $prices[$good];
-        $newPrice = max(self::PRICE_MIN[$good], $price - $this->priceStep($good));
-        $gain = $newPrice + ($this->hasPortBonus($playerId, $good) ? self::PORT_BONUS : 0);
+        $gain = $terms[$good]['sell'];
         $this->adjustCredits($playerId, $gain);
-        $prices[$good] = $newPrice;
+        $prices = $this->globals->get('prices');
+        $prices[$good] = max(self::PRICE_MIN[$good], (int) $prices[$good] - $this->priceStep($good));
         $this->globals->set('prices', $prices);
         $this->notifyUpdate(clienttranslate('${player_name} sells ${good} for ${gain} Credits'), [
             'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'good' => $good, 'gain' => $gain,

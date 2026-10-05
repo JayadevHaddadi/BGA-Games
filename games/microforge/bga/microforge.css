@@ -12,3 +12,7 @@
 .mf_row { margin: 6px 0; }
 .mf_btn, .mf_move, .mf_step { min-height: 32px; min-width: 32px; margin: 2px; }
 .mf_rules { font-size: 11px; margin-top: 4px; border-top: 1px solid #bda97f; padding-top: 4px; }
+.mf_portrow { display: block; width: 100%; text-align: left; min-height: 32px; margin: 2px 0; font-size: 12px; }
+#mf_ports { max-width: 700px; margin: 6px auto; padding: 0 6px; }
+.mf_buildrow { margin: 4px 0; font-size: 12px; }
+.mf_focus { outline: 2px solid #ffe600; }

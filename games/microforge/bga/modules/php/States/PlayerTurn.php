@@ -73,16 +73,16 @@ class PlayerTurn extends GameState
     }
 
     #[PossibleAction]
-    public function actBuy(string $good, int $activePlayerId): string
+    public function actBuy(int $hexId, string $good, int $activePlayerId): string
     {
-        $this->game->buyGood($activePlayerId, $good);
+        $this->game->buyGood($activePlayerId, $hexId, $good);
         return PlayerTurn::class;
     }
 
     #[PossibleAction]
-    public function actSell(string $good, int $activePlayerId): string
+    public function actSell(int $hexId, string $good, int $activePlayerId): string
     {
-        $this->game->sellGood($activePlayerId, $good);
+        $this->game->sellGood($activePlayerId, $hexId, $good);
         return PlayerTurn::class;
     }
 

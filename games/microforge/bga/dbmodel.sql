@@ -66,6 +66,8 @@ CREATE TABLE IF NOT EXISTS `trade_port` (
     `demanded_item_2` varchar(16) NOT NULL,
     `demanded_item_3` varchar(16) NOT NULL,
     `edge_dir` tinyint(3) unsigned NOT NULL DEFAULT 0,
+    `supply_item_1` varchar(16) NOT NULL DEFAULT '',
+    `supply_item_2` varchar(16) NOT NULL DEFAULT '',
     PRIMARY KEY (`port_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
