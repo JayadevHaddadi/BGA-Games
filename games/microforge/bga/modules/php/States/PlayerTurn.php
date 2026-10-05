@@ -29,9 +29,9 @@ class PlayerTurn extends GameState
     }
 
     #[PossibleAction]
-    public function actMove(int $fromHexId, int $toHexId, string $unitType, int $activePlayerId): string
+    public function actMove(int $fromHexId, int $toHexId, int $bots, int $mechs, int $activePlayerId): string
     {
-        $this->game->moveUnit($activePlayerId, $fromHexId, $toHexId, $unitType);
+        $this->game->moveUnits($activePlayerId, $fromHexId, $toHexId, $bots, $mechs);
         return PlayerTurn::class;
     }
 

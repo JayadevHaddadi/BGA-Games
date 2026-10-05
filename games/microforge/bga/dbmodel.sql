@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS `hex_tile` (
     `resource_type_2` varchar(16) DEFAULT NULL,
     `resource_slots` tinyint(3) unsigned NOT NULL DEFAULT 1,
     `building_slots` tinyint(3) unsigned NOT NULL DEFAULT 1,
+    `edges` char(6) NOT NULL DEFAULT '111111',
     `owner_id` int(10) unsigned DEFAULT NULL,
     PRIMARY KEY (`hex_id`),
     KEY `idx_owner` (`owner_id`)
@@ -55,6 +56,7 @@ CREATE TABLE IF NOT EXISTS `trade_port` (
     `demanded_item_1` varchar(16) NOT NULL,
     `demanded_item_2` varchar(16) NOT NULL,
     `demanded_item_3` varchar(16) NOT NULL,
+    `edge_dir` tinyint(3) unsigned NOT NULL DEFAULT 0,
     PRIMARY KEY (`port_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

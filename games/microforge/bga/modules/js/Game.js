@@ -36,7 +36,8 @@ export class Game {
         this.args = {};
         this.active = false;
         this.selectedHex = null;
-        this.moveMode = null; // { from, unitType }
+        this.moveMode = null; // { from, bots, mechs }
+        this.sel = { bots: 1, mechs: 0 };
         this.bga.states.register('PlayerTurn', new PlayerTurn(this));
     }
 
@@ -75,8 +76,14 @@ export class Game {
         return this.data.hexes.find(h => h.hex_id === id);
     }
 
-    adjacent(a, b) {
-        return DIRS.some(([dq, dr]) => a.coord_q + dq === b.coord_q && a.coord_r + dr === b.coord_r);
+    /** Neighbours with an open path on both sides. */
+    connected(a, b) {
+        const d = DIRS.findIndex(([dq, dr]) => a.coord_q + dq === b.coord_q && a.coord_r + dr === b.coord_r);
+        return d >= 0 && a.edges[d] === '1' && b.edges[(d + 3) % 6] === '1';
+    }
+
+    moveCost(n) {
+        return n * (n + 1) / 2;
     }
 
     /** Goods the current player can trade right now: Dock goods on a controlled Dock hex, everything at a controlled Port hex. */
@@ -151,20 +158,42 @@ export class Game {
                 return `${(x + size * Math.cos(a)).toFixed(1)},${(y + size * Math.sin(a)).toFixed(1)}`;
             }).join(' ');
             const sel = this.selectedHex === h.hex_id;
-            const target = this.moveMode && this.adjacent(this.hexById(this.moveMode.from), h)
+            const target = this.moveMode && this.connected(this.hexById(this.moveMode.from), h)
                 && (h.owner_id === null || h.owner_id === this.me());
             const stroke = target ? '#ffffff' : (h.owner_id ? this.colorOf(h.owner_id) : '#5a4630');
             parts.push(`<g class="mf_hex" data-hex="${h.hex_id}" style="cursor:pointer">`
                 + `<polygon points="${pts}" fill="#d9c7a0" stroke="${stroke}" stroke-width="${sel || target ? 6 : (h.owner_id ? 4 : 1.5)}"/>`);
+            const extractors = this.data.buildings.filter(b => b.hex_id === h.hex_id && b.building_type === 'extractor').length;
             [h.resource_type, h.resource_type_2].forEach((r, i) => {
-                if (r) parts.push(`<rect x="${x - 16 + i * 18}" y="${y - 28}" width="14" height="14" fill="${RES_COLORS[r]}"><title>${r}</title></rect>`);
+                if (r) parts.push(`<rect x="${x - 16 + i * 18}" y="${y - 28}" width="14" height="14" fill="${RES_COLORS[r]}" stroke="${i < extractors ? '#000' : 'none'}" stroke-width="2"><title>${r}</title></rect>`);
             });
+            // Paths (open edges) as roads to the edge midpoint, blocked edges as a dark cliff line on the border
+            DIRS.forEach(([dq, dr], d) => {
+                const vx = Math.sqrt(3) * (dq + dr / 2), vy = 1.5 * dr;
+                const len = Math.hypot(vx, vy);
+                const ux = vx / len, uy = vy / len;
+                if (h.edges[d] === '1') {
+                    parts.push(`<line x1="${x}" y1="${y}" x2="${x + ux * size * 0.87}" y2="${y + uy * size * 0.87}" stroke="#8b6b3d" stroke-width="3"/>`);
+                } else {
+                    const mx = x + ux * size * 0.87, my = y + uy * size * 0.87;
+                    parts.push(`<line x1="${mx - uy * size * 0.45}" y1="${my + ux * size * 0.45}" x2="${mx + uy * size * 0.45}" y2="${my - ux * size * 0.45}" stroke="#2b2118" stroke-width="3" stroke-dasharray="3 2"/>`);
+                }
+            });
+            // Building slots: empty outlines, filled when built
             const blds = this.data.buildings.filter(b => b.hex_id === h.hex_id);
-            parts.push(`<text x="${x}" y="${y - 4}" text-anchor="middle" font-size="10" fill="#2b2118">${blds.map(b => b.building_type.slice(0, 3)).join(' ')}</text>`);
+            const built = blds.filter(b => b.building_type !== 'extractor' && b.building_type !== 'dock');
+            for (let i = 0; i < h.building_slots; i++) {
+                const b = built[i];
+                parts.push(`<rect x="${x - 17 + i * 18}" y="${y - 12}" width="16" height="12" fill="${b ? this.colorOf(b.owner_id) : 'none'}" stroke="#2b2118" stroke-dasharray="${b ? 0 : 2}"/>`
+                    + (b ? `<text x="${x - 9 + i * 18}" y="${y - 3}" text-anchor="middle" font-size="9" fill="#fff">${b.building_type[0].toUpperCase()}</text>` : ''));
+            }
+            if (blds.some(b => b.building_type === 'dock')) {
+                parts.push(`<text x="${x}" y="${y + 26}" text-anchor="middle" font-size="9" fill="#2b2118">dock</text>`);
+            }
             // Units: circles = bots, squares = mechs
             const units = this.data.units.filter(u => u.hex_id === h.hex_id);
             units.forEach((u, i) => {
-                const ux = x - (units.length - 1) * 8 + i * 16, uy = y + 14;
+                const ux = x - (units.length - 1) * 5 + i * 10, uy = y + 14;
                 parts.push(u.unit_type === 'bot'
                     ? `<circle cx="${ux}" cy="${uy}" r="6" fill="${this.colorOf(u.owner_id)}" stroke="#222"/>`
                     : `<rect x="${ux - 6}" y="${uy - 6}" width="12" height="12" fill="${this.colorOf(u.owner_id)}" stroke="#222"/>`);
@@ -174,8 +203,9 @@ export class Game {
         const byId = Object.fromEntries(this.data.hexes.map(h => [h.hex_id, h]));
         for (const p of this.data.ports) {
             const { x, y } = this.hexPos(byId[p.adjacent_hex_id], size);
-            const len = Math.hypot(x, y) || 1;
-            const px = x + (x / len) * size * 1.15, py = y + (y / len) * size * 1.15;
+            const [pdq, pdr] = DIRS[p.edge_dir];
+            const vx = Math.sqrt(3) * (pdq + pdr / 2), vy = 1.5 * pdr, len = Math.hypot(vx, vy);
+            const px = x + (vx / len) * size * 1.2, py = y + (vy / len) * size * 1.2;
             parts.push(`<g><rect x="${px - 14}" y="${py - 8}" width="28" height="16" fill="#3b2f22"/>`
                 + `<text x="${px}" y="${py + 4}" text-anchor="middle" font-size="8" fill="#f0e6d0">${[p.demanded_item_1, p.demanded_item_2, p.demanded_item_3].map(g => g[0].toUpperCase()).join('')}</text></g>`);
         }
@@ -187,10 +217,10 @@ export class Game {
 
     onHexClick(hexId) {
         if (this.moveMode && this.active) {
-            const { from, unitType } = this.moveMode;
+            const { from, bots, mechs } = this.moveMode;
             this.moveMode = null;
             if (hexId !== from) {
-                this.act('actMove', { fromHexId: from, toHexId: hexId, unitType });
+                this.act('actMove', { fromHexId: from, toHexId: hexId, bots, mechs });
                 return;
             }
         }
@@ -215,8 +245,15 @@ export class Game {
             const myUnits = this.data.units.filter(u => u.hex_id === hid && u.owner_id === me);
             lines.push(`<div class="mf_row"><b>${_('Hex')} ${hid}</b> ${mine ? _('(you control this hex)') : _('(not controlled by you: move a unit here to build or trade)')}</div>`);
             if (myUnits.length) {
-                lines.push('<div class="mf_row">' + ['bot', 'mech'].filter(t => myUnits.some(u => u.unit_type === t)).map(t =>
-                    `<button class="mf_move" data-type="${t}" ${canAct ? '' : 'disabled'}>${_('Move a')} ${t}</button>`).join('') + '</div>');
+                const maxB = myUnits.filter(u => u.unit_type === 'bot').length;
+                const maxM = myUnits.filter(u => u.unit_type === 'mech').length;
+                this.sel.bots = Math.min(this.sel.bots, maxB);
+                this.sel.mechs = Math.min(this.sel.mechs, maxM);
+                const n = this.sel.bots + this.sel.mechs;
+                const stepper = (kind, val, max) => `<button class="mf_step" data-kind="${kind}" data-d="-1">-</button> ${val}/${max} <button class="mf_step" data-kind="${kind}" data-d="1">+</button>`;
+                lines.push(`<div class="mf_row">${_('Bots')} ${stepper('bots', this.sel.bots, maxB)}`
+                    + (maxM ? ` ${_('Mechs')} ${stepper('mechs', this.sel.mechs, maxM)}` : '')
+                    + ` <button class="mf_move" ${canAct && n > 0 ? '' : 'disabled'}>${_('Move')} ${n} ${_('unit(s) for')} ${this.moveCost(n)} ${_('Credits')}</button></div>`);
             }
             if (mine) {
                 lines.push('<div class="mf_row">' + BUILDINGS.map(b => btn(`${_('Build')} ${b} (${this.data.building_cost[b]})`, 'actBuild', { hexId: hid, buildingType: b })).join('') + '</div>');
@@ -231,10 +268,16 @@ export class Game {
         const el = document.getElementById('mf_panel');
         el.innerHTML = lines.join('');
         this.bindButtons(el);
-        el.querySelectorAll('.mf_move').forEach(b => b.addEventListener('click', () => {
-            this.moveMode = { from: this.selectedHex, unitType: b.dataset.type };
+        el.querySelectorAll('.mf_step').forEach(b => b.addEventListener('click', () => {
+            const hexUnits = this.data.units.filter(u => u.hex_id === this.selectedHex && u.owner_id === me);
+            const max = hexUnits.filter(u => u.unit_type === (b.dataset.kind === 'bots' ? 'bot' : 'mech')).length;
+            this.sel[b.dataset.kind] = Math.max(0, Math.min(max, this.sel[b.dataset.kind] + Number(b.dataset.d)));
             this.render();
-            this.bga.statusBar.setTitle(_('Click an adjacent free or friendly hex to move there'));
+        }));
+        el.querySelectorAll('.mf_move').forEach(b => b.addEventListener('click', () => {
+            this.moveMode = { from: this.selectedHex, bots: this.sel.bots, mechs: this.sel.mechs };
+            this.render();
+            this.bga.statusBar.setTitle(_('Click a connected free or friendly hex (white outline) to move there'));
         }));
     }
 }
