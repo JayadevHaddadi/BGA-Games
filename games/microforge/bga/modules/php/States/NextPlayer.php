@@ -28,7 +28,6 @@ class NextPlayer extends GameState
 
         $turnCount = (int) $this->globals->get('turn_count', 1);
         $this->globals->set('turn_count', $turnCount + 1);
-        $this->globals->set('actions_left', Game::ACTIONS_PER_TURN);
         $this->globals->set('claimed_this_turn', false);
 
         $nextPlayerId = (int) $this->game->activeNextPlayer();
@@ -37,7 +36,7 @@ class NextPlayer extends GameState
         $playerCount = count($this->game->loadPlayersBasicInfos());
         if ($turnCount % $playerCount === 0) {
             $this->tableStats->inc('turns_number', 1);
-            $this->game->runProduction();
+            $this->game->runRoundStart();
         }
 
         $this->game->giveExtraTime($nextPlayerId);

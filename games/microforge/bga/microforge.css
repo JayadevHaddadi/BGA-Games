@@ -1,4 +1,13 @@
+#mf_boards { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px; }
+.mf_pboard { border: 3px solid; padding: 4px 8px; background: #efe3c8; font-size: 13px; }
+.mf_income { font-weight: bold; }
+#mf_market { max-width: 520px; margin: 6px auto; padding: 6px; background: #efe3c8; border: 2px solid #5a4630; }
+.mf_hint { font-size: 11px; display: block; }
+.mf_table { width: 100%; border-collapse: collapse; }
+.mf_table td, .mf_table th { padding: 2px 4px; text-align: left; }
+.mf_range { position: relative; width: 80px; height: 8px; background: #bda97f; }
+.mf_range_pos { position: absolute; top: -2px; width: 4px; height: 12px; background: #2b2118; }
 #mf_board { width: 100%; max-width: 700px; margin: 0 auto; }
 #mf_panel { padding: 6px; }
 .mf_row { margin: 6px 0; }
-.mf_btn { min-height: 32px; min-width: 32px; margin: 2px; }
+.mf_btn, .mf_move { min-height: 32px; min-width: 32px; margin: 2px; }

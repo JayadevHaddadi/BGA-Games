@@ -8,8 +8,6 @@ CREATE TABLE IF NOT EXISTS `player_state` (
     `iron` tinyint(3) unsigned NOT NULL DEFAULT 0,
     `crystal` tinyint(3) unsigned NOT NULL DEFAULT 0,
     `fuel` tinyint(3) unsigned NOT NULL DEFAULT 0,
-    `bot` tinyint(3) unsigned NOT NULL DEFAULT 0,
-    `mech` tinyint(3) unsigned NOT NULL DEFAULT 0,
     `core` tinyint(3) unsigned NOT NULL DEFAULT 0,
     `vp` tinyint(3) unsigned NOT NULL DEFAULT 0,
     PRIMARY KEY (`player_id`)
@@ -26,8 +24,6 @@ CREATE TABLE IF NOT EXISTS `hex_tile` (
     `resource_slots` tinyint(3) unsigned NOT NULL DEFAULT 1,
     `building_slots` tinyint(3) unsigned NOT NULL DEFAULT 1,
     `owner_id` int(10) unsigned DEFAULT NULL,
-    `bots_stationed` tinyint(3) unsigned NOT NULL DEFAULT 0,
-    `mechs_stationed` tinyint(3) unsigned NOT NULL DEFAULT 0,
     PRIMARY KEY (`hex_id`),
     KEY `idx_owner` (`owner_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -39,6 +35,16 @@ CREATE TABLE IF NOT EXISTS `building` (
     `building_type` varchar(24) NOT NULL,
     `owner_id` int(10) unsigned NOT NULL,
     PRIMARY KEY (`building_id`),
+    KEY `idx_hex` (`hex_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+DROP TABLE IF EXISTS `unit`;
+CREATE TABLE IF NOT EXISTS `unit` (
+    `unit_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+    `owner_id` int(10) unsigned NOT NULL,
+    `unit_type` varchar(8) NOT NULL,
+    `hex_id` smallint(5) NOT NULL,
+    PRIMARY KEY (`unit_id`),
     KEY `idx_hex` (`hex_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

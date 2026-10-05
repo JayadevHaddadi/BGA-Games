@@ -5,6 +5,9 @@
  * microforge implementation : © Jayadev Haddadi
  *
  * Game.php - Core Game Engine for MicroForge
+ *
+ * Rules model: a player controls a hex only while one of their units (bot / mech) stands on it.
+ * Buildings and trade access only work on hexes you currently control. No action limit per turn.
  *------
  */
 declare(strict_types=1);
@@ -16,17 +19,22 @@ use Bga\GameFramework\UserException;
 
 class Game extends \Bga\GameFramework\Table
 {
-    public const ACTIONS_PER_TURN = 3;
     public const VP_TARGET = 5;
     public const MISSION_FEE = 5;
-    public const CLAIM_HEX_COST = 2;
     public const PORT_BONUS = 3;
+    public const INCOME = 10;
+    public const START_CREDITS = 10;
+    public const START_BOTS = 3;
 
     public const RAW = ['iron', 'crystal', 'fuel'];
+    public const PRODUCTS = ['bot', 'mech', 'core'];
     public const GOODS = ['iron', 'crystal', 'fuel', 'bot', 'mech', 'core'];
-    public const BASE_PRICES = ['iron' => 2, 'crystal' => 3, 'fuel' => 2, 'bot' => 5, 'mech' => 7, 'core' => 6];
-    public const MIN_PRICE = 1;
-    public const MAX_PRICE = 9;
+    // Allowed price range per good, and the middle band prices start in. Raw: 1-10, products: 2-20.
+    public const PRICE_MIN = ['iron' => 1, 'crystal' => 1, 'fuel' => 1, 'bot' => 2, 'mech' => 2, 'core' => 2];
+    public const PRICE_MAX = ['iron' => 10, 'crystal' => 10, 'fuel' => 10, 'bot' => 20, 'mech' => 20, 'core' => 20];
+    public const PRICE_START = ['iron' => [4, 7], 'crystal' => [4, 7], 'fuel' => [4, 7], 'bot' => [8, 14], 'mech' => [8, 14], 'core' => [8, 14]];
+    // Goods the starting Dock trades (bots and two raw materials)
+    public const DOCK_GOODS = ['bot', 'iron', 'fuel'];
 
     public const BUILDING_COST = ['extractor' => 3, 'factory' => 5, 'turret' => 4, 'vault' => 4];
     public const RECIPES = [
@@ -63,6 +71,14 @@ class Game extends \Bga\GameFramework\Table
     public function ensureSchema(): void
     {
         try {
+            static::DbQuery("CREATE TABLE IF NOT EXISTS `unit` (
+                `unit_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+                `owner_id` int(10) unsigned NOT NULL,
+                `unit_type` varchar(8) NOT NULL,
+                `hex_id` smallint(5) NOT NULL,
+                PRIMARY KEY (`unit_id`),
+                KEY `idx_hex` (`hex_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
             $cols = static::getObjectListFromDb("SHOW COLUMNS FROM `hex_tile` LIKE 'resource_type_2'");
             if (empty($cols)) {
                 static::DbQuery("ALTER TABLE `hex_tile` ADD COLUMN `resource_type_2` varchar(16) DEFAULT NULL");
@@ -102,13 +118,16 @@ class Game extends \Bga\GameFramework\Table
         $playerIds = array_map('intval', array_keys($players));
         static::DbQuery("DELETE FROM `player_state`");
         foreach ($playerIds as $pid) {
-            static::DbQuery("INSERT INTO `player_state` (`player_id`, `credits`, `iron`, `crystal`, `fuel`) VALUES ({$pid}, 10, 2, 1, 1)");
+            static::DbQuery("INSERT INTO `player_state` (`player_id`, `credits`) VALUES ({$pid}, " . self::START_CREDITS . ")");
         }
 
         $this->generateBoard($playerIds);
 
-        $this->globals->set('prices', self::BASE_PRICES);
-        $this->globals->set('actions_left', self::ACTIONS_PER_TURN);
+        $prices = [];
+        foreach (self::GOODS as $g) {
+            $prices[$g] = bga_rand(self::PRICE_START[$g][0], self::PRICE_START[$g][1]);
+        }
+        $this->globals->set('prices', $prices);
         $this->globals->set('turn_count', 1);
         $this->globals->set('winner_id', 0);
         $this->globals->set('claimed_this_turn', false);
@@ -124,8 +143,8 @@ class Game extends \Bga\GameFramework\Table
     /**
      * Hex board: 19 hexes (radius 2) for 2-3 players, 37 hexes (radius 3) for 4-6 players.
      * Ring 0 = Prime Reactor (2 resources, 2 building slots), middle rings = 1 resource + 1 building,
-     * outer ring = 1 resource OR 1 building. Players start on evenly spaced outer hexes,
-     * trade ports (2 x players) sit on the perimeter.
+     * outer ring = 1 resource OR 1 building. Players start on evenly spaced outer hexes with a Dock,
+     * an Extractor and 3 Bots. Trade ports (2 x players) sit on the perimeter.
      */
     protected function generateBoard(array $playerIds): void
     {
@@ -135,6 +154,7 @@ class Game extends \Bga\GameFramework\Table
 
         static::DbQuery("DELETE FROM `hex_tile`");
         static::DbQuery("DELETE FROM `building`");
+        static::DbQuery("DELETE FROM `unit`");
         static::DbQuery("DELETE FROM `trade_port`");
         static::DbQuery("DELETE FROM `claimed_mission`");
 
@@ -173,8 +193,9 @@ class Game extends \Bga\GameFramework\Table
         });
         $perimeterCount = count($perimeter);
 
-        // Home hexes: one deposit (rotating iron / crystal / fuel), an extractor and room for a factory
+        // Home hexes: one deposit (rotating iron / crystal / fuel), room for an extractor + a factory
         shuffle($playerIds);
+        $homes = [];
         foreach ($playerIds as $i => $pid) {
             $hid = $perimeter[(int) floor($i * $perimeterCount / $n)]['id'];
             $hexes[$hid]['res'] = self::RAW[$i % 3];
@@ -182,6 +203,7 @@ class Game extends \Bga\GameFramework\Table
             $hexes[$hid]['rs'] = 1;
             $hexes[$hid]['bs'] = 2;
             $hexes[$hid]['owner'] = $pid;
+            $homes[$pid] = $hid;
         }
 
         $values = [];
@@ -193,9 +215,10 @@ class Game extends \Bga\GameFramework\Table
         }
         static::DbQuery("INSERT INTO `hex_tile` (`hex_id`, `coord_q`, `coord_r`, `ring`, `resource_type`, `resource_type_2`, `resource_slots`, `building_slots`, `owner_id`) VALUES " . implode(',', $values));
 
-        foreach ($hexes as $h) {
-            if ($h['owner'] !== null) {
-                static::DbQuery("INSERT INTO `building` (`hex_id`, `building_type`, `owner_id`) VALUES ({$h['id']}, 'extractor', " . (int) $h['owner'] . ")");
+        foreach ($homes as $pid => $hid) {
+            static::DbQuery("INSERT INTO `building` (`hex_id`, `building_type`, `owner_id`) VALUES ({$hid}, 'dock', {$pid}), ({$hid}, 'extractor', {$pid})");
+            for ($i = 0; $i < self::START_BOTS; $i++) {
+                static::DbQuery("INSERT INTO `unit` (`owner_id`, `unit_type`, `hex_id`) VALUES ({$pid}, 'bot', {$hid})");
             }
         }
 
@@ -225,7 +248,11 @@ class Game extends \Bga\GameFramework\Table
         $result['mission_vp'] = self::MISSION_VP;
         $result['building_cost'] = self::BUILDING_COST;
         $result['recipes'] = self::RECIPES;
-        $result['actions_left'] = (int) $this->globals->get('actions_left', self::ACTIONS_PER_TURN);
+        $result['income'] = self::INCOME;
+        $result['dock_goods'] = self::DOCK_GOODS;
+        $result['price_min'] = self::PRICE_MIN;
+        $result['price_max'] = self::PRICE_MAX;
+        $result['port_bonus'] = self::PORT_BONUS;
         return $result;
     }
 
@@ -234,7 +261,7 @@ class Game extends \Bga\GameFramework\Table
     {
         $hexes = static::getObjectListFromDb("SELECT * FROM `hex_tile` ORDER BY `hex_id`");
         foreach ($hexes as &$h) {
-            foreach (['hex_id', 'coord_q', 'coord_r', 'ring', 'resource_slots', 'building_slots', 'bots_stationed', 'mechs_stationed'] as $k) {
+            foreach (['hex_id', 'coord_q', 'coord_r', 'ring', 'resource_slots', 'building_slots'] as $k) {
                 $h[$k] = (int) $h[$k];
             }
             $h['owner_id'] = $h['owner_id'] === null ? null : (int) $h['owner_id'];
@@ -247,6 +274,14 @@ class Game extends \Bga\GameFramework\Table
             $b['owner_id'] = (int) $b['owner_id'];
         }
         unset($b);
+
+        $units = static::getObjectListFromDb("SELECT `unit_id`, `owner_id`, `unit_type`, `hex_id` FROM `unit` ORDER BY `unit_id`");
+        foreach ($units as &$u) {
+            $u['unit_id'] = (int) $u['unit_id'];
+            $u['owner_id'] = (int) $u['owner_id'];
+            $u['hex_id'] = (int) $u['hex_id'];
+        }
+        unset($u);
 
         $ports = static::getObjectListFromDb("SELECT * FROM `trade_port` ORDER BY `port_id`");
         foreach ($ports as &$p) {
@@ -268,19 +303,17 @@ class Game extends \Bga\GameFramework\Table
         return [
             'hexes' => $hexes,
             'buildings' => $buildings,
+            'units' => $units,
             'ports' => $ports,
             'player_state' => $state,
             'claimed_missions' => $claimed,
-            'prices' => $this->globals->get('prices', self::BASE_PRICES),
+            'prices' => $this->globals->get('prices'),
         ];
     }
 
     public function notifyUpdate(string $message, array $args = []): void
     {
-        $this->notifyAllPlayers('gameUpdate', $message, $args + [
-            'state' => $this->getPublicState(),
-            'actions_left' => (int) $this->globals->get('actions_left', self::ACTIONS_PER_TURN),
-        ]);
+        $this->notifyAllPlayers('gameUpdate', $message, $args + ['state' => $this->getPublicState()]);
     }
 
     public function getPlayerState(int $playerId): array
@@ -303,18 +336,27 @@ class Game extends \Bga\GameFramework\Table
         return $this->loadPlayersBasicInfos()[$playerId]['player_name'];
     }
 
-    protected function neighbourIds(array $hex): array
+    protected function areAdjacent(array $a, array $b): bool
     {
-        $ids = [];
-        foreach (self::DIRS as [$dq, $dr]) {
-            $nq = (int) $hex['coord_q'] + $dq;
-            $nr = (int) $hex['coord_r'] + $dr;
-            $id = static::getUniqueValueFromDb("SELECT `hex_id` FROM `hex_tile` WHERE `coord_q` = {$nq} AND `coord_r` = {$nr}");
-            if ($id !== null) {
-                $ids[] = (int) $id;
-            }
+        $dq = (int) $b['coord_q'] - (int) $a['coord_q'];
+        $dr = (int) $b['coord_r'] - (int) $a['coord_r'];
+        return in_array([$dq, $dr], self::DIRS, true);
+    }
+
+    /** A hex is controlled by whoever has units on it. */
+    protected function refreshControl(int $hexId): void
+    {
+        $owner = static::getUniqueValueFromDb("SELECT `owner_id` FROM `unit` WHERE `hex_id` = {$hexId} LIMIT 1");
+        static::DbQuery("UPDATE `hex_tile` SET `owner_id` = " . ($owner === null ? 'NULL' : (int) $owner) . " WHERE `hex_id` = {$hexId}");
+    }
+
+    protected function assertControls(int $playerId, int $hexId): array
+    {
+        $hex = $this->getHex($hexId);
+        if ((int) $hex['owner_id'] !== $playerId) {
+            throw new UserException(clienttranslate("You need a unit on this hex to control it."));
         }
-        return $ids;
+        return $hex;
     }
 
     // ------------------------------------------------------------------
@@ -328,6 +370,11 @@ class Game extends \Bga\GameFramework\Table
         }
     }
 
+    protected function priceStep(string $good): int
+    {
+        return in_array($good, self::PRODUCTS, true) ? 2 : 1;
+    }
+
     protected function adjustCredits(int $playerId, int $delta): void
     {
         static::DbQuery("UPDATE `player_state` SET `credits` = `credits` + ({$delta}) WHERE `player_id` = {$playerId}");
@@ -338,65 +385,88 @@ class Game extends \Bga\GameFramework\Table
 
     protected function adjustGood(int $playerId, string $good, int $delta): void
     {
-        $this->assertGood($good);
+        if (!in_array($good, ['iron', 'crystal', 'fuel', 'core'], true)) {
+            throw new \BgaSystemException("Good {$good} is not stockpiled");
+        }
         static::DbQuery("UPDATE `player_state` SET `{$good}` = `{$good}` + ({$delta}) WHERE `player_id` = {$playerId}");
     }
 
-    protected function countBuildings(int $playerId, string $type): int
+    protected function addUnit(int $playerId, string $type, int $hexId): void
     {
-        return (int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `building` WHERE `owner_id` = {$playerId} AND `building_type` = '{$type}'");
+        static::DbQuery("INSERT INTO `unit` (`owner_id`, `unit_type`, `hex_id`) VALUES ({$playerId}, '{$type}', {$hexId})");
+        $this->refreshControl($hexId);
     }
 
-    /** Port sell bonus applies when the player controls a hex touching a port that demands the good. */
+    /**
+     * Hexes where the player can trade the given good, because they control a hex with their Dock
+     * (Dock goods only) or touching a Trade Port (every good).
+     */
+    protected function tradeHexes(int $playerId, string $good): array
+    {
+        $ids = [];
+        $ports = static::getObjectListFromDb(
+            "SELECT DISTINCT p.`adjacent_hex_id` AS hid FROM `trade_port` p JOIN `hex_tile` h ON h.`hex_id` = p.`adjacent_hex_id` WHERE h.`owner_id` = {$playerId}"
+        );
+        foreach ($ports as $row) {
+            $ids[] = (int) $row['hid'];
+        }
+        if (in_array($good, self::DOCK_GOODS, true)) {
+            $docks = static::getObjectListFromDb(
+                "SELECT DISTINCT b.`hex_id` AS hid FROM `building` b JOIN `hex_tile` h ON h.`hex_id` = b.`hex_id`
+                 WHERE b.`building_type` = 'dock' AND b.`owner_id` = {$playerId} AND h.`owner_id` = {$playerId}"
+            );
+            foreach ($docks as $row) {
+                $ids[] = (int) $row['hid'];
+            }
+        }
+        return array_values(array_unique($ids));
+    }
+
     protected function hasPortBonus(int $playerId, string $good): bool
     {
-        $n = (int) static::getUniqueValueFromDb(
+        return (int) static::getUniqueValueFromDb(
             "SELECT COUNT(*) FROM `trade_port` p JOIN `hex_tile` h ON h.`hex_id` = p.`adjacent_hex_id`
              WHERE h.`owner_id` = {$playerId}
              AND (p.`demanded_item_1` = '{$good}' OR p.`demanded_item_2` = '{$good}' OR p.`demanded_item_3` = '{$good}')"
+        ) > 0;
+    }
+
+    /** Count of the player's active (controlled-hex) buildings of a type. */
+    protected function countActive(int $playerId, string $type): int
+    {
+        return (int) static::getUniqueValueFromDb(
+            "SELECT COUNT(*) FROM `building` b JOIN `hex_tile` h ON h.`hex_id` = b.`hex_id`
+             WHERE b.`owner_id` = {$playerId} AND b.`building_type` = '{$type}' AND h.`owner_id` = {$playerId}"
         );
-        return $n > 0;
     }
 
     // ------------------------------------------------------------------
-    // Player actions (called by PlayerTurn). Each spends one action unless noted.
+    // Player actions (called by PlayerTurn). No action limit.
     // ------------------------------------------------------------------
 
-    public function spendAction(): int
+    /** Move one unit of the given type to an adjacent hex that is neutral or already yours. */
+    public function moveUnit(int $playerId, int $fromHexId, int $toHexId, string $unitType): void
     {
-        $left = (int) $this->globals->get('actions_left', self::ACTIONS_PER_TURN);
-        if ($left <= 0) {
-            throw new UserException(clienttranslate("You have no actions left this turn."));
+        if (!in_array($unitType, ['bot', 'mech'], true)) {
+            throw new UserException(clienttranslate("Unknown unit."));
         }
-        $left--;
-        $this->globals->set('actions_left', $left);
-        return $left;
-    }
-
-    public function claimHex(int $playerId, int $hexId): void
-    {
-        $hex = $this->getHex($hexId);
-        if ($hex['owner_id'] !== null) {
-            throw new UserException(clienttranslate("This hex is already controlled."));
+        $from = $this->getHex($fromHexId);
+        $to = $this->getHex($toHexId);
+        if (!$this->areAdjacent($from, $to)) {
+            throw new UserException(clienttranslate("Units move to an adjacent hex only."));
         }
-        $adjacent = false;
-        foreach ($this->neighbourIds($hex) as $nid) {
-            if ((int) $this->getHex($nid)['owner_id'] === $playerId) {
-                $adjacent = true;
-                break;
-            }
+        if ($to['owner_id'] !== null && (int) $to['owner_id'] !== $playerId) {
+            throw new UserException(clienttranslate("An opponent holds that hex."));
         }
-        if (!$adjacent) {
-            throw new UserException(clienttranslate("You can only claim a hex next to one you control."));
+        $unitId = static::getUniqueValueFromDb("SELECT `unit_id` FROM `unit` WHERE `owner_id` = {$playerId} AND `hex_id` = {$fromHexId} AND `unit_type` = '{$unitType}' LIMIT 1");
+        if ($unitId === null) {
+            throw new UserException(clienttranslate("You have no such unit there."));
         }
-        if ($this->getPlayerState($playerId)['credits'] < self::CLAIM_HEX_COST) {
-            throw new UserException(clienttranslate("Not enough Credits."));
-        }
-        $this->spendAction();
-        $this->adjustCredits($playerId, -self::CLAIM_HEX_COST);
-        static::DbQuery("UPDATE `hex_tile` SET `owner_id` = {$playerId} WHERE `hex_id` = {$hexId}");
-        $this->notifyUpdate(clienttranslate('${player_name} claims a hex'), [
-            'player_id' => $playerId, 'player_name' => $this->playerName($playerId),
+        static::DbQuery("UPDATE `unit` SET `hex_id` = {$toHexId} WHERE `unit_id` = " . (int) $unitId);
+        $this->refreshControl($fromHexId);
+        $this->refreshControl($toHexId);
+        $this->notifyUpdate(clienttranslate('${player_name} moves a ${unit}'), [
+            'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'unit' => $unitType,
         ]);
     }
 
@@ -405,13 +475,10 @@ class Game extends \Bga\GameFramework\Table
         if (!isset(self::BUILDING_COST[$type])) {
             throw new UserException(clienttranslate("Unknown building."));
         }
-        $hex = $this->getHex($hexId);
-        if ((int) $hex['owner_id'] !== $playerId) {
-            throw new UserException(clienttranslate("You do not control this hex."));
-        }
+        $hex = $this->assertControls($playerId, $hexId);
         $existing = static::getObjectListFromDb("SELECT `building_type` FROM `building` WHERE `hex_id` = {$hexId}");
         $extractors = count(array_filter($existing, fn($b) => $b['building_type'] === 'extractor'));
-        $others = count($existing) - $extractors;
+        $others = count(array_filter($existing, fn($b) => !in_array($b['building_type'], ['extractor', 'dock'], true)));
         if ($type === 'extractor') {
             if ($extractors >= (int) $hex['resource_slots']) {
                 throw new UserException(clienttranslate("No free resource deposit on this hex."));
@@ -423,22 +490,22 @@ class Game extends \Bga\GameFramework\Table
         if ($this->getPlayerState($playerId)['credits'] < $cost) {
             throw new UserException(clienttranslate("Not enough Credits."));
         }
-        $this->spendAction();
         $this->adjustCredits($playerId, -$cost);
         static::DbQuery("INSERT INTO `building` (`hex_id`, `building_type`, `owner_id`) VALUES ({$hexId}, '{$type}', {$playerId})");
         $this->notifyUpdate(clienttranslate('${player_name} builds ${building}'), [
-            'player_id' => $playerId, 'player_name' => $this->playerName($playerId),
-            'building' => $type,
+            'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'building' => $type,
         ]);
     }
 
-    public function manufacture(int $playerId, string $product): void
+    /** Needs one of your Factories on a hex you control. Bots and Mechs appear on that hex. */
+    public function manufacture(int $playerId, string $product, int $hexId): void
     {
         if (!isset(self::RECIPES[$product])) {
             throw new UserException(clienttranslate("Unknown product."));
         }
-        if ($this->countBuildings($playerId, 'factory') < 1) {
-            throw new UserException(clienttranslate("You need an Assembly Factory."));
+        $this->assertControls($playerId, $hexId);
+        if ((int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `building` WHERE `hex_id` = {$hexId} AND `owner_id` = {$playerId} AND `building_type` = 'factory'") < 1) {
+            throw new UserException(clienttranslate("You need an Assembly Factory on this hex."));
         }
         $state = $this->getPlayerState($playerId);
         foreach (self::RECIPES[$product] as $good => $qty) {
@@ -446,80 +513,79 @@ class Game extends \Bga\GameFramework\Table
                 throw new UserException(clienttranslate("Not enough resources."));
             }
         }
-        $this->spendAction();
         foreach (self::RECIPES[$product] as $good => $qty) {
             $this->adjustGood($playerId, $good, -$qty);
         }
-        $this->adjustGood($playerId, $product, 1);
+        if ($product === 'core') {
+            $this->adjustGood($playerId, 'core', 1);
+        } else {
+            $this->addUnit($playerId, $product, $hexId);
+        }
         if ($product === 'mech') {
             $this->playerStats->inc('mechs_manufactured', 1, $playerId);
         }
         $this->notifyUpdate(clienttranslate('${player_name} manufactures ${good}'), [
-            'player_id' => $playerId, 'player_name' => $this->playerName($playerId),
-            'good' => $product,
+            'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'good' => $product,
         ]);
     }
 
-    /** Move a Bot from the player's stock to an Extractor as a worker (+1 output per round). */
-    public function stationBot(int $playerId, int $hexId): void
-    {
-        $hex = $this->getHex($hexId);
-        if ((int) $hex['owner_id'] !== $playerId) {
-            throw new UserException(clienttranslate("You do not control this hex."));
-        }
-        if ($this->getPlayerState($playerId)['bot'] < 1) {
-            throw new UserException(clienttranslate("You have no Bot available."));
-        }
-        $extractors = (int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `building` WHERE `hex_id` = {$hexId} AND `owner_id` = {$playerId} AND `building_type` = 'extractor'");
-        if ((int) $hex['bots_stationed'] >= $extractors) {
-            throw new UserException(clienttranslate("Each Extractor can host one worker Bot."));
-        }
-        $this->spendAction();
-        $this->adjustGood($playerId, 'bot', -1);
-        static::DbQuery("UPDATE `hex_tile` SET `bots_stationed` = `bots_stationed` + 1 WHERE `hex_id` = {$hexId}");
-        $this->notifyUpdate(clienttranslate('${player_name} stations a Bot as worker'), [
-            'player_id' => $playerId, 'player_name' => $this->playerName($playerId),
-        ]);
-    }
-
-    /** Buy 1 unit at the market price; the price then rises by 1. */
+    /** Buy 1 unit at the board price; the price then rises by one step. */
     public function buyGood(int $playerId, string $good): void
     {
         $this->assertGood($good);
-        $prices = $this->globals->get('prices', self::BASE_PRICES);
+        $hexes = $this->tradeHexes($playerId, $good);
+        if (empty($hexes)) {
+            throw new UserException(clienttranslate("You have no Dock or Port access for this good. Move a unit onto it."));
+        }
+        $prices = $this->globals->get('prices');
         $price = (int) $prices[$good];
         if ($this->getPlayerState($playerId)['credits'] < $price) {
             throw new UserException(clienttranslate("Not enough Credits."));
         }
-        $this->spendAction();
         $this->adjustCredits($playerId, -$price);
-        $this->adjustGood($playerId, $good, 1);
-        $prices[$good] = min(self::MAX_PRICE, $price + 1);
+        if (in_array($good, ['bot', 'mech'], true)) {
+            $this->addUnit($playerId, $good, $hexes[0]);
+        } else {
+            $this->adjustGood($playerId, $good, 1);
+        }
+        $prices[$good] = min(self::PRICE_MAX[$good], $price + $this->priceStep($good));
         $this->globals->set('prices', $prices);
         $this->notifyUpdate(clienttranslate('${player_name} buys ${good} for ${price} Credits'), [
-            'player_id' => $playerId, 'player_name' => $this->playerName($playerId),
-            'good' => $good, 'price' => $price,
+            'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'good' => $good, 'price' => $price,
         ]);
     }
 
-    /** Sell 1 unit at (price - 1, min 1) plus any port bonus; the price then drops by 1. */
+    /** Sell 1 unit at (price - step) plus any port bonus; the price then drops by one step. */
     public function sellGood(int $playerId, string $good): void
     {
         $this->assertGood($good);
-        if ($this->getPlayerState($playerId)[$good] < 1) {
-            throw new UserException(clienttranslate("You have none of this good."));
+        $hexes = $this->tradeHexes($playerId, $good);
+        if (empty($hexes)) {
+            throw new UserException(clienttranslate("You have no Dock or Port access for this good. Move a unit onto it."));
         }
-        $prices = $this->globals->get('prices', self::BASE_PRICES);
+        if (in_array($good, ['bot', 'mech'], true)) {
+            $unitId = static::getUniqueValueFromDb("SELECT `unit_id` FROM `unit` WHERE `owner_id` = {$playerId} AND `unit_type` = '{$good}' AND `hex_id` IN (" . implode(',', $hexes) . ") LIMIT 1");
+            if ($unitId === null) {
+                throw new UserException(clienttranslate("Selling a unit needs it standing on your Dock or Port hex."));
+            }
+            $hexId = (int) static::getUniqueValueFromDb("SELECT `hex_id` FROM `unit` WHERE `unit_id` = " . (int) $unitId);
+            static::DbQuery("DELETE FROM `unit` WHERE `unit_id` = " . (int) $unitId);
+            $this->refreshControl($hexId);
+        } else {
+            if ($this->getPlayerState($playerId)[$good] < 1) {
+                throw new UserException(clienttranslate("You have none of this good."));
+            }
+            $this->adjustGood($playerId, $good, -1);
+        }
+        $prices = $this->globals->get('prices');
         $price = (int) $prices[$good];
-        $gain = max(self::MIN_PRICE, $price - 1) + ($this->hasPortBonus($playerId, $good) ? self::PORT_BONUS : 0);
-        $this->spendAction();
-        $this->adjustGood($playerId, $good, -1);
+        $newPrice = max(self::PRICE_MIN[$good], $price - $this->priceStep($good));
+        $gain = $newPrice + ($this->hasPortBonus($playerId, $good) ? self::PORT_BONUS : 0);
         $this->adjustCredits($playerId, $gain);
-        $prices[$good] = max(self::MIN_PRICE, $price - 1);
+        $prices[$good] = $newPrice;
         $this->globals->set('prices', $prices);
         $this->notifyUpdate(clienttranslate('${player_name} sells ${good} for ${gain} Credits'), [
-            'player_id' => $playerId, 'player_name' => $this->playerName($playerId),
-            'good' => $good, 'gain' => $gain,
+            'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'good' => $good, 'gain' => $gain,
         ]);
     }
 
@@ -528,7 +594,7 @@ class Game extends \Bga\GameFramework\Table
         $state = $this->getPlayerState($playerId);
         switch ($missionId) {
             case 'industrial_tycoon':
-                return $this->countBuildings($playerId, 'extractor') >= 3;
+                return $this->countActive($playerId, 'extractor') >= 3;
             case 'master_of_ports':
                 return (int) static::getUniqueValueFromDb(
                     "SELECT COUNT(DISTINCT p.`port_id`) FROM `trade_port` p JOIN `hex_tile` h ON h.`hex_id` = p.`adjacent_hex_id` WHERE h.`owner_id` = {$playerId}"
@@ -536,15 +602,14 @@ class Game extends \Bga\GameFramework\Table
             case 'core_hegemony':
                 return (int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `hex_tile` WHERE `ring` = 0 AND `owner_id` = {$playerId}") > 0;
             case 'fleet_supremacy':
-                $stationed = (int) static::getUniqueValueFromDb("SELECT COALESCE(SUM(`bots_stationed` + `mechs_stationed`), 0) FROM `hex_tile` WHERE `owner_id` = {$playerId}");
-                return $state['bot'] + $state['mech'] + $stationed >= 3;
+                return (int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `unit` WHERE `owner_id` = {$playerId}") >= 5;
             case 'energy_baron':
                 return $state['core'] >= 3;
         }
         return false;
     }
 
-    /** Claim a public mission (condition + 5 Credits). Free action, once per turn. Returns the player's new VP total. */
+    /** Claim a public mission (condition + 5 Credits), once per turn. Returns the player's new VP total. */
     public function claimMission(int $playerId, string $missionId): int
     {
         if (!isset(self::MISSION_VP[$missionId])) {
@@ -570,8 +635,7 @@ class Game extends \Bga\GameFramework\Table
         $this->playerStats->inc('vp_earned', $vp, $playerId);
         $this->tableStats->inc('missions_completed', 1);
         $this->notifyUpdate(clienttranslate('${player_name} completes a mission (+${vp} VP)'), [
-            'player_id' => $playerId, 'player_name' => $this->playerName($playerId),
-            'mission' => $missionId, 'vp' => $vp,
+            'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'mission' => $missionId, 'vp' => $vp,
         ]);
         return $this->getPlayerState($playerId)['vp'];
     }
@@ -580,12 +644,19 @@ class Game extends \Bga\GameFramework\Table
     // Round upkeep (called by NextPlayer when a new round starts)
     // ------------------------------------------------------------------
 
-    public function runProduction(): void
+    public function runRoundStart(): void
     {
+        // Fixed income for everyone
+        foreach (static::getObjectListFromDb("SELECT `player_id` FROM `player_state`") as $row) {
+            $this->adjustCredits((int) $row['player_id'], self::INCOME);
+        }
+
+        // Extractors on controlled hexes produce; each extra unit on the hex boosts one extractor (+1)
         $extractors = static::getObjectListFromDb(
-            "SELECT b.`owner_id`, b.`hex_id`, h.`resource_type`, h.`resource_type_2`, h.`bots_stationed`
+            "SELECT b.`owner_id`, b.`hex_id`, h.`resource_type`, h.`resource_type_2`,
+                    (SELECT COUNT(*) FROM `unit` u WHERE u.`hex_id` = h.`hex_id`) AS units
              FROM `building` b JOIN `hex_tile` h ON h.`hex_id` = b.`hex_id`
-             WHERE b.`building_type` = 'extractor' ORDER BY b.`building_id`"
+             WHERE b.`building_type` = 'extractor' AND h.`owner_id` = b.`owner_id` ORDER BY b.`building_id`"
         );
         $seen = [];
         foreach ($extractors as $e) {
@@ -596,11 +667,23 @@ class Game extends \Bga\GameFramework\Table
             if ($good === null) {
                 continue;
             }
-            $this->adjustGood((int) $e['owner_id'], $good, 1 + ($slot < (int) $e['bots_stationed'] ? 1 : 0));
+            $this->adjustGood((int) $e['owner_id'], $good, 1 + ($slot < (int) $e['units'] - 1 ? 1 : 0));
         }
-        foreach (static::getObjectListFromDb("SELECT `owner_id`, COUNT(*) AS c FROM `building` WHERE `building_type` = 'vault' GROUP BY `owner_id`") as $v) {
+        foreach (static::getObjectListFromDb(
+            "SELECT b.`owner_id`, COUNT(*) AS c FROM `building` b JOIN `hex_tile` h ON h.`hex_id` = b.`hex_id`
+             WHERE b.`building_type` = 'vault' AND h.`owner_id` = b.`owner_id` GROUP BY b.`owner_id`"
+        ) as $v) {
             $this->adjustCredits((int) $v['owner_id'], (int) $v['c']);
         }
-        $this->notifyUpdate(clienttranslate('New round: Extractors and Vaults pay out'));
+
+        // Market drift inside each good's allowed range
+        $prices = $this->globals->get('prices');
+        foreach (self::GOODS as $g) {
+            $step = $this->priceStep($g);
+            $prices[$g] = max(self::PRICE_MIN[$g], min(self::PRICE_MAX[$g], (int) $prices[$g] + bga_rand(-1, 1) * $step));
+        }
+        $this->globals->set('prices', $prices);
+
+        $this->notifyUpdate(clienttranslate('New round: income paid, Extractors produce, market prices shift'));
     }
 }
