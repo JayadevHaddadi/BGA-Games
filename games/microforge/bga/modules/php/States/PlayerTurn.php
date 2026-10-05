@@ -52,9 +52,9 @@ class PlayerTurn extends GameState
     }
 
     #[PossibleAction]
-    public function actProduce(int $buildingId, int $activePlayerId): string
+    public function actProduce(int $buildingId, string $kind, int $activePlayerId): string
     {
-        $this->game->produce($activePlayerId, $buildingId);
+        $this->game->produce($activePlayerId, $buildingId, $kind);
         return PlayerTurn::class;
     }
 
@@ -109,11 +109,13 @@ class PlayerTurn extends GameState
     #[PossibleAction]
     public function actEndTurn(int $activePlayerId): string
     {
-        return NextPlayer::class;
+        $this->globals->set('combat_attacker', $activePlayerId);
+        return ResolveCombat::class;
     }
 
     public function zombie(int $playerId): string
     {
-        return NextPlayer::class;
+        $this->globals->set('combat_attacker', $playerId);
+        return ResolveCombat::class;
     }
 }

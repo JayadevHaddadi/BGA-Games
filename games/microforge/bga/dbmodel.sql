@@ -44,6 +44,8 @@ CREATE TABLE IF NOT EXISTS `unit` (
     `unit_type` varchar(8) NOT NULL,
     `hex_id` smallint(5) NOT NULL,
     `assigned_to` int(10) unsigned DEFAULT NULL,
+    `attack_target` smallint(5) DEFAULT NULL,
+    `push_from` smallint(5) DEFAULT NULL,
     PRIMARY KEY (`unit_id`),
     KEY `idx_hex` (`hex_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

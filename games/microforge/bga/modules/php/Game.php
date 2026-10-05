@@ -29,9 +29,9 @@ class Game extends \Bga\GameFramework\Table
     public const PRODUCTS = ['bot', 'mech', 'core'];
     public const GOODS = ['iron', 'crystal', 'fuel', 'bot', 'mech', 'core'];
     // Allowed price range per good, and the middle band prices start in. Raw: 1-10, products: 2-20.
-    public const PRICE_MIN = ['iron' => 1, 'crystal' => 1, 'fuel' => 1, 'bot' => 2, 'mech' => 2, 'core' => 2];
-    public const PRICE_MAX = ['iron' => 10, 'crystal' => 10, 'fuel' => 10, 'bot' => 20, 'mech' => 20, 'core' => 20];
-    public const PRICE_START = ['iron' => [4, 7], 'crystal' => [4, 7], 'fuel' => [4, 7], 'bot' => [8, 14], 'mech' => [8, 14], 'core' => [8, 14]];
+    public const PRICE_MIN = ['iron' => 1, 'crystal' => 1, 'fuel' => 1, 'bot' => 1, 'mech' => 2, 'core' => 2];
+    public const PRICE_MAX = ['iron' => 10, 'crystal' => 10, 'fuel' => 10, 'bot' => 10, 'mech' => 20, 'core' => 20];
+    public const PRICE_START = ['iron' => [4, 7], 'crystal' => [4, 7], 'fuel' => [4, 7], 'bot' => [4, 7], 'mech' => [8, 14], 'core' => [8, 14]];
     // The home Dock is a plain port: only iron and bots, at the normal board price
     public const DOCK_GOODS = ['bot', 'iron'];
     // Real ports: Credits off when buying their cheap goods
@@ -48,6 +48,9 @@ class Game extends \Bga\GameFramework\Table
     public const MAX_ASSIGNED = 2; // bots per Vault / Extractor
     public const BOTS_PER_IRON = 2; // a Factory turns 1 iron into 2 bots
     public const START_IRON = 2;
+    // Combat: attackers needed per defending piece to push it away / to kill it (every piece counts 1)
+    public const PUSH_NEED = 2;
+    public const KILL_NEED = 3;
     public const MISSION_VP = [
         'industrial_tycoon' => 1,
         'master_of_ports' => 1,
@@ -102,6 +105,8 @@ class Game extends \Bga\GameFramework\Table
                 ['building', 'slot', "tinyint(3) unsigned NOT NULL DEFAULT 0"],
                 ['building', 'used', "tinyint(3) unsigned NOT NULL DEFAULT 0"],
                 ['unit', 'assigned_to', "int(10) unsigned DEFAULT NULL"],
+                ['unit', 'attack_target', "smallint(5) DEFAULT NULL"],
+                ['unit', 'push_from', "smallint(5) DEFAULT NULL"],
                 ['trade_port', 'supply_item_1', "varchar(16) NOT NULL DEFAULT ''"],
                 ['trade_port', 'supply_item_2', "varchar(16) NOT NULL DEFAULT ''"],
             ] as [$table, $col, $def]) {
@@ -426,6 +431,8 @@ class Game extends \Bga\GameFramework\Table
         $result['price_max'] = self::PRICE_MAX;
         $result['port_bonus'] = self::PORT_BONUS;
         $result['port_discount'] = self::PORT_DISCOUNT;
+        $result['push_need'] = self::PUSH_NEED;
+        $result['kill_need'] = self::KILL_NEED;
         return $result;
     }
 
@@ -450,12 +457,13 @@ class Game extends \Bga\GameFramework\Table
         }
         unset($b);
 
-        $units = static::getObjectListFromDb("SELECT `unit_id`, `owner_id`, `unit_type`, `hex_id`, `assigned_to` FROM `unit` ORDER BY `unit_id`");
+        $units = static::getObjectListFromDb("SELECT `unit_id`, `owner_id`, `unit_type`, `hex_id`, `assigned_to`, `attack_target` FROM `unit` ORDER BY `unit_id`");
         foreach ($units as &$u) {
             foreach (['unit_id', 'owner_id', 'hex_id'] as $k) {
                 $u[$k] = (int) $u[$k];
             }
             $u['assigned_to'] = $u['assigned_to'] === null ? null : (int) $u['assigned_to'];
+            $u['attack_target'] = $u['attack_target'] === null ? null : (int) $u['attack_target'];
         }
         unset($u);
 
@@ -569,6 +577,9 @@ class Game extends \Bga\GameFramework\Table
                 }
                 $owner = $hexes[$nid]['owner_id'];
                 if ($owner !== null && (int) $owner !== $playerId) {
+                    if ($nid === $toId) {
+                        return $dist[$cur] + 1; // attacking an enemy-held hex
+                    }
                     continue;
                 }
                 $dist[$nid] = $dist[$cur] + 1;
@@ -578,10 +589,10 @@ class Game extends \Bga\GameFramework\Table
         return null;
     }
 
-    /** Moving k pieces one step costs 1 + 2 + ... + k Credits (triangular); every extra step repeats that cost. */
+    /** One step: the 1st piece costs 1, the 2nd 3, the 3rd 6, the 4th 10 ... (triangular numbers); extra steps repeat it. */
     public static function moveCost(int $pieces): int
     {
-        return intdiv($pieces * ($pieces + 1), 2);
+        return intdiv($pieces * ($pieces + 1) * ($pieces + 2), 6);
     }
 
     /** A hex is controlled by whoever has units on it. */
@@ -623,7 +634,7 @@ class Game extends \Bga\GameFramework\Table
 
     protected function priceStep(string $good): int
     {
-        return in_array($good, self::PRODUCTS, true) ? 2 : 1;
+        return in_array($good, ['mech', 'core'], true) ? 2 : 1;
     }
 
     protected function adjustCredits(int $playerId, int $delta): void
@@ -751,7 +762,11 @@ class Game extends \Bga\GameFramework\Table
             throw new UserException(clienttranslate("Select at least one piece to move."));
         }
         $this->assertControls($playerId, $fromHexId);
-        $this->getHex($toHexId);
+        $toHex = $this->getHex($toHexId);
+        $isAttack = $toHex['owner_id'] !== null && (int) $toHex['owner_id'] !== $playerId;
+        if ($isAttack && !empty($tokens)) {
+            throw new UserException(clienttranslate("Only bots and mechs can attack."));
+        }
         $dist = $this->pathDistance($playerId, $fromHexId, $toHexId);
         if ($dist === null || $dist < 1) {
             throw new UserException(clienttranslate("There is no open path to that hex."));
@@ -766,7 +781,7 @@ class Game extends \Bga\GameFramework\Table
             if ($qty === 0) {
                 continue;
             }
-            $rows = static::getObjectListFromDb("SELECT `unit_id` FROM `unit` WHERE `owner_id` = {$playerId} AND `hex_id` = {$fromHexId} AND `unit_type` = '{$type}' AND `assigned_to` IS NULL LIMIT {$qty}");
+            $rows = static::getObjectListFromDb("SELECT `unit_id` FROM `unit` WHERE `owner_id` = {$playerId} AND `hex_id` = {$fromHexId} AND `unit_type` = '{$type}' AND `assigned_to` IS NULL AND `attack_target` IS NULL LIMIT {$qty}");
             if (count($rows) < $qty) {
                 throw new UserException(clienttranslate("You do not have that many free units there."));
             }
@@ -783,6 +798,14 @@ class Game extends \Bga\GameFramework\Table
         }
 
         $this->adjustCredits($playerId, -$cost);
+        if ($isAttack) {
+            // The pieces stay where they are until the attack is resolved at the end of the turn
+            static::DbQuery("UPDATE `unit` SET `attack_target` = {$toHexId} WHERE `unit_id` IN (" . implode(',', $unitIds) . ")");
+            $this->notifyUpdate(clienttranslate('${player_name} sends ${count} piece(s) to attack hex ${hex} (paid ${cost} Credits)'), [
+                'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'count' => $count, 'hex' => $toHexId, 'cost' => $cost,
+            ]);
+            return;
+        }
         if (!empty($unitIds)) {
             static::DbQuery("UPDATE `unit` SET `hex_id` = {$toHexId} WHERE `unit_id` IN (" . implode(',', $unitIds) . ")");
         }
@@ -806,19 +829,14 @@ class Game extends \Bga\GameFramework\Table
         if ($this->playerSupply($playerId)[$type] < 1) {
             throw new UserException(clienttranslate("None left on your player board."));
         }
-        $existing = static::getObjectListFromDb("SELECT `building_type`, `slot` FROM `building` WHERE `hex_id` = {$hexId}");
-        if ($type === 'extractor') {
-            $usedSlots = array_map(fn($b) => (int) $b['slot'], array_filter($existing, fn($b) => $b['building_type'] === 'extractor'));
-            if ($slot < 0 || $slot >= (int) $hex['resource_slots'] || in_array($slot, $usedSlots, true)) {
-                throw new UserException(clienttranslate("No free resource deposit on this hex."));
-            }
-        } else {
-            $slot = 0;
-            $others = count(array_filter($existing, fn($b) => !in_array($b['building_type'], ['extractor', 'dock'], true)));
-            if ($others >= (int) $hex['building_slots']) {
-                throw new UserException(clienttranslate("No free building slot on this hex."));
-            }
+        $used = (int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `building` WHERE `hex_id` = {$hexId} AND `building_type` <> 'dock'");
+        if ($used >= (int) $hex['building_slots']) {
+            throw new UserException(clienttranslate("No free production area on this hex."));
         }
+        if ($type === 'extractor' && $hex['resource_type'] === null) {
+            throw new UserException(clienttranslate("There is no resource on this hex to extract."));
+        }
+        $slot = 0;
         $this->deleteItems($this->findItems($playerId, 'iron', $hexId, self::BUILD_IRON[$type]));
         static::DbQuery("INSERT INTO `building` (`hex_id`, `building_type`, `owner_id`, `slot`) VALUES ({$hexId}, '{$type}', {$playerId}, {$slot})");
         $this->notifyUpdate(clienttranslate('${player_name} builds ${building}'), [
@@ -840,17 +858,16 @@ class Game extends \Bga\GameFramework\Table
         ]);
     }
 
-    /** Extractor: once per turn, pay N Credits for N tokens (N = 1 + assigned bots, max 3). Tokens appear on its hex. */
-    public function produce(int $playerId, int $buildingId): void
+    /** Extractor: once per turn, pay N Credits for N tokens of one of the tile's resources (N = 1 + assigned bots, max 3). */
+    public function produce(int $playerId, int $buildingId, string $kind): void
     {
         $b = $this->getOwnBuilding($playerId, $buildingId, ['extractor']);
         if ((int) $b['used'] === 1) {
             throw new UserException(clienttranslate("This Extractor already produced this turn."));
         }
         $hex = $this->getHex((int) $b['hex_id']);
-        $kind = (int) $b['slot'] === 0 ? $hex['resource_type'] : $hex['resource_type_2'];
-        if ($kind === null) {
-            throw new UserException(clienttranslate("There is no resource here."));
+        if ($kind === '' || !in_array($kind, [$hex['resource_type'], $hex['resource_type_2']], true)) {
+            throw new UserException(clienttranslate("That resource is not on this hex."));
         }
         $assigned = (int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `unit` WHERE `assigned_to` = {$buildingId}");
         $n = 1 + min(self::MAX_ASSIGNED, $assigned);
@@ -899,7 +916,7 @@ class Game extends \Bga\GameFramework\Table
         if ($assigned >= self::MAX_ASSIGNED) {
             throw new UserException(clienttranslate("This building already has 2 bots."));
         }
-        $unitId = static::getUniqueValueFromDb("SELECT `unit_id` FROM `unit` WHERE `owner_id` = {$playerId} AND `hex_id` = " . (int) $b['hex_id'] . " AND `unit_type` = 'bot' AND `assigned_to` IS NULL LIMIT 1");
+        $unitId = static::getUniqueValueFromDb("SELECT `unit_id` FROM `unit` WHERE `owner_id` = {$playerId} AND `hex_id` = " . (int) $b['hex_id'] . " AND `unit_type` = 'bot' AND `assigned_to` IS NULL AND `attack_target` IS NULL LIMIT 1");
         if ($unitId === null) {
             throw new UserException(clienttranslate("You need a free bot on this hex."));
         }
@@ -957,7 +974,7 @@ class Game extends \Bga\GameFramework\Table
             throw new UserException(clienttranslate("This trading post does not deal in that good."));
         }
         if (in_array($good, ['bot', 'mech'], true)) {
-            $row = static::getObjectListFromDb("SELECT `unit_id` FROM `unit` WHERE `owner_id` = {$playerId} AND `unit_type` = '{$good}' AND `assigned_to` IS NULL AND `hex_id` = {$hexId} LIMIT 1");
+            $row = static::getObjectListFromDb("SELECT `unit_id` FROM `unit` WHERE `owner_id` = {$playerId} AND `unit_type` = '{$good}' AND `assigned_to` IS NULL AND `attack_target` IS NULL AND `hex_id` = {$hexId} LIMIT 1");
             if (empty($row)) {
                 throw new UserException(clienttranslate("You need a free piece of that kind on this hex."));
             }
@@ -1024,6 +1041,142 @@ class Game extends \Bga\GameFramework\Table
             'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'mission' => $missionId, 'vp' => $vp,
         ]);
         return $this->getPlayerState($playerId)['vp'];
+    }
+
+    // ------------------------------------------------------------------
+    // Combat: attacks are declared during the turn and resolved when the turn ends
+    // ------------------------------------------------------------------
+
+    /**
+     * Every defending piece needs PUSH_NEED attackers to be pushed away and KILL_NEED to be killed.
+     * Attackers remove as many defenders as they can, then upgrade pushes to kills with what is left
+     * (2 vs 1 pushes, 3 vs 1 kills, 4 vs 2 pushes both, 5 vs 2 kills one and pushes one, 6 vs 2 kills both).
+     */
+    public static function combatOutcome(int $attackers, int $defenders): array
+    {
+        $removed = min($defenders, intdiv($attackers, self::PUSH_NEED));
+        $kills = min($removed, intdiv($attackers - self::PUSH_NEED * $removed, self::KILL_NEED - self::PUSH_NEED));
+        return ['kills' => $kills, 'pushes' => $removed - $kills, 'stays' => $defenders - $removed];
+    }
+
+    public function nextAttackTarget(int $attackerId): ?int
+    {
+        $t = static::getUniqueValueFromDb("SELECT MIN(`attack_target`) FROM `unit` WHERE `owner_id` = {$attackerId} AND `attack_target` IS NOT NULL");
+        return $t === null ? null : (int) $t;
+    }
+
+    /** Hexes a pushed piece may flee to: connected neighbours of the hex that are free or already the defender's. */
+    public function pushOptions(int $hexId, int $defenderId): array
+    {
+        $hex = $this->getHex($hexId);
+        $options = [];
+        foreach (self::DIRS as [$dq, $dr]) {
+            $nq = (int) $hex['coord_q'] + $dq;
+            $nr = (int) $hex['coord_r'] + $dr;
+            $rows = static::getObjectListFromDb("SELECT * FROM `hex_tile` WHERE `coord_q` = {$nq} AND `coord_r` = {$nr}");
+            if (empty($rows)) {
+                continue;
+            }
+            $n = $rows[0];
+            $n['edges'] = $n['edges'] ?? '111111';
+            if ($this->isConnected($hex, $n) && ($n['owner_id'] === null || (int) $n['owner_id'] === $defenderId)) {
+                $options[] = (int) $n['hex_id'];
+            }
+        }
+        return $options;
+    }
+
+    public function pushPending(int $defenderId): int
+    {
+        return (int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `unit` WHERE `owner_id` = {$defenderId} AND `push_from` IS NOT NULL");
+    }
+
+    /** Applies kills and marks pushed pieces. Returns how many pushed pieces the defender must place (0 = done). */
+    public function resolveAttack(int $attackerId, int $targetHexId): int
+    {
+        $attackers = (int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `unit` WHERE `owner_id` = {$attackerId} AND `attack_target` = {$targetHexId}");
+        $defenders = static::getObjectListFromDb("SELECT `unit_id`, `owner_id` FROM `unit` WHERE `hex_id` = {$targetHexId} AND `owner_id` <> {$attackerId} ORDER BY `unit_id`");
+        if (empty($defenders)) {
+            return 0;
+        }
+        $defenderId = (int) $defenders[0]['owner_id'];
+        $out = self::combatOutcome($attackers, count($defenders));
+        $killIds = array_map(fn($r) => (int) $r['unit_id'], array_slice($defenders, 0, $out['kills']));
+        $pushIds = array_map(fn($r) => (int) $r['unit_id'], array_slice($defenders, $out['kills'], $out['pushes']));
+        $options = $this->pushOptions($targetHexId, $defenderId);
+        if (empty($options)) {
+            $killIds = array_merge($killIds, $pushIds); // nowhere to flee
+            $pushIds = [];
+        }
+        if (!empty($killIds)) {
+            static::DbQuery("DELETE FROM `unit` WHERE `unit_id` IN (" . implode(',', $killIds) . ")");
+            if ($defenderId > 0) {
+                $this->playerStats->inc('battles_won', 1, $attackerId);
+            }
+        }
+        if (!empty($pushIds)) {
+            static::DbQuery("UPDATE `unit` SET `push_from` = {$targetHexId}, `assigned_to` = NULL WHERE `unit_id` IN (" . implode(',', $pushIds) . ")");
+            $this->globals->set('push', ['hex' => $targetHexId, 'defender' => $defenderId, 'attacker' => $attackerId]);
+        }
+        $this->notifyUpdate(clienttranslate('${player_name}: ${attackers} attacker(s) vs ${defenders} defender(s) on hex ${hex}: ${kills} killed, ${pushes} pushed'), [
+            'player_id' => $attackerId, 'player_name' => $this->playerName($attackerId), 'attackers' => $attackers, 'defenders' => count($defenders),
+            'hex' => $targetHexId, 'kills' => count($killIds), 'pushes' => count($pushIds),
+        ]);
+        return count($pushIds);
+    }
+
+    /** One pushed piece flees to a hex chosen by its owner. Returns how many are still waiting to be placed. */
+    public function pushUnit(int $defenderId, int $toHexId): int
+    {
+        $push = $this->globals->get('push');
+        if (empty($push) || (int) $push['defender'] !== $defenderId) {
+            throw new UserException(clienttranslate("Nothing to place."));
+        }
+        if (!in_array($toHexId, $this->pushOptions((int) $push['hex'], $defenderId), true)) {
+            throw new UserException(clienttranslate("Pieces cannot flee to that hex."));
+        }
+        $unitId = static::getUniqueValueFromDb("SELECT `unit_id` FROM `unit` WHERE `owner_id` = {$defenderId} AND `push_from` IS NOT NULL LIMIT 1");
+        if ($unitId === null) {
+            throw new UserException(clienttranslate("Nothing to place."));
+        }
+        static::DbQuery("UPDATE `unit` SET `hex_id` = {$toHexId}, `push_from` = NULL WHERE `unit_id` = " . (int) $unitId);
+        $this->refreshControl((int) $push['hex']);
+        $this->refreshControl($toHexId);
+        $this->notifyUpdate(clienttranslate('${player_name} retreats a piece'), [
+            'player_id' => $defenderId, 'player_name' => $this->playerName($defenderId),
+        ]);
+        return $this->pushPending($defenderId);
+    }
+
+    /** A defender who cannot or will not choose loses the pieces still waiting to be placed. */
+    public function abandonPush(int $defenderId): void
+    {
+        $hexes = static::getObjectListFromDb("SELECT DISTINCT `push_from` AS h FROM `unit` WHERE `owner_id` = {$defenderId} AND `push_from` IS NOT NULL");
+        static::DbQuery("DELETE FROM `unit` WHERE `owner_id` = {$defenderId} AND `push_from` IS NOT NULL");
+        foreach ($hexes as $row) {
+            $this->refreshControl((int) $row['h']);
+        }
+    }
+
+    /** If the hex is empty of defenders the attackers move in; otherwise they stay where they were. */
+    public function finalizeAttack(int $attackerId, int $targetHexId): void
+    {
+        $remaining = (int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `unit` WHERE `hex_id` = {$targetHexId} AND `owner_id` <> {$attackerId}");
+        if ($remaining === 0) {
+            $froms = static::getObjectListFromDb("SELECT DISTINCT `hex_id` AS h FROM `unit` WHERE `owner_id` = {$attackerId} AND `attack_target` = {$targetHexId}");
+            static::DbQuery("UPDATE `unit` SET `hex_id` = {$targetHexId}, `attack_target` = NULL WHERE `owner_id` = {$attackerId} AND `attack_target` = {$targetHexId}");
+            foreach ($froms as $row) {
+                $this->refreshControl((int) $row['h']);
+            }
+            $this->refreshControl($targetHexId);
+            $this->notifyUpdate(clienttranslate('${player_name} takes hex ${hex}'), [
+                'player_id' => $attackerId, 'player_name' => $this->playerName($attackerId), 'hex' => $targetHexId,
+            ]);
+        } else {
+            static::DbQuery("UPDATE `unit` SET `attack_target` = NULL WHERE `owner_id` = {$attackerId} AND `attack_target` = {$targetHexId}");
+            $this->notifyUpdate(clienttranslate('The attack on hex ${hex} is repelled'), ['hex' => $targetHexId]);
+        }
+        $this->globals->set('push', null);
     }
 
     // ------------------------------------------------------------------
