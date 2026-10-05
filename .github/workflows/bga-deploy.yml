@@ -25,6 +25,7 @@ on:
           - sugargliders
           - gardensofuranus
           - nestorgamesgp
+          - microforge
 
 jobs:
   deploy:
@@ -126,6 +127,12 @@ jobs:
             if echo "$CHANGED" | grep -qi "games/nestorgamesgp"; then
               echo "Deploying nestorgames GP..."
               python tools/sync.py nestorgamesgp
+              DEPLOYED=1
+            fi
+
+            if echo "$CHANGED" | grep -qi "games/microforge"; then
+              echo "Deploying MicroForge..."
+              python tools/sync.py microforge
               DEPLOYED=1
             fi
 

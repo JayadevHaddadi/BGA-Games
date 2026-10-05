@@ -1,0 +1,41 @@
+{
+    "table": {
+        "turns_number": {
+            "id": 10,
+            "name": "Number of turns",
+            "type": "int"
+        },
+        "missions_completed": {
+            "id": 11,
+            "name": "Missions completed",
+            "type": "int"
+        }
+    },
+    "player": {
+        "turns_number": {
+            "id": 10,
+            "name": "Number of turns",
+            "type": "int"
+        },
+        "vp_earned": {
+            "id": 20,
+            "name": "Victory points",
+            "type": "int"
+        },
+        "credits_earned": {
+            "id": 21,
+            "name": "Credits accumulated",
+            "type": "int"
+        },
+        "mechs_manufactured": {
+            "id": 22,
+            "name": "Mechs manufactured",
+            "type": "int"
+        },
+        "battles_won": {
+            "id": 23,
+            "name": "Battles won",
+            "type": "int"
+        }
+    }
+}

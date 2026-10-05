@@ -1,0 +1,23 @@
+{
+    "game_name": "MicroForge",
+    "publisher": "Jayadev Games",
+    "publisher_website": "https://boardgamearena.com",
+    "publisher_bga_id": null,
+    "bgg_id": 0,
+    "players": [2, 3, 4, 5, 6],
+    "suggest_player_number": 4,
+    "not_recommend_player_number": null,
+    "estimated_duration": 35,
+    "fast_additional_time_per_turn": 30,
+    "medium_additional_time_per_turn": 45,
+    "slow_additional_time_per_turn": 60,
+    "tie_breaker_description": "Most remaining Credits breaks the tie, followed by total manufactured mechs and bots.",
+    "is_coop": 0,
+    "is_sandbox": 0,
+    "turn_control": "standard",
+    "is_beta": 0,
+    "status": "alpha",
+    "game_interface_width": {
+        "min": 320
+    }
+}

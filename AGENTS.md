@@ -14,6 +14,12 @@ Every response must follow this strict structure:
 
 ---
 
+## 🛑 0. BGA Reviewer Feedback — READ BEFORE ANY UI WORK OR REVIEW REQUEST
+
+The BGA reviewer (Ian) rejected 4 games for Private Alpha with the same feedback and made clear his patience is wearing thin: generic/AI-looking UI, not adapted to each game's identity, weak mobile/responsive care. Feedback on one game applies to ALL games. **Read [BGA_REVIEWER_FEEDBACK.md](BGA_REVIEWER_FEEDBACK.md) and the Studio Guidelines before touching UI, and never request an alpha review until its checklist passes.** Licensing/outreach status lives in [LICENSING_TRACKER.md](LICENSING_TRACKER.md).
+
+---
+
 ## 🚀 1. Deployment Workflow: Commit & Push
 
 * **Repository Identity**:
@@ -49,6 +55,7 @@ Every change should be committed and pushed to `main`. The GitHub Actions deploy
 | **Sugar Gliders** | `games/sugargliders/bga/` | `sugargliders` | `python tools/sync.py sugargliders` |
 | **Gardens of Uranus** | `games/gardensofuranus/bga/` | `gardensofuranustest` / `gardensofuranus` | `python tools/sync.py gardensofuranus` |
 | **nestorgames GP** | `games/nestorgamesgp/bga/` | `nestorgamesgptest` / `nestorgamesgp` | `python tools/sync.py nestorgamesgp` |
+| **MicroForge** | `games/microforge/bga/` | `microforgetest` / `microforge` | `python tools/sync.py microforge` |
 
 ---
 
