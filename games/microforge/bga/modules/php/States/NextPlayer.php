@@ -31,15 +31,8 @@ class NextPlayer extends GameState
         $this->globals->set('claimed_this_turn', false);
 
         $nextPlayerId = (int) $this->game->activeNextPlayer();
-
-        // A full round has passed whenever play wraps to the first player in turn order
-        $playerCount = count($this->game->loadPlayersBasicInfos());
-        if ($turnCount % $playerCount === 0) {
-            $this->tableStats->inc('turns_number', 1);
-            $this->game->runRoundStart();
-        }
-
-        $this->game->resetTurnFlags($nextPlayerId);
+        $this->tableStats->inc('turns_number', 1);
+        $this->game->startTurn($nextPlayerId);
         $this->game->giveExtraTime($nextPlayerId);
 
         return PlayerTurn::class;

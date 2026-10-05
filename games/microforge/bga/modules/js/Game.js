@@ -8,12 +8,20 @@
  *  - click a building slot to see what can be built there;
  *  - click a port badge (or a hex with your Dock) to trade.
  */
-const RES_COLORS = { iron: '#8a8f98', crystal: '#4aa3c7', fuel: '#6a9a3c', core: '#c9a227' };
-const GOODS = ['iron', 'crystal', 'fuel', 'bot', 'mech', 'core'];
-const TOKENS = ['iron', 'crystal', 'fuel', 'core'];
-const BUILDINGS = ['extractor', 'factory', 'vault', 'turret'];
+const RES_COLORS = { iron: '#8a8f98', crystal: '#4aa3c7' };
+const GOODS = ['iron', 'crystal', 'bot', 'mech'];
+const TOKENS = ['iron', 'crystal'];
+const BUILDINGS = ['extractor', 'factory', 'tower'];
 const DIRS = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
-const TILE_COLORS = { iron: '#c3c6cc', crystal: '#9fd0e6', fuel: '#a9d07c' };
+const TILE_COLORS = { iron: '#c3c6cc', crystal: '#9fd0e6' };
+const BUILDING_NAMES = { extractor: 'Extractor', factory: 'Factory', tower: 'Guard Tower' };
+const MISSIONS = {
+    industrial_tycoon: ['Industrial Tycoon', 'Control 3 Extractors (each on a hex where you have a unit).'],
+    master_of_ports: ['Master of Ports', 'Control the hexes next to 2 different ports.'],
+    core_hegemony: ['Prime Core Hegemony', 'Control the central hex.'],
+    fleet_supremacy: ['Fleet Supremacy', 'Have 6 pieces (bots and mechs) on the map.'],
+    stockpile: ['Stockpile', 'Have 6 resource tokens on the map.'],
+};
 
 /** The defender picks where each pushed piece retreats to (one click per piece). */
 class ChoosePush {
@@ -67,6 +75,7 @@ export class Game {
         this.dists = null; // step distances from selFrom
         this.pending = null; // { to, dist }
         this.slotSel = null; // { hex, kind: 'bld', idx }
+        this.missionSel = null; // mission id whose card was clicked
         this.pushArgs = null;
         this.pushActive = false;
         this.bga.states.register('PlayerTurn', new PlayerTurn(this));
@@ -77,7 +86,7 @@ export class Game {
         this.data = gamedatas;
         this.data.hexes.forEach(h => { h.edges = h.edges || '111111'; });
         this.bga.gameArea.getElement().insertAdjacentHTML('beforeend',
-            '<div id="mf_boards"></div><div id="mf_market"></div><div id="mf_board"></div><div id="mf_ports"></div><div id="mf_panel"></div>');
+            '<div id="mf_boards"></div><div id="mf_top"><div id="mf_market"></div><div id="mf_missions"></div></div><div id="mf_board"></div><div id="mf_ports"></div><div id="mf_panel"></div>');
         this.bga.notifications.setupPromiseNotifications();
         this.render();
     }
@@ -90,6 +99,7 @@ export class Game {
         Object.assign(this.data, args.state);
         this.clearSel();
         this.slotSel = null;
+        this.missionSel = null;
         this.render();
     }
 
@@ -100,7 +110,7 @@ export class Game {
     // ------------------------------------------------------------------ helpers
 
     emptySel() {
-        return { bots: 0, mechs: 0, iron: 0, crystal: 0, fuel: 0, core: 0 };
+        return { bots: 0, mechs: 0, iron: 0, crystal: 0 };
     }
 
     clearSel() {
@@ -142,12 +152,29 @@ export class Game {
         return n * (n + 1) * (n + 2) / 6;
     }
 
-    /** Mirror of Game::combatOutcome. */
-    combatOutcome(attackers, defenders) {
-        const push = this.data.push_need, kill = this.data.kill_need;
-        const removed = Math.min(defenders, Math.floor(attackers / push));
-        const kills = Math.min(removed, Math.floor((attackers - push * removed) / (kill - push)));
-        return { kills, pushes: removed - kills };
+    unitPower(type) {
+        return type === 'mech' ? this.data.mech_power : 1;
+    }
+
+    /** Mirror of Game::combatOutcome: how many defenders an attack of `power` kills / pushes. */
+    combatOutcome(power, weights, towers) {
+        const push = this.data.push_need + towers, kill = this.data.kill_need + towers;
+        const sorted = weights.slice().sort((a, b) => a - b);
+        let left = power;
+        const removed = [];
+        for (const w of sorted) {
+            if (left < push * w) break;
+            left -= push * w;
+            removed.push(w);
+        }
+        let kills = 0;
+        for (const w of removed) {
+            const extra = (kill - push) * w;
+            if (left < extra) break;
+            left -= extra;
+            kills++;
+        }
+        return { kills, pushes: removed.length - kills };
     }
 
     isEnemyHex(h) {
@@ -197,12 +224,12 @@ export class Game {
         const terms = {};
         goods.forEach(g => {
             const price = d.prices[g];
-            const step = (g === 'mech' || g === 'core') ? 2 : 1;
+            const step = g === 'mech' ? 2 : 1;
             let buy = price;
             let sell = Math.max(d.price_min[g], price - step);
             if (port) {
                 if (g === port.supply_item_1 || g === port.supply_item_2) buy = Math.max(d.price_min[g], price - d.port_discount);
-                if ([port.demanded_item_1, port.demanded_item_2, port.demanded_item_3].includes(g)) sell += d.port_bonus;
+                if ([port.demanded_item_1, port.demanded_item_2, port.demanded_item_3].filter(Boolean).includes(g)) sell += d.port_bonus;
             }
             terms[g] = { buy, sell };
         });
@@ -212,7 +239,7 @@ export class Game {
     portText(p) {
         const d = this.data;
         return `${_('Port')} ${this.portLetter(p)}: ${_('buy cheaper')} (-${d.port_discount}): ${p.supply_item_1}, ${p.supply_item_2}`
-            + ` | ${_('pays more')} (+${d.port_bonus}) ${_('for')}: ${p.demanded_item_1}, ${p.demanded_item_2}, ${p.demanded_item_3}`;
+            + ` | ${_('pays more')} (+${d.port_bonus}) ${_('for')}: ${[p.demanded_item_1, p.demanded_item_2, p.demanded_item_3].filter(Boolean).join(', ')}`;
     }
 
     // ------------------------------------------------------------------ rendering
@@ -222,6 +249,7 @@ export class Game {
         if (this.selFrom !== null && this.moveTotal() > 0) this.dists = this.distances(this.selFrom);
         this.renderPlayerBoards();
         this.renderMarket();
+        this.renderMissions();
         this.renderBoard();
         this.renderPorts();
         this.renderPanel();
@@ -239,13 +267,16 @@ export class Game {
             const credits = this.data.player_state[this.me()].credits;
             const to = this.pending.to;
             if (this.pending.attack) {
-                const committed = this.data.units.filter(u => u.owner_id === this.me() && u.attack_target === to).length;
-                const A = committed + this.sel.bots + this.sel.mechs;
-                const D = this.data.units.filter(u => u.hex_id === to).length;
-                const out = this.combatOutcome(A, D);
+                const committed = this.data.units.filter(u => u.owner_id === this.me() && u.attack_target === to)
+                    .reduce((a, u) => a + this.unitPower(u.unit_type), 0);
+                const power = committed + this.sel.bots + this.sel.mechs * this.data.mech_power;
+                const defenders = this.data.units.filter(u => u.hex_id === to);
+                const towers = this.data.buildings.filter(b => b.hex_id === to && b.building_type === 'tower' && b.owner_id === this.hexById(to).owner_id).length;
+                const out = this.combatOutcome(power, defenders.map(u => this.unitPower(u.unit_type)), towers);
                 const tokens = total - this.sel.bots - this.sel.mechs;
-                sb.setTitle(_('Attack hex ${hex}: ${a} attacker(s) vs ${d} defender(s) would kill ${k} and push ${p}. Costs ${cost} Credits; resolved when you end your turn')
-                    .replace('${hex}', to).replace('${a}', A).replace('${d}', D).replace('${k}', out.kills).replace('${p}', out.pushes).replace('${cost}', cost));
+                sb.setTitle(_('Attack hex ${hex}: power ${a} vs ${d} defender(s)${t} would kill ${k} and push ${p}. Costs ${cost} Credits; resolved when you end your turn')
+                    .replace('${hex}', to).replace('${a}', power).replace('${d}', defenders.length)
+                    .replace('${t}', towers ? ` + ${towers} Guard Tower(s)` : '').replace('${k}', out.kills).replace('${p}', out.pushes).replace('${cost}', cost));
                 sb.addActionButton(_('Attack'), () => {
                     const args = { fromHexId: this.selFrom, toHexId: to, ...this.sel };
                     this.pending = null;
@@ -263,6 +294,20 @@ export class Game {
         } else if (total > 0) {
             sb.setTitle(_('${n} piece(s) selected: click a highlighted hex to see the cost').replace('${n}', total));
             sb.addActionButton(_('Cancel'), () => { this.clearSel(); this.render(); }, { color: 'alert' });
+        } else if (this.missionSel) {
+            const m = this.missionSel;
+            const d = this.data;
+            const me = this.me();
+            const done = (d.claimed_missions[me] || []).includes(m);
+            const met = !!(d.mission_met && d.mission_met[me] && d.mission_met[me][m]);
+            sb.setTitle(_('Mission "${n}": ${desc} Buy it for ${fee} Credits? You meet it now: ${met}')
+                .replace('${n}', _(MISSIONS[m][0])).replace('${desc}', _(MISSIONS[m][1])).replace('${fee}', d.mission_fee).replace('${met}', met ? _('yes') : _('no (the Credits would be wasted)')));
+            const canBuy = !done && this.args.can_claim_mission !== false && d.player_state[me].credits >= d.mission_fee;
+            sb.addActionButton(`${_('Buy')} (${d.mission_fee})`, () => {
+                this.missionSel = null;
+                this.act('actClaimMission', { missionId: m });
+            }, { color: 'primary', disabled: !canBuy });
+            sb.addActionButton(_('Cancel'), () => { this.missionSel = null; this.render(); }, { color: 'alert' });
         } else if (this.slotSel) {
             this.slotBanner(sb);
         } else {
@@ -287,9 +332,8 @@ export class Game {
         const iron = this.availOf(s.hex, 'iron');
         const credits = d.player_state[me].credits;
         const supply = d.player_state[me].supply;
-        const niceName = t => (t === 'turret' ? _('Defense Outpost') : t.charAt(0).toUpperCase() + t.slice(1));
+        const niceName = t => _(BUILDING_NAMES[t] || t);
         if (!content) {
-            // Four build options fill the bar; click elsewhere to deselect
             sb.setTitle(_('Build in this production area (iron on this hex: ${n})').replace('${n}', iron));
             BUILDINGS.forEach(t => {
                 const noResource = t === 'extractor' && !hex.resource_type;
@@ -299,6 +343,7 @@ export class Game {
                     this.act('actBuild', { hexId: s.hex, buildingType: t, slot: 0 });
                 }, { color: 'primary', disabled: !ok });
             });
+            cancel();
             return;
         }
         if (content.owner_id !== me) {
@@ -319,8 +364,18 @@ export class Game {
                     this.act('actProduce', { buildingId: content.building_id, kind });
                 }, { color: 'primary', disabled: !!content.used || credits < n });
             });
+        } else if (content.building_type === 'factory') {
+            const crystal = this.availOf(s.hex, 'crystal');
+            sb.setTitle(_('Your Factory (on this hex: ${i} iron, ${c} crystal): 1 iron makes 2 bots, 1 iron + 1 crystal makes a mech')
+                .replace('${i}', iron).replace('${c}', crystal));
+            sb.addActionButton(`${_('Make')} ${d.bots_per_iron} ${_('bots')} (1 ${_('iron')})`, () => {
+                this.act('actManufacture', { buildingId: content.building_id, product: 'bot' });
+            }, { color: 'primary', disabled: iron < 1 || d.player_state[me].supply.bot < 1 });
+            sb.addActionButton(`${_('Make mech')} (1 ${_('iron')} + 1 ${_('crystal')})`, () => {
+                this.act('actManufacture', { buildingId: content.building_id, product: 'mech' });
+            }, { color: 'primary', disabled: iron < 1 || crystal < 1 || d.player_state[me].supply.mech < 1 });
         } else {
-            sb.setTitle(_('Your ${b}: sell it and get ${n} iron back?').replace('${b}', content.building_type).replace('${n}', refund));
+            sb.setTitle(_('Your ${b}: sell it and get ${n} iron back?').replace('${b}', niceName(content.building_type)).replace('${n}', refund));
         }
         sb.addActionButton(`${_('Sell')} (+${refund} ${_('iron')})`, () => {
             this.slotSel = null;
@@ -336,23 +391,21 @@ export class Game {
             pid = Number(pid);
             const s = d.player_state[pid];
             const done = (d.claimed_missions[pid] || []).length;
-            const supply = ['bot', 'mech', 'vault', 'factory', 'extractor', 'turret'].map(t => `${t}s ${s.supply[t]}/${d.supply_total[t]}`).join(' | ');
+            const supply = ['bot', 'mech', 'factory', 'extractor', 'tower'].map(t => `${t}s ${s.supply[t]}/${d.supply_total[t]}`).join(' | ');
             let rules = '';
             if (pid === me) {
-                const vi = d.vault_income.map(v => '+' + v).join(', ');
                 rules = '<div class="mf_rules">'
-                    + `<div>${_('Board')}: +${d.base_income} ${_('Credits each round.')}</div>`
-                    + `<div>${_('Vaults')}: ${_('1st to 5th built give')} ${vi}; +${d.vault_bot_bonus} ${_('per assigned bot (max')} ${d.max_assigned}).</div>`
+                    + `<div>${_('Board')}: +${d.base_income} ${_('Credits at the start of each of your turns.')}</div>`
                     + `<div>${_('Factory')}: 1 iron = ${d.bots_per_iron} ${_('bots')}; 1 iron + 1 crystal = 1 ${_('mech')}.</div>`
                     + `<div>${_('Extractor')}: ${_('built in a production area on a tile with a resource; once per turn pay 1 Credit for 1 of the tile\'s resources; each assigned bot adds 1 (pay and get up to 3).')}</div>`
                     + `<div>${_('Building needs iron on the tile')}: ${BUILDINGS.map(b => `${b} ${d.build_iron[b]}`).join(', ')}.</div>`
                     + `<div>${_('Moving one step: the 1st piece costs 1, the 2nd 3, the 3rd 6, the 4th 10 Credits (per step).')}</div>`
-                    + `<div>${_('Attacks (moving onto an enemy hex) resolve when you end your turn: 2 attackers per defender push it away, 3 kill it.')}</div>`
+                    + `<div>${_('Attacks (moving onto an enemy hex) resolve when you end your turn. A bot has power 1, a mech power 4. Each defending bot needs power 2 to be pushed away and 3 to be killed; a defending Guard Tower adds 1 to both. A mech defends as power 4.')}</div>`
                     + '</div>';
             }
             return `<div class="mf_pboard" style="border-color:${this.colorOf(pid)}">`
                 + `<b>${d.players[pid].name}</b> | ${_('Credits')}: ${s.credits} | VP: ${s.vp}/${d.vp_target} | ${_('Missions')}: ${done}<br>`
-                + `<span class="mf_income">${_('Income this round')}: +${s.income}</span><br>`
+                + `<span class="mf_income">${_('Income each turn')}: +${s.income}</span><br>`
                 + `${_('Supply')}: ${supply}`
                 + rules + '</div>';
         }).join('');
@@ -368,6 +421,36 @@ export class Game {
         }).join('');
         document.getElementById('mf_market').innerHTML = `<b>${_('Price board')}</b> <span class="mf_hint">${_('To trade, click a port on the map or a hex with your Dock (you must control it).')}</span>`
             + `<table class="mf_table"><tr><th>${_('Good')}</th><th>${_('Price')}</th><th></th><th>${_('Range')}</th></tr>${rows}</table>`;
+    }
+
+    renderMissions() {
+        const d = this.data;
+        const me = this.me();
+        const done = d.claimed_missions[me] || [];
+        const met = (d.mission_met && d.mission_met[me]) || {};
+        const cards = Object.keys(d.mission_vp).map(m => {
+            const isDone = done.includes(m);
+            const tag = isDone ? _('done') : (met[m] ? _('you meet it') : '');
+            return `<button class="mf_mission${this.missionSel === m ? ' mf_mission_sel' : ''}" data-mission="${m}">`
+                + `<b>${_(MISSIONS[m][0])}</b> <span>${d.mission_vp[m]} VP${tag ? ' - ' + tag : ''}</span></button>`;
+        }).join('');
+        let info = `<div class="mf_hint">${_('Click a mission card for details.')}</div>`;
+        if (this.missionSel) {
+            const m = this.missionSel;
+            info = `<div class="mf_missioninfo"><b>${_(MISSIONS[m][0])}</b> (${d.mission_vp[m]} VP)<br>${_(MISSIONS[m][1])}<br>`
+                + `${_('Buy it for')} ${d.mission_fee} ${_('Credits (one mission per turn). You get the VP only if you meet it at that moment; otherwise the Credits are wasted.')}<br>`
+                + `${_('You meet it now')}: ${met[m] ? _('yes') : _('no')}${done.includes(m) ? ' - ' + _('already completed') : ''}</div>`;
+        }
+        const el = document.getElementById('mf_missions');
+        el.innerHTML = `<b>${_('Missions')}</b>${cards}${info}`;
+        el.querySelectorAll('.mf_mission').forEach(b => b.addEventListener('click', () => this.onMissionClick(b.dataset.mission)));
+    }
+
+    onMissionClick(m) {
+        this.clearSel();
+        this.slotSel = null;
+        this.missionSel = this.missionSel === m ? null : m;
+        this.render();
     }
 
     hexPos(h, size) {
@@ -500,6 +583,7 @@ export class Game {
 
     onStackClick(hexId, kind) {
         this.slotSel = null;
+        this.missionSel = null;
         const hex = this.hexById(hexId);
         if (!this.active || hex.owner_id !== this.me()) return;
         if (this.selFrom !== hexId) {
@@ -520,6 +604,7 @@ export class Game {
             return;
         }
         this.slotSel = null;
+        this.missionSel = null;
         if (this.active && this.moveTotal() > 0 && hexId !== this.selFrom && this.dists && this.dists[hexId] > 0) {
             this.pending = { to: hexId, dist: this.dists[hexId], attack: this.isEnemyHex(this.hexById(hexId)) };
             this.selectedHex = hexId;
@@ -533,6 +618,7 @@ export class Game {
 
     onSlotClick(hexId, kind, idx) {
         this.clearSel();
+        this.missionSel = null;
         this.selectedHex = hexId;
         this.slotSel = { hex: hexId, kind, idx };
         this.render();
@@ -560,8 +646,7 @@ export class Game {
         const info = {
             extractor: _('extracts one of the tile resources for 1 Credit (once per turn)'),
             factory: _('turns iron into bots, or iron + crystal into a mech'),
-            vault: _('earns extra Credits every round'),
-            turret: _('Defense Outpost: +2 strength for defenders on this hex (used once combat is added)'),
+            tower: _('defenders on this hex need 1 more attack power to be pushed away and 1 more to be killed'),
         };
         if (hex.building_slots === 0) {
             return `<div class="mf_row">${_('Resources')}: ${[hex.resource_type, hex.resource_type_2].filter(Boolean).join(', ') || _('none')}. ${_('This hex has no production areas.')}</div>`;
@@ -573,7 +658,7 @@ export class Game {
             else if (t === 'extractor' && !hex.resource_type) why = _('no resource on this hex');
             else if (supply[t] < 1) why = _('none left on your player board');
             else if (avail.iron < d.build_iron[t]) why = `${_('needs')} ${d.build_iron[t]} ${_('iron on this hex')}`;
-            return `<div class="mf_buildrow"><b>${t === 'turret' ? _('Defense Outpost') : t}</b>: ${info[t]} - ${d.build_iron[t]} ${_('iron')}, ${_('sells for')} ${Math.max(0, d.build_iron[t] - 1)} ${_('iron')}${why ? ` <i>(${why})</i>` : ''}</div>`;
+            return `<div class="mf_buildrow"><b>${_(BUILDING_NAMES[t])}</b>: ${info[t]} - ${d.build_iron[t]} ${_('iron')}, ${_('sells for')} ${Math.max(0, d.build_iron[t] - 1)} ${_('iron')}${why ? ` <i>(${why})</i>` : ''}</div>`;
         }).join('');
         return `<div class="mf_row ${this.buildFocus ? 'mf_focus' : ''}"><b>${_('Resources')}: ${[hex.resource_type, hex.resource_type_2].filter(Boolean).join(', ') || _('none')} | ${_('Production areas')}: ${hex.building_slots}. ${_('Click a dotted production area on the map to build, extract or sell')}.</b>${rows}</div>`;
     }
@@ -623,16 +708,12 @@ export class Game {
                         lines.push(`<div class="mf_row">${_('Extractor')} (${assigned}/${d.max_assigned} ${_('bots')}; ${_('click it on the map to extract')}): `
                             + btn(_('Assign bot'), 'actAssign', { buildingId: b.building_id }, avail.bots > 0 && assigned < d.max_assigned)
                             + btn(_('Free bot'), 'actUnassign', { buildingId: b.building_id }, assigned > 0) + '</div>');
-                    } else if (b.building_type === 'vault') {
-                        lines.push(`<div class="mf_row">${_('Vault')} (${assigned}/${d.max_assigned} ${_('bots')}): `
-                            + btn(_('Assign bot'), 'actAssign', { buildingId: b.building_id }, avail.bots > 0 && assigned < d.max_assigned)
-                            + btn(_('Free bot'), 'actUnassign', { buildingId: b.building_id }, assigned > 0) + '</div>');
                     } else if (b.building_type === 'factory') {
                         lines.push(`<div class="mf_row">${_('Factory')}: `
                             + btn(`${_('Make')} ${d.bots_per_iron} ${_('bots')} (1 iron)`, 'actManufacture', { buildingId: b.building_id, product: 'bot' }, avail.iron >= 1)
                             + btn(`${_('Make mech')} (1 iron + 1 crystal)`, 'actManufacture', { buildingId: b.building_id, product: 'mech' }, avail.iron >= 1 && avail.crystal >= 1) + '</div>');
-                    } else if (b.building_type === 'turret') {
-                        lines.push(`<div class="mf_row">${_('Defense Outpost')}: ${_('+2 strength for defenders here (combat comes later)')}</div>`);
+                    } else if (b.building_type === 'tower') {
+                        lines.push(`<div class="mf_row">${_('Guard Tower')}: ${_('defenders here need 1 more attack power to be pushed and 1 more to be killed')}</div>`);
                     }
                 });
             }
@@ -641,9 +722,6 @@ export class Game {
             lines.push(`<div class="mf_row mf_hint">${_('Click a hex, a building slot or a port.')}</div>`);
         }
         this.buildFocus = false;
-        const done = d.claimed_missions[me] || [];
-        lines.push('<div class="mf_row"><b>' + _('Missions') + '</b> ' + Object.keys(d.mission_vp).map(m =>
-            done.includes(m) ? `${m} (done)` : btn(`${m} (${d.mission_vp[m]} VP)`, 'actClaimMission', { missionId: m })).join('') + '</div>');
         const el = document.getElementById('mf_panel');
         el.innerHTML = lines.join('');
         this.bindButtons(el);

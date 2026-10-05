@@ -16,3 +16,10 @@
 #mf_ports { max-width: 700px; margin: 6px auto; padding: 0 6px; }
 .mf_buildrow { margin: 4px 0; font-size: 12px; }
 .mf_focus { outline: 2px solid #ffe600; }
+#mf_top { display: flex; flex-wrap: wrap; gap: 8px; max-width: 900px; margin: 6px auto; align-items: flex-start; }
+#mf_top #mf_market { flex: 1 1 280px; max-width: none; margin: 0; }
+#mf_missions { flex: 1 1 240px; padding: 6px; background: #efe3c8; border: 2px solid #5a4630; }
+.mf_mission { display: block; width: 100%; text-align: left; min-height: 36px; margin: 3px 0; }
+.mf_mission span { font-size: 11px; }
+.mf_mission_sel { outline: 2px solid #ffe600; }
+.mf_missioninfo { font-size: 12px; margin-top: 6px; }

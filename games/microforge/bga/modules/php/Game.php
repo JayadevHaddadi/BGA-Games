@@ -22,41 +22,40 @@ class Game extends \Bga\GameFramework\Table
     public const VP_TARGET = 5;
     public const MISSION_FEE = 5;
     public const PORT_BONUS = 3;
-    public const START_CREDITS = 10;
+    public const START_CREDITS = 10; // only the first player; everyone else gets the same 10 as income on their first turn
     public const START_BOTS = 3;
 
-    public const RAW = ['iron', 'crystal', 'fuel'];
-    public const PRODUCTS = ['bot', 'mech', 'core'];
-    public const GOODS = ['iron', 'crystal', 'fuel', 'bot', 'mech', 'core'];
+    public const RAW = ['iron', 'crystal'];
+    public const PRODUCTS = ['bot', 'mech'];
+    public const GOODS = ['iron', 'crystal', 'bot', 'mech'];
     // Allowed price range per good, and the middle band prices start in. Raw: 1-10, products: 2-20.
-    public const PRICE_MIN = ['iron' => 1, 'crystal' => 1, 'fuel' => 1, 'bot' => 1, 'mech' => 2, 'core' => 2];
-    public const PRICE_MAX = ['iron' => 10, 'crystal' => 10, 'fuel' => 10, 'bot' => 10, 'mech' => 20, 'core' => 20];
-    public const PRICE_START = ['iron' => [4, 7], 'crystal' => [4, 7], 'fuel' => [4, 7], 'bot' => [4, 7], 'mech' => [8, 14], 'core' => [8, 14]];
+    public const PRICE_MIN = ['iron' => 1, 'crystal' => 1, 'bot' => 1, 'mech' => 2];
+    public const PRICE_MAX = ['iron' => 10, 'crystal' => 10, 'bot' => 10, 'mech' => 20];
+    public const PRICE_START = ['iron' => [4, 7], 'crystal' => [4, 7], 'bot' => [4, 7], 'mech' => [8, 14]];
     // The home Dock is a plain port: only iron and bots, at the normal board price
     public const DOCK_GOODS = ['bot', 'iron'];
     // Real ports: Credits off when buying their cheap goods
     public const PORT_DISCOUNT = 2;
 
     // Player board: supply of pieces each player starts with (bots/mechs/buildings not yet on the map)
-    public const SUPPLY = ['bot' => 20, 'mech' => 6, 'vault' => 5, 'factory' => 5, 'extractor' => 5, 'turret' => 5];
+    public const SUPPLY = ['bot' => 20, 'mech' => 6, 'factory' => 5, 'extractor' => 5, 'tower' => 5];
     // Construction cost: iron tokens that must be standing on the tile being built on
-    public const BUILD_IRON = ['extractor' => 1, 'factory' => 2, 'vault' => 3, 'turret' => 2];
+    public const BUILD_IRON = ['extractor' => 1, 'factory' => 2, 'tower' => 2];
     public const BASE_INCOME = 10;
-    // Income of the 1st, 2nd, ... active Vault; +VAULT_BOT_BONUS per assigned bot
-    public const VAULT_INCOME = [12, 10, 8, 6, 4];
-    public const VAULT_BOT_BONUS = 2;
     public const MAX_ASSIGNED = 2; // bots per Vault / Extractor
     public const BOTS_PER_IRON = 2; // a Factory turns 1 iron into 2 bots
     public const START_IRON = 2;
-    // Combat: attackers needed per defending piece to push it away / to kill it (every piece counts 1)
+    // Combat: a bot has power 1, a mech power 4. Pushing a defender takes PUSH_NEED x its power, killing it
+    // KILL_NEED x its power; every Guard Tower on the hex adds 1 to both numbers.
     public const PUSH_NEED = 2;
     public const KILL_NEED = 3;
+    public const MECH_POWER = 4;
     public const MISSION_VP = [
         'industrial_tycoon' => 1,
         'master_of_ports' => 1,
         'core_hegemony' => 2,
         'fleet_supremacy' => 1,
-        'energy_baron' => 1,
+        'stockpile' => 1,
     ];
 
     // Tile value budget by distance from the centre. Value costs: path 1, resource 2, building slot 2.
@@ -161,7 +160,8 @@ class Game extends \Bga\GameFramework\Table
         $playerIds = array_map('intval', array_keys($players));
         static::DbQuery("DELETE FROM `player_state`");
         foreach ($playerIds as $pid) {
-            static::DbQuery("INSERT INTO `player_state` (`player_id`, `credits`) VALUES ({$pid}, " . self::START_CREDITS . ")");
+            $start = ($pid === $playerIds[0]) ? self::START_CREDITS : 0;
+            static::DbQuery("INSERT INTO `player_state` (`player_id`, `credits`) VALUES ({$pid}, {$start})");
         }
 
         $this->generateBoard($playerIds);
@@ -229,12 +229,12 @@ class Game extends \Bga\GameFramework\Table
         });
         $perimeterCount = count($perimeter);
 
-        // Home hexes: one deposit (rotating iron / crystal / fuel), room for an extractor + a factory
+        // Home hexes: one deposit (rotating iron / crystal), room for an extractor + a factory
         shuffle($playerIds);
         $homes = [];
         foreach ($playerIds as $i => $pid) {
             $hid = $perimeter[(int) floor($i * $perimeterCount / $n)]['id'];
-            $hexes[$hid]['res'] = self::RAW[$i % 3];
+            $hexes[$hid]['res'] = self::RAW[$i % 2];
             $hexes[$hid]['res2'] = null;
             $hexes[$hid]['rs'] = 1;
             $hexes[$hid]['bs'] = 2;
@@ -254,7 +254,7 @@ class Game extends \Bga\GameFramework\Table
             $protected[$hex['id']][] = $dir;
             $goods = self::GOODS;
             shuffle($goods);
-            $portRows[] = [$p, $hex['id'], $goods, $dir]; // goods 0-2 demanded (+bonus when sold), goods 3-4 cheap to buy
+            $portRows[] = [$p, $hex['id'], $goods, $dir]; // goods 0-1 demanded (+bonus when sold), goods 2-3 cheap to buy
         }
 
         $edges = $this->generateEdges($hexes, $protected);
@@ -281,7 +281,7 @@ class Game extends \Bga\GameFramework\Table
 
         $portValues = [];
         foreach ($portRows as [$p, $hid, $goods, $dir]) {
-            $portValues[] = "({$p}, {$hid}, '{$goods[0]}', '{$goods[1]}', '{$goods[2]}', {$dir}, '{$goods[3]}', '{$goods[4]}')";
+            $portValues[] = "({$p}, {$hid}, '{$goods[0]}', '{$goods[1]}', '', {$dir}, '{$goods[2]}', '{$goods[3]}')";
         }
         static::DbQuery("INSERT INTO `trade_port` (`port_id`, `adjacent_hex_id`, `demanded_item_1`, `demanded_item_2`, `demanded_item_3`, `edge_dir`, `supply_item_1`, `supply_item_2`) VALUES " . implode(',', $portValues));
     }
@@ -322,7 +322,7 @@ class Game extends \Bga\GameFramework\Table
         $types = self::RAW;
         shuffle($types);
         if ($ring === 0 && $res === 2) {
-            $types = ['crystal', 'fuel']; // the Mother Lode
+            $types = ['iron', 'crystal']; // the Mother Lode
         }
         return [
             'res' => $res >= 1 ? $types[0] : null,
@@ -421,8 +421,7 @@ class Game extends \Bga\GameFramework\Table
         $result['mission_vp'] = self::MISSION_VP;
         $result['build_iron'] = self::BUILD_IRON;
         $result['base_income'] = self::BASE_INCOME;
-        $result['vault_income'] = self::VAULT_INCOME;
-        $result['vault_bot_bonus'] = self::VAULT_BOT_BONUS;
+        $result['mech_power'] = self::MECH_POWER;
         $result['max_assigned'] = self::MAX_ASSIGNED;
         $result['bots_per_iron'] = self::BOTS_PER_IRON;
         $result['supply_total'] = self::SUPPLY;
@@ -494,6 +493,13 @@ class Game extends \Bga\GameFramework\Table
             ];
         }
 
+        $met = [];
+        foreach (array_keys($state) as $pid) {
+            foreach (array_keys(self::MISSION_VP) as $m) {
+                $met[$pid][$m] = $this->missionConditionMet($pid, $m);
+            }
+        }
+
         $claimed = [];
         foreach (static::getObjectListFromDb("SELECT `player_id`, `mission_id` FROM `claimed_mission`") as $row) {
             $claimed[(int) $row['player_id']][] = $row['mission_id'];
@@ -507,6 +513,7 @@ class Game extends \Bga\GameFramework\Table
             'ports' => $ports,
             'player_state' => $state,
             'claimed_missions' => $claimed,
+            'mission_met' => $met,
             'prices' => $this->globals->get('prices'),
         ];
     }
@@ -634,7 +641,7 @@ class Game extends \Bga\GameFramework\Table
 
     protected function priceStep(string $good): int
     {
-        return in_array($good, ['mech', 'core'], true) ? 2 : 1;
+        return $good === 'mech' ? 2 : 1;
     }
 
     protected function adjustCredits(int $playerId, int $delta): void
@@ -690,26 +697,16 @@ class Game extends \Bga\GameFramework\Table
         foreach (['bot', 'mech'] as $t) {
             $supply[$t] = self::SUPPLY[$t] - (int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `unit` WHERE `owner_id` = {$playerId} AND `unit_type` = '{$t}'");
         }
-        foreach (['vault', 'factory', 'extractor', 'turret'] as $t) {
+        foreach (['factory', 'extractor', 'tower'] as $t) {
             $supply[$t] = self::SUPPLY[$t] - (int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `building` WHERE `owner_id` = {$playerId} AND `building_type` = '{$t}'");
         }
         return $supply;
     }
 
-    /** Board income plus Vaults on hexes the player controls (1st +12, 2nd +10, ...; +2 per assigned bot). */
+    /** Credits received at the start of each of the player's turns. */
     public function playerIncome(int $playerId): int
     {
-        $income = self::BASE_INCOME;
-        $vaults = static::getObjectListFromDb(
-            "SELECT b.`building_id`, (SELECT COUNT(*) FROM `unit` u WHERE u.`assigned_to` = b.`building_id`) AS bots
-             FROM `building` b JOIN `hex_tile` h ON h.`hex_id` = b.`hex_id`
-             WHERE b.`building_type` = 'vault' AND b.`owner_id` = {$playerId} AND h.`owner_id` = {$playerId}
-             ORDER BY b.`building_id`"
-        );
-        foreach ($vaults as $i => $v) {
-            $income += (self::VAULT_INCOME[$i] ?? 0) + self::VAULT_BOT_BONUS * min(self::MAX_ASSIGNED, (int) $v['bots']);
-        }
-        return $income;
+        return self::BASE_INCOME;
     }
 
     /**
@@ -791,7 +788,7 @@ class Game extends \Bga\GameFramework\Table
         }
         $itemIds = [];
         foreach ($tokens as $kind => $qty) {
-            if (!in_array($kind, ['iron', 'crystal', 'fuel', 'core'], true)) {
+            if (!in_array($kind, ['iron', 'crystal'], true)) {
                 throw new UserException(clienttranslate("Unknown good."));
             }
             $itemIds = array_merge($itemIds, $this->findItems($playerId, $kind, $fromHexId, $qty));
@@ -911,7 +908,7 @@ class Game extends \Bga\GameFramework\Table
     /** Put one free bot standing on the building's hex to work in a Vault (+2 income) or Extractor (+1 output). */
     public function assignBot(int $playerId, int $buildingId): void
     {
-        $b = $this->getOwnBuilding($playerId, $buildingId, ['vault', 'extractor']);
+        $b = $this->getOwnBuilding($playerId, $buildingId, ['extractor']);
         $assigned = (int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `unit` WHERE `assigned_to` = {$buildingId}");
         if ($assigned >= self::MAX_ASSIGNED) {
             throw new UserException(clienttranslate("This building already has 2 bots."));
@@ -928,7 +925,7 @@ class Game extends \Bga\GameFramework\Table
 
     public function unassignBot(int $playerId, int $buildingId): void
     {
-        $this->getOwnBuilding($playerId, $buildingId, ['vault', 'extractor']);
+        $this->getOwnBuilding($playerId, $buildingId, ['extractor']);
         $unitId = static::getUniqueValueFromDb("SELECT `unit_id` FROM `unit` WHERE `assigned_to` = {$buildingId} LIMIT 1");
         if ($unitId === null) {
             throw new UserException(clienttranslate("No bot is assigned here."));
@@ -1009,32 +1006,38 @@ class Game extends \Bga\GameFramework\Table
                 return (int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `hex_tile` WHERE `ring` = 0 AND `owner_id` = {$playerId}") > 0;
             case 'fleet_supremacy':
                 return (int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `unit` WHERE `owner_id` = {$playerId}") >= 6;
-            case 'energy_baron':
+            case 'stockpile':
                 return (int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `item` WHERE `owner_id` = {$playerId}") >= 6;
         }
         return false;
     }
 
-    /** Claim a public mission (condition + 5 Credits), once per turn. Returns the player's new VP total. */
+    /**
+     * Buy a mission card for 5 Credits (one per turn). The fee is always paid; the VP is only awarded when the
+     * condition is met right now, otherwise the Credits are wasted. Returns the player's VP total.
+     */
     public function claimMission(int $playerId, string $missionId): int
     {
         if (!isset(self::MISSION_VP[$missionId])) {
             throw new UserException(clienttranslate("Unknown mission."));
         }
         if ($this->globals->get('claimed_this_turn', false)) {
-            throw new UserException(clienttranslate("You can claim only one mission per turn."));
+            throw new UserException(clienttranslate("You can buy only one mission per turn."));
         }
         if ((int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `claimed_mission` WHERE `player_id` = {$playerId} AND `mission_id` = '{$missionId}'") > 0) {
-            throw new UserException(clienttranslate("You already claimed this mission."));
+            throw new UserException(clienttranslate("You already completed this mission."));
         }
+        $this->spendCredits($playerId, self::MISSION_FEE);
+        $this->globals->set('claimed_this_turn', true);
         if (!$this->missionConditionMet($playerId, $missionId)) {
-            throw new UserException(clienttranslate("You do not fulfil this mission's condition."));
+            $this->notifyUpdate(clienttranslate('${player_name} buys a mission but does not meet it: ${fee} Credits wasted'), [
+                'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'fee' => self::MISSION_FEE,
+            ]);
+            return $this->getPlayerState($playerId)['vp'];
         }
         $vp = self::MISSION_VP[$missionId];
-        $this->spendCredits($playerId, self::MISSION_FEE);
         static::DbQuery("INSERT INTO `claimed_mission` (`player_id`, `mission_id`, `vp_awarded`) VALUES ({$playerId}, '{$missionId}', {$vp})");
         static::DbQuery("UPDATE `player_state` SET `vp` = `vp` + {$vp} WHERE `player_id` = {$playerId}");
-        $this->globals->set('claimed_this_turn', true);
         $this->playerStats->inc('vp_earned', $vp, $playerId);
         $this->tableStats->inc('missions_completed', 1);
         $this->notifyUpdate(clienttranslate('${player_name} completes a mission (+${vp} VP)'), [
@@ -1047,16 +1050,41 @@ class Game extends \Bga\GameFramework\Table
     // Combat: attacks are declared during the turn and resolved when the turn ends
     // ------------------------------------------------------------------
 
-    /**
-     * Every defending piece needs PUSH_NEED attackers to be pushed away and KILL_NEED to be killed.
-     * Attackers remove as many defenders as they can, then upgrade pushes to kills with what is left
-     * (2 vs 1 pushes, 3 vs 1 kills, 4 vs 2 pushes both, 5 vs 2 kills one and pushes one, 6 vs 2 kills both).
-     */
-    public static function combatOutcome(int $attackers, int $defenders): array
+    public static function unitPower(string $type): int
     {
-        $removed = min($defenders, intdiv($attackers, self::PUSH_NEED));
-        $kills = min($removed, intdiv($attackers - self::PUSH_NEED * $removed, self::KILL_NEED - self::PUSH_NEED));
-        return ['kills' => $kills, 'pushes' => $removed - $kills, 'stays' => $defenders - $removed];
+        return $type === 'mech' ? self::MECH_POWER : 1;
+    }
+
+    /**
+     * $power = total attack power, $weights = unit_id => power of each defender, $towers = Guard Towers on the hex.
+     * Pushing a defender costs (PUSH_NEED + towers) x its power, killing it (KILL_NEED + towers) x its power.
+     * Attackers push as many defenders as they can (lightest first), then spend what is left upgrading pushes to kills.
+     * Returns ['kill' => [ids], 'push' => [ids]] (ids not listed stay).
+     */
+    public static function combatOutcome(int $power, array $weights, int $towers): array
+    {
+        $push = self::PUSH_NEED + $towers;
+        $kill = self::KILL_NEED + $towers;
+        asort($weights);
+        $left = $power;
+        $removed = [];
+        foreach ($weights as $id => $w) {
+            if ($left < $push * $w) {
+                break;
+            }
+            $left -= $push * $w;
+            $removed[] = $id;
+        }
+        $killed = [];
+        foreach ($removed as $id) {
+            $extra = ($kill - $push) * $weights[$id];
+            if ($left < $extra) {
+                break;
+            }
+            $left -= $extra;
+            $killed[] = $id;
+        }
+        return ['kill' => $killed, 'push' => array_values(array_diff($removed, $killed))];
     }
 
     public function nextAttackTarget(int $attackerId): ?int
@@ -1094,15 +1122,23 @@ class Game extends \Bga\GameFramework\Table
     /** Applies kills and marks pushed pieces. Returns how many pushed pieces the defender must place (0 = done). */
     public function resolveAttack(int $attackerId, int $targetHexId): int
     {
-        $attackers = (int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `unit` WHERE `owner_id` = {$attackerId} AND `attack_target` = {$targetHexId}");
-        $defenders = static::getObjectListFromDb("SELECT `unit_id`, `owner_id` FROM `unit` WHERE `hex_id` = {$targetHexId} AND `owner_id` <> {$attackerId} ORDER BY `unit_id`");
+        $power = 0;
+        foreach (static::getObjectListFromDb("SELECT `unit_type` FROM `unit` WHERE `owner_id` = {$attackerId} AND `attack_target` = {$targetHexId}") as $row) {
+            $power += self::unitPower($row['unit_type']);
+        }
+        $defenders = static::getObjectListFromDb("SELECT `unit_id`, `owner_id`, `unit_type` FROM `unit` WHERE `hex_id` = {$targetHexId} AND `owner_id` <> {$attackerId} ORDER BY `unit_id`");
         if (empty($defenders)) {
             return 0;
         }
         $defenderId = (int) $defenders[0]['owner_id'];
-        $out = self::combatOutcome($attackers, count($defenders));
-        $killIds = array_map(fn($r) => (int) $r['unit_id'], array_slice($defenders, 0, $out['kills']));
-        $pushIds = array_map(fn($r) => (int) $r['unit_id'], array_slice($defenders, $out['kills'], $out['pushes']));
+        $weights = [];
+        foreach ($defenders as $d) {
+            $weights[(int) $d['unit_id']] = self::unitPower($d['unit_type']);
+        }
+        $towers = (int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `building` WHERE `hex_id` = {$targetHexId} AND `owner_id` = {$defenderId} AND `building_type` = 'tower'");
+        $out = self::combatOutcome($power, $weights, $towers);
+        $killIds = $out['kill'];
+        $pushIds = $out['push'];
         $options = $this->pushOptions($targetHexId, $defenderId);
         if (empty($options)) {
             $killIds = array_merge($killIds, $pushIds); // nowhere to flee
@@ -1110,16 +1146,14 @@ class Game extends \Bga\GameFramework\Table
         }
         if (!empty($killIds)) {
             static::DbQuery("DELETE FROM `unit` WHERE `unit_id` IN (" . implode(',', $killIds) . ")");
-            if ($defenderId > 0) {
-                $this->playerStats->inc('battles_won', 1, $attackerId);
-            }
+            $this->playerStats->inc('battles_won', 1, $attackerId);
         }
         if (!empty($pushIds)) {
             static::DbQuery("UPDATE `unit` SET `push_from` = {$targetHexId}, `assigned_to` = NULL WHERE `unit_id` IN (" . implode(',', $pushIds) . ")");
             $this->globals->set('push', ['hex' => $targetHexId, 'defender' => $defenderId, 'attacker' => $attackerId]);
         }
-        $this->notifyUpdate(clienttranslate('${player_name}: ${attackers} attacker(s) vs ${defenders} defender(s) on hex ${hex}: ${kills} killed, ${pushes} pushed'), [
-            'player_id' => $attackerId, 'player_name' => $this->playerName($attackerId), 'attackers' => $attackers, 'defenders' => count($defenders),
+        $this->notifyUpdate(clienttranslate('${player_name}: attack power ${power} vs ${defenders} defender(s) on hex ${hex}: ${kills} killed, ${pushes} pushed'), [
+            'player_id' => $attackerId, 'player_name' => $this->playerName($attackerId), 'power' => $power, 'defenders' => count($defenders),
             'hex' => $targetHexId, 'kills' => count($killIds), 'pushes' => count($pushIds),
         ]);
         return count($pushIds);
@@ -1180,30 +1214,24 @@ class Game extends \Bga\GameFramework\Table
     }
 
     // ------------------------------------------------------------------
-    // Turn / round upkeep (called by NextPlayer)
+    // Turn upkeep (called by NextPlayer): there are no rounds, only turns
     // ------------------------------------------------------------------
 
-    /** Extractors may produce again once per turn of their owner. */
-    public function resetTurnFlags(int $playerId): void
+    /** Start of a player's turn: Extractors may produce again, the player is paid, one market price moves a step. */
+    public function startTurn(int $playerId): void
     {
         static::DbQuery("UPDATE `building` SET `used` = 0 WHERE `owner_id` = {$playerId}");
-    }
+        $income = $this->playerIncome($playerId);
+        $this->adjustCredits($playerId, $income);
 
-    public function runRoundStart(): void
-    {
-        foreach (static::getObjectListFromDb("SELECT `player_id` FROM `player_state`") as $row) {
-            $pid = (int) $row['player_id'];
-            $this->adjustCredits($pid, $this->playerIncome($pid));
-        }
-
-        // Market drift inside each good's allowed range
         $prices = $this->globals->get('prices');
-        foreach (self::GOODS as $g) {
-            $step = $this->priceStep($g);
-            $prices[$g] = max(self::PRICE_MIN[$g], min(self::PRICE_MAX[$g], (int) $prices[$g] + bga_rand(-1, 1) * $step));
-        }
+        $g = self::GOODS[bga_rand(0, count(self::GOODS) - 1)];
+        $delta = (bga_rand(0, 1) === 0 ? -1 : 1) * $this->priceStep($g);
+        $prices[$g] = max(self::PRICE_MIN[$g], min(self::PRICE_MAX[$g], (int) $prices[$g] + $delta));
         $this->globals->set('prices', $prices);
 
-        $this->notifyUpdate(clienttranslate('New round: board and Vault income paid, market prices shift'));
+        $this->notifyUpdate(clienttranslate('${player_name} starts a turn and receives ${income} Credits'), [
+            'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'income' => $income,
+        ]);
     }
 }
