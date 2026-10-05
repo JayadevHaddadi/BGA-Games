@@ -1,5 +1,5 @@
 -- DB model for MicroForge (microforge)
--- Master schema definition
+-- Master schema definition. Global game values live in the framework globals store.
 
 DROP TABLE IF EXISTS `player_state`;
 CREATE TABLE IF NOT EXISTS `player_state` (
@@ -8,9 +8,9 @@ CREATE TABLE IF NOT EXISTS `player_state` (
     `iron` tinyint(3) unsigned NOT NULL DEFAULT 0,
     `crystal` tinyint(3) unsigned NOT NULL DEFAULT 0,
     `fuel` tinyint(3) unsigned NOT NULL DEFAULT 0,
-    `bots` tinyint(3) unsigned NOT NULL DEFAULT 0,
-    `mechs` tinyint(3) unsigned NOT NULL DEFAULT 0,
-    `cores` tinyint(3) unsigned NOT NULL DEFAULT 0,
+    `bot` tinyint(3) unsigned NOT NULL DEFAULT 0,
+    `mech` tinyint(3) unsigned NOT NULL DEFAULT 0,
+    `core` tinyint(3) unsigned NOT NULL DEFAULT 0,
     `vp` tinyint(3) unsigned NOT NULL DEFAULT 0,
     PRIMARY KEY (`player_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -20,15 +20,26 @@ CREATE TABLE IF NOT EXISTS `hex_tile` (
     `hex_id` smallint(5) NOT NULL,
     `coord_q` smallint(5) NOT NULL,
     `coord_r` smallint(5) NOT NULL,
+    `ring` tinyint(3) unsigned NOT NULL DEFAULT 0,
     `resource_type` varchar(16) DEFAULT NULL,
+    `resource_type_2` varchar(16) DEFAULT NULL,
     `resource_slots` tinyint(3) unsigned NOT NULL DEFAULT 1,
     `building_slots` tinyint(3) unsigned NOT NULL DEFAULT 1,
     `owner_id` int(10) unsigned DEFAULT NULL,
-    `building_type` varchar(24) DEFAULT NULL,
     `bots_stationed` tinyint(3) unsigned NOT NULL DEFAULT 0,
     `mechs_stationed` tinyint(3) unsigned NOT NULL DEFAULT 0,
     PRIMARY KEY (`hex_id`),
     KEY `idx_owner` (`owner_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+DROP TABLE IF EXISTS `building`;
+CREATE TABLE IF NOT EXISTS `building` (
+    `building_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+    `hex_id` smallint(5) NOT NULL,
+    `building_type` varchar(24) NOT NULL,
+    `owner_id` int(10) unsigned NOT NULL,
+    PRIMARY KEY (`building_id`),
+    KEY `idx_hex` (`hex_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 DROP TABLE IF EXISTS `trade_port`;
@@ -49,11 +60,4 @@ CREATE TABLE IF NOT EXISTS `claimed_mission` (
     `vp_awarded` tinyint(3) unsigned NOT NULL DEFAULT 1,
     PRIMARY KEY (`claim_id`),
     KEY `idx_player_mission` (`player_id`, `mission_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-DROP TABLE IF EXISTS `global_variables`;
-CREATE TABLE IF NOT EXISTS `global_variables` (
-    `name` varchar(255) NOT NULL,
-    `value` json NOT NULL,
-    PRIMARY KEY (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

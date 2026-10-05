@@ -1,0 +1,4 @@
+#mf_board { width: 100%; max-width: 700px; margin: 0 auto; }
+#mf_panel { padding: 6px; }
+.mf_row { margin: 6px 0; }
+.mf_btn { min-height: 32px; min-width: 32px; margin: 2px; }
