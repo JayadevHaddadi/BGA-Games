@@ -38,9 +38,16 @@ class PlayerTurn extends GameState
     }
 
     #[PossibleAction]
-    public function actBuild(int $hexId, string $buildingType, int $activePlayerId): string
+    public function actBuild(int $hexId, string $buildingType, int $slot, int $activePlayerId): string
     {
-        $this->game->build($activePlayerId, $hexId, $buildingType);
+        $this->game->build($activePlayerId, $hexId, $buildingType, $slot);
+        return PlayerTurn::class;
+    }
+
+    #[PossibleAction]
+    public function actSellBuilding(int $buildingId, int $activePlayerId): string
+    {
+        $this->game->sellBuilding($activePlayerId, $buildingId);
         return PlayerTurn::class;
     }
 

@@ -43,6 +43,7 @@ export class Game {
         this.sel = this.emptySel();
         this.dists = null; // step distances from selFrom
         this.pending = null; // { to, dist }
+        this.slotSel = null; // { hex, kind: 'dep' | 'bld', idx }
         this.bga.states.register('PlayerTurn', new PlayerTurn(this));
     }
 
@@ -62,6 +63,7 @@ export class Game {
     notif_gameUpdate(args) {
         Object.assign(this.data, args.state);
         this.clearSel();
+        this.slotSel = null;
         this.render();
     }
 
@@ -80,6 +82,13 @@ export class Game {
         this.selFrom = null;
         this.dists = null;
         this.pending = null;
+    }
+
+    /** What stands in the selected slot: { empty, building } (extractor slot = deposit index, others = built order). */
+    slotContent(s) {
+        const blds = this.data.buildings.filter(b => b.hex_id === s.hex);
+        if (s.kind === 'dep') return blds.find(b => b.building_type === 'extractor' && b.slot === s.idx) || null;
+        return blds.filter(b => b.building_type !== 'extractor' && b.building_type !== 'dock')[s.idx] || null;
     }
 
     moveTotal() {
@@ -202,10 +211,51 @@ export class Game {
         } else if (total > 0) {
             sb.setTitle(_('${n} piece(s) selected: click a highlighted hex to see the cost').replace('${n}', total));
             sb.addActionButton(_('Cancel'), () => { this.clearSel(); this.render(); }, { color: 'alert' });
+        } else if (this.slotSel) {
+            this.slotBanner(sb);
         } else {
             sb.setTitle(_('${you} may move, build, extract, manufacture and trade, then end your turn'));
             sb.addActionButton(_('End turn'), () => this.act('actEndTurn'), { color: 'primary' });
         }
+    }
+
+    /** Banner for a selected slot: build options when empty, sell when it holds one of your buildings. */
+    slotBanner(sb) {
+        const d = this.data;
+        const me = this.me();
+        const s = this.slotSel;
+        const hex = this.hexById(s.hex);
+        const content = this.slotContent(s);
+        const cancel = () => sb.addActionButton(_('Cancel'), () => { this.slotSel = null; this.render(); }, { color: 'alert' });
+        if (hex.owner_id !== me) {
+            sb.setTitle(_('Stand one of your units on this hex to build or sell here'));
+            cancel();
+            return;
+        }
+        const iron = this.availOf(s.hex, 'iron');
+        const supply = d.player_state[me].supply;
+        if (!content) {
+            sb.setTitle(_('Build here (iron on this hex: ${n})').replace('${n}', iron));
+            const types = s.kind === 'dep' ? ['extractor'] : ['factory', 'vault', 'turret'];
+            types.forEach(t => {
+                const ok = iron >= d.build_iron[t] && supply[t] > 0;
+                const name = t === 'turret' ? _('Defense Outpost') : t.charAt(0).toUpperCase() + t.slice(1);
+                sb.addActionButton(`${name} (${d.build_iron[t]} ${_('iron')})`, () => {
+                    this.slotSel = null;
+                    this.act('actBuild', { hexId: s.hex, buildingType: t, slot: s.kind === 'dep' ? s.idx : 0 });
+                }, { color: 'primary', disabled: !ok });
+            });
+        } else if (content.owner_id === me) {
+            const refund = Math.max(0, d.build_iron[content.building_type] - 1);
+            sb.setTitle(_('Your ${b}: sell it and get ${n} iron back?').replace('${b}', content.building_type).replace('${n}', refund));
+            sb.addActionButton(`${_('Sell')} (+${refund} ${_('iron')})`, () => {
+                this.slotSel = null;
+                this.act('actSellBuilding', { buildingId: content.building_id });
+            }, { color: 'secondary' });
+        } else {
+            sb.setTitle(_('This slot is occupied by an opponent building'));
+        }
+        cancel();
     }
 
     renderPlayerBoards() {
@@ -288,13 +338,15 @@ export class Game {
             [h.resource_type, h.resource_type_2].forEach((r, i) => {
                 if (!r) return;
                 const ex = blds.find(b => b.building_type === 'extractor' && b.slot === i);
-                parts.push(`<rect class="mf_slot" data-hex="${h.hex_id}" x="${x - 16 + i * 18}" y="${y - 28}" width="14" height="14" fill="${RES_COLORS[r]}" stroke="${ex ? this.colorOf(ex.owner_id) : 'none'}" stroke-width="3"><title>${r}</title></rect>`);
+                const picked = this.slotSel && this.slotSel.hex === h.hex_id && this.slotSel.kind === 'dep' && this.slotSel.idx === i;
+                parts.push(`<rect class="mf_slot" data-hex="${h.hex_id}" data-kind="dep" data-idx="${i}" x="${x - 16 + i * 18}" y="${y - 28}" width="14" height="14" fill="${RES_COLORS[r]}" stroke="${picked ? '#ffe600' : (ex ? this.colorOf(ex.owner_id) : 'none')}" stroke-width="${picked ? 4 : 3}"><title>${r}</title></rect>`);
             });
             // Building slots (click: what can be built here): dashed when empty, owner colour when built
             const built = blds.filter(b => b.building_type !== 'extractor' && b.building_type !== 'dock');
             for (let i = 0; i < h.building_slots; i++) {
                 const b = built[i];
-                parts.push(`<rect class="mf_slot" data-hex="${h.hex_id}" x="${x - 17 + i * 18}" y="${y - 12}" width="16" height="12" fill="${b ? this.colorOf(b.owner_id) : 'none'}" stroke="#2b2118" stroke-dasharray="${b ? 0 : 2}"/>`
+                const picked = this.slotSel && this.slotSel.hex === h.hex_id && this.slotSel.kind === 'bld' && this.slotSel.idx === i;
+                parts.push(`<rect class="mf_slot" data-hex="${h.hex_id}" data-kind="bld" data-idx="${i}" x="${x - 17 + i * 18}" y="${y - 12}" width="16" height="12" fill="${b ? this.colorOf(b.owner_id) : 'none'}" stroke="${picked ? '#ffe600' : '#2b2118'}" stroke-width="${picked ? 3 : 1}" stroke-dasharray="${b ? 0 : 2}"/>`
                     + (b ? `<text x="${x - 9 + i * 18}" y="${y - 3}" text-anchor="middle" font-size="9" fill="#fff" pointer-events="none">${b.building_type[0].toUpperCase()}</text>` : ''));
             }
             if (blds.some(b => b.building_type === 'dock')) {
@@ -359,7 +411,7 @@ export class Game {
         }));
         el.querySelectorAll('.mf_slot').forEach(r => r.addEventListener('click', e => {
             e.stopPropagation();
-            this.onSlotClick(Number(r.dataset.hex));
+            this.onSlotClick(Number(r.dataset.hex), r.dataset.kind, Number(r.dataset.idx));
         }));
         el.querySelectorAll('.mf_port').forEach(g => g.addEventListener('click', () => this.onPortClick(Number(g.dataset.hex))));
     }
@@ -374,6 +426,7 @@ export class Game {
     // ------------------------------------------------------------------ interaction
 
     onStackClick(hexId, kind) {
+        this.slotSel = null;
         const hex = this.hexById(hexId);
         if (!this.active || hex.owner_id !== this.me()) return;
         if (this.selFrom !== hexId) {
@@ -389,6 +442,7 @@ export class Game {
     }
 
     onHexClick(hexId) {
+        this.slotSel = null;
         if (this.active && this.moveTotal() > 0 && hexId !== this.selFrom && this.dists && this.dists[hexId] > 0) {
             this.pending = { to: hexId, dist: this.dists[hexId] };
             this.selectedHex = hexId;
@@ -400,9 +454,10 @@ export class Game {
         this.render();
     }
 
-    onSlotClick(hexId) {
+    onSlotClick(hexId, kind, idx) {
+        this.clearSel();
         this.selectedHex = hexId;
-        this.buildFocus = true;
+        this.slotSel = { hex: hexId, kind, idx };
         this.render();
     }
 
@@ -443,11 +498,9 @@ export class Game {
             else if (t !== 'extractor' && others >= hex.building_slots) why = _('no free building slot');
             else if (supply[t] < 1) why = _('none left on your player board');
             else if (avail.iron < d.build_iron[t]) why = `${_('needs')} ${d.build_iron[t]} ${_('iron on this hex')}`;
-            const ok = this.active && why === '';
-            return `<div class="mf_buildrow"><button class="mf_btn" data-action="actBuild" data-args='${JSON.stringify({ hexId: hid, buildingType: t })}' ${ok ? '' : 'disabled'}>${_('Build')} ${t}</button>`
-                + ` ${info[t]} - ${d.build_iron[t]} ${_('iron')}${why ? ` <i>(${why})</i>` : ''}</div>`;
+            return `<div class="mf_buildrow"><b>${t === 'turret' ? _('Defense Outpost') : t}</b>: ${info[t]} - ${d.build_iron[t]} ${_('iron')}, ${_('sells for')} ${Math.max(0, d.build_iron[t] - 1)} ${_('iron')}${why ? ` <i>(${why})</i>` : ''}</div>`;
         }).join('');
-        return `<div class="mf_row ${this.buildFocus ? 'mf_focus' : ''}"><b>${_('Slots here')}: ${hex.resource_slots} ${_('deposit(s)')}, ${hex.building_slots} ${_('building slot(s)')}. ${_('What can be built')}:</b>${rows}</div>`;
+        return `<div class="mf_row ${this.buildFocus ? 'mf_focus' : ''}"><b>${_('Slots here')}: ${hex.resource_slots} ${_('deposit(s)')}, ${hex.building_slots} ${_('building slot(s)')}. ${_('Click a slot on the map to build or sell')}.</b>${rows}</div>`;
     }
 
     tradeSection(hex, hid, avail, canAct) {

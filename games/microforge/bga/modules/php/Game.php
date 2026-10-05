@@ -797,7 +797,7 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /** Build from the player board; the iron tokens must be standing on this very hex and are used up. */
-    public function build(int $playerId, int $hexId, string $type): void
+    public function build(int $playerId, int $hexId, string $type, int $slot = 0): void
     {
         if (!isset(self::BUILD_IRON[$type])) {
             throw new UserException(clienttranslate("Unknown building."));
@@ -807,16 +807,13 @@ class Game extends \Bga\GameFramework\Table
             throw new UserException(clienttranslate("None left on your player board."));
         }
         $existing = static::getObjectListFromDb("SELECT `building_type`, `slot` FROM `building` WHERE `hex_id` = {$hexId}");
-        $slot = 0;
         if ($type === 'extractor') {
             $usedSlots = array_map(fn($b) => (int) $b['slot'], array_filter($existing, fn($b) => $b['building_type'] === 'extractor'));
-            while (in_array($slot, $usedSlots, true)) {
-                $slot++;
-            }
-            if ($slot >= (int) $hex['resource_slots']) {
+            if ($slot < 0 || $slot >= (int) $hex['resource_slots'] || in_array($slot, $usedSlots, true)) {
                 throw new UserException(clienttranslate("No free resource deposit on this hex."));
             }
         } else {
+            $slot = 0;
             $others = count(array_filter($existing, fn($b) => !in_array($b['building_type'], ['extractor', 'dock'], true)));
             if ($others >= (int) $hex['building_slots']) {
                 throw new UserException(clienttranslate("No free building slot on this hex."));
@@ -826,6 +823,20 @@ class Game extends \Bga\GameFramework\Table
         static::DbQuery("INSERT INTO `building` (`hex_id`, `building_type`, `owner_id`, `slot`) VALUES ({$hexId}, '{$type}', {$playerId}, {$slot})");
         $this->notifyUpdate(clienttranslate('${player_name} builds ${building}'), [
             'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'building' => $type,
+        ]);
+    }
+
+    /** Scrap one of your buildings: it returns to the player board and refunds its iron cost minus one onto the hex. */
+    public function sellBuilding(int $playerId, int $buildingId): void
+    {
+        $b = $this->getOwnBuilding($playerId, $buildingId, array_keys(self::BUILD_IRON));
+        $hexId = (int) $b['hex_id'];
+        $refund = max(0, self::BUILD_IRON[$b['building_type']] - 1);
+        static::DbQuery("UPDATE `unit` SET `assigned_to` = NULL WHERE `assigned_to` = {$buildingId}");
+        static::DbQuery("DELETE FROM `building` WHERE `building_id` = {$buildingId}");
+        $this->addItems($playerId, 'iron', $hexId, $refund);
+        $this->notifyUpdate(clienttranslate('${player_name} sells ${building} and gets ${refund} iron'), [
+            'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'building' => $b['building_type'], 'refund' => $refund,
         ]);
     }
 
