@@ -17,21 +17,21 @@ const TILE_COLORS = { iron: '#c3c6cc', crystal: '#9fd0e6' };
 const BUILDING_NAMES = { extractor: 'Extractor', factory: 'Factory', tower: 'Guard Tower' };
 const BUILDING_NEUTRAL = '#7a6a58'; // buildings are universal: no player colour
 const MISSION_TEXT = {
-    extractors: ['Extractors ${n}', 'Control ${n} Extractors.'],
-    factories: ['Factories ${n}', 'Control ${n} Factories.'],
-    towers: ['Guard Towers ${n}', 'Control ${n} Guard Towers.'],
+    extractors: ['Mine Boss ${n}', 'Control ${n} Extractors.'],
+    factories: ['Toy Factory ${n}', 'Control ${n} Factories.'],
+    towers: ['Fort Builder ${n}', 'Control ${n} Guard Towers.'],
     buildings: ['Builder ${n}', 'Control ${n} buildings (Docks do not count).'],
-    bots: ['Bots ${n}', 'Have ${n} bots on the map.'],
-    mechs: ['Mechs ${n}', 'Have ${n} mechs on the map.'],
-    pieces: ['Army ${n}', 'Have ${n} pieces (bots and mechs) on the map.'],
-    iron_tokens: ['Iron ${n}', 'Hold ${n} iron on hexes you control.'],
-    crystal_tokens: ['Crystal ${n}', 'Hold ${n} crystal on hexes you control.'],
-    tokens: ['Stockpile ${n}', 'Hold ${n} resource tokens on hexes you control.'],
-    hexes: ['Territory ${n}', 'Control ${n} hexes.'],
-    double_tiles: ['Rich tiles ${n}', 'Control ${n} hex(es) with two resources.'],
-    ports: ['Ports ${n}', 'Control the hexes next to ${n} different ports.'],
-    center: ['Prime Core', 'Control the central hex.'],
-    credits: ['Treasury ${n}', 'Have ${n} Credits.'],
+    bots: ['Bot Pals ${n}', 'Have ${n} bots on the map.'],
+    mechs: ['Mech Fan ${n}', 'Have ${n} mechs on the map.'],
+    pieces: ['Big Army ${n}', 'Have ${n} pieces (bots and mechs) on the map.'],
+    iron_tokens: ['Iron Pile ${n}', 'Hold ${n} iron on hexes you control.'],
+    crystal_tokens: ['Crystal Cave ${n}', 'Hold ${n} crystal on hexes you control.'],
+    tokens: ['Treasure Pile ${n}', 'Hold ${n} resource tokens on hexes you control.'],
+    hexes: ['Land Grab ${n}', 'Control ${n} hexes.'],
+    double_tiles: ['Rich Land ${n}', 'Control ${n} hex(es) with two resources.'],
+    ports: ['Harbor Boss ${n}', 'Control the hexes next to ${n} different ports.'],
+    center: ['King of the Hill', 'Control the central hex.'],
+    credits: ['Piggy Bank ${n}', 'Have ${n} Credits.'],
 };
 
 /** The defender picks where each pushed piece retreats to (one click per piece). */
@@ -87,6 +87,7 @@ export class Game {
         this.pending = null; // { to, dist }
         this.slotSel = null; // { hex, kind: 'bld', idx }
         this.missionSel = null; // mission id whose card was clicked
+        this.tradeSel = null; // { hex, mode: null | 'buy' | 'sell' } port or Dock opened in the banner
         this.pushArgs = null;
         this.pushActive = false;
         this.bga.states.register('PlayerTurn', new PlayerTurn(this));
@@ -100,6 +101,9 @@ export class Game {
             '<div id="mf_boards"></div><div id="mf_top"><div id="mf_market"></div><div id="mf_missions"></div></div><div id="mf_board"></div><div id="mf_ports"></div><div id="mf_panel"></div>');
         this.bga.notifications.setupPromiseNotifications();
         this.render();
+        // The player panels on the right may mount after setup
+        setTimeout(() => this.renderSidebar(), 150);
+        setTimeout(() => this.renderSidebar(), 800);
     }
 
     act(name, args = {}) {
@@ -121,7 +125,7 @@ export class Game {
     // ------------------------------------------------------------------ helpers
 
     emptySel() {
-        return { bots: 0, mechs: 0, iron: 0, crystal: 0 };
+        return {};
     }
 
     clearSel() {
@@ -138,6 +142,36 @@ export class Game {
 
     moveTotal() {
         return Object.values(this.sel).reduce((a, b) => a + b, 0);
+    }
+
+    stepsFromCoins(coins) {
+        let s = 0;
+        while ((s + 1) * (s + 2) / 2 <= coins) s++;
+        return s;
+    }
+
+    /** Credits to move the whole selection `dist` steps: every piece pays triangular(total steps) minus the coins under it. */
+    selCost(dist) {
+        let cost = 0;
+        Object.entries(this.sel).forEach(([key, n]) => {
+            const coins = Number(key.split('|')[1]);
+            const steps = this.stepsFromCoins(coins) + dist;
+            cost += n * (steps * (steps + 1) / 2 - coins);
+        });
+        return cost;
+    }
+
+    selPieces() {
+        return Object.entries(this.sel).filter(([, n]) => n > 0).map(([key, n]) => `${key.split('|')[0]}:${key.split('|')[1]}:${n}`).join(';');
+    }
+
+    /** Selected power / token count (kinds in the selection keys). */
+    selPower() {
+        return Object.entries(this.sel).reduce((a, [key, n]) => a + n * (key.startsWith('mech') ? this.data.mech_power : (key.startsWith('bot') ? 1 : 0)), 0);
+    }
+
+    selTokens() {
+        return Object.entries(this.sel).reduce((a, [key, n]) => a + (key.startsWith('bot') || key.startsWith('mech') ? 0 : n), 0);
     }
 
     me() {
@@ -201,15 +235,27 @@ export class Game {
         return String.fromCharCode(65 + p.port_id);
     }
 
-    /** Pieces / tokens the current player has on a hex. By default only pieces that have not moved this turn. */
-    availOf(hexId, kind, includeMoved = false) {
+    /** Pieces / tokens the current player has on a hex (moved ones included). */
+    availOf(hexId, kind) {
         const me = this.me();
         if (kind === 'bots' || kind === 'mechs') {
             const type = kind === 'bots' ? 'bot' : 'mech';
-            return this.data.units.filter(u => u.hex_id === hexId && u.owner_id === me && u.unit_type === type && !u.attack_target && (includeMoved || !u.moved_cost)).length;
+            return this.data.units.filter(u => u.hex_id === hexId && u.owner_id === me && u.unit_type === type && !u.attack_target).length;
         }
         if (this.hexById(hexId).owner_id !== me) return 0;
-        return this.data.items.filter(i => i.hex_id === hexId && i.kind === kind && (includeMoved || !i.moved_cost)).reduce((a, i) => a + i.n, 0);
+        return this.data.items.filter(i => i.hex_id === hexId && i.kind === kind).reduce((a, i) => a + i.n, 0);
+    }
+
+    /** Size of one clickable stack, key = "kind|coins". */
+    stackSize(hexId, key) {
+        const [kind, coins] = key.split('|');
+        const c = Number(coins);
+        const me = this.me();
+        if (kind === 'bot' || kind === 'mech') {
+            return this.data.units.filter(u => u.hex_id === hexId && u.owner_id === me && u.unit_type === kind && u.moved_cost === c && !u.attack_target).length;
+        }
+        if (this.hexById(hexId).owner_id !== me) return 0;
+        return this.data.items.filter(i => i.hex_id === hexId && i.kind === kind && i.moved_cost === c).reduce((a, i) => a + i.n, 0);
     }
 
     /** Steps from `fromId` to every hex reachable over open paths through free or own hexes (mirrors the server). */
@@ -281,29 +327,29 @@ export class Game {
         sb.removeActionButtons?.();
         const total = this.moveTotal();
         if (this.pending) {
-            const cost = this.moveCost(total, this.pending.dist);
+            const cost = this.selCost(this.pending.dist);
             const credits = this.data.player_state[this.me()].credits;
             const to = this.pending.to;
             if (this.pending.attack) {
                 const committed = this.data.units.filter(u => u.owner_id === this.me() && u.attack_target === to)
                     .reduce((a, u) => a + this.unitPower(u.unit_type), 0);
-                const power = committed + this.sel.bots + this.sel.mechs * this.data.mech_power;
+                const power = committed + this.selPower();
                 const defenders = this.data.units.filter(u => u.hex_id === to);
                 const towers = this.data.buildings.filter(b => b.hex_id === to && b.building_type === 'tower').length;
                 const out = this.combatOutcome(power, defenders.map(u => this.unitPower(u.unit_type)), towers);
-                const tokens = total - this.sel.bots - this.sel.mechs;
+                const tokens = this.selTokens();
                 sb.setTitle(_('Attack hex ${hex}: power ${a} vs ${d} defender(s)${t} would kill ${k} and push ${p}. Costs ${cost} Credits; resolved when you end your turn')
                     .replace('${hex}', to).replace('${a}', power).replace('${d}', defenders.length)
                     .replace('${t}', towers ? ` + ${towers} Guard Tower(s)` : '').replace('${k}', out.kills).replace('${p}', out.pushes).replace('${cost}', cost));
                 sb.addActionButton(_('Attack'), () => {
-                    const args = { fromHexId: this.selFrom, toHexId: to, ...this.sel };
+                    const args = { fromHexId: this.selFrom, toHexId: to, pieces: this.selPieces() };
                     this.pending = null;
                     this.act('actMove', args);
                 }, { color: 'primary', disabled: cost > credits || tokens > 0 });
             } else {
                 sb.setTitle(_('Moving these ${n} piece(s) ${steps} step(s) costs ${cost} Credits').replace('${n}', total).replace('${steps}', this.pending.dist).replace('${cost}', cost));
                 sb.addActionButton(_('Move'), () => {
-                    const args = { fromHexId: this.selFrom, toHexId: to, ...this.sel };
+                    const args = { fromHexId: this.selFrom, toHexId: to, pieces: this.selPieces() };
                     this.pending = null;
                     this.act('actMove', args);
                 }, { color: 'primary', disabled: cost > credits });
@@ -334,10 +380,58 @@ export class Game {
             sb.addActionButton(_('Cancel'), () => { this.missionSel = null; this.render(); }, { color: 'alert' });
         } else if (this.slotSel) {
             this.slotBanner(sb);
+        } else if (this.tradeSel) {
+            this.tradeBanner(sb);
         } else {
             sb.setTitle(_('${you} may move, build, extract, manufacture and trade, then end your turn'));
             sb.addActionButton(_('End turn'), () => this.act('actEndTurn'), { color: 'primary' });
         }
+    }
+
+    /** Banner for an opened port / Dock: what it buys and sells, then Buy / Sell and the goods. */
+    tradeBanner(sb) {
+        const d = this.data;
+        const me = this.me();
+        const t = this.tradeSel;
+        const hex = this.hexById(t.hex);
+        const info = this.tradeInfo(hex);
+        const cancel = () => sb.addActionButton(_('Cancel'), () => { this.tradeSel = null; this.render(); }, { color: 'alert' });
+        if (!info) {
+            this.tradeSel = null;
+            return;
+        }
+        const name = info.port ? `${_('Port')} ${this.portLetter(info.port)}` : _('Home Dock');
+        const goods = Object.keys(info.terms);
+        const buys = goods.map(g => `${g} ${info.terms[g].buy}`).join(', ');
+        const sells = goods.map(g => `${g} ${info.terms[g].sell}`).join(', ');
+        const perks = info.port ? ` (${_('cheaper to buy')}: ${[info.port.supply_item_1, info.port.supply_item_2].filter(Boolean).join(', ')}; ${_('pays more')}: ${[info.port.demanded_item_1, info.port.demanded_item_2, info.port.demanded_item_3].filter(Boolean).join(', ')})` : ` (${_('normal prices')})`;
+        if (hex.owner_id !== me) {
+            sb.setTitle(`${name}${perks}. ${_('You pay')}: ${buys}. ${_('You get')}: ${sells}. ${_('Stand one of your units on this hex to trade here.')}`);
+            cancel();
+            return;
+        }
+        if (!t.mode) {
+            sb.setTitle(`${name}${perks}. ${_('You pay')}: ${buys}. ${_('You get')}: ${sells}.`);
+            sb.addActionButton(_('Buy'), () => { this.tradeSel.mode = 'buy'; this.render(); }, { color: 'primary' });
+            sb.addActionButton(_('Sell'), () => { this.tradeSel.mode = 'sell'; this.render(); }, { color: 'secondary' });
+            cancel();
+            return;
+        }
+        const credits = d.player_state[me].credits;
+        const supply = d.player_state[me].supply;
+        sb.setTitle(t.mode === 'buy'
+            ? `${name}: ${_('buy which good?')} (${_('click the port again to go back')})`
+            : `${name}: ${_('sell which good?')} (${_('click the port again to go back')})`);
+        goods.forEach(g => {
+            const have = this.availOf(t.hex, (g === 'bot' || g === 'mech') ? g + 's' : g);
+            if (t.mode === 'buy') {
+                const price = info.terms[g].buy;
+                const noSupply = (g === 'bot' || g === 'mech') && supply[g] < 1;
+                sb.addActionButton(`${g} (${price})`, () => this.act('actBuy', { hexId: t.hex, good: g }), { color: 'primary', disabled: credits < price || noSupply });
+            } else {
+                sb.addActionButton(`${g} (+${info.terms[g].sell})`, () => this.act('actSell', { hexId: t.hex, good: g }), { color: 'secondary', disabled: have < 1 });
+            }
+        });
     }
 
     /** Banner for a selected production area: build options when empty, extract / sell when it holds your building. */
@@ -353,7 +447,7 @@ export class Game {
             cancel();
             return;
         }
-        const iron = this.availOf(s.hex, 'iron', true);
+        const iron = this.availOf(s.hex, 'iron');
         const credits = d.player_state[me].credits;
         const supply = d.player_state[me].supply;
         const niceName = t => _(BUILDING_NAMES[t] || t);
@@ -383,7 +477,7 @@ export class Game {
                 }, { color: 'primary', disabled: !!content.used || credits < n });
             });
         } else if (content.building_type === 'factory') {
-            const crystal = this.availOf(s.hex, 'crystal', true);
+            const crystal = this.availOf(s.hex, 'crystal');
             sb.setTitle(_('Factory (on this hex: ${i} iron, ${c} crystal): 1 iron makes 2 bots, 1 iron + 1 crystal makes a mech')
                 .replace('${i}', iron).replace('${c}', crystal));
             sb.addActionButton(`${_('Make')} ${d.bots_per_iron} ${_('bots')} (1 ${_('iron')})`, () => {
@@ -409,7 +503,7 @@ export class Game {
             pid = Number(pid);
             const s = d.player_state[pid];
             const done = s.missions_done;
-            const supply = ['bot', 'mech', 'factory', 'extractor', 'tower'].map(t => `${t}s ${s.supply[t]}/${d.supply_total[t]}`).join(' | ');
+            const supply = ['bot', 'mech'].map(t => `${t}s ${s.supply[t]}/${d.supply_total[t]}`).join(' | ');
             let rules = '';
             if (pid === me) {
                 rules = '<div class="mf_rules">'
@@ -447,7 +541,7 @@ export class Game {
             }
             const s = d.player_state[pid];
             const bots = d.units.filter(u => u.owner_id === pid && u.unit_type === 'bot').length;
-            box.innerHTML = `${_('Credits')}: ${s.credits} | ${_('Bots')}: ${bots} | ${_('Missions bought')}: ${s.missions_bought}`;
+            box.innerHTML = `${_('Credits')}: ${s.credits} | VP: ${s.vp}/${d.vp_target} | ${_('Missions bought')}: ${s.missions_bought} | ${_('Bots')}: ${bots}`;
         });
     }
 
@@ -485,6 +579,7 @@ export class Game {
     }
 
     onMissionClick(m) {
+        this.tradeSel = null;
         this.clearSel();
         this.slotSel = null;
         this.missionSel = this.missionSel === m ? null : m;
@@ -552,9 +647,9 @@ export class Game {
             const ug = Object.values(groups);
             ug.forEach((g, i) => {
                 const sx = x - (ug.length - 1) * 11 + i * 22, sy = y + 14;
-                const selectable = g.owner === me && !g.moved && !g.attack && this.active;
-                const key = g.type === 'bot' ? 'bots' : 'mechs';
-                const nSel = this.selFrom === h.hex_id ? this.sel[key] : 0;
+                const selectable = g.owner === me && !g.attack && this.active;
+                const key = `${g.type}|${g.moved}`;
+                const nSel = this.selFrom === h.hex_id ? (this.sel[key] || 0) : 0;
                 const outline = nSel > 0 ? '#ffe600' : (g.attack ? '#ff3b3b' : '#222');
                 if (g.moved) {
                     parts.push(`<circle cx="${sx}" cy="${sy + 3}" r="8" fill="#e0b100" stroke="#7a5d00"/>`);
@@ -574,19 +669,20 @@ export class Game {
             const items = this.data.items.filter(i => i.hex_id === h.hex_id);
             items.forEach((it, i) => {
                 const ix = x - (items.length - 1) * 12 + i * 24, iy = y + 28;
-                const selectable = h.owner_id === me && !it.moved_cost && this.active;
-                const nSel = this.selFrom === h.hex_id && selectable ? this.sel[it.kind] : 0;
+                const selectable = h.owner_id === me && this.active;
+                const itemKey = `${it.kind}|${it.moved_cost}`;
+                const nSel = this.selFrom === h.hex_id && selectable ? (this.sel[itemKey] || 0) : 0;
                 if (it.moved_cost) {
                     parts.push(`<circle cx="${ix}" cy="${iy}" r="7" fill="#e0b100" stroke="#7a5d00"/>`);
                 }
                 parts.push(`<rect x="${ix - 5}" y="${iy - 4}" width="9" height="9" fill="${RES_COLORS[it.kind]}" stroke="${nSel > 0 ? '#ffe600' : '#222'}" stroke-width="${nSel > 0 ? 3 : 1}"/>`
                     + `<text x="${ix + 7}" y="${iy + 4}" font-size="9" fill="#2b2118" pointer-events="none">${nSel > 0 ? nSel + '/' : ''}${it.n}</text>`);
                 if (selectable) {
-                    parts.push(`<rect class="mf_stack" data-hex="${h.hex_id}" data-kind="${it.kind}" x="${ix - 8}" y="${iy - 8}" width="26" height="17" fill="transparent"/>`);
+                    parts.push(`<rect class="mf_stack" data-hex="${h.hex_id}" data-kind="${itemKey}" x="${ix - 8}" y="${iy - 8}" width="26" height="17" fill="transparent"/>`);
                 }
             });
             if (target) {
-                parts.push(`<text x="${x}" y="${y - 31}" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff" stroke="#000" stroke-width="0.6" pointer-events="none">${this.moveCost(this.moveTotal(), moveDist)}</text>`);
+                parts.push(`<text x="${x}" y="${y - 31}" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff" stroke="#000" stroke-width="0.6" pointer-events="none">${this.selCost(moveDist)}</text>`);
             }
             parts.push('</g>');
         }
@@ -650,14 +746,17 @@ export class Game {
     onStackClick(hexId, kind) {
         this.slotSel = null;
         this.missionSel = null;
+        this.tradeSel = null;
         const hex = this.hexById(hexId);
         if (!this.active || hex.owner_id !== this.me()) return;
         if (this.selFrom !== hexId) {
             this.sel = this.emptySel();
             this.selFrom = hexId;
         }
-        const avail = this.availOf(hexId, kind);
-        this.sel[kind] = this.sel[kind] + 1 > avail ? 0 : this.sel[kind] + 1;
+        const avail = this.stackSize(hexId, kind);
+        const cur = this.sel[kind] || 0;
+        this.sel[kind] = cur + 1 > avail ? 0 : cur + 1;
+        if (!this.sel[kind]) delete this.sel[kind];
         this.pending = null;
         if (this.moveTotal() === 0) this.clearSel();
         this.selectedHex = hexId;
@@ -665,6 +764,7 @@ export class Game {
     }
 
     onHexClick(hexId) {
+        if (!(this.tradeSel && this.tradeSel.hex === hexId)) this.tradeSel = null;
         if (this.pushActive && this.pushArgs) {
             if (this.pushArgs.options.includes(hexId)) this.act('actPushTo', { toHexId: hexId });
             return;
@@ -683,6 +783,7 @@ export class Game {
     }
 
     onSlotClick(hexId, kind, idx) {
+        this.tradeSel = null;
         this.clearSel();
         this.missionSel = null;
         this.selectedHex = hexId;
@@ -691,7 +792,13 @@ export class Game {
     }
 
     onPortClick(hexId) {
+        this.clearSel();
+        this.slotSel = null;
+        this.missionSel = null;
+        const again = this.tradeSel && this.tradeSel.hex === hexId;
+        this.tradeSel = { hex: hexId, mode: null };
         this.selectedHex = hexId;
+        if (again) this.tradeSel.mode = null;
         this.render();
         document.getElementById('mf_panel').scrollIntoView({ block: 'nearest' });
     }
@@ -737,7 +844,7 @@ export class Game {
         const head = info.port ? this.portText(info.port) : _('Home Dock: iron and bots at the normal price');
         const rows = Object.keys(info.terms).map(g => {
             const t = info.terms[g];
-            const have = (g === 'bot' || g === 'mech') ? this.availOf(hid, g + 's', true) : this.availOf(hid, g, true);
+            const have = (g === 'bot' || g === 'mech') ? this.availOf(hid, g + 's') : this.availOf(hid, g);
             const buyOk = canAct && mine && credits >= t.buy;
             const sellOk = canAct && mine && have > 0;
             return `<tr><td>${g}</td><td>${t.buy}</td><td>${t.sell}</td>`
@@ -760,8 +867,8 @@ export class Game {
             const hid = this.selectedHex;
             const hex = this.hexById(hid);
             const mine = hex.owner_id === me;
-            const avail = { bots: this.availOf(hid, 'bots', true), mechs: this.availOf(hid, 'mechs', true) };
-            TOKENS.forEach(k => { avail[k] = this.availOf(hid, k, true); });
+            const avail = { bots: this.availOf(hid, 'bots'), mechs: this.availOf(hid, 'mechs') };
+            TOKENS.forEach(k => { avail[k] = this.availOf(hid, k); });
             lines.push(`<div class="mf_row"><b>${_('Hex')} ${hid}</b> ${mine ? _('(you control this hex)') : _('(not controlled by you)')}`
                 + (mine ? `<div class="mf_hint">${_('Click your bots, mechs or resources on the hex to select them, then click a highlighted hex to move them.')}</div>` : '') + '</div>');
 

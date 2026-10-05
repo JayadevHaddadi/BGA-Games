@@ -613,10 +613,20 @@ class Game extends \Bga\GameFramework\Table
         return null;
     }
 
-    /** Each piece pays the triangular number of its steps: 1 step = 1, 2 steps = 3, 3 steps = 6 ... */
-    public static function moveCost(int $pieces, int $steps): int
+    /** Coins paid in total for a piece that has moved $steps steps this turn: 1, 3, 6, 10 ... (triangular). */
+    public static function coinsForSteps(int $steps): int
     {
-        return $pieces * intdiv($steps * ($steps + 1), 2);
+        return intdiv($steps * ($steps + 1), 2);
+    }
+
+    /** Number of steps a piece has already moved this turn, from the coins lying under it. */
+    public static function stepsFromCoins(int $coins): int
+    {
+        $s = 0;
+        while (self::coinsForSteps($s + 1) <= $coins) {
+            $s++;
+        }
+        return $s;
     }
 
     /** A hex is controlled by whoever has units on it. */
@@ -766,71 +776,79 @@ class Game extends \Bga\GameFramework\Table
     // ------------------------------------------------------------------
 
     /**
-     * Move bots / mechs / resource tokens that have not moved this turn from a hex you control to any hex reachable
-     * over open paths through free or friendly hexes. Every piece pays the triangular cost of the distance and is then
-     * marked as moved (the coins stay under it) until the start of the owner's next turn.
+     * Move bots / mechs / resource tokens from a hex you control to any hex reachable over open paths through free or
+     * friendly hexes. $pieces lists the stacks to move as "kind:coinsUnderThem:count" separated by ";".
+     * A piece pays the triangular cost of its total steps this turn minus the coins already lying under it, so a
+     * bot that moved 1 hex (1 coin) pays 2 more to move 1 hex again (3 coins in total for 2 steps).
      * Moving onto an enemy-held hex declares an attack instead (resolved when the turn ends).
      */
-    public function movePieces(int $playerId, int $fromHexId, int $toHexId, int $bots, int $mechs, array $tokens): void
+    public function movePieces(int $playerId, int $fromHexId, int $toHexId, string $pieces): void
     {
-        $tokens = array_filter($tokens, fn($n) => $n > 0);
-        $count = $bots + $mechs + array_sum($tokens);
-        if ($bots < 0 || $mechs < 0 || $count < 1) {
+        $groups = [];
+        foreach (array_filter(explode(';', $pieces), fn($p) => $p !== '') as $part) {
+            [$kind, $moved, $qty] = array_pad(explode(':', $part), 3, '0');
+            $moved = (int) $moved;
+            $qty = (int) $qty;
+            if (!in_array($kind, ['bot', 'mech', 'iron', 'crystal'], true) || $moved < 0 || $qty < 1) {
+                throw new UserException(clienttranslate("Unknown piece."));
+            }
+            $groups[] = [$kind, $moved, $qty];
+        }
+        if (empty($groups)) {
             throw new UserException(clienttranslate("Select at least one piece to move."));
         }
         $this->assertControls($playerId, $fromHexId);
         $toHex = $this->getHex($toHexId);
         $isAttack = $toHex['owner_id'] !== null && (int) $toHex['owner_id'] !== $playerId;
-        if ($isAttack && !empty($tokens)) {
-            throw new UserException(clienttranslate("Only bots and mechs can attack."));
+        $count = 0;
+        foreach ($groups as [$kind, , $qty]) {
+            $count += $qty;
+            if ($isAttack && !in_array($kind, ['bot', 'mech'], true)) {
+                throw new UserException(clienttranslate("Only bots and mechs can attack."));
+            }
         }
         $dist = $this->pathDistance($playerId, $fromHexId, $toHexId);
         if ($dist === null || $dist < 1) {
             throw new UserException(clienttranslate("There is no open path to that hex."));
         }
-        $cost = self::moveCost($count, $dist);
-        $per = self::moveCost(1, $dist);
+
+        $cost = 0;
+        $moves = []; // [table, ids, new coin total]
+        foreach ($groups as [$kind, $moved, $qty]) {
+            $newCoins = self::coinsForSteps(self::stepsFromCoins($moved) + $dist);
+            $cost += $qty * ($newCoins - $moved);
+            if (in_array($kind, ['bot', 'mech'], true)) {
+                $rows = static::getObjectListFromDb("SELECT `unit_id` AS id FROM `unit` WHERE `owner_id` = {$playerId} AND `hex_id` = {$fromHexId} AND `unit_type` = '{$kind}' AND `moved_cost` = {$moved} AND `attack_target` IS NULL LIMIT {$qty}");
+                $table = 'unit';
+            } else {
+                $rows = static::getObjectListFromDb("SELECT `item_id` AS id FROM `item` WHERE `hex_id` = {$fromHexId} AND `kind` = '{$kind}' AND `moved_cost` = {$moved} LIMIT {$qty}");
+                $table = 'item';
+            }
+            if (count($rows) < $qty) {
+                throw new UserException(clienttranslate("You do not have that many pieces there."));
+            }
+            $moves[] = [$table, array_map(fn($r) => (int) $r['id'], $rows), $newCoins];
+        }
         if ($this->getPlayerState($playerId)['credits'] < $cost) {
             throw new UserException(clienttranslate("Not enough Credits for that move."));
         }
 
-        $unitIds = [];
-        foreach (['bot' => $bots, 'mech' => $mechs] as $type => $qty) {
-            if ($qty === 0) {
-                continue;
-            }
-            $rows = static::getObjectListFromDb("SELECT `unit_id` FROM `unit` WHERE `owner_id` = {$playerId} AND `hex_id` = {$fromHexId} AND `unit_type` = '{$type}' AND `moved_cost` = 0 AND `attack_target` IS NULL LIMIT {$qty}");
-            if (count($rows) < $qty) {
-                throw new UserException(clienttranslate("You do not have that many unmoved units there."));
-            }
-            foreach ($rows as $row) {
-                $unitIds[] = (int) $row['unit_id'];
-            }
-        }
-        $itemIds = [];
-        foreach ($tokens as $kind => $qty) {
-            if (!in_array($kind, ['iron', 'crystal'], true)) {
-                throw new UserException(clienttranslate("Unknown good."));
-            }
-            $itemIds = array_merge($itemIds, $this->findItems($playerId, $kind, $fromHexId, $qty, true));
-        }
-
         $this->adjustCredits($playerId, -$cost);
-        $unitList = implode(',', $unitIds);
-        $itemList = implode(',', $itemIds);
+        foreach ($moves as [$table, $ids, $newCoins]) {
+            $list = implode(',', $ids);
+            if ($table === 'unit') {
+                $set = $isAttack ? "`attack_target` = {$toHexId}, `moved_cost` = {$newCoins}" : "`hex_id` = {$toHexId}, `moved_cost` = {$newCoins}";
+                static::DbQuery("UPDATE `unit` SET {$set} WHERE `unit_id` IN ({$list})");
+            } else {
+                static::DbQuery("UPDATE `item` SET `hex_id` = {$toHexId}, `moved_cost` = {$newCoins}, `owner_id` = {$playerId} WHERE `item_id` IN ({$list})");
+            }
+        }
         if ($isAttack) {
             // The pieces stay where they are until the attack is resolved at the end of the turn
-            static::DbQuery("UPDATE `unit` SET `attack_target` = {$toHexId}, `moved_cost` = {$per} WHERE `unit_id` IN ({$unitList})");
             $this->notifyUpdate(clienttranslate('${player_name} sends ${count} piece(s) to attack hex ${hex} (paid ${cost} Credits)'), [
                 'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'count' => $count, 'hex' => $toHexId, 'cost' => $cost,
             ]);
             return;
-        }
-        if (!empty($unitIds)) {
-            static::DbQuery("UPDATE `unit` SET `hex_id` = {$toHexId}, `moved_cost` = {$per} WHERE `unit_id` IN ({$unitList})");
-        }
-        if (!empty($itemIds)) {
-            static::DbQuery("UPDATE `item` SET `hex_id` = {$toHexId}, `moved_cost` = {$per}, `owner_id` = {$playerId} WHERE `item_id` IN ({$itemList})");
         }
         $this->refreshControl($fromHexId);
         $this->refreshControl($toHexId);
