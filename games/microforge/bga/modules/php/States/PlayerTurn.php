@@ -29,9 +29,11 @@ class PlayerTurn extends GameState
     }
 
     #[PossibleAction]
-    public function actMove(int $fromHexId, int $toHexId, int $bots, int $mechs, int $activePlayerId): string
+    public function actMove(int $fromHexId, int $toHexId, int $bots, int $mechs, int $iron, int $crystal, int $fuel, int $core, int $activePlayerId): string
     {
-        $this->game->moveUnits($activePlayerId, $fromHexId, $toHexId, $bots, $mechs);
+        $this->game->movePieces($activePlayerId, $fromHexId, $toHexId, $bots, $mechs, [
+            'iron' => $iron, 'crystal' => $crystal, 'fuel' => $fuel, 'core' => $core,
+        ]);
         return PlayerTurn::class;
     }
 
@@ -43,9 +45,30 @@ class PlayerTurn extends GameState
     }
 
     #[PossibleAction]
-    public function actManufacture(string $product, int $hexId, int $activePlayerId): string
+    public function actProduce(int $buildingId, int $activePlayerId): string
     {
-        $this->game->manufacture($activePlayerId, $product, $hexId);
+        $this->game->produce($activePlayerId, $buildingId);
+        return PlayerTurn::class;
+    }
+
+    #[PossibleAction]
+    public function actManufacture(int $buildingId, string $product, int $activePlayerId): string
+    {
+        $this->game->manufacture($activePlayerId, $buildingId, $product);
+        return PlayerTurn::class;
+    }
+
+    #[PossibleAction]
+    public function actAssign(int $buildingId, int $activePlayerId): string
+    {
+        $this->game->assignBot($activePlayerId, $buildingId);
+        return PlayerTurn::class;
+    }
+
+    #[PossibleAction]
+    public function actUnassign(int $buildingId, int $activePlayerId): string
+    {
+        $this->game->unassignBot($activePlayerId, $buildingId);
         return PlayerTurn::class;
     }
 

@@ -23,6 +23,6 @@ $this->missions = [
     'industrial_tycoon' => ['name' => clienttranslate('Industrial Tycoon'), 'desc' => clienttranslate('Own 3 Extractors'), 'vp' => 1],
     'master_of_ports' => ['name' => clienttranslate('Master of Ports'), 'desc' => clienttranslate('Control hexes next to 2 Trade Ports'), 'vp' => 1],
     'core_hegemony' => ['name' => clienttranslate('Prime Core Hegemony'), 'desc' => clienttranslate('Control the central hex'), 'vp' => 2],
-    'fleet_supremacy' => ['name' => clienttranslate('Fleet Supremacy'), 'desc' => clienttranslate('Have 3 Bots and Mechs in total'), 'vp' => 1],
-    'energy_baron' => ['name' => clienttranslate('Energy Baron'), 'desc' => clienttranslate('Hold 3 Energy Cores'), 'vp' => 1],
+    'fleet_supremacy' => ['name' => clienttranslate('Fleet Supremacy'), 'desc' => clienttranslate('Have 6 Bots and Mechs on the map'), 'vp' => 1],
+    'energy_baron' => ['name' => clienttranslate('Energy Baron'), 'desc' => clienttranslate('Own 6 resource tokens on the map'), 'vp' => 1],
 ];

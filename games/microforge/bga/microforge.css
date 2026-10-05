@@ -11,3 +11,4 @@
 #mf_panel { padding: 6px; }
 .mf_row { margin: 6px 0; }
 .mf_btn, .mf_move, .mf_step { min-height: 32px; min-width: 32px; margin: 2px; }
+.mf_rules { font-size: 11px; margin-top: 4px; border-top: 1px solid #bda97f; padding-top: 4px; }

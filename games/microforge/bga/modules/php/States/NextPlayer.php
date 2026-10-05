@@ -39,6 +39,7 @@ class NextPlayer extends GameState
             $this->game->runRoundStart();
         }
 
+        $this->game->resetTurnFlags($nextPlayerId);
         $this->game->giveExtraTime($nextPlayerId);
 
         return PlayerTurn::class;

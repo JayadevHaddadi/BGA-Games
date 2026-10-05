@@ -5,10 +5,6 @@ DROP TABLE IF EXISTS `player_state`;
 CREATE TABLE IF NOT EXISTS `player_state` (
     `player_id` int(10) unsigned NOT NULL,
     `credits` smallint(5) NOT NULL DEFAULT 10,
-    `iron` tinyint(3) unsigned NOT NULL DEFAULT 0,
-    `crystal` tinyint(3) unsigned NOT NULL DEFAULT 0,
-    `fuel` tinyint(3) unsigned NOT NULL DEFAULT 0,
-    `core` tinyint(3) unsigned NOT NULL DEFAULT 0,
     `vp` tinyint(3) unsigned NOT NULL DEFAULT 0,
     PRIMARY KEY (`player_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -35,6 +31,8 @@ CREATE TABLE IF NOT EXISTS `building` (
     `hex_id` smallint(5) NOT NULL,
     `building_type` varchar(24) NOT NULL,
     `owner_id` int(10) unsigned NOT NULL,
+    `slot` tinyint(3) unsigned NOT NULL DEFAULT 0,
+    `used` tinyint(3) unsigned NOT NULL DEFAULT 0,
     PRIMARY KEY (`building_id`),
     KEY `idx_hex` (`hex_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -45,7 +43,18 @@ CREATE TABLE IF NOT EXISTS `unit` (
     `owner_id` int(10) unsigned NOT NULL,
     `unit_type` varchar(8) NOT NULL,
     `hex_id` smallint(5) NOT NULL,
+    `assigned_to` int(10) unsigned DEFAULT NULL,
     PRIMARY KEY (`unit_id`),
+    KEY `idx_hex` (`hex_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+DROP TABLE IF EXISTS `item`;
+CREATE TABLE IF NOT EXISTS `item` (
+    `item_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+    `owner_id` int(10) unsigned NOT NULL,
+    `kind` varchar(16) NOT NULL,
+    `hex_id` smallint(5) NOT NULL,
+    PRIMARY KEY (`item_id`),
     KEY `idx_hex` (`hex_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
