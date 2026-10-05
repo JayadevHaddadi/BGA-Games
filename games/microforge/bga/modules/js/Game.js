@@ -43,6 +43,7 @@ export class Game {
 
     setup(gamedatas) {
         this.data = gamedatas;
+        this.data.hexes.forEach(h => { h.edges = h.edges || '111111'; });
         this.bga.gameArea.getElement().insertAdjacentHTML('beforeend',
             '<div id="mf_boards"></div><div id="mf_market"></div><div id="mf_board"></div><div id="mf_panel"></div>');
         this.bga.notifications.setupPromiseNotifications();

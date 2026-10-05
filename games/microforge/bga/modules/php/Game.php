@@ -378,6 +378,7 @@ class Game extends \Bga\GameFramework\Table
 
     protected function getAllDatas(): array
     {
+        $this->ensureSchema(); // tables of games created before a schema change lack the new columns
         $result = ['players' => $this->loadPlayersBasicInfos()];
         $result += $this->getPublicState();
         $result['hex_radius'] = (int) $this->globals->get('hex_radius', 2);
@@ -403,6 +404,7 @@ class Game extends \Bga\GameFramework\Table
                 $h[$k] = (int) $h[$k];
             }
             $h['owner_id'] = $h['owner_id'] === null ? null : (int) $h['owner_id'];
+            $h['edges'] = $h['edges'] ?? '111111';
         }
         unset($h);
 
@@ -425,7 +427,7 @@ class Game extends \Bga\GameFramework\Table
         foreach ($ports as &$p) {
             $p['port_id'] = (int) $p['port_id'];
             $p['adjacent_hex_id'] = (int) $p['adjacent_hex_id'];
-            $p['edge_dir'] = (int) $p['edge_dir'];
+            $p['edge_dir'] = (int) ($p['edge_dir'] ?? 0);
         }
         unset($p);
 
