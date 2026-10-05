@@ -15,12 +15,23 @@ const BUILDINGS = ['extractor', 'factory', 'tower'];
 const DIRS = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
 const TILE_COLORS = { iron: '#c3c6cc', crystal: '#9fd0e6' };
 const BUILDING_NAMES = { extractor: 'Extractor', factory: 'Factory', tower: 'Guard Tower' };
-const MISSIONS = {
-    industrial_tycoon: ['Industrial Tycoon', 'Control 3 Extractors (each on a hex where you have a unit).'],
-    master_of_ports: ['Master of Ports', 'Control the hexes next to 2 different ports.'],
-    core_hegemony: ['Prime Core Hegemony', 'Control the central hex.'],
-    fleet_supremacy: ['Fleet Supremacy', 'Have 6 pieces (bots and mechs) on the map.'],
-    stockpile: ['Stockpile', 'Have 6 resource tokens on the map.'],
+const BUILDING_NEUTRAL = '#7a6a58'; // buildings are universal: no player colour
+const MISSION_TEXT = {
+    extractors: ['Extractors ${n}', 'Control ${n} Extractors.'],
+    factories: ['Factories ${n}', 'Control ${n} Factories.'],
+    towers: ['Guard Towers ${n}', 'Control ${n} Guard Towers.'],
+    buildings: ['Builder ${n}', 'Control ${n} buildings (Docks do not count).'],
+    bots: ['Bots ${n}', 'Have ${n} bots on the map.'],
+    mechs: ['Mechs ${n}', 'Have ${n} mechs on the map.'],
+    pieces: ['Army ${n}', 'Have ${n} pieces (bots and mechs) on the map.'],
+    iron_tokens: ['Iron ${n}', 'Hold ${n} iron on hexes you control.'],
+    crystal_tokens: ['Crystal ${n}', 'Hold ${n} crystal on hexes you control.'],
+    tokens: ['Stockpile ${n}', 'Hold ${n} resource tokens on hexes you control.'],
+    hexes: ['Territory ${n}', 'Control ${n} hexes.'],
+    double_tiles: ['Rich tiles ${n}', 'Control ${n} hex(es) with two resources.'],
+    ports: ['Ports ${n}', 'Control the hexes next to ${n} different ports.'],
+    center: ['Prime Core', 'Control the central hex.'],
+    credits: ['Treasury ${n}', 'Have ${n} Credits.'],
 };
 
 /** The defender picks where each pushed piece retreats to (one click per piece). */
@@ -147,9 +158,14 @@ export class Game {
         return d >= 0 && a.edges[d] === '1' && b.edges[(d + 3) % 6] === '1';
     }
 
-    /** One step: the 1st piece costs 1, the 2nd 3, the 3rd 6, the 4th 10 ... (mirrors the server). */
-    moveCost(n) {
-        return n * (n + 1) * (n + 2) / 6;
+    /** Every piece pays the triangular number of its steps (1 step 1, 2 steps 3, 3 steps 6 ...); mirrors the server. */
+    moveCost(pieces, steps) {
+        return pieces * steps * (steps + 1) / 2;
+    }
+
+    missionText(m) {
+        const t = MISSION_TEXT[m.type];
+        return { name: _(t[0]).replace('${n}', m.n), desc: _(t[1]).replace('${n}', m.n) };
     }
 
     unitPower(type) {
@@ -185,14 +201,15 @@ export class Game {
         return String.fromCharCode(65 + p.port_id);
     }
 
-    /** Free pieces / tokens of the current player on a hex, by selection key (bots, mechs, iron, ...). */
-    availOf(hexId, kind) {
+    /** Pieces / tokens the current player has on a hex. By default only pieces that have not moved this turn. */
+    availOf(hexId, kind, includeMoved = false) {
         const me = this.me();
         if (kind === 'bots' || kind === 'mechs') {
             const type = kind === 'bots' ? 'bot' : 'mech';
-            return this.data.units.filter(u => u.hex_id === hexId && u.owner_id === me && u.unit_type === type && !u.assigned_to && !u.attack_target).length;
+            return this.data.units.filter(u => u.hex_id === hexId && u.owner_id === me && u.unit_type === type && !u.attack_target && (includeMoved || !u.moved_cost)).length;
         }
-        return this.data.items.filter(i => i.hex_id === hexId && i.owner_id === me && i.kind === kind).reduce((a, i) => a + i.n, 0);
+        if (this.hexById(hexId).owner_id !== me) return 0;
+        return this.data.items.filter(i => i.hex_id === hexId && i.kind === kind && (includeMoved || !i.moved_cost)).reduce((a, i) => a + i.n, 0);
     }
 
     /** Steps from `fromId` to every hex reachable over open paths through free or own hexes (mirrors the server). */
@@ -218,7 +235,7 @@ export class Game {
         const me = this.me();
         const d = this.data;
         const port = d.ports.find(p => p.adjacent_hex_id === hex.hex_id);
-        const dock = d.buildings.some(b => b.hex_id === hex.hex_id && b.building_type === 'dock' && b.owner_id === me);
+        const dock = d.buildings.some(b => b.hex_id === hex.hex_id && b.building_type === 'dock');
         if (!port && !dock) return null;
         const goods = port ? GOODS : d.dock_goods;
         const terms = {};
@@ -248,6 +265,7 @@ export class Game {
         if (!this.data) return;
         if (this.selFrom !== null && this.moveTotal() > 0) this.dists = this.distances(this.selFrom);
         this.renderPlayerBoards();
+        this.renderSidebar();
         this.renderMarket();
         this.renderMissions();
         this.renderBoard();
@@ -263,7 +281,7 @@ export class Game {
         sb.removeActionButtons?.();
         const total = this.moveTotal();
         if (this.pending) {
-            const cost = this.moveCost(total) * this.pending.dist;
+            const cost = this.moveCost(total, this.pending.dist);
             const credits = this.data.player_state[this.me()].credits;
             const to = this.pending.to;
             if (this.pending.attack) {
@@ -271,7 +289,7 @@ export class Game {
                     .reduce((a, u) => a + this.unitPower(u.unit_type), 0);
                 const power = committed + this.sel.bots + this.sel.mechs * this.data.mech_power;
                 const defenders = this.data.units.filter(u => u.hex_id === to);
-                const towers = this.data.buildings.filter(b => b.hex_id === to && b.building_type === 'tower' && b.owner_id === this.hexById(to).owner_id).length;
+                const towers = this.data.buildings.filter(b => b.hex_id === to && b.building_type === 'tower').length;
                 const out = this.combatOutcome(power, defenders.map(u => this.unitPower(u.unit_type)), towers);
                 const tokens = total - this.sel.bots - this.sel.mechs;
                 sb.setTitle(_('Attack hex ${hex}: power ${a} vs ${d} defender(s)${t} would kill ${k} and push ${p}. Costs ${cost} Credits; resolved when you end your turn')
@@ -295,17 +313,23 @@ export class Game {
             sb.setTitle(_('${n} piece(s) selected: click a highlighted hex to see the cost').replace('${n}', total));
             sb.addActionButton(_('Cancel'), () => { this.clearSel(); this.render(); }, { color: 'alert' });
         } else if (this.missionSel) {
-            const m = this.missionSel;
             const d = this.data;
             const me = this.me();
-            const done = (d.claimed_missions[me] || []).includes(m);
-            const met = !!(d.mission_met && d.mission_met[me] && d.mission_met[me][m]);
-            sb.setTitle(_('Mission "${n}": ${desc} Buy it for ${fee} Credits? You meet it now: ${met}')
-                .replace('${n}', _(MISSIONS[m][0])).replace('${desc}', _(MISSIONS[m][1])).replace('${fee}', d.mission_fee).replace('${met}', met ? _('yes') : _('no (the Credits would be wasted)')));
-            const canBuy = !done && this.args.can_claim_mission !== false && d.player_state[me].credits >= d.mission_fee;
-            sb.addActionButton(`${_('Buy')} (${d.mission_fee})`, () => {
+            const m = d.missions.find(x => x.id === this.missionSel);
+            if (!m) {
                 this.missionSel = null;
-                this.act('actClaimMission', { missionId: m });
+                return;
+            }
+            const txt = this.missionText(m);
+            const fee = d.player_state[me].mission_fee;
+            const met = !!(d.mission_met[me] && d.mission_met[me][m.id]);
+            sb.setTitle(_('Mission "${n}" (${vp} VP): ${desc} Buy it for ${fee} Credits? You meet it now: ${met}')
+                .replace('${n}', txt.name).replace('${vp}', m.vp).replace('${desc}', txt.desc).replace('${fee}', fee)
+                .replace('${met}', met ? _('yes') : _('no (the Credits would be wasted)')));
+            const canBuy = this.args.can_claim_mission !== false && d.player_state[me].credits >= fee;
+            sb.addActionButton(`${_('Buy')} (${fee})`, () => {
+                this.missionSel = null;
+                this.act('actClaimMission', { missionId: m.id });
             }, { color: 'primary', disabled: !canBuy });
             sb.addActionButton(_('Cancel'), () => { this.missionSel = null; this.render(); }, { color: 'alert' });
         } else if (this.slotSel) {
@@ -329,7 +353,7 @@ export class Game {
             cancel();
             return;
         }
-        const iron = this.availOf(s.hex, 'iron');
+        const iron = this.availOf(s.hex, 'iron', true);
         const credits = d.player_state[me].credits;
         const supply = d.player_state[me].supply;
         const niceName = t => _(BUILDING_NAMES[t] || t);
@@ -346,18 +370,12 @@ export class Game {
             cancel();
             return;
         }
-        if (content.owner_id !== me) {
-            sb.setTitle(_('This production area holds an opponent building'));
-            cancel();
-            return;
-        }
         const refund = Math.max(0, d.build_iron[content.building_type] - 1);
         if (content.building_type === 'extractor') {
-            const assigned = d.units.filter(u => u.assigned_to === content.building_id).length;
-            const n = 1 + assigned;
+            const n = 1;
             sb.setTitle(content.used
                 ? _('This Extractor already produced this turn')
-                : _('Extractor: pay ${n} Credit(s) to extract ${n} of a resource on this tile').replace(/\$\{n\}/g, n));
+                : _('Extractor: pay 1 Credit to extract 1 of the resources on this tile'));
             [hex.resource_type, hex.resource_type_2].filter(Boolean).forEach(kind => {
                 sb.addActionButton(`${_('Extract')} ${kind} (${n})`, () => {
                     this.slotSel = null;
@@ -365,8 +383,8 @@ export class Game {
                 }, { color: 'primary', disabled: !!content.used || credits < n });
             });
         } else if (content.building_type === 'factory') {
-            const crystal = this.availOf(s.hex, 'crystal');
-            sb.setTitle(_('Your Factory (on this hex: ${i} iron, ${c} crystal): 1 iron makes 2 bots, 1 iron + 1 crystal makes a mech')
+            const crystal = this.availOf(s.hex, 'crystal', true);
+            sb.setTitle(_('Factory (on this hex: ${i} iron, ${c} crystal): 1 iron makes 2 bots, 1 iron + 1 crystal makes a mech')
                 .replace('${i}', iron).replace('${c}', crystal));
             sb.addActionButton(`${_('Make')} ${d.bots_per_iron} ${_('bots')} (1 ${_('iron')})`, () => {
                 this.act('actManufacture', { buildingId: content.building_id, product: 'bot' });
@@ -375,7 +393,7 @@ export class Game {
                 this.act('actManufacture', { buildingId: content.building_id, product: 'mech' });
             }, { color: 'primary', disabled: iron < 1 || crystal < 1 || d.player_state[me].supply.mech < 1 });
         } else {
-            sb.setTitle(_('Your ${b}: sell it and get ${n} iron back?').replace('${b}', niceName(content.building_type)).replace('${n}', refund));
+            sb.setTitle(_('${b}: sell it and get ${n} iron back?').replace('${b}', niceName(content.building_type)).replace('${n}', refund));
         }
         sb.addActionButton(`${_('Sell')} (+${refund} ${_('iron')})`, () => {
             this.slotSel = null;
@@ -390,21 +408,22 @@ export class Game {
         const html = Object.keys(d.players).map(pid => {
             pid = Number(pid);
             const s = d.player_state[pid];
-            const done = (d.claimed_missions[pid] || []).length;
+            const done = s.missions_done;
             const supply = ['bot', 'mech', 'factory', 'extractor', 'tower'].map(t => `${t}s ${s.supply[t]}/${d.supply_total[t]}`).join(' | ');
             let rules = '';
             if (pid === me) {
                 rules = '<div class="mf_rules">'
                     + `<div>${_('Board')}: +${d.base_income} ${_('Credits at the start of each of your turns.')}</div>`
                     + `<div>${_('Factory')}: 1 iron = ${d.bots_per_iron} ${_('bots')}; 1 iron + 1 crystal = 1 ${_('mech')}.</div>`
-                    + `<div>${_('Extractor')}: ${_('built in a production area on a tile with a resource; once per turn pay 1 Credit for 1 of the tile\'s resources; each assigned bot adds 1 (pay and get up to 3).')}</div>`
+                    + `<div>${_('Extractor')}: ${_('built in a production area on a tile with a resource; once per turn pay 1 Credit for 1 token of one of the tile\'s resources.')}</div>`
                     + `<div>${_('Building needs iron on the tile')}: ${BUILDINGS.map(b => `${b} ${d.build_iron[b]}`).join(', ')}.</div>`
-                    + `<div>${_('Moving one step: the 1st piece costs 1, the 2nd 3, the 3rd 6, the 4th 10 Credits (per step).')}</div>`
+                    + `<div>${_('Moving: every piece pays 1 Credit for 1 step, 3 for 2 steps, 6 for 3 steps, 10 for 4. A moved piece gets its coins under it and cannot move again this turn.')}</div>`
+                    + `<div>${_('Buildings and resource tokens belong to whoever controls their hex (has units on it). Bots only hold hexes and attack.')}</div>`
                     + `<div>${_('Attacks (moving onto an enemy hex) resolve when you end your turn. A bot has power 1, a mech power 4. Each defending bot needs power 2 to be pushed away and 3 to be killed; a defending Guard Tower adds 1 to both. A mech defends as power 4.')}</div>`
                     + '</div>';
             }
             return `<div class="mf_pboard" style="border-color:${this.colorOf(pid)}">`
-                + `<b>${d.players[pid].name}</b> | ${_('Credits')}: ${s.credits} | VP: ${s.vp}/${d.vp_target} | ${_('Missions')}: ${done}<br>`
+                + `<b>${d.players[pid].name}</b> | ${_('Credits')}: ${s.credits} | VP: ${s.vp}/${d.vp_target} | ${_('Missions done')}: ${done} | ${_('bought')}: ${s.missions_bought}<br>`
                 + `<span class="mf_income">${_('Income each turn')}: +${s.income}</span><br>`
                 + `${_('Supply')}: ${supply}`
                 + rules + '</div>';
@@ -413,6 +432,25 @@ export class Game {
     }
 
     /** Read-only price board; trading itself happens at a port or your Dock. */
+    /** Credits, bots and missions bought in each player's panel on the right-hand side. */
+    renderSidebar() {
+        const d = this.data;
+        Object.keys(d.players).forEach(pid => {
+            pid = Number(pid);
+            const panel = this.bga?.playerPanels?.getElement?.(pid);
+            if (!panel) return;
+            let box = panel.querySelector('.mf_sidebar');
+            if (!box) {
+                box = document.createElement('div');
+                box.className = 'mf_sidebar';
+                panel.appendChild(box);
+            }
+            const s = d.player_state[pid];
+            const bots = d.units.filter(u => u.owner_id === pid && u.unit_type === 'bot').length;
+            box.innerHTML = `${_('Credits')}: ${s.credits} | ${_('Bots')}: ${bots} | ${_('Missions bought')}: ${s.missions_bought}`;
+        });
+    }
+
     renderMarket() {
         const rows = GOODS.map(g => {
             const lo = this.data.price_min[g], hi = this.data.price_max[g], p = this.data.prices[g];
@@ -426,20 +464,20 @@ export class Game {
     renderMissions() {
         const d = this.data;
         const me = this.me();
-        const done = d.claimed_missions[me] || [];
-        const met = (d.mission_met && d.mission_met[me]) || {};
-        const cards = Object.keys(d.mission_vp).map(m => {
-            const isDone = done.includes(m);
-            const tag = isDone ? _('done') : (met[m] ? _('you meet it') : '');
-            return `<button class="mf_mission${this.missionSel === m ? ' mf_mission_sel' : ''}" data-mission="${m}">`
-                + `<b>${_(MISSIONS[m][0])}</b> <span>${d.mission_vp[m]} VP${tag ? ' - ' + tag : ''}</span></button>`;
+        const met = d.mission_met[me] || {};
+        const fee = d.player_state[me].mission_fee;
+        const cards = d.missions.map(m => {
+            const txt = this.missionText(m);
+            return `<button class="mf_mission${this.missionSel === m.id ? ' mf_mission_sel' : ''}" data-mission="${m.id}">`
+                + `<b>${txt.name}</b> <span>${_('level')} ${m.level} - ${m.vp} VP${met[m.id] ? ' - ' + _('you meet it') : ''}</span></button>`;
         }).join('');
-        let info = `<div class="mf_hint">${_('Click a mission card for details.')}</div>`;
-        if (this.missionSel) {
-            const m = this.missionSel;
-            info = `<div class="mf_missioninfo"><b>${_(MISSIONS[m][0])}</b> (${d.mission_vp[m]} VP)<br>${_(MISSIONS[m][1])}<br>`
-                + `${_('Buy it for')} ${d.mission_fee} ${_('Credits (one mission per turn). You get the VP only if you meet it at that moment; otherwise the Credits are wasted.')}<br>`
-                + `${_('You meet it now')}: ${met[m] ? _('yes') : _('no')}${done.includes(m) ? ' - ' + _('already completed') : ''}</div>`;
+        let info = `<div class="mf_hint">${_('Click a mission card for details. A completed card is replaced from the deck.')} (${d.mission_deck_left} ${_('left in the deck')})</div>`;
+        const sel = d.missions.find(x => x.id === this.missionSel);
+        if (sel) {
+            const txt = this.missionText(sel);
+            info = `<div class="mf_missioninfo"><b>${txt.name}</b> (${_('level')} ${sel.level}, ${sel.vp} VP)<br>${txt.desc}<br>`
+                + `${_('Buy it for')} ${fee} ${_('Credits (one mission per turn; each mission you buy makes your next one 1 Credit dearer). You get the VP only if you meet it at that moment; otherwise the Credits are wasted.')}<br>`
+                + `${_('You meet it now')}: ${met[sel.id] ? _('yes') : _('no')}</div>`;
         }
         const el = document.getElementById('mf_missions');
         el.innerHTML = `<b>${_('Missions')}</b>${cards}${info}`;
@@ -460,7 +498,7 @@ export class Game {
     renderBoard() {
         const size = 40;
         const R = this.data.hex_radius;
-        const ext = (R + 1) * size * 2;
+        const ext = R * size * 1.75 + 135; // room for the sea-side labels
         const me = this.me();
         const parts = [`<svg viewBox="${-ext} ${-ext} ${ext * 2} ${ext * 2}" width="100%" style="max-width:700px">`];
         // Tiles with two resources are split down the middle in the two resource colours
@@ -502,60 +540,88 @@ export class Game {
                 const b = built[i];
                 const sx = x - nSlots * 12 + i * 24 + 1;
                 const picked = this.slotSel && this.slotSel.hex === h.hex_id && this.slotSel.idx === i;
-                parts.push(`<rect class="mf_slot" data-hex="${h.hex_id}" data-kind="bld" data-idx="${i}" x="${sx}" y="${y - 16}" width="22" height="16" fill="${b ? this.colorOf(b.owner_id) : 'rgba(255,255,255,0.35)'}" stroke="${picked ? '#ffe600' : '#2b2118'}" stroke-width="${picked ? 3 : 1.2}" stroke-dasharray="${b ? 0 : 3}"/>`
+                parts.push(`<rect class="mf_slot" data-hex="${h.hex_id}" data-kind="bld" data-idx="${i}" x="${sx}" y="${y - 16}" width="22" height="16" fill="${b ? BUILDING_NEUTRAL : 'rgba(255,255,255,0.35)'}" stroke="${picked ? '#ffe600' : '#2b2118'}" stroke-width="${picked ? 3 : 1.2}" stroke-dasharray="${b ? 0 : 3}"/>`
                     + (b ? `<text x="${sx + 11}" y="${y - 4}" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff" stroke="#000" stroke-width="0.4" pointer-events="none">${b.building_type[0].toUpperCase()}${b.building_type === 'extractor' && b.used ? '*' : ''}</text>` : ''));
             }
-            if (blds.some(b => b.building_type === 'dock')) {
-                parts.push(`<text x="${x}" y="${y + 6}" text-anchor="middle" font-size="9" fill="#2b2118" pointer-events="none">dock</text>`);
-            }
-            // Unit stacks: circles = bots, squares = mechs, white outline = assigned to a building
+            // Unit stacks: circles = bots, squares = mechs. Coins under a stack = it has moved (cost per piece).
             const groups = {};
             this.data.units.filter(u => u.hex_id === h.hex_id).forEach(u => {
-                const key = `${u.owner_id}|${u.unit_type}|${u.assigned_to ? 1 : 0}|${u.attack_target || 0}`;
-                (groups[key] = groups[key] || { owner: u.owner_id, type: u.unit_type, assigned: !!u.assigned_to, attack: u.attack_target, n: 0 }).n++;
+                const key = `${u.owner_id}|${u.unit_type}|${u.moved_cost}|${u.attack_target || 0}`;
+                (groups[key] = groups[key] || { owner: u.owner_id, type: u.unit_type, moved: u.moved_cost, attack: u.attack_target, n: 0 }).n++;
             });
             const ug = Object.values(groups);
             ug.forEach((g, i) => {
                 const sx = x - (ug.length - 1) * 11 + i * 22, sy = y + 14;
-                const selectable = g.owner === me && !g.assigned && !g.attack && this.active;
+                const selectable = g.owner === me && !g.moved && !g.attack && this.active;
                 const key = g.type === 'bot' ? 'bots' : 'mechs';
                 const nSel = this.selFrom === h.hex_id ? this.sel[key] : 0;
-                const outline = nSel > 0 ? '#ffe600' : (g.attack ? '#ff3b3b' : (g.assigned ? '#fff' : '#222'));
+                const outline = nSel > 0 ? '#ffe600' : (g.attack ? '#ff3b3b' : '#222');
+                if (g.moved) {
+                    parts.push(`<circle cx="${sx}" cy="${sy + 3}" r="8" fill="#e0b100" stroke="#7a5d00"/>`);
+                }
                 parts.push(g.type === 'bot'
                     ? `<circle cx="${sx}" cy="${sy}" r="6" fill="${this.colorOf(g.owner)}" stroke="${outline}" stroke-width="${nSel > 0 ? 3 : 1.5}"/>`
                     : `<rect x="${sx - 6}" y="${sy - 6}" width="12" height="12" fill="${this.colorOf(g.owner)}" stroke="${outline}" stroke-width="${nSel > 0 ? 3 : 1.5}"/>`);
                 parts.push(`<text x="${sx + 8}" y="${sy + 3}" font-size="9" fill="#2b2118" pointer-events="none">${nSel > 0 ? nSel + '/' : ''}${g.n}${g.attack ? '>' + g.attack : ''}</text>`);
+                if (g.moved) {
+                    parts.push(`<text x="${sx}" y="${sy + 15}" text-anchor="middle" font-size="7" fill="#7a5d00" pointer-events="none">${g.moved}c</text>`);
+                }
                 if (selectable) {
                     parts.push(`<rect class="mf_stack" data-hex="${h.hex_id}" data-kind="${key}" x="${sx - 9}" y="${sy - 9}" width="28" height="18" fill="transparent"/>`);
                 }
             });
-            // Resource token stacks
+            // Resource token stacks (they belong to whoever controls the hex)
             const items = this.data.items.filter(i => i.hex_id === h.hex_id);
             items.forEach((it, i) => {
-                const ix = x - (items.length - 1) * 12 + i * 24, iy = y + 26;
-                const selectable = it.owner_id === me && this.active;
+                const ix = x - (items.length - 1) * 12 + i * 24, iy = y + 28;
+                const selectable = h.owner_id === me && !it.moved_cost && this.active;
                 const nSel = this.selFrom === h.hex_id && selectable ? this.sel[it.kind] : 0;
-                parts.push(`<rect x="${ix - 5}" y="${iy - 4}" width="9" height="9" fill="${RES_COLORS[it.kind]}" stroke="${nSel > 0 ? '#ffe600' : this.colorOf(it.owner_id)}" stroke-width="${nSel > 0 ? 3 : 1.5}"/>`
+                if (it.moved_cost) {
+                    parts.push(`<circle cx="${ix}" cy="${iy}" r="7" fill="#e0b100" stroke="#7a5d00"/>`);
+                }
+                parts.push(`<rect x="${ix - 5}" y="${iy - 4}" width="9" height="9" fill="${RES_COLORS[it.kind]}" stroke="${nSel > 0 ? '#ffe600' : '#222'}" stroke-width="${nSel > 0 ? 3 : 1}"/>`
                     + `<text x="${ix + 7}" y="${iy + 4}" font-size="9" fill="#2b2118" pointer-events="none">${nSel > 0 ? nSel + '/' : ''}${it.n}</text>`);
                 if (selectable) {
                     parts.push(`<rect class="mf_stack" data-hex="${h.hex_id}" data-kind="${it.kind}" x="${ix - 8}" y="${iy - 8}" width="26" height="17" fill="transparent"/>`);
                 }
             });
             if (target) {
-                parts.push(`<text x="${x}" y="${y - 31}" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff" stroke="#000" stroke-width="0.6" pointer-events="none">${this.moveCost(this.moveTotal()) * moveDist}</text>`);
+                parts.push(`<text x="${x}" y="${y - 31}" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff" stroke="#000" stroke-width="0.6" pointer-events="none">${this.moveCost(this.moveTotal(), moveDist)}</text>`);
             }
             parts.push('</g>');
         }
-        // Port badges with their letter (details in the list under the board)
+        // Sea side: every port and every Dock states what it buys and sells
         const byId = Object.fromEntries(this.data.hexes.map(h => [h.hex_id, h]));
+        const seaLabel = (h, dir, lines, hexId, title) => {
+            const { x, y } = this.hexPos(h, size);
+            const [dq, dr] = DIRS[dir];
+            const vx = Math.sqrt(3) * (dq + dr / 2), vy = 1.5 * dr, len = Math.hypot(vx, vy), ux = vx / len, uy = vy / len;
+            const w = 112, hh = 12 * lines.length + 6;
+            const dist = size * 0.87 + 5 + Math.abs(ux) * w / 2 + Math.abs(uy) * hh / 2;
+            const cx = x + ux * dist, cy = y + uy * dist;
+            const sel = this.selectedHex === hexId;
+            return `<g class="mf_port" data-hex="${hexId}" style="cursor:pointer"><rect x="${cx - w / 2}" y="${cy - hh / 2}" width="${w}" height="${hh}" fill="#3b2f22" stroke="${sel ? '#ffe600' : '#f0e6d0'}" stroke-width="${sel ? 3 : 1.5}"><title>${title}</title></rect>`
+                + lines.map((t, i) => `<text x="${cx}" y="${cy - hh / 2 + 12 + i * 12}" text-anchor="middle" font-size="9" fill="#f0e6d0" pointer-events="none">${t}</text>`).join('') + '</g>';
+        };
+        const seaDirs = h => DIRS.map((d, i) => ({ i, d }))
+            .filter(({ d }) => !this.data.hexes.some(o => o.coord_q === h.coord_q + d[0] && o.coord_r === h.coord_r + d[1]))
+            .sort((a, b) => {
+                const dot = ({ d }) => Math.sqrt(3) * (d[0] + d[1] / 2) * Math.sqrt(3) * (h.coord_q + h.coord_r / 2) + 1.5 * d[1] * 1.5 * h.coord_r;
+                return dot(b) - dot(a);
+            }).map(o => o.i);
         for (const p of this.data.ports) {
-            const { x, y } = this.hexPos(byId[p.adjacent_hex_id], size);
-            const [pdq, pdr] = DIRS[p.edge_dir];
-            const vx = Math.sqrt(3) * (pdq + pdr / 2), vy = 1.5 * pdr, len = Math.hypot(vx, vy);
-            const px = x + (vx / len) * size * 1.25, py = y + (vy / len) * size * 1.25;
-            const sel = this.selectedHex === p.adjacent_hex_id;
-            parts.push(`<g class="mf_port" data-hex="${p.adjacent_hex_id}" style="cursor:pointer"><rect x="${px - 16}" y="${py - 14}" width="32" height="28" fill="#3b2f22" stroke="${sel ? '#ffe600' : '#f0e6d0'}" stroke-width="2"/>`
-                + `<text x="${px}" y="${py + 5}" text-anchor="middle" font-size="14" fill="#f0e6d0" pointer-events="none">${this.portLetter(p)}</text></g>`);
+            const dd = this.data;
+            const cheap = [p.supply_item_1, p.supply_item_2].filter(Boolean).join(', ');
+            const more = [p.demanded_item_1, p.demanded_item_2, p.demanded_item_3].filter(Boolean).join(', ');
+            parts.push(seaLabel(byId[p.adjacent_hex_id], p.edge_dir,
+                [`${_('Port')} ${this.portLetter(p)}`, `${_('buy cheaper')}: ${cheap}`, `${_('pays more')}: ${more}`], p.adjacent_hex_id, this.portText(p)));
+        }
+        for (const b of this.data.buildings.filter(x => x.building_type === 'dock')) {
+            const h = byId[b.hex_id];
+            const portDirs = this.data.ports.filter(p => p.adjacent_hex_id === h.hex_id).map(p => p.edge_dir);
+            const dir = seaDirs(h).find(i => !portDirs.includes(i));
+            if (dir === undefined) continue;
+            parts.push(seaLabel(h, dir, [_('Dock'), `${_('normal price')}:`, this.data.dock_goods.join(', ')], h.hex_id, _('Home Dock: iron and bots at the normal price')));
         }
         parts.push('</svg>');
         const el = document.getElementById('mf_board');
@@ -671,7 +737,7 @@ export class Game {
         const head = info.port ? this.portText(info.port) : _('Home Dock: iron and bots at the normal price');
         const rows = Object.keys(info.terms).map(g => {
             const t = info.terms[g];
-            const have = (g === 'bot' || g === 'mech') ? this.availOf(hid, g + 's') : this.availOf(hid, g);
+            const have = (g === 'bot' || g === 'mech') ? this.availOf(hid, g + 's', true) : this.availOf(hid, g, true);
             const buyOk = canAct && mine && credits >= t.buy;
             const sellOk = canAct && mine && have > 0;
             return `<tr><td>${g}</td><td>${t.buy}</td><td>${t.sell}</td>`
@@ -694,20 +760,17 @@ export class Game {
             const hid = this.selectedHex;
             const hex = this.hexById(hid);
             const mine = hex.owner_id === me;
-            const avail = { bots: this.availOf(hid, 'bots'), mechs: this.availOf(hid, 'mechs') };
-            TOKENS.forEach(k => { avail[k] = this.availOf(hid, k); });
+            const avail = { bots: this.availOf(hid, 'bots', true), mechs: this.availOf(hid, 'mechs', true) };
+            TOKENS.forEach(k => { avail[k] = this.availOf(hid, k, true); });
             lines.push(`<div class="mf_row"><b>${_('Hex')} ${hid}</b> ${mine ? _('(you control this hex)') : _('(not controlled by you)')}`
                 + (mine ? `<div class="mf_hint">${_('Click your bots, mechs or resources on the hex to select them, then click a highlighted hex to move them.')}</div>` : '') + '</div>');
 
             lines.push(this.tradeSection(hex, hid, avail, canAct));
 
             if (mine) {
-                d.buildings.filter(b => b.hex_id === hid && b.owner_id === me).forEach(b => {
-                    const assigned = d.units.filter(u => u.assigned_to === b.building_id).length;
+                d.buildings.filter(b => b.hex_id === hid).forEach(b => {
                     if (b.building_type === 'extractor') {
-                        lines.push(`<div class="mf_row">${_('Extractor')} (${assigned}/${d.max_assigned} ${_('bots')}; ${_('click it on the map to extract')}): `
-                            + btn(_('Assign bot'), 'actAssign', { buildingId: b.building_id }, avail.bots > 0 && assigned < d.max_assigned)
-                            + btn(_('Free bot'), 'actUnassign', { buildingId: b.building_id }, assigned > 0) + '</div>');
+                        lines.push(`<div class="mf_row">${_('Extractor')}: ${_('click it on the map to extract')}</div>`);
                     } else if (b.building_type === 'factory') {
                         lines.push(`<div class="mf_row">${_('Factory')}: `
                             + btn(`${_('Make')} ${d.bots_per_iron} ${_('bots')} (1 iron)`, 'actManufacture', { buildingId: b.building_id, product: 'bot' }, avail.iron >= 1)

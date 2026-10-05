@@ -66,20 +66,6 @@ class PlayerTurn extends GameState
     }
 
     #[PossibleAction]
-    public function actAssign(int $buildingId, int $activePlayerId): string
-    {
-        $this->game->assignBot($activePlayerId, $buildingId);
-        return PlayerTurn::class;
-    }
-
-    #[PossibleAction]
-    public function actUnassign(int $buildingId, int $activePlayerId): string
-    {
-        $this->game->unassignBot($activePlayerId, $buildingId);
-        return PlayerTurn::class;
-    }
-
-    #[PossibleAction]
     public function actBuy(int $hexId, string $good, int $activePlayerId): string
     {
         $this->game->buyGood($activePlayerId, $hexId, $good);

@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS `player_state` (
     `player_id` int(10) unsigned NOT NULL,
     `credits` smallint(5) NOT NULL DEFAULT 10,
     `vp` tinyint(3) unsigned NOT NULL DEFAULT 0,
+    `missions_bought` smallint(5) unsigned NOT NULL DEFAULT 0,
     PRIMARY KEY (`player_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -44,6 +45,7 @@ CREATE TABLE IF NOT EXISTS `unit` (
     `unit_type` varchar(8) NOT NULL,
     `hex_id` smallint(5) NOT NULL,
     `assigned_to` int(10) unsigned DEFAULT NULL,
+    `moved_cost` tinyint(3) unsigned NOT NULL DEFAULT 0,
     `attack_target` smallint(5) DEFAULT NULL,
     `push_from` smallint(5) DEFAULT NULL,
     PRIMARY KEY (`unit_id`),
@@ -56,6 +58,7 @@ CREATE TABLE IF NOT EXISTS `item` (
     `owner_id` int(10) unsigned NOT NULL,
     `kind` varchar(16) NOT NULL,
     `hex_id` smallint(5) NOT NULL,
+    `moved_cost` tinyint(3) unsigned NOT NULL DEFAULT 0,
     PRIMARY KEY (`item_id`),
     KEY `idx_hex` (`hex_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
