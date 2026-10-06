@@ -589,8 +589,10 @@ export class Game {
         const fee = d.player_state[me].mission_fee;
         const cards = d.missions.map(m => {
             const txt = this.missionText(m);
-            return `<button class="mf_mission${this.missionSel === m.id ? ' mf_mission_sel' : ''}" data-mission="${m.id}">`
-                + `<b>${txt.name}</b> <span>${_('level')} ${m.level} - ${m.vp} VP${met[m.id] ? ' - ' + _('you meet it') : ''}</span></button>`;
+            const base = typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : '';
+            return `<button class="mf_mission${this.missionSel === m.id ? ' mf_mission_sel' : ''}" data-mission="${m.id}" title="${txt.name}" aria-label="${txt.name}">`
+                + `<img src="${base}img/missions/m_${m.id}.svg" alt="${txt.name}">`
+                + `<span>${met[m.id] ? _('you meet it') : '&nbsp;'}</span></button>`;
         }).join('');
         let info = `<div class="mf_hint">${_('Click a mission card for details. A completed card is replaced from the deck.')} (${d.mission_deck_left} ${_('left in the deck')})</div>`;
         const sel = d.missions.find(x => x.id === this.missionSel);

@@ -97,3 +97,10 @@ Option "Faction powers": **Off** = all symmetric (default for the first paper te
 ## Open design notes (not art)
 - Fun not found yet: test a stripped version on paper first (centre-out land grab, move cost, push/kill, missions) before adding trading/ports/factions.
 - Candidates to cut for the first paper test: ports, building variety, trading quantities.
+
+## 11. Theme options under discussion (name: "Little Bharat" candidate)
+| Option | Idea | Concept art | Notes |
+|---|---|---|---|
+| A. Little gods | 6 child-like deities (Ganesha, Rama, Shiva, Kali, Lakshmi, Sarasvati) with animal-companion mechs | `concept_art/generated/bharat_little_gods_thumb.jpg` | Risky: worshipped figures fighting in a war game; could hurt BGA approval/reviews. Consult Indian designers before going this way. |
+| B. Festival kids + animal companions (recommended) | Original kids (Holi, monsoon, tulsi garden, Diwali, stargazer, bazaar/cricket) with animal mechs (lion, elephant, peacock, tiger, owl, bull) | `concept_art/generated/bharat_festival_kids_thumb.jpg` | Same mechanics, own identity, no religious risk. |
+| C. Indian states | Faction per state, e.g. Kerala (backwater, boats, elephant), Tamil Nadu (temple towns, kolam), Andhra, Karnataka (Mysore dasara), Rajasthan, Bengal... | not drawn yet | Strong flavour and perk ideas (spices, textiles, ports); must treat states evenly and avoid stereotypes. Can combine with B: each kid comes from a state. |
