@@ -159,11 +159,17 @@ def card_svg(level, idx, mtype, n):
         s.append(f'<text x="{x0 + 210}" y="{y0 + 632}" font-size="40" font-weight="bold" fill="{INK}">Centre hex</text>')
     for i, line in enumerate(wrap(desc, 30)):
         s.append(f'<text x="{x0 + 24 + 20}" y="{y0 + 730 + i * 34}" font-size="28" fill="{INK}">{escape(line)}</text>')
-    # reward + id
-    s += [f'<circle cx="{x1 - 78}" cy="{y1 - 82}" r="48" fill="{accent}" stroke="{INK}" stroke-width="4"/>',
-          f'<text x="{x1 - 78}" y="{y1 - 66}" text-anchor="middle" font-size="52" font-weight="bold" fill="{PAPER}">{vp}</text>',
-          f'<text x="{x1 - 78}" y="{y1 - 28}" text-anchor="middle" font-size="18" fill="{INK}">VP</text>',
-          f'<text x="{x0 + 24}" y="{y1 - 30}" font-size="20" fill="#7d7388">Level {level}  -  {idx:02d}/20</text>',
+    # cost (bottom left), reward (bottom right)
+    cy = y1 - 62
+    s += [f'<g id="cost"><circle cx="{x0 + 66}" cy="{cy}" r="38" fill="#e6c455" stroke="{INK}" stroke-width="4"/>',
+          f'<circle cx="{x0 + 66}" cy="{cy}" r="29" fill="none" stroke="{INK}" stroke-width="2.5"/>',
+          f'<text x="{x0 + 66}" y="{cy + 15}" text-anchor="middle" font-size="42" font-weight="bold" fill="{INK}">5</text></g>',
+          f'<text x="{x0 + 118}" y="{y1 - 70}" font-size="22" font-weight="bold" fill="{INK}">Cost: 5 Credits</text>',
+          f'<text x="{x0 + 118}" y="{y1 - 44}" font-size="17" fill="{INK}">+1 for each mission you bought</text>',
+          f'<text x="{x0 + 118}" y="{y1 - 22}" font-size="15" fill="#7d7388">Level {level}  -  {idx:02d}/20</text>',
+          f'<circle cx="{x1 - 78}" cy="{cy}" r="44" fill="{accent}" stroke="{INK}" stroke-width="4"/>',
+          f'<text x="{x1 - 78}" y="{cy + 14}" text-anchor="middle" font-size="48" font-weight="bold" fill="{PAPER}">{vp}</text>',
+          f'<text x="{x1 - 78}" y="{cy + 36}" text-anchor="middle" font-size="16" fill="{PAPER}">VP</text>',
           '</svg>']
     return name, desc, '\n'.join(s)
 
@@ -183,43 +189,80 @@ def back_svg(level):
         '</svg>'])
 
 
-# ---------- tiles ----------
-R = 100  # centre to vertex
-TW, TH = 2 * R + 20, int(2 * 0.866 * R) + 20
-EDGE_ANG = [30, -30, -90, -150, 150, 90]  # same order as Game.php DIRS (flat-top hex, y down)
+# ---------- tiles: ONE drawing shared by print and BGA ----------
+# Pointy-top hex, unit size 40 (centre to vertex) = Game.js renderBoard. Directions follow Game.php DIRS.
+U = 40
+EDGE_ANG = [0, -60, -120, 180, 120, 60]
+VB = f'{-U * 0.866:.2f} {-U} {2 * U * 0.866:.2f} {2 * U}'
+GROUND_FILL = {'iron': IRON_GREEN, 'crystal': CRYSTAL_BLUE, 'empty': EMPTY_GREY, 'port': SEA}
 
 
-def tile_svg(title, fill, resource, slots, paths, extra='', banner=None, ring_label=''):
-    cx, cy = TW / 2, TH / 2
-    s = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {TW} {TH}" width="{TW}" height="{TH}" font-family="DejaVu Sans, Arial, sans-serif">',
-         f'<title>{escape(title)}</title>',
-         f'<polygon id="tile" points="{hexpts(cx, cy, R)}" fill="{fill}" stroke="{INK}" stroke-width="4"/>']
-    # art slot (inner hex)
-    s.append(f'<g id="art-slot"><polygon points="{hexpts(cx, cy, R * 0.72)}" fill="none" stroke="{INK}" stroke-opacity="0.35" stroke-width="2" stroke-dasharray="6 5"/></g>')
-    # open edges: road stub from the edge midpoint inwards; closed edges: short fence tick
-    for d in range(6):
-        a = math.radians(EDGE_ANG[d])
-        ex, ey = cx + 0.866 * R * math.cos(a), cy + 0.866 * R * math.sin(a)
-        ix, iy = cx + 0.5 * R * math.cos(a), cy + 0.5 * R * math.sin(a)
-        if paths[d]:
-            s.append(f'<line x1="{ex:.1f}" y1="{ey:.1f}" x2="{ix:.1f}" y2="{iy:.1f}" stroke="#6b5a3e" stroke-width="16" stroke-linecap="butt"/>')
-            s.append(f'<line x1="{ex:.1f}" y1="{ey:.1f}" x2="{ix:.1f}" y2="{iy:.1f}" stroke="#e7d9b5" stroke-width="9" stroke-linecap="butt"/>')
-    # resource symbol
-    if resource == 'iron':
-        s.append(f'<g stroke="{INK}" stroke-width="2.5" stroke-linejoin="round"><polygon points="{cx - 22},{cy - 4} {cx - 8},{cy - 24} {cx + 10},{cy - 14} {cx + 8},{cy + 8} {cx - 12},{cy + 12}" fill="#8d8d96"/><polygon points="{cx + 6},{cy - 2} {cx + 22},{cy - 10} {cx + 30},{cy + 6} {cx + 16},{cy + 16}" fill="#a3a3ad"/></g>')
-    elif resource == 'crystal':
-        s.append(f'<g stroke="{INK}" stroke-width="2.5" stroke-linejoin="round"><polygon points="{cx},{cy - 30} {cx + 12},{cy - 4} {cx},{cy + 16} {cx - 12},{cy - 4}" fill="#4f9fc9"/><polygon points="{cx + 16},{cy - 14} {cx + 26},{cy + 4} {cx + 16},{cy + 18} {cx + 8},{cy + 4}" fill="#78b9dc"/></g>')
-    # building sockets (bottom of the hex)
-    sx = {0: [], 1: [cx], 2: [cx - 20, cx + 20]}[slots]
-    for x in sx:
-        s.append(f'<rect x="{x - 13}" y="{cy + 28}" width="26" height="26" fill="#ebe1cd" stroke="{INK}" stroke-width="2.5"/>')
-    s.append(extra)
+def ground_group(kind, outline=True):
+    """Ground + texture + corner emblem. Decorations stay 5 units inside the edge; centre stays free for slots and units."""
+    o = [f'<polygon points="{hexpts(0, 0, U, flat=False)}" fill="{GROUND_FILL[kind]}"' + (f' stroke="{INK}" stroke-width="1.6"' if outline else '') + '/>',
+         f'<clipPath id="c_{kind}"><polygon points="{hexpts(0, 0, U - 5, flat=False)}"/></clipPath>', f'<g clip-path="url(#c_{kind})">']
+    if kind == 'iron':
+        for x, y in [(-18, 22), (-6, 28), (10, 30), (24, 20), (20, -4), (-28, 6)]:
+            o.append(f'<path d="M{x} {y} l-2 -7 M{x} {y} l1 -8 M{x} {y} l3 -6" stroke="#6f9b45" stroke-width="1.6" fill="none" stroke-linecap="round"/>')
+        o.append(f'<g stroke="{INK}" stroke-width="1.3" stroke-linejoin="round"><polygon points="-27,-14 -21,-27 -12,-24 -11,-14 -18,-10" fill="#8d8d96"/><polygon points="-14,-16 -8,-24 -1,-18 -4,-10" fill="#a9a9b3"/></g>')
+    elif kind == 'crystal':
+        for x, y in [(-16, 26), (14, 28), (24, 10)]:
+            o.append(f'<path d="M{x} {y - 4} l3 4 l-3 4 l-3 -4 z" fill="#d9eef8" stroke="{INK}" stroke-width="0.8"/>')
+        o.append(f'<g stroke="{INK}" stroke-width="1.3" stroke-linejoin="round"><polygon points="-22,-10 -17,-28 -12,-10 -17,-6" fill="#4f9fc9"/><polygon points="-14,-12 -9,-24 -4,-12 -9,-8" fill="#78b9dc"/><polygon points="-30,-8 -27,-20 -23,-8" fill="#78b9dc"/></g>')
+    elif kind == 'empty':
+        for x, y in [(-18, 24), (-6, 30), (8, 28), (18, 24), (-24, 10), (24, 8), (-2, 18)]:
+            o.append(f'<ellipse cx="{x}" cy="{y}" rx="5" ry="3.4" fill="none" stroke="#8f929a" stroke-width="1.3"/>')
+        o.append(f'<g stroke="{INK}" stroke-width="1.2"><rect x="-24" y="-24" width="12" height="12" fill="#b3b6bd"/><path d="M-24 -18 h12 M-18 -24 v6 M-18 -12 v-6" fill="none"/></g>')
+    elif kind == 'port':
+        for y in (-26, -18, 20, 28):
+            o.append(f'<path d="M-24 {y} q6 -5 12 0 t12 0 t12 0 t12 0" stroke="#e8f1f7" stroke-opacity="0.75" stroke-width="2" fill="none" stroke-linecap="round"/>')
+    o.append('</g>')
+    return ''.join(o)
+
+
+def road_group(d):
+    """Road stub from the edge midpoint to the middle of the tile (dark edge + sand centre)."""
+    a = math.radians(EDGE_ANG[d])
+    ex, ey = 0.866 * U * math.cos(a), 0.866 * U * math.sin(a)
+    ix, iy = 0.45 * U * math.cos(a), 0.45 * U * math.sin(a)
+    return (f'<line x1="{ex:.1f}" y1="{ey:.1f}" x2="{ix:.1f}" y2="{iy:.1f}" stroke="#6b5a3e" stroke-width="6.4"/>'
+            f'<line x1="{ex:.1f}" y1="{ey:.1f}" x2="{ix:.1f}" y2="{iy:.1f}" stroke="#e7d9b5" stroke-width="3.6"/>')
+
+
+def wrap_svg(inner, scale=1.0, title='', pad=0):
+    w, h = 2 * U * 0.866 + 2 * pad, 2 * U + 2 * pad
+    vb = f'{-U * 0.866 - pad:.2f} {-U - pad:.2f} {w:.2f} {h:.2f}'
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{vb}" width="{w * scale:.0f}" height="{h * scale:.0f}" font-family="DejaVu Sans, Arial, sans-serif">'
+            + (f'<title>{escape(title)}</title>' if title else '') + inner + '</svg>')
+
+
+def tile_svg(title, kind, slots, paths, extra='', banner=None):
+    """Print tile: ground + roads on open edges + building sockets (same positions as the BGA board) + extras."""
+    s = [ground_group(kind)]
+    s += [road_group(d) for d in range(6) if paths[d]]
+    for i in range(slots):
+        sx = -slots * 12 + i * 24 + 1
+        s.append(f'<rect x="{sx}" y="-16" width="22" height="16" fill="#ebe1cd" stroke="{INK}" stroke-width="1.2" stroke-dasharray="3"/>')
     if banner:
-        s.append(f'<rect x="{cx - 20}" y="{cy - 58}" width="40" height="12" fill="{banner}" stroke="{INK}" stroke-width="2"/>')
-    if ring_label:
-        s.append(f'<text x="{cx}" y="{TH - 4}" text-anchor="middle" font-size="11" fill="{INK}">{escape(ring_label)}</text>')
-    s.append('</svg>')
-    return '\n'.join(s)
+        s.append(f'<rect x="-9" y="-34" width="18" height="6" fill="{banner}" stroke="{INK}" stroke-width="0.9"/>')
+    s.append(extra)
+    return wrap_svg(''.join(s), scale=2.5, title=title, pad=1.5)
+
+
+def bga_tile_assets():
+    """BGA draws NO tile art itself: ground per resource + one road stub per direction, composed from tile data."""
+    out = {}
+    for kind in GROUND_FILL:
+        out[f'tiles/art_{kind}.svg'] = wrap_svg(ground_group(kind, outline=False))
+    for d in range(6):
+        out[f'tiles/road_{d}.svg'] = wrap_svg(road_group(d))
+    for kind in ('extractors', 'factories', 'towers', 'iron_tokens', 'crystal_tokens', 'bots', 'mechs'):
+        out[f'icons/{kind}.svg'] = icon_svg(kind)
+    return out
+
+
+def icon_svg(kind):
+    return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="-34 -36 68 72">{icon(kind, 0, 0, 60)}</svg>'
 
 
 def build_land_tiles():
@@ -286,30 +329,32 @@ code{{background:#e7d9b5;padding:0 3px}}</style>
 <h2>List</h2><table><tr><th>ID</th><th>Name</th><th>Condition</th><th>VP</th><th>Type</th></tr>{rows}</table>
 <h2>Backs</h2><div class="grid"><figure><img src="missions/back_L1.svg"></figure><figure><img src="missions/back_L2.svg"></figure></div>''')
 
+    for rel, svg in bga_tile_assets().items():
+        write(os.path.join(HERE, '..', 'bga', 'img', rel), svg)
+
     # ----- tiles
     land = build_land_tiles()
     groups = {'Centre (level 1)': [], 'Level 2': [], 'Level 3': [], 'Level 4': [], 'Home tiles': [], 'Port tiles': []}
     for t in land:
-        fill = {None: EMPTY_GREY, 'iron': IRON_GREEN, 'crystal': CRYSTAL_BLUE}[t['res']]
         name = f"land_L{t['level']}_{t['n']:02d}"
         label = f"L{t['level']}-{t['n']:02d}  {t['res'] or 'empty'}  {t['slots']} slot(s)  {sum(t['paths'])} paths"
-        write(os.path.join(HERE, f'tiles/{name}.svg'), tile_svg(name, fill, t['res'], t['slots'], t['paths'], ring_label=''))
+        write(os.path.join(HERE, f'tiles/{name}.svg'), tile_svg(name, t['res'] or 'empty', t['slots'], t['paths']))
         key = 'Centre (level 1)' if t['level'] == 1 else f"Level {t['level']}"
         groups[key].append((f'tiles/{name}.svg', label))
     for i, (fname, col) in enumerate(FACTIONS, start=1):
         name = f'home_{i}_{fname.lower()}'
         paths = [True, True, True, False, True, False]
-        write(os.path.join(HERE, f'tiles/{name}.svg'), tile_svg(name, IRON_GREEN, 'iron', 2, paths, banner=col,
-                                                                  extra=f'<rect x="{TW / 2 - 8}" y="{TH / 2 + 56}" width="16" height="6" fill="#8a6a42"/>'))
-        groups['Home tiles'].append((f'tiles/{name}.svg', f'{fname} home: iron, Dock + Extractor start here, 2 slots'))
+        write(os.path.join(HERE, f'tiles/{name}.svg'), tile_svg(name, 'iron', 2, paths, banner=col,
+                                                                  extra='<rect x="-8" y="30" width="16" height="5" fill="#8a6a42" stroke="#2b2233" stroke-width="0.8"/>'))
+        groups['Home tiles'].append((f'tiles/{name}.svg', f'{fname} home: iron, Dock + Guard Tower start here, 2 slots'))
     port_combos = [(g, k) for g in ('iron', 'crystal', 'bot', 'mech') for k in ('cheaper', 'pays_more')]
     for i in range(12):
         g, k = port_combos[i % 8]
         name = f'port_{i + 1:02d}_{g}_{k}'
         paths = [False, False, False, True, True, False]  # the 2 edges facing the land
         txt = f'{g} -2' if k == 'cheaper' else f'{g} +3'
-        extra = f'<text x="{TW / 2}" y="{TH / 2 + 8}" text-anchor="middle" font-size="22" font-weight="bold" fill="{INK}">{txt}</text>'
-        write(os.path.join(HERE, f'tiles/{name}.svg'), tile_svg(name, SEA, None, 0, paths, extra=extra))
+        extra = f'<text x="0" y="3" text-anchor="middle" font-size="9" font-weight="bold" fill="{INK}">{txt}</text>'
+        write(os.path.join(HERE, f'tiles/{name}.svg'), tile_svg(name, 'port', 0, paths, extra=extra))
         groups['Port tiles'].append((f'tiles/{name}.svg', f'Port: {g} {"costs 2 less to buy" if k == "cheaper" else "sells for 3 more"}'))
 
     body = ''

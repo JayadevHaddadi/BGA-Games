@@ -199,7 +199,7 @@ class Game extends \Bga\GameFramework\Table
      * Land: 19 hexes (radius 2) for 2-3 players, 37 hexes (radius 3) for 4-6 players. Every tile holds either nothing
      * (25%), an iron mine (50%) or a crystal deposit (25%), 0-2 building slots (never 0 on level 2 or on an empty tile)
      * and some paths (level 1 = the centre: 6, level 2: 5-6, level 3 and beyond: 4-5). A path only works when both
-     * tiles have it. Players start on evenly spaced outer tiles with a Dock, an Extractor, iron and 3 Bots.
+     * tiles have it. Players start on evenly spaced outer tiles with a Dock, a Guard Tower, iron and 3 Bots.
      * Ports are tiles of their own just outside the land, each joined by path to the 2 land tiles next to it.
      */
     protected function generateBoard(array $playerIds): void
@@ -283,7 +283,7 @@ class Game extends \Bga\GameFramework\Table
         static::DbQuery("INSERT INTO `hex_tile` (`hex_id`, `coord_q`, `coord_r`, `ring`, `resource_type`, `resource_type_2`, `resource_slots`, `building_slots`, `owner_id`, `edges`, `is_port`) VALUES " . implode(',', $values));
 
         foreach ($homes as $pid => $hid) {
-            static::DbQuery("INSERT INTO `building` (`hex_id`, `building_type`, `owner_id`, `slot`) VALUES ({$hid}, 'dock', {$pid}, 0), ({$hid}, 'extractor', {$pid}, 0)");
+            static::DbQuery("INSERT INTO `building` (`hex_id`, `building_type`, `owner_id`, `slot`) VALUES ({$hid}, 'dock', {$pid}, 0), ({$hid}, 'tower', {$pid}, 0)");
             for ($i = 0; $i < self::START_IRON; $i++) {
                 static::DbQuery("INSERT INTO `item` (`owner_id`, `kind`, `hex_id`) VALUES ({$pid}, 'iron', {$hid})");
             }

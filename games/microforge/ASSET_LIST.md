@@ -48,7 +48,8 @@ Generated files live in `design/` (rebuild with `python3 design/build_design.py`
 | 9 | Resource icons (iron, crystal, credit, VP, bot, mech) | 6 | todo |
 | 10 | Playmat/table background | 1 | todo |
 
-## C. Player board content (physical)
+## C. Player board content (physical) — must teach the basic rules
+The board should let a new player play without the rulebook: a turn-order strip (1 Income +10 Credits, Extractors refresh; 2 Build / make / move / trade / buy a mission in any order; 3 End turn, attacks resolve), icon-based cost tables, and the win condition (5 VP, VP only from missions). Layout is for when we get to it. Contents:
 Supply slots for 20 Bots + 6 Mechs + 5 each of 3 buildings; Iron/Crystal/Credit storage area; faction art and symbol; build cost strip; move cost strip (1-3-6-10); combat strip (power, 2x push, 3x kill, tower +1); turn reminder (+10 Credits, Extractors refresh); faction power text.
 
 ## D. BGA digital
