@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 193" width="220" height="193" font-family="DejaVu Sans, Arial, sans-serif">
+<title>land_L3_06</title>
+<polygon id="tile" points="210.0,96.5 160.0,183.1 60.0,183.1 10.0,96.5 60.0,9.9 160.0,9.9" fill="#a9d07c" stroke="#2b2233" stroke-width="4"/>
+<g id="art-slot"><polygon points="182.0,96.5 146.0,158.9 74.0,158.9 38.0,96.5 74.0,34.1 146.0,34.1" fill="none" stroke="#2b2233" stroke-opacity="0.35" stroke-width="2" stroke-dasharray="6 5"/></g>
+<line x1="185.0" y1="139.8" x2="153.3" y2="121.5" stroke="#6b5a3e" stroke-width="16" stroke-linecap="butt"/>
+<line x1="185.0" y1="139.8" x2="153.3" y2="121.5" stroke="#e7d9b5" stroke-width="9" stroke-linecap="butt"/>
+<line x1="185.0" y1="53.2" x2="153.3" y2="71.5" stroke="#6b5a3e" stroke-width="16" stroke-linecap="butt"/>
+<line x1="185.0" y1="53.2" x2="153.3" y2="71.5" stroke="#e7d9b5" stroke-width="9" stroke-linecap="butt"/>
+<line x1="110.0" y1="9.9" x2="110.0" y2="46.5" stroke="#6b5a3e" stroke-width="16" stroke-linecap="butt"/>
+<line x1="110.0" y1="9.9" x2="110.0" y2="46.5" stroke="#e7d9b5" stroke-width="9" stroke-linecap="butt"/>
+<line x1="35.0" y1="53.2" x2="66.7" y2="71.5" stroke="#6b5a3e" stroke-width="16" stroke-linecap="butt"/>
+<line x1="35.0" y1="53.2" x2="66.7" y2="71.5" stroke="#e7d9b5" stroke-width="9" stroke-linecap="butt"/>
+<line x1="110.0" y1="183.1" x2="110.0" y2="146.5" stroke="#6b5a3e" stroke-width="16" stroke-linecap="butt"/>
+<line x1="110.0" y1="183.1" x2="110.0" y2="146.5" stroke="#e7d9b5" stroke-width="9" stroke-linecap="butt"/>
+<g stroke="#2b2233" stroke-width="2.5" stroke-linejoin="round"><polygon points="88.0,92.5 102.0,72.5 120.0,82.5 118.0,104.5 98.0,108.5" fill="#8d8d96"/><polygon points="116.0,94.5 132.0,86.5 140.0,102.5 126.0,112.5" fill="#a3a3ad"/></g>
+
+</svg>
