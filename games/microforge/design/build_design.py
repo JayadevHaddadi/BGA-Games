@@ -159,11 +159,17 @@ def card_svg(level, idx, mtype, n):
         s.append(f'<text x="{x0 + 210}" y="{y0 + 632}" font-size="40" font-weight="bold" fill="{INK}">Centre hex</text>')
     for i, line in enumerate(wrap(desc, 30)):
         s.append(f'<text x="{x0 + 24 + 20}" y="{y0 + 730 + i * 34}" font-size="28" fill="{INK}">{escape(line)}</text>')
-    # reward + id
-    s += [f'<circle cx="{x1 - 78}" cy="{y1 - 82}" r="48" fill="{accent}" stroke="{INK}" stroke-width="4"/>',
-          f'<text x="{x1 - 78}" y="{y1 - 66}" text-anchor="middle" font-size="52" font-weight="bold" fill="{PAPER}">{vp}</text>',
-          f'<text x="{x1 - 78}" y="{y1 - 28}" text-anchor="middle" font-size="18" fill="{INK}">VP</text>',
-          f'<text x="{x0 + 24}" y="{y1 - 30}" font-size="20" fill="#7d7388">Level {level}  -  {idx:02d}/20</text>',
+    # cost (bottom left), reward (bottom right)
+    cy = y1 - 62
+    s += [f'<g id="cost"><circle cx="{x0 + 66}" cy="{cy}" r="38" fill="#e6c455" stroke="{INK}" stroke-width="4"/>',
+          f'<circle cx="{x0 + 66}" cy="{cy}" r="29" fill="none" stroke="{INK}" stroke-width="2.5"/>',
+          f'<text x="{x0 + 66}" y="{cy + 15}" text-anchor="middle" font-size="42" font-weight="bold" fill="{INK}">5</text></g>',
+          f'<text x="{x0 + 118}" y="{y1 - 70}" font-size="22" font-weight="bold" fill="{INK}">Cost: 5 Credits</text>',
+          f'<text x="{x0 + 118}" y="{y1 - 44}" font-size="17" fill="{INK}">+1 for each mission you bought</text>',
+          f'<text x="{x0 + 118}" y="{y1 - 22}" font-size="15" fill="#7d7388">Level {level}  -  {idx:02d}/20</text>',
+          f'<circle cx="{x1 - 78}" cy="{cy}" r="44" fill="{accent}" stroke="{INK}" stroke-width="4"/>',
+          f'<text x="{x1 - 78}" y="{cy + 14}" text-anchor="middle" font-size="48" font-weight="bold" fill="{PAPER}">{vp}</text>',
+          f'<text x="{x1 - 78}" y="{cy + 36}" text-anchor="middle" font-size="16" fill="{PAPER}">VP</text>',
           '</svg>']
     return name, desc, '\n'.join(s)
 
@@ -251,6 +257,33 @@ def build_land_tiles():
     return tiles
 
 
+# ---------- BGA tile art (pointy-top hex, size 40 as in Game.js renderBoard) ----------
+def bga_tile_art(kind):
+    """Transparent decoration layer drawn over the hex polygon in renderBoard. Keeps 8px clear of the edge so selection
+    outlines stay visible. Corner emblem (upper left) + faint ground texture; slots/units/labels stay in the middle."""
+    S = 40
+    w, h = 2 * 0.866 * S, 2 * S
+    out = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{-w / 2:.2f} {-h / 2:.2f} {w:.2f} {h:.2f}" width="{w:.2f}" height="{h:.2f}">',
+           f'<defs><clipPath id="c"><polygon points="{hexpts(0, 0, S - 5, flat=False)}"/></clipPath></defs>', '<g clip-path="url(#c)">']
+    if kind == 'iron':
+        for x, y in [(-18, 22), (-6, 28), (10, 30), (24, 20), (20, -4), (-28, 6)]:
+            out.append(f'<path d="M{x} {y} l-2 -7 M{x} {y} l1 -8 M{x} {y} l3 -6" stroke="#6f9b45" stroke-width="1.6" fill="none" stroke-linecap="round"/>')
+        out.append(f'<g stroke="{INK}" stroke-width="1.3" stroke-linejoin="round"><polygon points="-27,-14 -21,-27 -12,-24 -11,-14 -18,-10" fill="#8d8d96"/><polygon points="-14,-16 -8,-24 -1,-18 -4,-10" fill="#a9a9b3"/></g>')
+    elif kind == 'crystal':
+        for x, y in [(-16, 26), (14, 28), (24, 10)]:
+            out.append(f'<path d="M{x} {y - 4} l3 4 l-3 4 l-3 -4 z" fill="#d9eef8" stroke="{INK}" stroke-width="0.8"/>')
+        out.append(f'<g stroke="{INK}" stroke-width="1.3" stroke-linejoin="round"><polygon points="-22,-10 -17,-28 -12,-10 -17,-6" fill="#4f9fc9"/><polygon points="-14,-12 -9,-24 -4,-12 -9,-8" fill="#78b9dc"/><polygon points="-30,-8 -27,-20 -23,-8" fill="#78b9dc"/></g>')
+    elif kind == 'empty':
+        for x, y in [(-18, 24), (-6, 30), (8, 28), (18, 24), (-24, 10), (24, 8), (-2, 18)]:
+            out.append(f'<ellipse cx="{x}" cy="{y}" rx="5" ry="3.4" fill="none" stroke="#8f929a" stroke-width="1.3"/>')
+        out.append(f'<g stroke="{INK}" stroke-width="1.2"><rect x="-24" y="-24" width="12" height="12" fill="#b3b6bd"/><path d="M-24 -18 h12 M-18 -24 v6 M-18 -12 v-6" fill="none"/></g>')
+    elif kind == 'port':
+        for y in (-26, -18, 20, 28):
+            out.append(f'<path d="M-24 {y} q6 -5 12 0 t12 0 t12 0 t12 0" stroke="#e8f1f7" stroke-opacity="0.75" stroke-width="2" fill="none" stroke-linecap="round"/>')
+    out.append('</g></svg>')
+    return '\n'.join(out)
+
+
 def write(path, text):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, 'w', encoding='utf-8') as f:
@@ -285,6 +318,9 @@ code{{background:#e7d9b5;padding:0 3px}}</style>
 <div class="grid">{grid}</div>
 <h2>List</h2><table><tr><th>ID</th><th>Name</th><th>Condition</th><th>VP</th><th>Type</th></tr>{rows}</table>
 <h2>Backs</h2><div class="grid"><figure><img src="missions/back_L1.svg"></figure><figure><img src="missions/back_L2.svg"></figure></div>''')
+
+    for kind in ('iron', 'crystal', 'empty', 'port'):
+        write(os.path.join(HERE, '..', 'bga', 'img', 'tiles', f'art_{kind}.svg'), bga_tile_art(kind))
 
     # ----- tiles
     land = build_land_tiles()

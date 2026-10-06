@@ -624,6 +624,7 @@ export class Game {
         const R = this.data.hex_radius;
         const ext = (R + 1) * size * 1.8 + 75; // land, the port ring and the Dock labels
         const me = this.me();
+        const themeUrl = typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : '';
         const parts = [`<svg viewBox="${-ext} ${-ext} ${ext * 2} ${ext * 2}" width="100%" style="max-width:700px">`];
         for (const h of this.data.hexes) {
             const { x, y } = this.hexPos(h, size);
@@ -640,7 +641,8 @@ export class Game {
             const fill = h.is_port ? SEA_COLOR : (h.resource_type ? TILE_COLORS[h.resource_type] : NO_RESOURCE_COLOR);
             const stroke = isPending ? '#ffe600' : (retreat ? '#32cd32' : (attackable ? '#ff3b3b' : (target ? '#ffffff' : (h.owner_id ? this.colorOf(h.owner_id) : '#5a4630'))));
             parts.push(`<g class="mf_hex" data-hex="${h.hex_id}" style="cursor:pointer">`
-                + `<polygon points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="${isPending || retreat ? 7 : (sel || target ? 5 : (h.owner_id ? 4 : 1.5))}"><title>${h.is_port ? _('Port') : (h.resource_type || _('no resource'))}</title></polygon>`);
+                + `<polygon points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="${isPending || retreat ? 7 : (sel || target ? 5 : (h.owner_id ? 4 : 1.5))}"><title>${h.is_port ? _('Port') : (h.resource_type || _('no resource'))}</title></polygon>`
+                + `<image href="${themeUrl}img/tiles/art_${h.is_port ? 'port' : (h.resource_type || 'empty')}.svg" x="${(x - size * 0.866).toFixed(1)}" y="${y - size}" width="${(size * 1.732).toFixed(1)}" height="${size * 2}" pointer-events="none"/>`);
             // Paths: a road runs to the neighbour only when both tiles have the connection; a one-sided connection is a stub
             DIRS.forEach(([dq, dr], dIdx) => {
                 const nb = this.data.hexes.find(o => o.coord_q === h.coord_q + dq && o.coord_r === h.coord_r + dr);
