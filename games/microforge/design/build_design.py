@@ -265,6 +265,8 @@ def main():
             name, desc, svg = card_svg(level, i, t, n)
             fn = f'missions/L{level}_{i:02d}_{slug(name)}.svg'
             write(os.path.join(HERE, fn), svg)
+            # BGA copy: id used by Game.php is "<level>_<0-based index>"
+            write(os.path.join(HERE, '..', 'bga', 'img', 'missions', f'm_{level}_{i - 1}.svg'), svg)
             cards.append((level, i, name, desc, fn, t, n))
         write(os.path.join(HERE, f'missions/back_L{level}.svg'), back_svg(level))
 

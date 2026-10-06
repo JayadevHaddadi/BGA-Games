@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 690 940" width="69.0mm" height="94.0mm" font-family="DejaVu Sans, Arial, sans-serif">
+<title>Mission L1-01 Mine Boss 2</title>
+<rect id="bleed" x="0" y="0" width="690" height="940" fill="#2f7f79"/>
+<rect id="trim" x="30" y="30" width="630" height="880" rx="26" fill="#f4ead7" stroke="#2b2233" stroke-width="4"/>
+<rect x="54" y="54" width="582" height="96" rx="8" fill="#2f7f79"/>
+<text x="345.0" y="120" text-anchor="middle" font-size="46" font-weight="bold" fill="#f4ead7">Mine Boss 2</text>
+<g id="art-slot"><rect x="54" y="170" width="582" height="380" rx="8" fill="#ebe1cd" stroke="#2b2233" stroke-width="3" stroke-dasharray="14 8"/>
+<text class="placeholder" x="345.0" y="370" text-anchor="middle" font-size="26" fill="#9a8f7c">ART SLOT 582 x 380</text></g>
+<rect x="54" y="570" width="582" height="150" rx="8" fill="#fffaf0" stroke="#2b2233" stroke-width="3"/>
+<g transform="translate(140,645) scale(1.5333333333333334)" stroke="#2b2233" stroke-width="3" stroke-linejoin="round" fill="none"><path d="M-22 26 L0 -26 L22 26 Z" fill="#b9a27a"/><rect x="-6" y="-34" width="12" height="14" fill="#8a7a62"/></g>
+<text x="240" y="678" font-size="92" font-weight="bold" fill="#2b2233">2</text>
+<text x="74" y="760" font-size="28" fill="#2b2233">Control 2 Extractors.</text>
+<circle cx="582" cy="828" r="48" fill="#2f7f79" stroke="#2b2233" stroke-width="4"/>
+<text x="582" y="844" text-anchor="middle" font-size="52" font-weight="bold" fill="#f4ead7">1</text>
+<text x="582" y="882" text-anchor="middle" font-size="18" fill="#2b2233">VP</text>
+<text x="54" y="880" font-size="20" fill="#7d7388">Level 1  -  01/20</text>
+</svg>
