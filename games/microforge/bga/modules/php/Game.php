@@ -555,6 +555,20 @@ class Game extends \Bga\GameFramework\Table
         return $rows[0];
     }
 
+    /** Board coordinate used in the log and on the map: row letter (top = A) + position in that row from the left. */
+    public function coordLabel(int $hexId): string
+    {
+        $row = static::getObjectListFromDb("SELECT `coord_q`, `coord_r` FROM `hex_tile` WHERE `hex_id` = {$hexId}")[0] ?? null;
+        if ($row === null) {
+            return '?';
+        }
+        $q = (int) $row['coord_q'];
+        $r = (int) $row['coord_r'];
+        $minR = (int) static::getUniqueValueFromDb("SELECT MIN(`coord_r`) FROM `hex_tile`");
+        $col = 1 + (int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `hex_tile` WHERE `coord_r` = {$r} AND `coord_q` < {$q}");
+        return chr(ord('A') + $r - $minR) . $col;
+    }
+
     public function playerName(int $playerId): string
     {
         return $this->loadPlayersBasicInfos()[$playerId]['player_name'];
@@ -848,15 +862,15 @@ class Game extends \Bga\GameFramework\Table
             // The attackers stand on the target tile; the attack is resolved when the turn ends
             $this->refreshControl($fromHexId);
             $this->refreshControl($toHexId);
-            $this->notifyUpdate(clienttranslate('${player_name} sends ${count} piece(s) to attack hex ${hex} (paid ${cost} Credits)'), [
-                'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'count' => $count, 'hex' => $toHexId, 'cost' => $cost,
+            $this->notifyUpdate(clienttranslate('${player_name} sends ${count} piece(s) from ${from} to attack ${hex} (paid ${cost} Credits)'), [
+                'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'count' => $count, 'hex' => $this->coordLabel($toHexId), 'from' => $this->coordLabel($fromHexId), 'cost' => $cost,
             ]);
             return;
         }
         $this->refreshControl($fromHexId);
         $this->refreshControl($toHexId);
-        $this->notifyUpdate(clienttranslate('${player_name} moves ${count} piece(s) ${steps} step(s) for ${cost} Credits'), [
-            'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'count' => $count, 'steps' => $dist, 'cost' => $cost,
+        $this->notifyUpdate(clienttranslate('${player_name} moves ${count} piece(s) from ${from} to ${to} (${steps} step(s), ${cost} Credits)'), [
+            'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'count' => $count, 'from' => $this->coordLabel($fromHexId), 'to' => $this->coordLabel($toHexId), 'steps' => $dist, 'cost' => $cost,
         ]);
     }
 
@@ -880,8 +894,8 @@ class Game extends \Bga\GameFramework\Table
         $slot = 0;
         $this->deleteItems($this->findItems($playerId, 'iron', $hexId, self::BUILD_IRON[$type]));
         static::DbQuery("INSERT INTO `building` (`hex_id`, `building_type`, `owner_id`, `slot`) VALUES ({$hexId}, '{$type}', {$playerId}, {$slot})");
-        $this->notifyUpdate(clienttranslate('${player_name} builds ${building}'), [
-            'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'building' => $type,
+        $this->notifyUpdate(clienttranslate('${player_name} builds ${building} at ${coord}'), [
+            'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'building' => $type, 'coord' => $this->coordLabel($hexId),
         ]);
     }
 
@@ -894,8 +908,8 @@ class Game extends \Bga\GameFramework\Table
         static::DbQuery("UPDATE `unit` SET `assigned_to` = NULL WHERE `assigned_to` = {$buildingId}");
         static::DbQuery("DELETE FROM `building` WHERE `building_id` = {$buildingId}");
         $this->addItems($playerId, 'iron', $hexId, $refund);
-        $this->notifyUpdate(clienttranslate('${player_name} sells ${building} and gets ${refund} iron'), [
-            'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'building' => $b['building_type'], 'refund' => $refund,
+        $this->notifyUpdate(clienttranslate('${player_name} sells ${building} at ${coord} and gets ${refund} iron'), [
+            'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'building' => $b['building_type'], 'refund' => $refund, 'coord' => $this->coordLabel($hexId),
         ]);
     }
 
@@ -913,8 +927,8 @@ class Game extends \Bga\GameFramework\Table
         $this->spendCredits($playerId, 1);
         $this->addItems($playerId, $kind, (int) $b['hex_id'], 1);
         static::DbQuery("UPDATE `building` SET `used` = 1 WHERE `building_id` = {$buildingId}");
-        $this->notifyUpdate(clienttranslate('${player_name} extracts 1 ${good} for 1 Credit'), [
-            'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'good' => $kind,
+        $this->notifyUpdate(clienttranslate('${player_name} extracts 1 ${good} at ${coord} for 1 Credit'), [
+            'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'good' => $kind, 'coord' => $this->coordLabel((int) $b['hex_id']),
         ]);
     }
 
@@ -942,8 +956,8 @@ class Game extends \Bga\GameFramework\Table
         if ($product === 'mech') {
             $this->playerStats->inc('mechs_manufactured', 1, $playerId);
         }
-        $this->notifyUpdate(clienttranslate('${player_name} builds ${made} ${good}'), [
-            'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'made' => $made, 'good' => $product,
+        $this->notifyUpdate(clienttranslate('${player_name} builds ${made} ${good} at ${coord}'), [
+            'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'made' => $made, 'good' => $product, 'coord' => $this->coordLabel($hexId),
         ]);
     }
 
@@ -973,8 +987,8 @@ class Game extends \Bga\GameFramework\Table
         $prices = $this->globals->get('prices');
         $prices[$good] = min(self::PRICE_MAX[$good], (int) $prices[$good] + $qty * $this->priceStep($good));
         $this->globals->set('prices', $prices);
-        $this->notifyUpdate(clienttranslate('${player_name} buys ${qty} ${good} for ${price} Credits'), [
-            'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'good' => $good, 'qty' => $qty, 'price' => $cost,
+        $this->notifyUpdate(clienttranslate('${player_name} buys ${qty} ${good} at ${coord} for ${price} Credits'), [
+            'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'good' => $good, 'qty' => $qty, 'price' => $cost, 'coord' => $this->coordLabel($hexId),
         ]);
     }
 
@@ -1004,8 +1018,8 @@ class Game extends \Bga\GameFramework\Table
         $prices = $this->globals->get('prices');
         $prices[$good] = max(self::PRICE_MIN[$good], (int) $prices[$good] - $qty * $this->priceStep($good));
         $this->globals->set('prices', $prices);
-        $this->notifyUpdate(clienttranslate('${player_name} sells ${qty} ${good} for ${gain} Credits'), [
-            'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'good' => $good, 'qty' => $qty, 'gain' => $gain,
+        $this->notifyUpdate(clienttranslate('${player_name} sells ${qty} ${good} at ${coord} for ${gain} Credits'), [
+            'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'good' => $good, 'qty' => $qty, 'gain' => $gain, 'coord' => $this->coordLabel($hexId),
         ]);
     }
 
@@ -1222,7 +1236,7 @@ class Game extends \Bga\GameFramework\Table
         }
         $this->notifyUpdate(clienttranslate('${player_name}: attack power ${power} vs ${defenders} defender(s) on hex ${hex}: ${kills} killed, ${pushes} pushed'), [
             'player_id' => $attackerId, 'player_name' => $this->playerName($attackerId), 'power' => $power, 'defenders' => count($defenders),
-            'hex' => $targetHexId, 'kills' => count($killIds), 'pushes' => count($pushIds),
+            'hex' => $this->coordLabel($targetHexId), 'kills' => count($killIds), 'pushes' => count($pushIds),
         ]);
         return count($pushIds);
     }
@@ -1244,8 +1258,8 @@ class Game extends \Bga\GameFramework\Table
         static::DbQuery("UPDATE `unit` SET `hex_id` = {$toHexId}, `push_from` = NULL WHERE `unit_id` = " . (int) $unitId);
         $this->refreshControl((int) $push['hex']);
         $this->refreshControl($toHexId);
-        $this->notifyUpdate(clienttranslate('${player_name} retreats a piece'), [
-            'player_id' => $defenderId, 'player_name' => $this->playerName($defenderId),
+        $this->notifyUpdate(clienttranslate('${player_name} retreats a piece from ${from} to ${to}'), [
+            'player_id' => $defenderId, 'player_name' => $this->playerName($defenderId), 'from' => $this->coordLabel((int) $push['hex']), 'to' => $this->coordLabel($toHexId),
         ]);
         return $this->pushPending($defenderId);
     }
@@ -1272,7 +1286,7 @@ class Game extends \Bga\GameFramework\Table
             static::DbQuery("UPDATE `unit` SET `attack_target` = NULL, `attack_from` = NULL WHERE `owner_id` = {$attackerId} AND `attack_target` = {$targetHexId}");
             $this->refreshControl($targetHexId);
             $this->notifyUpdate(clienttranslate('${player_name} takes hex ${hex}'), [
-                'player_id' => $attackerId, 'player_name' => $this->playerName($attackerId), 'hex' => $targetHexId,
+                'player_id' => $attackerId, 'player_name' => $this->playerName($attackerId), 'hex' => $this->coordLabel($targetHexId),
             ]);
         } else {
             $power = 0;
@@ -1290,7 +1304,7 @@ class Game extends \Bga\GameFramework\Table
             }
             $this->refreshControl($targetHexId);
             $this->notifyUpdate(clienttranslate('ATTACK FAILURE on hex ${hex}: attack power ${power}, but pushing the weakest defender needs ${need} (twice its power, +1 per Guard Tower for every point of its power). The attackers return.'), [
-                'hex' => $targetHexId, 'power' => $power, 'need' => $need, 'failure' => 1, 'attacker_id' => $attackerId,
+                'hex' => $this->coordLabel($targetHexId), 'power' => $power, 'need' => $need, 'failure' => 1, 'attacker_id' => $attackerId,
             ]);
         }
         $this->globals->set('push', null);

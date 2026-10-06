@@ -28,6 +28,7 @@ class ChoosePush extends GameState
         $defender = (int) $push['defender'];
         return [
             'hex' => (int) $push['hex'],
+            'coord' => $this->game->coordLabel((int) $push['hex']),
             'options' => $this->game->pushOptions((int) $push['hex'], $defender),
             'remaining' => $this->game->pushPending($defender),
         ];

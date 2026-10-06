@@ -49,7 +49,7 @@ class ChoosePush {
         this.game.pushActive = !!isCurrentPlayerActive;
         this.game.render();
         if (isCurrentPlayerActive && args) {
-            this.game.bga.statusBar.setTitle(_('Your pieces on hex ${hex} were pushed back: click a green hex to retreat there (${n} left)').replace('${hex}', args.hex).replace('${n}', args.remaining));
+            this.game.bga.statusBar.setTitle(_('Your pieces on hex ${hex} were pushed back: click a green hex to retreat there (${n} left)').replace('${hex}', args.coord).replace('${n}', args.remaining));
         }
     }
 
@@ -356,7 +356,7 @@ export class Game {
                 const out = this.combatOutcome(power, defenders.map(u => this.unitPower(u.unit_type)), towers);
                 const tokens = this.selTokens();
                 sb.setTitle(_('Attack hex ${hex}: power ${a} vs ${d} defender(s)${t} would kill ${k} and push ${p}. Costs ${cost} Credits; resolved when you end your turn')
-                    .replace('${hex}', to).replace('${a}', power).replace('${d}', defenders.length)
+                    .replace('${hex}', this.coordOf(to)).replace('${a}', power).replace('${d}', defenders.length)
                     .replace('${t}', towers ? ` + ${towers} Guard Tower(s)` : '').replace('${k}', out.kills).replace('${p}', out.pushes).replace('${cost}', cost));
                 sb.addActionButton(_('Attack'), () => {
                     const args = { fromHexId: this.selFrom, toHexId: to, pieces: this.selPieces() };
@@ -617,6 +617,15 @@ export class Game {
         this.render();
     }
 
+    /** Same labelling as Game::coordLabel: row letter from the top + position in the row from the left (ports included). */
+    coordOf(hexId) {
+        const h = this.data.hexes.find(o => o.hex_id === hexId);
+        if (!h) return '?';
+        const minR = Math.min(...this.data.hexes.map(o => o.coord_r));
+        const col = 1 + this.data.hexes.filter(o => o.coord_r === h.coord_r && o.coord_q < h.coord_q).length;
+        return String.fromCharCode(65 + h.coord_r - minR) + col;
+    }
+
     hexPos(h, size) {
         return { x: size * Math.sqrt(3) * (h.coord_q + h.coord_r / 2), y: size * 1.5 * h.coord_r };
     }
@@ -721,6 +730,7 @@ export class Game {
                     parts.push(`<rect class="mf_stack" data-hex="${h.hex_id}" data-kind="${itemKey}" x="${ix - 8}" y="${iy - 8}" width="26" height="17" fill="transparent"/>`);
                 }
             });
+            parts.push(`<text x="${x + 33}" y="${y + 7}" text-anchor="end" font-size="7" fill="#2b2118" opacity="0.6" pointer-events="none">${this.coordOf(h.hex_id)}</text>`);
             if (target) {
                 parts.push(`<text x="${x}" y="${y - 31}" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff" stroke="#000" stroke-width="0.6" pointer-events="none">${this.selCost(moveDist)}</text>`);
             }

@@ -248,7 +248,7 @@ def wrap_svg(inner, scale=1.0, title='', pad=0):
             + (f'<title>{escape(title)}</title>' if title else '') + inner + '</svg>')
 
 
-def tile_svg(title, kind, slots, paths, extra='', banner=None):
+def tile_svg(title, kind, slots, paths, extra='', banner=None, code=''):
     """Print tile: ground + roads on open edges + building sockets (same positions as the BGA board) + extras."""
     s = [ground_group(kind)]
     s += [road_group(d, paths[d]) for d in range(6) if paths[d] or kind != 'port']
@@ -256,6 +256,8 @@ def tile_svg(title, kind, slots, paths, extra='', banner=None):
     if banner:
         s.append(f'<rect x="-9" y="-34" width="18" height="6" fill="{banner}" stroke="{INK}" stroke-width="0.9"/>')
     s.append(extra)
+    if code:  # small internal code name, centre under the sockets, quiet
+        s.append(f'<text x="0" y="8" text-anchor="middle" font-size="6" fill="{INK}" opacity="0.6">{escape(code)}</text>')
     return wrap_svg(''.join(s), scale=2.5, title=title, pad=1.5)
 
 
@@ -351,13 +353,13 @@ code{{background:#e7d9b5;padding:0 3px}}</style>
     for t in land:
         name = f"land_L{t['level']}_{t['n']:02d}"
         label = f"L{t['level']}-{t['n']:02d}  {t['res'] or 'empty'}  {t['slots']} slot(s)  {sum(t['paths'])} paths"
-        write(os.path.join(HERE, f'tiles/{name}.svg'), tile_svg(name, t['res'] or 'empty', t['slots'], t['paths']))
+        write(os.path.join(HERE, f'tiles/{name}.svg'), tile_svg(name, t['res'] or 'empty', t['slots'], t['paths'], code=f"L{t['level']}-{t['n']:02d}"))
         key = 'Centre (level 1)' if t['level'] == 1 else f"Level {t['level']}"
         groups[key].append((f'tiles/{name}.svg', label))
     for i, (fname, col) in enumerate(FACTIONS, start=1):
         name = f'home_{i}_{fname.lower()}'
         paths = [True, True, True, False, True, False]
-        write(os.path.join(HERE, f'tiles/{name}.svg'), tile_svg(name, 'iron', 2, paths, banner=col,
+        write(os.path.join(HERE, f'tiles/{name}.svg'), tile_svg(name, 'iron', 2, paths, banner=col, code=f'H{i}',
                                                                   extra='<rect x="-8" y="30" width="16" height="5" fill="#8a6a42" stroke="#2b2233" stroke-width="0.8"/>'))
         groups['Home tiles'].append((f'tiles/{name}.svg', f'{fname} home: iron, Dock + Guard Tower start here, 2 slots'))
     port_combos = [(g, k) for g in ('iron', 'crystal', 'bot', 'mech') for k in ('cheaper', 'pays_more')]
@@ -367,7 +369,7 @@ code{{background:#e7d9b5;padding:0 3px}}</style>
         paths = [False, False, False, True, True, False]  # the 2 edges facing the land
         txt = f'{g} -2' if k == 'cheaper' else f'{g} +3'
         extra = f'<text x="0" y="3" text-anchor="middle" font-size="9" font-weight="bold" fill="{INK}">{txt}</text>'
-        write(os.path.join(HERE, f'tiles/{name}.svg'), tile_svg(name, 'port', 0, paths, extra=extra))
+        write(os.path.join(HERE, f'tiles/{name}.svg'), tile_svg(name, 'port', 0, paths, extra=extra, code=f'P{i + 1:02d}'))
         groups['Port tiles'].append((f'tiles/{name}.svg', f'Port: {g} {"costs 2 less to buy" if k == "cheaper" else "sells for 3 more"}'))
 
     body = ''
