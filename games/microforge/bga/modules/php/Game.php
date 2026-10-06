@@ -1009,6 +1009,29 @@ class Game extends \Bga\GameFramework\Table
         ]);
     }
 
+    protected function setupMissions(): void
+    {
+        $deck = [];
+        foreach ([1, 2] as $level) {
+            $idx = range(0, count(self::MISSION_POOL[$level]) - 1);
+            shuffle($idx);
+            foreach (array_slice($idx, 0, self::MISSION_DECK_PER_LEVEL) as $i) {
+                $deck[] = "{$level}_{$i}";
+            }
+        }
+        $faceup = array_splice($deck, 0, self::MISSION_FACEUP);
+        $this->globals->set('mission_deck', $deck);
+        $this->globals->set('mission_faceup', $faceup);
+    }
+
+    public static function missionDef(string $id): array
+    {
+        [$level, $i] = array_map('intval', explode('_', $id));
+        [$type, $n] = self::MISSION_POOL[$level][$i];
+        return ['id' => $id, 'level' => $level, 'type' => $type, 'n' => $n, 'vp' => self::MISSION_VP_BY_LEVEL[$level]];
+    }
+
+    /** Everything counts what the player controls: hexes with their units, and the buildings / tokens standing there. */
     public function missionMet(int $playerId, string $type, int $n): bool
     {
         $q = fn(string $sql) => (int) static::getUniqueValueFromDb($sql);

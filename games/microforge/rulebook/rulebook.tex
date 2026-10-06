@@ -1,0 +1,142 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=2.2cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{fancyhdr}
+
+\definecolor{lcpurple}{HTML}{6D3A8C}
+\definecolor{lcteal}{HTML}{2F7F79}
+\titleformat{\section}{\Large\bfseries\color{lcpurple}}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\large\bfseries\color{lcteal}}{\thesubsection}{0.6em}{}
+\setlist{itemsep=2pt,topsep=4pt}
+\pagestyle{fancy}\fancyhf{}\renewcommand{\headrulewidth}{0pt}
+\fancyfoot[C]{\small Little Commanders --- Rulebook draft v0.1 --- \thepage}
+\setlength{\parindent}{0pt}\setlength{\parskip}{6pt}
+
+\begin{document}
+
+\begin{center}
+{\Huge\bfseries\color{lcpurple} Little Commanders}\\[4pt]
+{\large 2--6 players \quad $\cdot$ \quad about 45 minutes \quad $\cdot$ \quad ages 8+}\\[2pt]
+{\small Rulebook draft v0.1 (plain text, no art yet)}
+\end{center}
+
+\section{The Idea}
+Six kids, six toy armies. Each commander leads cute little \textbf{Bots} and a few huge \textbf{Mechs} across a floor of hexagon tiles. Dig up iron and crystal, build factories, grab land, and complete \textbf{Missions}. The first commander to reach \textbf{5 Victory Points} wins.
+
+\section{Components}
+\begin{itemize}
+\item Land tiles: 37 (centre $+$ 3 rings) and 6 Home tiles. Sea tiles: 12 Port tiles.
+\item 6 Player boards (one per faction) and 1 Market board.
+\item Per player: 20 Bots, 6 Mechs, 5 Extractors, 5 Factories, 5 Guard Towers, 1 Dock.
+\item Tokens: Iron, Crystal, Credit coins (1, 5, 10), price markers, VP markers.
+\item 40 Mission cards (20 of Level~1, 20 of Level~2).
+\end{itemize}
+
+\section{Setup}
+\begin{enumerate}
+\item \textbf{Board.} 2--3 players use 19 land tiles (centre and 2 rings). 4--6 players use 37 land tiles (centre and 3 rings). Within each ring the tiles are shuffled and placed at random. Roads must line up only where \emph{both} touching tiles show one.
+\item \textbf{Ports.} Place 2 Port tiles per player just outside the land. Each Port joins by road to the 2 land tiles beside it.
+\item \textbf{Homes.} Spread the Home tiles evenly around the outer ring. Each player takes one, with a Dock and an Extractor on it, \textbf{2 Iron} and \textbf{3 Bots}.
+\item \textbf{Market.} Set the four price markers (Iron, Bots, Crystal, Mechs) at random in their starting band: Iron 4--7, Bots 4--7, Crystal 8--14, Mechs 8--14.
+\item \textbf{Missions.} Shuffle 10 random Level~1 cards and 10 random Level~2 cards. Level~1 cards go on top. Reveal 5.
+\item The first player starts with 10 Credits. Everyone else receives their 10 Credits at the start of their first turn, like all income.
+\end{enumerate}
+
+\section{Your Turn}
+There are no rounds. When your turn starts, you receive \textbf{+10 Credits} and all your Extractors refresh. Then do any of the actions below, in any order and as often as you can pay for. End your turn when done; your attacks resolve then.
+
+\subsection{Control}
+You \textbf{control} a tile while at least one of your pieces is on it. Every building and token on a tile belongs to whoever controls the tile. Bots cannot be assigned to buildings. They only hold tiles and attack.
+
+\subsection{Build}
+Pay iron that is standing on the tile, and use a free building area there:
+\begin{center}
+\begin{tabularx}{0.8\textwidth}{lXl}
+\toprule
+Building & What it does & Cost \\
+\midrule
+Extractor & Once per turn, pay 1 Credit to take 1 token of the tile's resource & 1 Iron \\
+Factory & 1 Iron $\to$ 2 Bots, or 1 Iron $+$ 1 Crystal $\to$ 1 Mech & 2 Iron \\
+Guard Tower & Makes the tile harder to push and kill (see Combat) & 2 Iron \\
+\bottomrule
+\end{tabularx}
+\end{center}
+An Extractor needs a tile with a resource. A tile has 0, 1 or 2 building areas. You can sell a building: it returns to your board and you get its cost minus 1 Iron back onto the tile.
+
+\subsection{Make Pieces}
+At a Factory, spend its inputs from the same tile. New Bots and Mechs appear on that tile. They come from your player board's supply (20 Bots, 6 Mechs).
+
+\subsection{Move}
+Each piece pays the \textbf{triangular cost} of its \emph{total} steps this turn: 1 step costs 1, 2 steps cost 3, 3 steps cost 6, 4 steps cost 10. Credits already paid for that piece this turn count toward the new total, so a piece that has moved can keep going and only pays the difference. Pieces follow open roads and cannot pass through enemy pieces.
+
+\subsection{Trade}
+\begin{itemize}
+\item Trade from a tile you control that has a Dock or a Port.
+\item Your home Dock trades \textbf{Iron} and \textbf{Bots} at the current market price.
+\item A Port is a separate tile outside the land. Each Port buys one good for 2 Credits less, or pays 3 Credits more when you sell it.
+\item You choose a quantity. Every item trades at the current price, then the price moves one step per item traded (up when bought, down when sold). A step is 1 Credit for Iron and Bots, 2 Credits for Crystal and Mechs. Prices only move when somebody trades.
+\item Price ranges: Iron 1--10, Bots 1--10, Crystal 2--20, Mechs 2--20.
+\end{itemize}
+
+\subsection{Missions}
+Pay \textbf{5 Credits} to buy a face-up Mission, plus 1 more for every Mission you have already bought. You may buy one per turn. If you meet its condition \emph{at that moment} you score its VP (1 for Level~1, 2 for Level~2). If you do not, the Credits are lost. A completed card is replaced from the deck.
+
+\subsection{Undo}
+Undo and Undo all (digital version) take back your actions in the current turn. They disappear when the turn ends.
+
+\section{Combat}
+Move pieces onto an enemy tile to attack it. Attackers walk in; the attack is decided when you end your turn.
+\begin{itemize}
+\item A Bot has power \textbf{1}. A Mech has power \textbf{4}.
+\item Add up the attackers' power and the defenders' power.
+\item \textbf{Push:} the attackers' total is at least \textbf{2$\times$} the defenders'. The defenders must retreat. The defending player chooses the tile each pushed piece retreats to.
+\item \textbf{Kill:} the attackers' total is at least \textbf{3$\times$} the defenders'. The defenders are removed.
+\item Each Guard Tower on the tile adds 1 to both multipliers (push $2\to3\to\dots$, kill $3\to4\to\dots$).
+\item If defenders remain, it is an \textbf{attack failure}: the attackers return to where they came from.
+\end{itemize}
+
+\section{Winning}
+The first player to reach \textbf{5 Victory Points} wins immediately. Victory Points come only from Missions.
+
+\section{Factions}
+Six factions, each with its own colour and silhouette (so the game works without colour vision).
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Colour & Mech & Bots \\
+\midrule
+Red & Dragon & Rocket-pods \\
+Blue & Crab & Submarines \\
+Green & Beetle & Sprouts and watering cans \\
+Yellow & Tower & Lightbulbs \\
+Purple & Owl & Bat-wing ghosts \\
+Orange & Scrap giant & Tin cans and cardboard \\
+\bottomrule
+\end{tabular}
+\end{center}
+Faction powers are being designed. See \texttt{ART\_PLAN.md}.
+
+\section{Quick Reference}
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Income & +10 Credits at the start of your turn \\
+Extractor & 1 Credit, once per turn, 1 token \\
+Build costs & Extractor 1, Factory 2, Guard Tower 2 Iron \\
+Factory & 1 Iron $\to$ 2 Bots; 1 Iron $+$ 1 Crystal $\to$ 1 Mech \\
+Move cost (per piece) & 1, 3, 6, 10 for 1, 2, 3, 4 steps \\
+Power & Bot 1, Mech 4 \\
+Push / Kill & $2\times$ / $3\times$ defenders' power (+1 each per Guard Tower) \\
+Mission cost & 5 Credits, +1 per Mission bought, one per turn \\
+Win & 5 VP \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\end{document}
