@@ -21,7 +21,7 @@ This document tracks publisher/designer permissions, communications, contact inf
 | **Line or Colour** | Néstor Romeral Andrés | Eclipse Editorial / nestorgames | ✅ **BGA License Granted (2025-03-27)** | Backlog / Approved |
 | **Push Fight** | Brett Picotte | Brettco Inc. / New Publisher | 🟡 **BGA License Granted (2019-12-13)** | Private Alpha; awaiting new publisher |
 | **Mandala** | Trevor Benjamin, Brett J. Gilbert | Lookout Games / Asmodee | ✅ **Live / Released** | Maintained (`mandala`) |
-| **Yavalath** | Cameron Browne, Ludi | Cameron Browne / Cyberite Ltd | 🟢 **Approved by Designer** | Built on BGA (`yavalath`) |
+| **Yavalath** | Cameron Browne, Ludi | Cameron Browne / Cyberite Ltd | 🚀 **Public Alpha (2026-10-06)** | Reviewer Testing (`yavalath`) |
 | **Lords of Scotland**| Richard James (Evertide Games) | Rights reverted to designer | 🔴 **Blocked: need designer contact** | Core Engine Ready (`lordsofscotland`) |
 | **Amazons** | Walter Zamkauskas | nestorgames (edition) | ⚪ Inquiry Sent | Backlog |
 | **ConHex** | Michail Antonow | nestorgames (edition) | ⚪ Inquiry Sent | Backlog |
@@ -33,15 +33,16 @@ This document tracks publisher/designer permissions, communications, contact inf
 ### 1. Yavalath
 * **Designer**: Cameron Browne (created with AI generator *Ludi*)
 * **Rights holder**: Cameron Browne / Cyberite Ltd. Nestor (nestorgames) confirmed he no longer has exclusive rights and sent us to Cameron.
-* **Status**: **Fully Approved** (by Cameron, email reply — keep it as proof of permission)
-* **Conditions / Mandatory Credits** (credit must appear in `gameinfos.jsonc`, the BGA game description, and in-game rules/help):
+* **Status**: **Public Alpha** (Approved by Cameron; license submission pending via `boardgamearena.com/gamepublishers`).
+* **Conditions / Mandatory Credits** (credited in `gameinfos.jsonc`, BGA game description, and in-game rules/help):
   > *"Yes that’s fine, as long as you credit me and Ludi as the inventors of Yavalath. Thanks for checking."* — Cameron Browne
 * **Assets**:
-  * Rules PDF available.
-  * Hexagonal board geometry + 2-3 color stones.
+  * Complete BGA modern implementation (Standard Side 5, Five-not-four Side 6, Compact Side 4, Pie Rule, 2-3 players).
+  * Full BGA metadata assets (280x280 box, 50x50 icon, 1386x400 text-free banner, 280x280 publisher, 900x600 display, 2000x2000 title).
 * **Next Actions**:
-  * Send confirmation/thank you email to Cameron Browne.
-  * Configure credits in `gameinfos.jsonc`.
+  * Announce in BGA Reviewers Group (`group?id=5110878`) and Alpha Games Forum (`viewforum.php?f=240`).
+  * Submit license confirmation on `boardgamearena.com/gamepublishers` before Beta.
+  * Collect 10 reviewer approvals for Beta transition.
 
 ---
 
