@@ -105,3 +105,9 @@ Option "Faction powers": **Off** = all symmetric (default for the first paper te
 | B. Festival kids + animal companions (recommended) | Original kids (Holi, monsoon, tulsi garden, Diwali, stargazer, bazaar/cricket) with animal mechs (lion, elephant, peacock, tiger, owl, bull) | `concept_art/generated/bharat_festival_kids_thumb.jpg` | Same mechanics, own identity, no religious risk. |
 | D. Regions of India | 6 regions as factions: South, North-West, North-Central, North-East, Central-West, Central-East | `concept_art/generated/bharat_regions_thumb.jpg` | Even coverage, avoids picking favourite states; each region gets a landscape, outfit, animal mech and perk. |
 | C. Indian states | Faction per state, e.g. Kerala (backwater, boats, elephant), Tamil Nadu (temple towns, kolam), Andhra, Karnataka (Mysore dasara), Rajasthan, Bengal... | not drawn yet | Strong flavour and perk ideas (spices, textiles, ports); must treat states evenly and avoid stereotypes. Can combine with B: each kid comes from a state. |
+
+## 12. How the SVG art is used (one source for print and BGA)
+- `design/build_design.py` draws everything once. Print tiles and the BGA board use the same ground art, road stubs and building sockets (pointy-top, same size as the BGA hex).
+- BGA does not draw tiles itself any more: per tile it layers `img/tiles/art_<resource>.svg` + one `img/tiles/road_<dir>.svg` per open edge, fed by that tile's data (resource, building slots, edge mask). Building and resource-token icons come from `img/icons/`.
+- Changing theme = changing the drawing functions (`ground_group`, `road_group`, `icon`) and rerunning the script. Bots and mechs are still simple coloured shapes until the theme is chosen.
+- If the Bharat theme wins, bots become small animals and mechs big animals (rules unchanged: power 1 and 4, same costs).

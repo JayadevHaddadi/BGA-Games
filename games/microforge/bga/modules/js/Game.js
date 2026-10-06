@@ -18,6 +18,8 @@ const NO_RESOURCE_COLOR = '#c3c6cc';
 const SEA_COLOR = '#6f95b0';
 const BUILDING_NAMES = { extractor: 'Extractor', factory: 'Factory', tower: 'Guard Tower' };
 const BUILDING_NEUTRAL = '#7a6a58'; // buildings are universal: no player colour
+const BUILDING_ICON = { extractor: 'extractors', factory: 'factories', tower: 'towers' };
+const ITEM_ICON = { iron: 'iron_tokens', crystal: 'crystal_tokens' };
 const MISSION_TEXT = {
     extractors: ['Mine Boss ${n}', 'Control ${n} Extractors.'],
     factories: ['Toy Factory ${n}', 'Control ${n} Factories.'],
@@ -638,29 +640,18 @@ export class Game {
             const isPending = this.pending && this.pending.to === h.hex_id;
             const attackable = target && this.isEnemyHex(h);
             const retreat = this.pushActive && this.pushArgs && this.pushArgs.options.includes(h.hex_id);
-            const fill = h.is_port ? SEA_COLOR : (h.resource_type ? TILE_COLORS[h.resource_type] : NO_RESOURCE_COLOR);
             const stroke = isPending ? '#ffe600' : (retreat ? '#32cd32' : (attackable ? '#ff3b3b' : (target ? '#ffffff' : (h.owner_id ? this.colorOf(h.owner_id) : '#5a4630'))));
+            // Tile art is the SVG set in img/tiles: ground by resource, then one road stub per open edge of THIS tile.
+            // A stub is solid when the neighbour has the matching connection (usable road) and faded when it does not.
             parts.push(`<g class="mf_hex" data-hex="${h.hex_id}" style="cursor:pointer">`
-                + `<polygon points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="${isPending || retreat ? 7 : (sel || target ? 5 : (h.owner_id ? 4 : 1.5))}"><title>${h.is_port ? _('Port') : (h.resource_type || _('no resource'))}</title></polygon>`
                 + `<image href="${themeUrl}img/tiles/art_${h.is_port ? 'port' : (h.resource_type || 'empty')}.svg" x="${(x - size * 0.866).toFixed(1)}" y="${y - size}" width="${(size * 1.732).toFixed(1)}" height="${size * 2}" pointer-events="none"/>`);
-            // Paths: a road runs to the neighbour only when both tiles have the connection; a one-sided connection is a stub
             DIRS.forEach(([dq, dr], dIdx) => {
                 const nb = this.data.hexes.find(o => o.coord_q === h.coord_q + dq && o.coord_r === h.coord_r + dr);
-                if (!nb) return;
-                const vx = Math.sqrt(3) * (dq + dr / 2), vy = 1.5 * dr;
-                const len = Math.hypot(vx, vy);
-                const ux = vx / len, uy = vy / len;
-                const mx = x + ux * size * 0.87, my = y + uy * size * 0.87;
-                const mine = h.edges[dIdx] === '1';
-                const theirs = nb.edges[(dIdx + 3) % 6] === '1';
-                if (mine && theirs) {
-                    parts.push(`<line x1="${x}" y1="${y}" x2="${mx}" y2="${my}" stroke="#8b6b3d" stroke-width="3.5"/>`);
-                } else if (mine) {
-                    parts.push(`<line x1="${x}" y1="${y}" x2="${x + ux * size * 0.45}" y2="${y + uy * size * 0.45}" stroke="#8b6b3d" stroke-width="2" stroke-dasharray="3 2"/>`);
-                } else {
-                    parts.push(`<line x1="${mx - uy * size * 0.4}" y1="${my + ux * size * 0.4}" x2="${mx + uy * size * 0.4}" y2="${my - ux * size * 0.4}" stroke="#2b2118" stroke-width="2.5" stroke-dasharray="3 2"/>`);
-                }
+                if (!nb || h.edges[dIdx] !== '1') return;
+                const usable = nb.edges[(dIdx + 3) % 6] === '1';
+                parts.push(`<image href="${themeUrl}img/tiles/road_${dIdx}.svg" x="${(x - size * 0.866).toFixed(1)}" y="${y - size}" width="${(size * 1.732).toFixed(1)}" height="${size * 2}" opacity="${usable ? 1 : 0.4}" pointer-events="none"/>`);
             });
+            parts.push(`<polygon points="${pts}" fill="transparent" stroke="${stroke}" stroke-width="${isPending || retreat ? 7 : (sel || target ? 5 : (h.owner_id ? 4 : 1.5))}"><title>${h.is_port ? _('Port') : (h.resource_type || _('no resource'))}</title></polygon>`);
             if (h.is_port) {
                 const pr = this.data.ports.find(p => p.adjacent_hex_id === h.hex_id);
                 if (pr) {
@@ -677,8 +668,8 @@ export class Game {
                 const b = built[i];
                 const sx = x - nSlots * 12 + i * 24 + 1;
                 const picked = this.slotSel && this.slotSel.hex === h.hex_id && this.slotSel.idx === i;
-                parts.push(`<rect class="mf_slot" data-hex="${h.hex_id}" data-kind="bld" data-idx="${i}" x="${sx}" y="${y - 16}" width="22" height="16" fill="${b ? BUILDING_NEUTRAL : 'rgba(255,255,255,0.35)'}" stroke="${picked ? '#ffe600' : '#2b2118'}" stroke-width="${picked ? 3 : 1.2}" stroke-dasharray="${b ? 0 : 3}"/>`
-                    + (b ? `<text x="${sx + 11}" y="${y - 4}" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff" stroke="#000" stroke-width="0.4" pointer-events="none">${b.building_type[0].toUpperCase()}${b.building_type === 'extractor' && b.used ? '*' : ''}</text>` : ''));
+                parts.push(`<rect class="mf_slot" data-hex="${h.hex_id}" data-kind="bld" data-idx="${i}" x="${sx}" y="${y - 16}" width="22" height="16" fill="${b ? 'rgba(255,250,240,0.6)' : 'rgba(255,255,255,0.35)'}" stroke="${picked ? '#ffe600' : '#2b2118'}" stroke-width="${picked ? 3 : 1.2}" stroke-dasharray="${b ? 0 : 3}"/>`
+                    + (b ? `<image href="${themeUrl}img/icons/${BUILDING_ICON[b.building_type]}.svg" x="${sx}" y="${y - 17}" width="24" height="18" opacity="${b.building_type === 'extractor' && b.used ? 0.45 : 1}" pointer-events="none"/>` : ''));
             }
             // Unit stacks: circles = bots, squares = mechs. Coins under a stack = it has moved (cost per piece).
             const groups = {};
@@ -717,7 +708,8 @@ export class Game {
                 if (it.moved_cost) {
                     parts.push(`<circle cx="${ix}" cy="${iy}" r="7" fill="#e0b100" stroke="#7a5d00"/>`);
                 }
-                parts.push(`<rect x="${ix - 5}" y="${iy - 4}" width="9" height="9" fill="${RES_COLORS[it.kind]}" stroke="${nSel > 0 ? '#ffe600' : '#222'}" stroke-width="${nSel > 0 ? 3 : 1}"/>`
+                parts.push(`<image href="${themeUrl}img/icons/${ITEM_ICON[it.kind]}.svg" x="${ix - 8}" y="${iy - 8}" width="14" height="15" pointer-events="none"/>`
+                    + (nSel > 0 ? `<rect x="${ix - 8}" y="${iy - 8}" width="14" height="15" fill="none" stroke="#ffe600" stroke-width="2.5"/>` : '')
                     + `<text x="${ix + 7}" y="${iy + 4}" font-size="9" fill="#2b2118" pointer-events="none">${nSel > 0 ? nSel + '/' : ''}${it.n}</text>`);
                 if (selectable) {
                     parts.push(`<rect class="mf_stack" data-hex="${h.hex_id}" data-kind="${itemKey}" x="${ix - 8}" y="${iy - 8}" width="26" height="17" fill="transparent"/>`);
