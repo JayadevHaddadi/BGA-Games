@@ -14,10 +14,14 @@ Mission data is copied from Game.php MISSION_POOL / Game.js MISSION_TEXT. If tho
 """
 import math
 import os
+import sys
 import random
 from html import escape
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+from icons import ICONS, icon_svg, mission_icon  # noqa: E402
+from boards import basic_board, advanced_board  # noqa: E402
 
 # ---------- shared palette (see ART_PLAN.md colour theme) ----------
 INK = '#2b2233'
@@ -76,44 +80,6 @@ def hexpts(cx, cy, r, flat=True):
     return ' '.join(f'{x:.1f},{y:.1f}' for x, y in pts)
 
 
-def icon(kind, cx, cy, s=60):
-    """Simple flat pictograms, drawn inside a box of size s centred on cx, cy."""
-    k = s / 60
-    o = f'<g transform="translate({cx},{cy}) scale({k})" stroke="{INK}" stroke-width="3" stroke-linejoin="round" fill="none">'
-    c = '</g>'
-    if kind == 'extractors':
-        return o + f'<path d="M-22 26 L0 -26 L22 26 Z" fill="#b9a27a"/><rect x="-6" y="-34" width="12" height="14" fill="#8a7a62"/>' + c
-    if kind == 'factories':
-        return o + f'<rect x="-28" y="-6" width="56" height="32" fill="#c9b79a"/><rect x="8" y="-30" width="12" height="26" fill="#8a7a62"/><rect x="-18" y="6" width="12" height="12" fill="{PAPER}"/>' + c
-    if kind == 'towers':
-        return o + f'<path d="M-16 28 L-16 -12 L-22 -12 L-22 -28 L-12 -28 L-12 -20 L-4 -20 L-4 -28 L4 -28 L4 -20 L12 -20 L12 -28 L22 -28 L22 -12 L16 -12 L16 28 Z" fill="#a89c8a"/>' + c
-    if kind == 'buildings':
-        return o + f'<path d="M-26 24 L-26 -4 L0 -28 L26 -4 L26 24 Z" fill="#c9b79a"/><rect x="-7" y="6" width="14" height="18" fill="{PAPER}"/>' + c
-    if kind == 'bots':
-        return o + f'<circle cx="0" cy="6" r="22" fill="#d9d2e3"/><line x1="0" y1="-16" x2="0" y2="-28"/><circle cx="0" cy="-30" r="4" fill="{INK}"/><circle cx="-8" cy="4" r="4" fill="{INK}"/><circle cx="8" cy="4" r="4" fill="{INK}"/>' + c
-    if kind == 'mechs':
-        return o + f'<rect x="-20" y="-12" width="40" height="38" fill="#d9d2e3"/><rect x="-14" y="-32" width="28" height="20" fill="#d9d2e3"/><rect x="-8" y="-26" width="16" height="6" fill="{INK}"/><rect x="-32" y="-8" width="12" height="26" fill="#d9d2e3"/><rect x="20" y="-8" width="12" height="26" fill="#d9d2e3"/>' + c
-    if kind == 'pieces':
-        return icon('bots', cx - s * 0.28, cy + s * 0.12, s * 0.6) + icon('mechs', cx + s * 0.26, cy, s * 0.7)
-    if kind == 'iron_tokens':
-        return o + f'<rect x="-22" y="-14" width="44" height="30" fill="#8d8d96"/><path d="M-22 -14 L-12 -26 L32 -26 L22 -14 Z" fill="#b4b4be"/><path d="M22 -14 L32 -26 L32 4 L22 16 Z" fill="#6f6f78"/>' + c
-    if kind == 'crystal_tokens':
-        return o + f'<path d="M0 -30 L18 -6 L0 30 L-18 -6 Z" fill="{CRYSTAL_BLUE}"/><path d="M-18 -6 L18 -6"/>' + c
-    if kind == 'tokens':
-        return icon('iron_tokens', cx - s * 0.22, cy + s * 0.06, s * 0.62) + icon('crystal_tokens', cx + s * 0.26, cy - s * 0.04, s * 0.62)
-    if kind == 'hexes':
-        return o + f'<polygon points="{hexpts(0, 0, 28)}" fill="{IRON_GREEN}"/>' + c
-    if kind == 'double_tiles':
-        return o + f'<polygon points="{hexpts(0, 0, 28)}" fill="{IRON_GREEN}"/><path d="M0 -24 L24 0 L0 24 L-24 0 Z" fill="{CRYSTAL_BLUE}"/>' + c
-    if kind == 'ports':
-        return o + f'<path d="M-30 12 Q-15 0 0 12 T30 12 L30 28 L-30 28 Z" fill="{SEA}"/><rect x="-4" y="-28" width="8" height="40" fill="#8a6a42"/><path d="M4 -28 L26 -14 L4 -6 Z" fill="#c9b79a"/>' + c
-    if kind == 'center':
-        return o + f'<polygon points="{hexpts(0, 0, 28)}" fill="#e7d9b5"/><path d="M0 -16 L5 -4 L18 -4 L8 4 L12 16 L0 8 L-12 16 L-8 4 L-18 -4 L-5 -4 Z" fill="{PURPLE}"/>' + c
-    if kind == 'credits':
-        return o + f'<circle cx="0" cy="0" r="26" fill="#e6c455"/><circle cx="0" cy="0" r="17"/><path d="M-6 -8 L6 -8 M-6 0 L6 0 M0 -14 L0 14" stroke-width="4"/>' + c
-    return ''
-
-
 def wrap(text, width):
     words, lines, cur = text.split(), [], ''
     for w in words:
@@ -152,7 +118,7 @@ def card_svg(level, idx, mtype, n):
          f'<text class="placeholder" x="{W / 2}" y="{y0 + 340}" text-anchor="middle" font-size="26" fill="#9a8f7c">ART SLOT 582 x 380</text></g>',
          # condition band
          f'<rect x="{x0 + 24}" y="{y0 + 540}" width="{x1 - x0 - 48}" height="150" rx="8" fill="#fffaf0" stroke="{INK}" stroke-width="3"/>',
-         icon(mtype, x0 + 110, y0 + 615, 92)]
+         mission_icon(mtype, x0 + 110, y0 + 615, 92)]
     if mtype != 'center':
         s.append(f'<text x="{x0 + 210}" y="{y0 + 648}" font-size="92" font-weight="bold" fill="{INK}">{n}</text>')
     else:
@@ -271,13 +237,9 @@ def bga_tile_assets():
         out[f'tiles/stump_{d}.svg'] = wrap_svg(road_group(d, False))
     for n in (1, 2):
         out[f'tiles/sockets_{n}.svg'] = wrap_svg(sockets_group(n))
-    for kind in ('extractors', 'factories', 'towers', 'iron_tokens', 'crystal_tokens', 'bots', 'mechs'):
-        out[f'icons/{kind}.svg'] = icon_svg(kind)
+    for name in ICONS:
+        out[f'icons/{name}.svg'] = icon_svg(name)
     return out
-
-
-def icon_svg(kind):
-    return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="-34 -36 68 72">{icon(kind, 0, 0, 60)}</svg>'
 
 
 def build_land_tiles():
@@ -346,6 +308,26 @@ code{{background:#e7d9b5;padding:0 3px}}</style>
 
     for rel, svg in bga_tile_assets().items():
         write(os.path.join(HERE, '..', 'bga', 'img', rel), svg)
+    # player boards: basic side + advanced side per faction
+    figs = ''
+    for fname, col in FACTIONS:
+        for side, fn in (('basic', basic_board), ('advanced', advanced_board)):
+            rel = f'boards/player_board_{fname.lower()}_{side}.svg'
+            write(os.path.join(HERE, rel), fn(col, fname.upper()))
+            if fname == 'Purple':
+                figs += f'<figure><img src="{rel}"><figcaption>{fname} {side}</figcaption></figure>'
+    write(os.path.join(HERE, 'boards_overview.html'), f'''<!doctype html><meta charset="utf-8"><title>Player boards</title>
+<style>body{{font-family:sans-serif;background:#f4ead7;margin:20px}}figure{{margin:0 0 20px}}img{{width:100%;max-width:1100px;display:block;border:1px solid #2b2233}}</style>
+<h1>Player boards (draft)</h1><p>One pair per faction (6 colours); only the colour and art slot differ. Showing Purple. Basic numbers are draft (see BASIC_GAME.md).</p>{figs}''')
+    # canonical icon set (the same files BGA, the rulebook and the player boards use)
+    for name in ICONS:
+        write(os.path.join(HERE, 'icons', f'{name}.svg'), icon_svg(name))
+    cells = ''.join(f'<figure><img src="icons/{n}.svg"><figcaption>{n}<br>{escape(lbl)}</figcaption></figure>' for n, (lbl, _) in ICONS.items())
+    write(os.path.join(HERE, 'icons_overview.html'), f'''<!doctype html><meta charset="utf-8"><title>Little Commanders - icons</title>
+<style>body{{font-family:sans-serif;background:#f4ead7;color:#2b2233;margin:20px}}.grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:14px}}
+figure{{margin:0;text-align:center}}img{{width:72px;height:72px}}figcaption{{font-size:11px}}.s img{{width:32px;height:32px}}</style>
+<h1>Icons ({len(ICONS)})</h1><p>One set for cards, BGA, rulebook and player boards. Defined in <code>design/icons.py</code>; the SVG files in <code>design/icons/</code> are generated.</p>
+<div class="grid">{cells}</div><h2>At 32 px</h2><div class="grid s">{cells}</div>''')
 
     # ----- tiles
     land = build_land_tiles()

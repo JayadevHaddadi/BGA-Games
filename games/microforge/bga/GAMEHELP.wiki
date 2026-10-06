@@ -1,0 +1,29 @@
+= Little Commanders =
+
+''A game of toy armies on hexagon tiles for 2 to 6 players. Working title.''
+
+== Goal ==
+Be the first commander to reach '''5 Victory Points'''. Victory Points come only from '''Mission cards'''.
+
+== Your turn ==
+At the start of your turn you gain '''10 Credits'''. Then, in any order, you may build, make pieces, move, trade and buy a Mission. Your attacks are decided when you end your turn.
+
+== Tiles and control ==
+You '''control''' a tile while one of your pieces stands on it. Buildings and tokens on a tile belong to whoever controls it. Roads only connect where both touching tiles show a road.
+
+== Buildings ==
+* '''Extractor''' (1 iron): once per turn, pay 1 Credit to take 1 token of the tile's resource.
+* '''Factory''' (2 iron): 1 iron becomes 2 Bots, or 1 iron and 1 crystal become 1 Mech.
+* '''Guard Tower''' (2 iron): makes the tile harder to push and kill.
+
+== Moving ==
+Every step costs 1 Credit per piece. Pieces follow open roads and cannot pass through enemy pieces.
+
+== Trading ==
+Trade at your home Dock (iron and bots) or at a Port tile you control. Items trade at the current price; afterwards the price moves one step per item traded.
+
+== Missions ==
+Pay 5 Credits (plus 1 for each Mission you already bought) to buy a face-up Mission. You score only if you meet its condition at that moment; otherwise the Credits are lost. One Mission per turn.
+
+== Combat ==
+A Bot has power 1, a Mech power 5. To push a defender you need twice its power, to kill it three times; each Guard Tower adds 1 to both multipliers. If the attack is too weak it fails and the attackers return.

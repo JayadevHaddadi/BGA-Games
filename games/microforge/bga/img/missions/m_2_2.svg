@@ -7,7 +7,7 @@
 <g id="art-slot"><rect x="54" y="170" width="582" height="380" rx="8" fill="#ebe1cd" stroke="#2b2233" stroke-width="3" stroke-dasharray="14 8"/>
 <text class="placeholder" x="345.0" y="370" text-anchor="middle" font-size="26" fill="#9a8f7c">ART SLOT 582 x 380</text></g>
 <rect x="54" y="570" width="582" height="150" rx="8" fill="#fffaf0" stroke="#2b2233" stroke-width="3"/>
-<g transform="translate(140,645) scale(1.5333333333333334)" stroke="#2b2233" stroke-width="3" stroke-linejoin="round" fill="none"><rect x="-28" y="-6" width="56" height="32" fill="#c9b79a"/><rect x="8" y="-30" width="12" height="26" fill="#8a7a62"/><rect x="-18" y="6" width="12" height="12" fill="#f4ead7"/></g>
+<g transform="translate(140.0,645.0) scale(1.438)" stroke="#2b2233" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" fill="none"><rect x="-28" y="-6" width="56" height="32" fill="#c9b79a"/><rect x="8" y="-30" width="12" height="26" fill="#8a7a62"/><rect x="-18" y="6" width="12" height="12" fill="#f4ead7"/><rect x="2" y="6" width="12" height="12" fill="#f4ead7"/></g>
 <text x="240" y="678" font-size="92" font-weight="bold" fill="#2b2233">2</text>
 <text x="74" y="760" font-size="28" fill="#2b2233">Control 2 Factories.</text>
 <g id="cost"><circle cx="96" cy="848" r="38" fill="#e6c455" stroke="#2b2233" stroke-width="4"/>

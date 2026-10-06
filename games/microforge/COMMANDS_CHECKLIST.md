@@ -18,3 +18,21 @@
 | 14 | Earlier: BGA look, BGG page and name | Answered in chat | - |
 
 Known gaps: saved images are small thumbnails (full resolution is only on the Canva links); the "Rich Land" missions cannot currently be completed (see `design/missions_overview.html`); nothing here has been committed.
+
+---
+# Round 2 list (from your messages about Private Alpha, movement, basic rules, boards, rulebook, icons)
+
+| # | You asked | Status | Where |
+|---|---|---|---|
+| 1 | What is required for Private Alpha; aim for it asap | Done (list + prep). Remaining steps are on the BGA website | `ALPHA_CHECKLIST.md`; sounds, metadata images and GAMEHELP added |
+| 2 | Movement linear, triangular kept in notes | Done | `Game.php`, `Game.js`, `DESIGN_NOTES.md` |
+| 3 | "Not like homework": picture-led rulebook, icon board, fast turns, random tiles/missions | Partly: rulebook with figures, boards with icons done. Fast turns and random tiles/missions already in the game | `rulebook/rulebook.pdf`, `design/boards/` |
+| 4 | Basic rules that are not boring, with a goal (missions) | Proposal written, needs your OK | `BASIC_GAME.md` |
+| 5 | Explain the 2 market options again | Done (3 options, plainly) | `BASIC_GAME.md`, chat |
+| 6 | Good basic strategies | Done (list) | `BASIC_GAME.md` |
+| 7 | Player boards with basic + advanced side | Draft SVGs, 6 factions x 2 sides | `design/boards/`, `design/boards_overview.html` |
+| 8 | A nice rulebook | Draft v0.2, 7 pages with figures | `rulebook/rulebook.pdf` |
+| 9 | Consistent ICONS for everything, in the rulebook | Done, 29 icons | `design/icons/`, `design/icons_overview.html` |
+| 10 | Everything defined as SVG so art can be swapped | Done: icons, tiles, roads, cards, boards are generated SVG; BGA reads the same files | `design/*.py`, `bga/img/` |
+
+Not done / open: used-coin and once-per-turn rules (agreed, not coded), market exploit fix, colour-blind preference, Rich Land missions, final art for metadata.

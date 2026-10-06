@@ -18,8 +18,8 @@ const NO_RESOURCE_COLOR = '#c3c6cc';
 const SEA_COLOR = '#6f95b0';
 const BUILDING_NAMES = { extractor: 'Extractor', factory: 'Factory', tower: 'Guard Tower' };
 const BUILDING_NEUTRAL = '#7a6a58'; // buildings are universal: no player colour
-const BUILDING_ICON = { extractor: 'extractors', factory: 'factories', tower: 'towers' };
-const ITEM_ICON = { iron: 'iron_tokens', crystal: 'crystal_tokens' };
+const BUILDING_ICON = { extractor: 'extractor', factory: 'factory', tower: 'tower' };
+const ITEM_ICON = { iron: 'iron', crystal: 'crystal' };
 const MISSION_TEXT = {
     extractors: ['Mine Boss ${n}', 'Control ${n} Extractors.'],
     factories: ['Toy Factory ${n}', 'Control ${n} Factories.'],
@@ -126,6 +126,11 @@ export class Game {
         this.slotSel = null;
         this.missionSel = null;
         this.render();
+        if (args.sound) {
+            try {
+                this.bga.sounds.play(args.sound);
+            } catch (e) { /* sound is optional */ }
+        }
     }
 
     notif_endGameScores() {
@@ -155,18 +160,16 @@ export class Game {
     }
 
     stepsFromCoins(coins) {
-        let s = 0;
-        while ((s + 1) * (s + 2) / 2 <= coins) s++;
-        return s;
+        return coins; // linear movement: 1 coin per step
     }
 
-    /** Credits to move the whole selection `dist` steps: every piece pays triangular(total steps) minus the coins under it. */
+    /** Credits to move the whole selection `dist` steps: every piece pays 1 Credit per step. */
     selCost(dist) {
         let cost = 0;
         Object.entries(this.sel).forEach(([key, n]) => {
             const coins = Number(key.split('|')[1]);
             const steps = this.stepsFromCoins(coins) + dist;
-            cost += n * (steps * (steps + 1) / 2 - coins);
+            cost += n * (steps - coins);
         });
         return cost;
     }
@@ -202,9 +205,9 @@ export class Game {
         return d >= 0 && a.edges[d] === '1' && b.edges[(d + 3) % 6] === '1';
     }
 
-    /** Every piece pays the triangular number of its steps (1 step 1, 2 steps 3, 3 steps 6 ...); mirrors the server. */
+    /** Every piece pays 1 Credit per step; mirrors the server. */
     moveCost(pieces, steps) {
-        return pieces * steps * (steps + 1) / 2;
+        return pieces * steps;
     }
 
     missionText(m) {

@@ -534,9 +534,24 @@ class Game extends \Bga\GameFramework\Table
         ];
     }
 
+    /** Confirmed events only: the client plays this sound (files in sounds/) when the notification arrives. */
+    protected function soundFor(string $message): string
+    {
+        foreach ([
+            'ATTACK FAILURE' => 'mf_fail', 'wasted' => 'mf_fail', 'completes a mission' => 'mf_mission',
+            'takes hex' => 'mf_attack', 'attack power' => 'mf_attack', 'builds' => 'mf_build', 'extracts' => 'mf_build',
+            'sends' => 'mf_move', 'moves' => 'mf_move', 'retreats' => 'mf_move', 'buys' => 'mf_trade', 'sells' => 'mf_trade',
+        ] as $needle => $sound) {
+            if (strpos($message, $needle) !== false) {
+                return $sound;
+            }
+        }
+        return '';
+    }
+
     public function notifyUpdate(string $message, array $args = []): void
     {
-        $this->notifyAllPlayers('gameUpdate', $message, $args + ['state' => $this->getPublicState()]);
+        $this->notifyAllPlayers('gameUpdate', $message, $args + ['state' => $this->getPublicState(), 'sound' => $this->soundFor($message)]);
     }
 
     public function getPlayerState(int $playerId): array
@@ -626,20 +641,19 @@ class Game extends \Bga\GameFramework\Table
         return null;
     }
 
-    /** Coins paid in total for a piece that has moved $steps steps this turn: 1, 3, 6, 10 ... (triangular). */
+    /**
+     * Coins paid in total for a piece that has moved $steps steps this turn. Linear: 1 Credit per step.
+     * (Design note: the earlier rule was triangular, n(n+1)/2 = 1, 3, 6, 10; see DESIGN_NOTES.md.)
+     */
     public static function coinsForSteps(int $steps): int
     {
-        return intdiv($steps * ($steps + 1), 2);
+        return $steps;
     }
 
     /** Number of steps a piece has already moved this turn, from the coins lying under it. */
     public static function stepsFromCoins(int $coins): int
     {
-        $s = 0;
-        while (self::coinsForSteps($s + 1) <= $coins) {
-            $s++;
-        }
-        return $s;
+        return $coins;
     }
 
     /** A hex is controlled by whoever has units on it. */
@@ -791,8 +805,7 @@ class Game extends \Bga\GameFramework\Table
     /**
      * Move bots / mechs / resource tokens from a hex you control to any hex reachable over open paths through free or
      * friendly hexes. $pieces lists the stacks to move as "kind:coinsUnderThem:count" separated by ";".
-     * A piece pays the triangular cost of its total steps this turn minus the coins already lying under it, so a
-     * bot that moved 1 hex (1 coin) pays 2 more to move 1 hex again (3 coins in total for 2 steps).
+     * Every step costs 1 Credit per piece; the coin under a moved piece marks that it has moved (coins = steps).
      * Moving onto an enemy-held hex declares an attack instead (resolved when the turn ends).
      */
     public function movePieces(int $playerId, int $fromHexId, int $toHexId, string $pieces): void
