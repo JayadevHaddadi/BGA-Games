@@ -220,13 +220,25 @@ def ground_group(kind, outline=True):
     return ''.join(o)
 
 
-def road_group(d):
-    """Road stub from the edge midpoint to the middle of the tile (dark edge + sand centre)."""
+def road_group(d, open_=True):
+    """Open edge: road from the edge midpoint to the middle of the tile. Closed edge: a very small broken stump."""
     a = math.radians(EDGE_ANG[d])
-    ex, ey = 0.866 * U * math.cos(a), 0.866 * U * math.sin(a)
-    ix, iy = 0.45 * U * math.cos(a), 0.45 * U * math.sin(a)
+    ca, sa = math.cos(a), math.sin(a)
+    ex, ey = 0.866 * U * ca, 0.866 * U * sa
+    if open_:
+        ix, iy = 0.45 * U * ca, 0.45 * U * sa
+        return (f'<line x1="{ex:.1f}" y1="{ey:.1f}" x2="{ix:.1f}" y2="{iy:.1f}" stroke="#6b5a3e" stroke-width="6.4"/>'
+                f'<line x1="{ex:.1f}" y1="{ey:.1f}" x2="{ix:.1f}" y2="{iy:.1f}" stroke="#e7d9b5" stroke-width="3.6"/>')
+    ix, iy = (0.866 * U - 5) * ca, (0.866 * U - 5) * sa
+    px, py = (0.866 * U - 9) * ca - 3 * sa, (0.866 * U - 9) * sa + 3 * ca  # a loose stone beside the break
     return (f'<line x1="{ex:.1f}" y1="{ey:.1f}" x2="{ix:.1f}" y2="{iy:.1f}" stroke="#6b5a3e" stroke-width="6.4"/>'
-            f'<line x1="{ex:.1f}" y1="{ey:.1f}" x2="{ix:.1f}" y2="{iy:.1f}" stroke="#e7d9b5" stroke-width="3.6"/>')
+            f'<line x1="{ex:.1f}" y1="{ey:.1f}" x2="{ix:.1f}" y2="{iy:.1f}" stroke="#e7d9b5" stroke-width="3.6"/>'
+            f'<line x1="{ix - 1.5 * sa:.1f}" y1="{iy + 1.5 * ca:.1f}" x2="{ix + 1.5 * sa:.1f}" y2="{iy - 1.5 * ca:.1f}" stroke="#6b5a3e" stroke-width="1.2"/>'
+            f'<circle cx="{px:.1f}" cy="{py:.1f}" r="1.3" fill="#6b5a3e"/>')
+
+
+def sockets_group(slots):
+    return ''.join(f'<rect x="{-slots * 12 + i * 24 + 1}" y="-16" width="22" height="16" fill="#ebe1cd" stroke="{INK}" stroke-width="1.2" stroke-dasharray="3"/>' for i in range(slots))
 
 
 def wrap_svg(inner, scale=1.0, title='', pad=0):
@@ -239,10 +251,8 @@ def wrap_svg(inner, scale=1.0, title='', pad=0):
 def tile_svg(title, kind, slots, paths, extra='', banner=None):
     """Print tile: ground + roads on open edges + building sockets (same positions as the BGA board) + extras."""
     s = [ground_group(kind)]
-    s += [road_group(d) for d in range(6) if paths[d]]
-    for i in range(slots):
-        sx = -slots * 12 + i * 24 + 1
-        s.append(f'<rect x="{sx}" y="-16" width="22" height="16" fill="#ebe1cd" stroke="{INK}" stroke-width="1.2" stroke-dasharray="3"/>')
+    s += [road_group(d, paths[d]) for d in range(6) if paths[d] or kind != 'port']
+    s.append(sockets_group(slots))
     if banner:
         s.append(f'<rect x="-9" y="-34" width="18" height="6" fill="{banner}" stroke="{INK}" stroke-width="0.9"/>')
     s.append(extra)
@@ -255,7 +265,10 @@ def bga_tile_assets():
     for kind in GROUND_FILL:
         out[f'tiles/art_{kind}.svg'] = wrap_svg(ground_group(kind, outline=False))
     for d in range(6):
-        out[f'tiles/road_{d}.svg'] = wrap_svg(road_group(d))
+        out[f'tiles/road_{d}.svg'] = wrap_svg(road_group(d, True))
+        out[f'tiles/stump_{d}.svg'] = wrap_svg(road_group(d, False))
+    for n in (1, 2):
+        out[f'tiles/sockets_{n}.svg'] = wrap_svg(sockets_group(n))
     for kind in ('extractors', 'factories', 'towers', 'iron_tokens', 'crystal_tokens', 'bots', 'mechs'):
         out[f'icons/{kind}.svg'] = icon_svg(kind)
     return out

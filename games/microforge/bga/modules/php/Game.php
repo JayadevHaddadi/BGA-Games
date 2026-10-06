@@ -48,11 +48,11 @@ class Game extends \Bga\GameFramework\Table
     public const BASE_INCOME = 10;
     public const BOTS_PER_IRON = 2; // a Factory turns 1 iron into 2 bots
     public const START_IRON = 2;
-    // Combat: a bot has power 1, a mech power 4. Pushing a defender takes PUSH_NEED x its power, killing it
+    // Combat: a bot has power 1, a mech power 5. Pushing a defender takes PUSH_NEED x its power, killing it
     // KILL_NEED x its power; every Guard Tower on the hex adds 1 to both numbers.
     public const PUSH_NEED = 2;
     public const KILL_NEED = 3;
-    public const MECH_POWER = 4;
+    public const MECH_POWER = 5;
     // Mission pool: [condition type, amount]. 20 designed per level; a game uses 10 of each.
     public const MISSION_POOL = [
         1 => [

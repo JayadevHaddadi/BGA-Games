@@ -534,7 +534,7 @@ export class Game {
                     + `<div>${_('Building needs iron on the tile')}: ${BUILDINGS.map(b => `${b} ${d.build_iron[b]}`).join(', ')}.</div>`
                     + `<div>${_('Moving: every piece pays 1 Credit for 1 step, 3 for 2 steps, 6 for 3 steps, 10 for 4. A moved piece gets its coins under it and cannot move again this turn.')}</div>`
                     + `<div>${_('Buildings and resource tokens belong to whoever controls their hex (has units on it). Bots only hold hexes and attack.')}</div>`
-                    + `<div>${_('Attack power: bot = 1, mech = 4. Attackers walk onto the enemy tile and the attack is resolved when you end your turn. To push a defender you need twice its power (a bot 2, a mech 8), to kill it three times; each Guard Tower adds 1 per point of defender power. If the attack is too weak it FAILS and the attackers return.')}</div>`
+                    + `<div>${_('Attack power: bot = 1, mech = 5. Attackers walk onto the enemy tile and the attack is resolved when you end your turn. To push a defender you need twice its power (a bot 2, a mech 10), to kill it three times; each Guard Tower adds 1 per point of defender power. If the attack is too weak it FAILS and the attackers return.')}</div>`
                     + '</div>';
             }
             return `<div class="mf_pboard" style="border-color:${this.colorOf(pid)}">`
@@ -645,12 +645,18 @@ export class Game {
             // A stub is solid when the neighbour has the matching connection (usable road) and faded when it does not.
             parts.push(`<g class="mf_hex" data-hex="${h.hex_id}" style="cursor:pointer">`
                 + `<image href="${themeUrl}img/tiles/art_${h.is_port ? 'port' : (h.resource_type || 'empty')}.svg" x="${(x - size * 0.866).toFixed(1)}" y="${y - size}" width="${(size * 1.732).toFixed(1)}" height="${size * 2}" pointer-events="none"/>`);
-            DIRS.forEach(([dq, dr], dIdx) => {
-                const nb = this.data.hexes.find(o => o.coord_q === h.coord_q + dq && o.coord_r === h.coord_r + dr);
-                if (!nb || h.edges[dIdx] !== '1') return;
-                const usable = nb.edges[(dIdx + 3) % 6] === '1';
-                parts.push(`<image href="${themeUrl}img/tiles/road_${dIdx}.svg" x="${(x - size * 0.866).toFixed(1)}" y="${y - size}" width="${(size * 1.732).toFixed(1)}" height="${size * 2}" opacity="${usable ? 1 : 0.4}" pointer-events="none"/>`);
-            });
+            const box = `x="${(x - size * 0.866).toFixed(1)}" y="${y - size}" width="${(size * 1.732).toFixed(1)}" height="${size * 2}" pointer-events="none"`;
+            // Every tile shows all 6 sides: a full road where it has the connection, otherwise a small broken stump (not on sea tiles)
+            for (let dIdx = 0; dIdx < 6; dIdx++) {
+                if (h.edges[dIdx] === '1') {
+                    parts.push(`<image href="${themeUrl}img/tiles/road_${dIdx}.svg" ${box}/>`);
+                } else if (!h.is_port) {
+                    parts.push(`<image href="${themeUrl}img/tiles/stump_${dIdx}.svg" ${box}/>`);
+                }
+            }
+            if (h.building_slots > 0) {
+                parts.push(`<image href="${themeUrl}img/tiles/sockets_${h.building_slots}.svg" ${box}/>`);
+            }
             parts.push(`<polygon points="${pts}" fill="transparent" stroke="${stroke}" stroke-width="${isPending || retreat ? 7 : (sel || target ? 5 : (h.owner_id ? 4 : 1.5))}"><title>${h.is_port ? _('Port') : (h.resource_type || _('no resource'))}</title></polygon>`);
             if (h.is_port) {
                 const pr = this.data.ports.find(p => p.adjacent_hex_id === h.hex_id);
@@ -668,7 +674,7 @@ export class Game {
                 const b = built[i];
                 const sx = x - nSlots * 12 + i * 24 + 1;
                 const picked = this.slotSel && this.slotSel.hex === h.hex_id && this.slotSel.idx === i;
-                parts.push(`<rect class="mf_slot" data-hex="${h.hex_id}" data-kind="bld" data-idx="${i}" x="${sx}" y="${y - 16}" width="22" height="16" fill="${b ? 'rgba(255,250,240,0.6)' : 'rgba(255,255,255,0.35)'}" stroke="${picked ? '#ffe600' : '#2b2118'}" stroke-width="${picked ? 3 : 1.2}" stroke-dasharray="${b ? 0 : 3}"/>`
+                parts.push(`<rect class="mf_slot" data-hex="${h.hex_id}" data-kind="bld" data-idx="${i}" x="${sx}" y="${y - 16}" width="22" height="16" fill="transparent" stroke="${picked ? '#ffe600' : 'none'}" stroke-width="3"/>`
                     + (b ? `<image href="${themeUrl}img/icons/${BUILDING_ICON[b.building_type]}.svg" x="${sx}" y="${y - 17}" width="24" height="18" opacity="${b.building_type === 'extractor' && b.used ? 0.45 : 1}" pointer-events="none"/>` : ''));
             }
             // Unit stacks: circles = bots, squares = mechs. Coins under a stack = it has moved (cost per piece).

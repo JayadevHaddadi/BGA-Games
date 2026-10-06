@@ -110,4 +110,4 @@ Option "Faction powers": **Off** = all symmetric (default for the first paper te
 - `design/build_design.py` draws everything once. Print tiles and the BGA board use the same ground art, road stubs and building sockets (pointy-top, same size as the BGA hex).
 - BGA does not draw tiles itself any more: per tile it layers `img/tiles/art_<resource>.svg` + one `img/tiles/road_<dir>.svg` per open edge, fed by that tile's data (resource, building slots, edge mask). Building and resource-token icons come from `img/icons/`.
 - Changing theme = changing the drawing functions (`ground_group`, `road_group`, `icon`) and rerunning the script. Bots and mechs are still simple coloured shapes until the theme is chosen.
-- If the Bharat theme wins, bots become small animals and mechs big animals (rules unchanged: power 1 and 4, same costs).
+- If the Bharat theme wins, bots become small animals and mechs big animals (rules unchanged: power 1 and 5, same costs).
