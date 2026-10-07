@@ -35,7 +35,7 @@ def star(r_out, r_in, n=5):
 
 # name -> (label, inner svg drawn in the -32..32 box)
 ICONS = {
-    'credit': ('Credit', f'<circle r="26" fill="{GOLD}"/><circle r="17" fill="none"/><path d="M0 -10 V10 M-5 -5 H5 M-5 5 H5" stroke-width="3.5"/>'),
+    'credit': ('Credit', f'<circle r="27" fill="{GOLD}" stroke="{INK}" stroke-width="3"/><circle r="21" fill="none" stroke="#fff176" stroke-width="2"/><circle r="15" fill="none" stroke="{INK}" stroke-width="1.5"/><path d="M-5 -6 L5 -6 M-5 6 L5 6 M0 -10 V10" stroke="{INK}" stroke-width="3.5"/>'),
     'iron': ('Iron', f'<rect x="-22" y="-12" width="44" height="32" fill="{IRON}"/><path d="M-22 -12 L-12 -26 L32 -26 L22 -12 Z" fill="{IRON_LIGHT}"/><path d="M22 -12 L32 -26 L32 6 L22 20 Z" fill="#6f6f78"/>'),
     'crystal': ('Crystal', f'<path d="M0 -30 L18 -6 L0 30 L-18 -6 Z" fill="{CRYSTAL}"/><path d="M-18 -6 H18 M0 -30 L-7 -6 L0 30 M0 -30 L7 -6 L0 30" fill="none" stroke-width="2"/>'),
     'bot': ('Bot', f'<circle cy="6" r="22" fill="{BODY}"/><path d="M0 -16 V-24"/><circle cy="-27" r="4" fill="{INK}"/><circle cx="-8" cy="4" r="4" fill="{INK}"/><circle cx="8" cy="4" r="4" fill="{INK}"/><path d="M-7 15 H7" fill="none"/>'),
@@ -50,8 +50,8 @@ ICONS = {
     'hex2': ('Tile with two resources', f'<polygon points="{hexpts(28)}" fill="{GREEN}"/><path d="M0 -24 L24 0 L0 24 L-24 0 Z" fill="{CRYSTAL}"/>'),
     'centre': ('Centre tile', f'<polygon points="{hexpts(28)}" fill="#e7d9b5"/><polygon points="{star(18, 8)}" fill="{PURPLE}"/>'),
     'control': ('Control', f'<polygon points="{hexpts(28)}" fill="{GREEN}"/><path d="M-4 18 V-20 L16 -12 L-4 -4" fill="{RED}"/>'),
-    'mission': ('Mission', f'<rect x="-20" y="-28" width="40" height="56" rx="3" fill="{PAPER}"/><path d="M-12 -14 H12 M-12 -4 H12" fill="none"/><polygon points="{star(9, 4)}" fill="{PURPLE}" transform="translate(0 14)"/>'),
-    'vp': ('Victory point', f'<circle r="27" fill="{PURPLE}"/><polygon points="{star(18, 8)}" fill="{GOLD}"/>'),
+    'mission': ('Mission', f'<rect x="-18" y="-26" width="36" height="52" rx="4" fill="{PAPER}" stroke="{INK}" stroke-width="3"/><path d="M-10 -14 H10 M-10 -4 H10" stroke="{INK}" stroke-width="2.5" fill="none"/><polygon points="{star(9, 4)}" fill="{GOLD}" stroke="{INK}" stroke-width="1.5" transform="translate(0 12)"/>'),
+    'vp': ('Victory point', f'<polygon points="{star(28, 12)}" fill="{GOLD}" stroke="{INK}" stroke-width="3"/><polygon points="{star(17, 7.5)}" fill="#fff59d" stroke="none"/>'),
     'move': ('Move (1 Credit per step)', f'<path d="M-28 0 H12" fill="none" stroke-width="5"/><path d="M8 -18 L28 0 L8 18 Z" fill="{GREEN}"/>'),
     'power': ('Attack power', f'<polygon points="{star(30, 15, 8)}" fill="{GOLD}"/>'),
     'push': ('Push', f'<rect x="4" y="-16" width="26" height="32" fill="{BODY}"/><path d="M-30 0 H-4" fill="none" stroke-width="5"/><path d="M-8 -14 L8 0 L-8 14 Z" fill="{RED}"/>'),

@@ -62,15 +62,17 @@ def _board(col, name, adv):
     A = ADV
     s = frame(col, f'{name}  -  ' + ('ADVANCED SIDE  (adds Docks, Ports and the market)' if adv else 'BASIC SIDE  (flip for Docks, Ports and the market)'), f'Player board {name} ' + ('advanced' if adv else 'basic'))
     # supplies
-    s.append(panel(30, 190, 450, 830, 'Your supply', col))
-    s.append(icon_group('bot', 100, 262, 40) + t(130, 270, 'Bots (20)', 24, 'bold'))
-    s.append(circles(80, 325, 5, 4, 80, 28, 'bot'))
-    s.append(icon_group('mech', 100, 650, 40) + t(130, 658, 'Mechs (6)', 24, 'bold'))
-    s.append(circles(80, 705, 6, 1, 70, 28, 'mech'))
-    for i, (ic, label) in enumerate([('extractor', 'Extractor x5'), ('factory', 'Factory x5'), ('tower', 'Tower x5')]):
-        y = 790 + i * 75
-        s.append(icon_group(ic, 90, y, 40) + t(125, y + 8, label, 22, 'bold'))
-        s.append(circles(310, y, 5, 1, 38, 15))
+    s.append(panel(30, 190, 450, 830, 'Unit Supply', col))
+    # Bots holding area (all 20 bots)
+    s.append(icon_group('bot', 80, 252, 44) + t(120, 260, 'Bots (20 in reserve)', 26, 'bold', fill=col))
+    s.append(f'<rect x="55" y="280" width="400" height="330" rx="14" fill="#ebe1cd" stroke="{INK}" stroke-width="3" stroke-dasharray="10 7"/>')
+    s.append(icon_group('bot', 255, 435, 140).replace('<g ', '<g opacity="0.16" ', 1))
+    s.append(t(255, 575, 'Place your 20 Bots here', 20, 'bold', 'middle', '#8a7f70'))
+    # Mechs holding area (all 5 mechs)
+    s.append(icon_group('mech', 80, 655, 44) + t(120, 663, 'Mechs (5 in reserve)', 26, 'bold', fill=col))
+    s.append(f'<rect x="55" y="685" width="400" height="315" rx="14" fill="#ebe1cd" stroke="{INK}" stroke-width="3" stroke-dasharray="10 7"/>')
+    s.append(icon_group('mech', 255, 830, 130).replace('<g ', '<g opacity="0.16" ', 1))
+    s.append(t(255, 965, 'Place your 5 Mechs here', 20, 'bold', 'middle', '#8a7f70'))
     # turn flow
     s.append(panel(510, 190, 945, 150, 'Start of your turn', col))
     s.append(icon_group('income', 600, 285, 64))
@@ -107,8 +109,7 @@ def _board(col, name, adv):
     s.append(icon_group('mech', 1230, 850, 40) + t(1260, 860, f'power {A["mech_power"]}', 26, 'bold'))
     s.append(icon_group('push', 1040, 905, 44) + t(1075, 913, 'push: 2 x defenders', 22))
     s.append(icon_group('kill', 1040, 950, 44) + t(1075, 958, 'kill: 3 x defenders', 22))
-    s.append(icon_group('tower', 1385, 915, 44) + t(1385, 960, '+1 each', 20, 'bold', 'middle'))
-    s.append(t(1030, 1003, f'Win: {A["win_vp"]} VP, only from Missions', 22, 'bold'))
+    s.append(icon_group('vp', 1045, 995, 34) + t(1070, 1003, f'Win: {A["win_vp"]} VP, only from Missions', 22, 'bold'))
     s.append('</svg>')
     return '\n'.join(s)
 

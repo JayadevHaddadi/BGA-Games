@@ -106,7 +106,19 @@ export class Game {
         this.data = gamedatas;
         this.data.hexes.forEach(h => { h.edges = h.edges || '111111'; });
         this.bga.gameArea.getElement().insertAdjacentHTML('beforeend',
-            '<div id="mf_boards"></div><div id="mf_notice"></div><div id="mf_top"><div id="mf_market"></div><div id="mf_missions"></div></div><div id="mf_board"></div><div id="mf_ports"></div><div id="mf_panel"></div><div id="mf_matbox"></div>');
+            '<div id="mf_notice"></div>' +
+            '<div id="mf_main_container">' +
+                '<div id="mf_board_area">' +
+                    '<div id="mf_market"></div>' +
+                    '<div id="mf_board"></div>' +
+                    '<div id="mf_ports"></div>' +
+                    '<div id="mf_panel"></div>' +
+                '</div>' +
+                '<div id="mf_missions_area">' +
+                    '<div id="mf_missions"></div>' +
+                '</div>' +
+            '</div>' +
+            '<div id="mf_matbox"></div>');
         this.bga.notifications.setupPromiseNotifications();
         this.render();
         // The player panels on the right may mount after setup
@@ -543,31 +555,21 @@ export class Game {
     renderPlayerBoards() {
         const d = this.data;
         const me = this.me();
-        const html = Object.keys(d.players).map(pid => {
-            pid = Number(pid);
-            const s = d.player_state[pid];
-            const done = s.missions_done;
-            const supply = ['bot', 'mech'].map(t => `${t}s ${s.supply[t]}/${d.supply_total[t]}`).join(' | ');
-            const rules = '';
-            return `<div class="mf_pboard" style="border-color:${this.colorOf(pid)}">`
-                + `<b>${d.players[pid].name}</b> | ${_('Credits')}: ${s.credits} | VP: ${s.vp}/${d.vp_target} | ${_('Missions done')}: ${done} | ${_('bought')}: ${s.missions_bought}<br>`
-                + `<span class="mf_income">${_('Income each turn')}: +${s.income}</span><br>`
-                + `${_('Supply')}: ${supply}`
-                + rules + '</div>';
-        }).join('');
-        document.getElementById('mf_boards').innerHTML = html;
-        // The player mat (img/boards): basic side for the basic game, advanced side for the other levels
+        // The commander player mat (img/boards): basic side for the basic game, advanced side for the other levels
         const mine = d.players[me];
         const colour = mine ? (COLOR_NAME[String(mine.color).toLowerCase()] || 'purple') : null;
         const side = d.has_market ? 'advanced' : 'basic';
         const base = typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : '';
-        document.getElementById('mf_matbox').innerHTML = colour ? `<img class="mf_mat" src="${base}img/boards/player_board_${colour}_${side}.svg" alt="${_('Your player board')}">` : '';
+        const matBox = document.getElementById('mf_matbox');
+        if (matBox) {
+            matBox.innerHTML = colour ? `<img class="mf_mat" src="${base}img/boards/player_board_${colour}_${side}.svg" alt="${_('Your commander board')}">` : '';
+        }
     }
 
-    /** Read-only price board; trading itself happens at a port or your Dock. */
-    /** Credits, bots and missions bought in each player's panel on the right-hand side. */
+    /** Credits, VP, missions and army in each player's panel on the right-hand side. */
     renderSidebar() {
         const d = this.data;
+        const base = typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : '';
         Object.keys(d.players).forEach(pid => {
             pid = Number(pid);
             const panel = this.bga?.playerPanels?.getElement?.(pid);
@@ -580,7 +582,31 @@ export class Game {
             }
             const s = d.player_state[pid];
             const bots = d.units.filter(u => u.owner_id === pid && u.unit_type === 'bot').length;
-            box.innerHTML = `${_('Credits')}: ${s.credits} | VP: ${s.vp}/${d.vp_target} | ${_('Missions bought')}: ${s.missions_bought} | ${_('Bots')}: ${bots}`;
+            const mechs = d.units.filter(u => u.owner_id === pid && u.unit_type === 'mech').length;
+
+            // Sync official BGA score counter with player VP
+            const counter = this.bga?.playerPanels?.getScoreCounter?.(pid);
+            if (counter) counter.toValue(s.vp);
+
+            box.innerHTML = `
+                <div class="mf_panel_stats">
+                    <span class="mf_stat mf_vp" title="${_('Victory Points')} (${s.vp}/${d.vp_target})">
+                        <img src="${base}img/icons/vp.svg" class="mf_stat_icon" alt="VP"> <b>${s.vp}</b><small>/${d.vp_target}</small>
+                    </span>
+                    <span class="mf_stat mf_credits" title="${_('Credits')}">
+                        <img src="${base}img/icons/credit.svg" class="mf_stat_icon" alt="${_('Credits')}"> <b>${s.credits}</b>
+                    </span>
+                    <span class="mf_stat mf_missions" title="${_('Missions completed')}">
+                        <img src="${base}img/icons/mission.svg" class="mf_stat_icon" alt="${_('Missions')}"> <b>${s.missions_done}</b>
+                    </span>
+                </div>
+                <div class="mf_panel_sub">
+                    <span class="mf_stat mf_army" title="${_('Army: Bots and Mechs on the map')}">
+                        <img src="${base}img/icons/bot.svg" class="mf_stat_icon" alt="Bots"> ${bots}
+                        <img src="${base}img/icons/mech.svg" class="mf_stat_icon" alt="Mechs" style="margin-left:4px"> ${mechs}
+                    </span>
+                    <span class="mf_income_tag" title="${_('Income next turn')}">+${s.income}</span>
+                </div>`;
         });
     }
 
@@ -611,24 +637,27 @@ export class Game {
         const me = this.me();
         const met = d.mission_met[me] || {};
         const fee = d.player_state[me].mission_fee;
+        const base = typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : '';
         const cards = d.missions.map(m => {
             const txt = this.missionText(m);
-            const base = typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : '';
             return `<button class="mf_mission${this.missionSel === m.id ? ' mf_mission_sel' : ''}" data-mission="${m.id}" title="${txt.name}" aria-label="${txt.name}">`
                 + `<img src="${base}img/missions/m_${m.id}.svg" alt="${txt.name}">`
-                + `<span>${met[m.id] ? _('you meet it') : '&nbsp;'}</span></button>`;
+                + `<span class="mf_mission_tag">${met[m.id] ? _('meets condition') : '&nbsp;'}</span></button>`;
         }).join('');
-        let info = `<div class="mf_hint">${_('Click a mission card for details. A completed card is replaced from the deck.')} (${d.mission_deck_left} ${_('left in the deck')})</div>`;
+        let info = `<div class="mf_hint">${_('Click a mission card for details. A completed card is replaced from the deck.')}</div>`;
         const sel = d.missions.find(x => x.id === this.missionSel);
         if (sel) {
             const txt = this.missionText(sel);
-            info = `<div class="mf_missioninfo"><b>${txt.name}</b> (${_('level')} ${sel.level}, ${sel.vp} VP)<br>${txt.desc}<br>`
-                + `${_('Buy it for')} ${fee} ${_('Credits (one mission per turn; each mission you buy makes your next one 1 Credit dearer). You get the VP only if you meet it at that moment; otherwise the Credits are wasted.')}<br>`
-                + `${_('You meet it now')}: ${met[sel.id] ? _('yes') : _('no')}</div>`;
+            info = `<div class="mf_missioninfo"><b>${txt.name}</b> (${_('Level')} ${sel.level}, ${sel.vp} VP)<br>${txt.desc}<br>`
+                + `${_('Buy fee')}: ${fee} ${_('Credits')}.<br>`
+                + `${_('Condition met now')}: <b>${met[sel.id] ? _('yes') : _('no')}</b></div>`;
         }
         const el = document.getElementById('mf_missions');
-        el.innerHTML = `<b>${_('Missions')}</b>${cards}${info}`;
-        el.querySelectorAll('.mf_mission').forEach(b => b.addEventListener('click', () => this.onMissionClick(b.dataset.mission)));
+        if (el) {
+            el.innerHTML = `<div class="mf_missions_header"><b>${_('Missions')}</b> <span class="mf_badge">${d.mission_deck_left} ${_('in deck')}</span></div>`
+                + `<div class="mf_missions_grid">${cards}</div>${info}`;
+            el.querySelectorAll('.mf_mission').forEach(b => b.addEventListener('click', () => this.onMissionClick(b.dataset.mission)));
+        }
     }
 
     onMissionClick(m) {

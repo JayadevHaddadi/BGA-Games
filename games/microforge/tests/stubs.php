@@ -59,6 +59,19 @@ namespace Bga\GameFramework {
         }
     }
 
+    class ScoreStub
+    {
+        public array $scores = [];
+        public function set(int $pid, $score): void
+        {
+            $this->scores[$pid] = (int) $score;
+        }
+        public function get(int $pid): int
+        {
+            return $this->scores[$pid] ?? 0;
+        }
+    }
+
     abstract class Table
     {
         public static ?\PDO $pdo = null;
@@ -69,6 +82,7 @@ namespace Bga\GameFramework {
         public $tableOptions = null;
         public array $notifications = [];
         public array $players = [];
+        public $bga;
 
         public function __construct()
         {
@@ -76,6 +90,9 @@ namespace Bga\GameFramework {
             $this->tableStats = new Counter();
             $this->playerStats = new Counter();
             $this->gamestate = new GameStateStub();
+            $score = new ScoreStub();
+            $scoreAux = new ScoreStub();
+            $this->bga = (object) ['playerScore' => $score, 'playerScoreAux' => $scoreAux];
         }
 
         public static function translate(string $sql): ?string

@@ -32,6 +32,7 @@ TEAL = '#2f7f79'
 IRON_GREEN = '#a9d07c'
 CRYSTAL_BLUE = '#9fd0e6'
 EMPTY_GREY = '#c3c6cc'
+GOLD = '#e6c455'
 SEA = '#6f95b0'
 FACTIONS = [('Red', '#c0392b'), ('Blue', '#2980b9'), ('Green', '#27ae60'),
             ('Yellow', '#e1b12c'), ('Purple', '#8e44ad'), ('Orange', '#d35400')]
@@ -94,6 +95,15 @@ def wrap(text, width):
     return lines
 
 
+def star_at(cx, cy, r_out, r_in, n=5):
+    pts = []
+    for i in range(2 * n):
+        r = r_out if i % 2 == 0 else r_in
+        a = math.radians(-90 + 180 * i / n)
+        pts.append(f'{cx + r * math.cos(a):.1f},{cy + r * math.sin(a):.1f}')
+    return ' '.join(pts)
+
+
 def card_svg(level, idx, mtype, n):
     base, text = TEXT[mtype]
     name = base if mtype == 'center' else f'{base} {n}'
@@ -107,37 +117,52 @@ def card_svg(level, idx, mtype, n):
     accent = TEAL if level == 1 else PURPLE
     vp = VP[level]
     x0, y0, x1, y1 = BLEED, BLEED, W - BLEED, H - BLEED  # trim box
+    card_w = x1 - x0
     s = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W / 10}mm" height="{H / 10}mm" font-family="DejaVu Sans, Arial, sans-serif">',
          f'<title>Mission L{level}-{idx:02d} {escape(name)}</title>',
          f'<rect id="bleed" x="0" y="0" width="{W}" height="{H}" fill="{accent}"/>',
-         f'<rect id="trim" x="{x0}" y="{y0}" width="{x1 - x0}" height="{y1 - y0}" rx="26" fill="{PAPER}" stroke="{INK}" stroke-width="4"/>',
+         f'<rect id="trim" x="{x0}" y="{y0}" width="{card_w}" height="{y1 - y0}" rx="26" fill="{PAPER}" stroke="{INK}" stroke-width="4"/>',
          # header
-         f'<rect x="{x0 + 24}" y="{y0 + 24}" width="{x1 - x0 - 48}" height="96" rx="8" fill="{accent}"/>',
-         f'<text x="{W / 2}" y="{y0 + 90}" text-anchor="middle" font-size="46" font-weight="bold" fill="{PAPER}">{escape(name)}</text>',
-         # art slot
-         f'<g id="art-slot"><rect x="{x0 + 24}" y="{y0 + 140}" width="{x1 - x0 - 48}" height="380" rx="8" fill="#ebe1cd" stroke="{INK}" stroke-width="3" stroke-dasharray="14 8"/>',
-         f'<text class="placeholder" x="{W / 2}" y="{y0 + 340}" text-anchor="middle" font-size="26" fill="#9a8f7c">ART SLOT 582 x 380</text></g>',
-         # condition band
-         f'<rect x="{x0 + 24}" y="{y0 + 540}" width="{x1 - x0 - 48}" height="150" rx="8" fill="#fffaf0" stroke="{INK}" stroke-width="3"/>',
-         mission_icon(mtype, x0 + 110, y0 + 615, 92)]
-    if mtype != 'center':
-        s.append(f'<text x="{x0 + 210}" y="{y0 + 648}" font-size="92" font-weight="bold" fill="{INK}">{n}</text>')
+         f'<rect x="{x0 + 20}" y="{y0 + 20}" width="{card_w - 40}" height="84" rx="10" fill="{accent}"/>',
+         f'<text x="{W / 2}" y="{y0 + 78}" text-anchor="middle" font-size="44" font-weight="bold" fill="{PAPER}">{escape(name)}</text>',
+         # compact art slot banner
+         f'<g id="art-slot"><rect x="{x0 + 20}" y="{y0 + 116}" width="{card_w - 40}" height="170" rx="10" fill="#ebe1cd" stroke="{INK}" stroke-width="3" stroke-dasharray="12 8"/>',
+         f'<text class="placeholder" x="{W / 2}" y="{y0 + 210}" text-anchor="middle" font-size="22" fill="#9a8f7c">ART SLOT {card_w - 40} x 170</text></g>',
+         # hero condition area (large iconography)
+         f'<rect x="{x0 + 20}" y="{y0 + 298}" width="{card_w - 40}" height="375" rx="14" fill="#fffbf0" stroke="{INK}" stroke-width="3.5"/>']
+
+    y_mid = y0 + 445
+    if mtype == 'center':
+        s.append(mission_icon(mtype, W / 2, y_mid - 25, 170))
+        s.append(f'<text x="{W / 2}" y="{y_mid + 85}" text-anchor="middle" font-size="42" font-weight="bold" fill="{INK}">CENTRE HEX</text>')
     else:
-        s.append(f'<text x="{x0 + 210}" y="{y0 + 632}" font-size="40" font-weight="bold" fill="{INK}">Centre hex</text>')
-    for i, line in enumerate(wrap(desc, 30)):
-        s.append(f'<text x="{x0 + 24 + 20}" y="{y0 + 730 + i * 34}" font-size="28" fill="{INK}">{escape(line)}</text>')
-    # cost (bottom left), reward (bottom right)
-    cy = y1 - 62
-    s += [f'<g id="cost"><circle cx="{x0 + 66}" cy="{cy}" r="38" fill="#e6c455" stroke="{INK}" stroke-width="4"/>',
-          f'<circle cx="{x0 + 66}" cy="{cy}" r="29" fill="none" stroke="{INK}" stroke-width="2.5"/>',
-          f'<text x="{x0 + 66}" y="{cy + 15}" text-anchor="middle" font-size="42" font-weight="bold" fill="{INK}">5</text></g>',
-          f'<text x="{x0 + 118}" y="{y1 - 70}" font-size="22" font-weight="bold" fill="{INK}">Cost: 5 Credits</text>',
-          f'<text x="{x0 + 118}" y="{y1 - 44}" font-size="17" fill="{INK}">+1 for each mission you bought</text>',
-          f'<text x="{x0 + 118}" y="{y1 - 22}" font-size="15" fill="#7d7388">Level {level}  -  {idx:02d}/20</text>',
-          f'<circle cx="{x1 - 78}" cy="{cy}" r="44" fill="{accent}" stroke="{INK}" stroke-width="4"/>',
-          f'<text x="{x1 - 78}" y="{cy + 14}" text-anchor="middle" font-size="48" font-weight="bold" fill="{PAPER}">{vp}</text>',
-          f'<text x="{x1 - 78}" y="{cy + 36}" text-anchor="middle" font-size="16" fill="{PAPER}">VP</text>',
-          '</svg>']
+        s.append(mission_icon(mtype, x0 + 160, y_mid, 165))
+        s.append(f'<text x="{x0 + 310}" y="{y_mid + 20}" font-size="75" font-weight="bold" fill="#7a6e60">&times;</text>')
+        s.append(f'<text x="{x0 + 380}" y="{y_mid + 46}" font-size="130" font-weight="bold" fill="{INK}">{n}</text>')
+
+    # clear description banner inside condition card
+    desc_y = y0 + 605
+    s.append(f'<rect x="{x0 + 35}" y="{desc_y}" width="{card_w - 70}" height="56" rx="8" fill="{PAPER}" stroke="{INK}" stroke-width="2"/>')
+    s.append(f'<text x="{W / 2}" y="{desc_y + 39}" text-anchor="middle" font-size="32" font-weight="bold" fill="{INK}">{escape(desc)}</text>')
+
+    # footer: Cost (bottom left), Star VP reward (bottom right)
+    cy = y1 - 65
+    s += [
+        f'<g id="cost">',
+        f'<circle cx="{x0 + 65}" cy="{cy}" r="38" fill="#e6c455" stroke="{INK}" stroke-width="4"/>',
+        f'<circle cx="{x0 + 65}" cy="{cy}" r="30" fill="none" stroke="#fff176" stroke-width="2.5"/>',
+        f'<text x="{x0 + 65}" y="{cy + 14}" text-anchor="middle" font-size="40" font-weight="bold" fill="{INK}">5</text></g>',
+        f'<text x="{x0 + 118}" y="{y1 - 76}" font-size="24" font-weight="bold" fill="{INK}">Cost: 5 Credits</text>',
+        f'<text x="{x0 + 118}" y="{y1 - 50}" font-size="18" fill="{INK}">+1 for each bought</text>',
+        f'<text x="{x0 + 118}" y="{y1 - 25}" font-size="16" fill="#7d7388">Level {level} &bull; {idx:02d}/20</text>',
+        # VP Star Icon Badge
+        f'<g id="reward">',
+        f'<polygon points="{star_at(x1 - 80, cy - 4, 52, 23)}" fill="{GOLD}" stroke="{INK}" stroke-width="4"/>',
+        f'<polygon points="{star_at(x1 - 80, cy - 4, 32, 14)}" fill="#fff59d" stroke="none"/>',
+        f'<text x="{x1 - 80}" y="{cy + 12}" text-anchor="middle" font-size="44" font-weight="bold" fill="{INK}">{vp}</text>',
+        f'<text x="{x1 - 80}" y="{cy + 52}" text-anchor="middle" font-size="18" font-weight="bold" fill="{INK}">VP</text></g>',
+        '</svg>'
+    ]
     return name, desc, '\n'.join(s)
 
 
@@ -285,6 +310,7 @@ code{{background:#e7d9b5;padding:0 3px}}</style>
     # canonical icon set (the same files BGA, the rulebook and the player boards use)
     for name in ICONS:
         write(os.path.join(HERE, 'icons', f'{name}.svg'), icon_svg(name))
+        write(os.path.join(HERE, '..', 'bga', 'img', 'icons', f'{name}.svg'), icon_svg(name))
     cells = ''.join(f'<figure><img src="icons/{n}.svg"><figcaption>{n}<br>{escape(lbl)}</figcaption></figure>' for n, (lbl, _) in ICONS.items())
     write(os.path.join(HERE, 'icons_overview.html'), f'''<!doctype html><meta charset="utf-8"><title>Little Commanders - icons</title>
 <style>body{{font-family:sans-serif;background:#f4ead7;color:#2b2233;margin:20px}}.grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:14px}}

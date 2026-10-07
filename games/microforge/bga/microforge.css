@@ -1,12 +1,40 @@
-#mf_boards { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px; }
-.mf_pboard { border: 3px solid; padding: 4px 8px; background: #efe3c8; font-size: 13px; }
-.mf_income { font-weight: bold; }
-#mf_market { max-width: 520px; margin: 6px auto; padding: 6px; background: #efe3c8; border: 2px solid #5a4630; }
-.mf_hint { font-size: 11px; display: block; }
+/* Little Commanders layout & components */
+
+#mf_main_container {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 16px;
+    max-width: 1150px;
+    margin: 8px auto;
+}
+
+#mf_board_area {
+    flex: 0 1 700px;
+    max-width: 720px;
+    min-width: 320px;
+}
+
+#mf_missions_area {
+    flex: 0 0 340px;
+    max-width: 360px;
+}
+
+#mf_market {
+    max-width: 520px;
+    margin: 6px auto;
+    padding: 6px 10px;
+    background: #efe3c8;
+    border: 2px solid #5a4630;
+    border-radius: 6px;
+}
+.mf_hint { font-size: 11px; display: block; color: #5a4630; margin-top: 2px; }
 .mf_table { width: 100%; border-collapse: collapse; }
-.mf_table td, .mf_table th { padding: 2px 4px; text-align: left; }
-.mf_range { position: relative; width: 80px; height: 8px; background: #bda97f; }
-.mf_range_pos { position: absolute; top: -2px; width: 4px; height: 12px; background: #2b2118; }
+.mf_table td, .mf_table th { padding: 2px 4px; text-align: left; font-size: 12px; }
+.mf_range { position: relative; width: 80px; height: 8px; background: #bda97f; border-radius: 2px; }
+.mf_range_pos { position: absolute; top: -2px; width: 4px; height: 12px; background: #2b2118; border-radius: 1px; }
+
 #mf_board { width: 100%; max-width: 700px; margin: 0 auto; }
 #mf_panel { padding: 6px; }
 .mf_row { margin: 6px 0; }
@@ -16,16 +44,129 @@
 #mf_ports { max-width: 700px; margin: 6px auto; padding: 0 6px; }
 .mf_buildrow { margin: 4px 0; font-size: 12px; }
 .mf_focus { outline: 2px solid #ffe600; }
-#mf_top { display: flex; flex-wrap: wrap; gap: 8px; max-width: 900px; margin: 6px auto; align-items: flex-start; }
-#mf_top #mf_market { flex: 1 1 280px; max-width: none; margin: 0; }
-#mf_missions { flex: 1 1 240px; padding: 6px; background: #efe3c8; border: 2px solid #5a4630; }
-.mf_mission { display: inline-block; vertical-align: top; width: 104px; padding: 2px; margin: 3px; text-align: center; }
-.mf_mission img { display: block; width: 100%; height: auto; }
-.mf_mission span { font-size: 11px; }
-.mf_mission_sel { outline: 2px solid #ffe600; }
-.mf_missioninfo { font-size: 12px; margin-top: 6px; }
-.mf_sidebar { font-size: 12px; padding: 4px 6px; }
-.mf_failure { background: #7a1f1f; color: #fff; padding: 8px 10px; margin: 6px auto; max-width: 900px; cursor: pointer; font-weight: bold; }
-.mf_qty { min-width: 32px; min-height: 32px; }
 
-.mf_mat { display: block; width: 100%; max-width: 900px; height: auto; margin-top: 8px; }
+/* Missions column (right of the board) */
+#mf_missions {
+    padding: 8px;
+    background: #efe3c8;
+    border: 2px solid #5a4630;
+    border-radius: 8px;
+}
+.mf_missions_header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+.mf_badge {
+    background: #5a4630;
+    color: #fffaf0;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: bold;
+}
+.mf_missions_grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+}
+.mf_mission {
+    display: block;
+    width: 150px;
+    padding: 4px;
+    background: #fffaf0;
+    border: 2px solid #bda97f;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: center;
+    transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.mf_mission:hover {
+    border-color: #2980b9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.12);
+}
+.mf_mission_sel {
+    border-color: #2980b9 !important;
+    outline: 3px solid #2980b9;
+}
+.mf_mission img { display: block; width: 100%; height: auto; border-radius: 4px; }
+.mf_mission_tag {
+    display: block;
+    font-size: 11px;
+    font-weight: bold;
+    min-height: 16px;
+    color: #1e7040;
+    margin-top: 3px;
+}
+.mf_missioninfo {
+    font-size: 12px;
+    margin-top: 8px;
+    padding: 6px;
+    background: #fffaf0;
+    border: 1px solid #bda97f;
+    border-radius: 6px;
+    line-height: 1.4;
+}
+
+/* Player panel sidebar items */
+.mf_sidebar {
+    font-size: 13px;
+    padding: 4px 6px;
+}
+.mf_panel_stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 4px;
+}
+.mf_stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.mf_stat_icon {
+    width: 20px;
+    height: 20px;
+    vertical-align: middle;
+}
+.mf_stat.mf_vp { color: #854d0e; font-weight: 500; }
+.mf_stat.mf_credits { color: #854d0e; font-weight: 500; }
+.mf_stat.mf_missions { color: #374151; }
+.mf_panel_sub {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: #4b5563;
+    padding-top: 2px;
+    border-top: 1px dashed #d1c7b7;
+}
+.mf_income_tag {
+    background: #dcfce7;
+    color: #15803d;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 11px;
+}
+
+.mf_failure { background: #7a1f1f; color: #fff; padding: 8px 10px; margin: 6px auto; max-width: 900px; cursor: pointer; font-weight: bold; border-radius: 4px; }
+.mf_qty { min-width: 32px; min-height: 32px; }
+.mf_mat { display: block; width: 100%; max-width: 900px; height: auto; margin: 12px auto 0; }
+
+@media (max-width: 1020px) {
+    #mf_main_container {
+        flex-direction: column;
+        align-items: center;
+    }
+    #mf_board_area, #mf_missions_area {
+        flex: 1 1 100%;
+        max-width: 100%;
+        width: 100%;
+    }
+}

@@ -48,7 +48,7 @@ class Game extends \Bga\GameFramework\Table
     public const PORT_DISCOUNT = 2;
 
     // Player board: supply of pieces each player starts with (bots/mechs/buildings not yet on the map)
-    public const SUPPLY = ['bot' => 20, 'mech' => 6, 'factory' => 5, 'extractor' => 5, 'tower' => 5];
+    public const SUPPLY = ['bot' => 20, 'mech' => 5, 'factory' => 5, 'extractor' => 5, 'tower' => 5];
     // Construction cost: iron tokens that must be standing on the tile being built on
     public const BUILD_IRON = ['extractor' => 1, 'factory' => 2, 'tower' => 2];
     public const BASE_INCOME = 10;
@@ -212,7 +212,11 @@ class Game extends \Bga\GameFramework\Table
         $playerIds = array_map('intval', array_keys($players));
         static::DbQuery("DELETE FROM `player_state`");
         foreach ($playerIds as $pid) {
-            static::DbQuery("INSERT INTO `player_state` (`player_id`, `credits`) VALUES ({$pid}, " . self::START_CREDITS . ")");
+            static::DbQuery("INSERT INTO `player_state` (`player_id`, `credits`, `vp`, `missions_bought`) VALUES ({$pid}, " . self::START_CREDITS . ", 0, 0)");
+            if ($this->bga && isset($this->bga->playerScore)) {
+                $this->bga->playerScore->set((int) $pid, 0);
+                $this->bga->playerScoreAux->set((int) $pid, self::START_CREDITS);
+            }
         }
 
         $this->generateBoard($playerIds, $colors);
