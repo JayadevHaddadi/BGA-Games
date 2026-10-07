@@ -34,7 +34,7 @@ class EndScore extends GameState
 
         $this->game->notifyAllPlayers('endGameScores', clienttranslate('${player_name} reaches ${target} Victory Points and wins!'), [
             'player_name' => $winnerId ? $playerInfos[$winnerId]['player_name'] : '',
-            'target' => Game::VP_TARGET,
+            'target' => $this->game->vpTarget(),
             'winner_id' => $winnerId,
         ]);
 

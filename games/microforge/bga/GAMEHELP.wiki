@@ -2,28 +2,31 @@
 
 ''A game of toy armies on hexagon tiles for 2 to 6 players. Working title.''
 
-== Goal ==
-Be the first commander to reach '''5 Victory Points'''. Victory Points come only from '''Mission cards'''.
+== Choose the rules (game option) ==
+* '''Basic game''': Bots, Credits and Missions. First to '''3 Victory Points'''.
+* '''Basic + Production''': adds iron and crystal, Extractors, Factories and Guard Towers. First to 5 Victory Points.
+* '''Basic + Production + Mechs''': adds Mechs (power 5) and the strong combat.
+* '''Full game''': adds the market: Docks, Ports and moving prices.
 
 == Your turn ==
-At the start of your turn you gain '''10 Credits'''. Then, in any order, you may build, make pieces, move, trade and buy a Mission. Your attacks are decided when you end your turn.
+At the start of your turn you gain '''1 Credit for every tile you hold'''. Then, in any order, you may recruit, move, buy a Mission and (in the higher levels) build, make pieces and trade. Your attacks are decided when you end your turn.
 
 == Tiles and control ==
-You '''control''' a tile while one of your pieces stands on it. Buildings and tokens on a tile belong to whoever controls it. Roads only connect where both touching tiles show a road.
+You '''control''' a tile while one of your pieces stands on it. Everything printed on the tile (resource, building sockets, roads) belongs to the tile. Roads only connect where both touching tiles show a road; a tiny broken stump means no road. The letters and numbers around the board name every tile; the log uses the same names.
 
-== Buildings ==
+== Basic game ==
+* '''Recruit''' a Bot on your home tile for 2 Credits (not while an enemy holds your home tile).
+* '''Move''' a piece along a road: 1 Credit per step, per piece.
+* '''Fight:''' move onto an enemy tile. With more Bots than the defenders (a Guard Tower counts as one more), they retreat. Otherwise your Bots return.
+* '''Missions:''' pay 5 Credits (plus 1 for each Mission you already bought) to buy a face-up Mission, one per turn. You score only if you meet its condition at that moment; otherwise the Credits are lost.
+
+== Production (level 2 and up) ==
 * '''Extractor''' (1 iron): once per turn, pay 1 Credit to take 1 token of the tile's resource.
-* '''Factory''' (2 iron): 1 iron becomes 2 Bots, or 1 iron and 1 crystal become 1 Mech.
-* '''Guard Tower''' (2 iron): makes the tile harder to push and kill.
+* '''Factory''' (2 iron): once per turn, pay 1 Credit: 1 iron becomes 2 Bots (with Mechs: or 1 iron and 1 crystal become 1 Mech).
+* '''Guard Tower''' (2 iron): counts as one more defender (with Mechs: raises both combat multipliers by 1).
 
-== Moving ==
-Every step costs 1 Credit per piece. Pieces follow open roads and cannot pass through enemy pieces.
-
-== Trading ==
-Trade at your home Dock (iron and bots) or at a Port tile you control. Items trade at the current price; afterwards the price moves one step per item traded.
-
-== Missions ==
-Pay 5 Credits (plus 1 for each Mission you already bought) to buy a face-up Mission. You score only if you meet its condition at that moment; otherwise the Credits are lost. One Mission per turn.
-
-== Combat ==
+== Mechs and combat (level 3 and up) ==
 A Bot has power 1, a Mech power 5. To push a defender you need twice its power, to kill it three times; each Guard Tower adds 1 to both multipliers. If the attack is too weak it fails and the attackers return.
+
+== Market (full game) ==
+Trade at your home Dock (iron and bots) or at a Port you control. Each post trades once per turn for 1 Credit: pick one good and buy or sell any number at the current price; afterwards the price moves one step per item traded.

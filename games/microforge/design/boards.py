@@ -123,7 +123,7 @@ def advanced_board(col, name):
     # turn flow
     s.append(panel(510, 190, 945, 150, 'Start of your turn', col))
     s.append(icon_group('income', 600, 285, 64))
-    s.append(t(660, 282, f'Gain {A["income"]} Credits.', 30, 'bold'))
+    s.append(t(660, 282, 'Gain 1 Credit for every tile you hold.', 30, 'bold'))
     s.append(t(660, 316, 'Take the coins off your buildings (they can work again).', 24))
     # actions
     s.append(panel(510, 360, 945, 410, 'Then, in any order', col))

@@ -13,11 +13,10 @@
     "slow_additional_time_per_turn": 60,
     "tie_breaker_description": "Most remaining Credits breaks the tie, followed by total manufactured mechs and bots.",
     "is_coop": 0,
-    "is_sandbox": 0,
     "turn_control": "standard",
-    "is_beta": 0,
     "status": "alpha",
     "game_interface_width": {
         "min": 320
-    }
+    },
+    "exception_on_warning": true
 }

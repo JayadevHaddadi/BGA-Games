@@ -111,3 +111,8 @@ Option "Faction powers": **Off** = all symmetric (default for the first paper te
 - BGA does not draw tiles itself any more: per tile it layers `img/tiles/art_<resource>.svg` + one `img/tiles/road_<dir>.svg` per open edge, fed by that tile's data (resource, building slots, edge mask). Building and resource-token icons come from `img/icons/`.
 - Changing theme = changing the drawing functions (`ground_group`, `road_group`, `icon`) and rerunning the script. Bots and mechs are still simple coloured shapes until the theme is chosen.
 - If the Bharat theme wins, bots become small animals and mechs big animals (rules unchanged: power 1 and 5, same costs).
+
+## 13. One place per asset (2026-10-07)
+- **Tiles**: `bga/img/tiles/` holds the 91 complete tile SVGs (37 land incl. 4 two-resource tiles, 6 homes, 48 port variants). BGA draws them as they are and puts nothing on top except pieces and outlines; letters and numbers sit outside the board. Data (resource, sockets, roads) is part of the tile set (`design/tileset.py` -> `tileset.php`). Change a tile = edit the generator, rerun, push.
+- **Player mats**: `bga/img/boards/` (basic side for level 1, advanced side for levels 2-4), shown under the board.
+- **Icons**: `bga/img/icons/`; **mission cards**: `bga/img/missions/`.

@@ -38,6 +38,14 @@ class PlayerTurn extends GameState
     }
 
     #[PossibleAction]
+    public function actRecruit(int $activePlayerId): string
+    {
+        $this->game->pushUndo();
+        $this->game->recruit($activePlayerId);
+        return PlayerTurn::class;
+    }
+
+    #[PossibleAction]
     public function actBuild(int $hexId, string $buildingType, int $slot, int $activePlayerId): string
     {
         $this->game->pushUndo();
@@ -92,7 +100,7 @@ class PlayerTurn extends GameState
         $this->game->pushUndo();
         $vp = $this->game->claimMission($activePlayerId, $missionId);
         $this->bga->playerScore->set($activePlayerId, $vp);
-        if ($vp >= Game::VP_TARGET) {
+        if ($vp >= $this->game->vpTarget()) {
             $this->globals->set('winner_id', $activePlayerId);
             return EndScore::class;
         }

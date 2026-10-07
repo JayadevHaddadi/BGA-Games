@@ -1,13 +1,13 @@
-# Basic game (draft proposal)
+# Basic game (implemented as game option 1; numbers untested)
 
 **Aim:** teachable in a minute, still has a goal, tension and choices. Everything else is printed on the board, tiles and cards.
 
 ## Rules in your head (two)
-1. **Credits:** you earn 1 Credit per tile you hold and spend them: recruit a Bot at home (2), move a piece one step (1 per step), buy a Mission (5, +1 each time you buy).
+1. **Credits:** you start with 2 and earn 1 Credit per tile you hold at the start of each turn; you spend them: recruit a Bot at home (2), move a piece one step (1 per step), buy a Mission (5, +1 each time you buy).
 2. **Strength:** move onto an enemy tile with more Bots than the defenders and they retreat. Otherwise you go back.
 
 ## Goal
-First to 3 Victory Points. VP come only from Level 1 Mission cards (5 face up, shared), bought for Credits and scored only if you meet them when you buy. For the Basic game use the cards that need only Bots and tiles: hexes 3/4/5, bots 5/7, pieces 6, centre, ports 1/2, credits 15.
+First to 3 Victory Points. VP come only from Mission cards (5 face up, shared), bought for Credits and scored only if you meet them when you buy. The Basic game only deals cards about tiles, Bots and Credits: hexes, bots, pieces, credits (Level 1, 1 VP) and the same plus the centre (Level 2, 2 VP).
 
 ## Why it is not trivial (strategies)
 - **Land or army?** Tiles give income, Bots give safety. Over-expand and you are cut off; sit still and you fall behind.

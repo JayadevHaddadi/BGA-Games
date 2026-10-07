@@ -1,0 +1,25 @@
+{
+  // game option ids should be between 100 and 199
+  "100": {
+    "name": "Rules",
+    "values": {
+      "1": {
+        "name": "Basic game",
+        "description": "Bots, Credits and Missions only. Credits come from the tiles you hold. First to 3 Victory Points wins."
+      },
+      "2": {
+        "name": "Basic + Production",
+        "description": "Adds iron and crystal, Extractors, Factories and Guard Towers. First to 5 Victory Points."
+      },
+      "3": {
+        "name": "Basic + Production + Mechs",
+        "description": "Adds Mechs (power 5) and the strong combat: push needs twice, kill three times the defenders' power."
+      },
+      "4": {
+        "name": "Full game",
+        "description": "Adds the market: Docks, Ports and moving prices for iron, bots, crystal and mechs."
+      }
+    },
+    "default": 1
+  }
+}

@@ -12,7 +12,7 @@ Generated files live in `design/` (rebuild with `python3 design/build_design.py`
 | 4 | Box insert (trays for tiles, figures, cards, tokens) | 1 | | todo |
 | 5 | Rulebook | 1 | A4/A5 PDF, ~8-12 pp final | plain draft (`rulebook/rulebook.tex` -> PDF) |
 | 6 | Quick-start / one-page turn summary | 1 | | todo (quick reference exists at end of rulebook) |
-| 7 | Land tiles | 37 (1 centre, 6 L2, 12 L3, 18 L4) | hex, flat-top, SVG | plain (`design/tiles/land_*.svg`), art slot per tile |
+| 7 | Land tiles | 37 (1 centre, 6 L2, 12 L3, 18 L4) | hex, flat-top, SVG | plain (`bga/img/tiles/land_*.svg`), art slot per tile |
 | 8 | Home tiles (colour banner each) | 6 | hex | plain |
 | 9 | Port tiles | 12 (8 distinct good/discount combos) | hex | plain |
 | 10 | Tile back (if tiles are hidden/shuffled) | 1 design | | todo, optional |

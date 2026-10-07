@@ -20,7 +20,8 @@ from html import escape
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from icons import ICONS, icon_svg, mission_icon  # noqa: E402
+from icons import ICONS, icon_svg, icon_group, mission_icon  # noqa: E402
+import tileset  # noqa: E402
 from boards import basic_board, advanced_board  # noqa: E402
 
 # ---------- shared palette (see ART_PLAN.md colour theme) ----------
@@ -160,7 +161,7 @@ def back_svg(level):
 U = 40
 EDGE_ANG = [0, -60, -120, 180, 120, 60]
 VB = f'{-U * 0.866:.2f} {-U} {2 * U * 0.866:.2f} {2 * U}'
-GROUND_FILL = {'iron': IRON_GREEN, 'crystal': CRYSTAL_BLUE, 'empty': EMPTY_GREY, 'port': SEA}
+GROUND_FILL = {'iron': IRON_GREEN, 'crystal': CRYSTAL_BLUE, 'empty': EMPTY_GREY, 'port': SEA, 'double': IRON_GREEN}
 
 
 def ground_group(kind, outline=True):
@@ -175,6 +176,11 @@ def ground_group(kind, outline=True):
         for x, y in [(-16, 26), (14, 28), (24, 10)]:
             o.append(f'<path d="M{x} {y - 4} l3 4 l-3 4 l-3 -4 z" fill="#d9eef8" stroke="{INK}" stroke-width="0.8"/>')
         o.append(f'<g stroke="{INK}" stroke-width="1.3" stroke-linejoin="round"><polygon points="-22,-10 -17,-28 -12,-10 -17,-6" fill="#4f9fc9"/><polygon points="-14,-12 -9,-24 -4,-12 -9,-8" fill="#78b9dc"/><polygon points="-30,-8 -27,-20 -23,-8" fill="#78b9dc"/></g>')
+    elif kind == 'double':
+        for x, y in [(-18, 24), (-6, 28), (24, 20), (-28, 6)]:
+            o.append(f'<path d="M{x} {y} l-2 -7 M{x} {y} l1 -8 M{x} {y} l3 -6" stroke="#6f9b45" stroke-width="1.6" fill="none" stroke-linecap="round"/>')
+        o.append(f'<g stroke="{INK}" stroke-width="1.3" stroke-linejoin="round"><polygon points="-27,-14 -21,-27 -12,-24 -11,-14 -18,-10" fill="#8d8d96"/><polygon points="-14,-16 -8,-24 -1,-18 -4,-10" fill="#a9a9b3"/>'
+                 f'<polygon points="10,26 15,10 20,26 15,30" fill="#4f9fc9"/><polygon points="19,24 23,14 27,24 23,28" fill="#78b9dc"/><polygon points="3,26 6,16 9,26 6,28" fill="#78b9dc"/></g>')
     elif kind == 'empty':
         for x, y in [(-18, 24), (-6, 30), (8, 28), (18, 24), (-24, 10), (24, 8), (-2, 18)]:
             o.append(f'<ellipse cx="{x}" cy="{y}" rx="5" ry="3.4" fill="none" stroke="#8f929a" stroke-width="1.3"/>')
@@ -223,52 +229,14 @@ def tile_svg(title, kind, slots, paths, extra='', banner=None, code=''):
         s.append(f'<rect x="-9" y="-34" width="18" height="6" fill="{banner}" stroke="{INK}" stroke-width="0.9"/>')
     s.append(extra)
     if code:  # small internal code name, centre under the sockets, quiet
-        s.append(f'<text x="0" y="8" text-anchor="middle" font-size="6" fill="{INK}" opacity="0.6">{escape(code)}</text>')
+        code_y = 25 if kind == 'port' else 8
+        s.append(f'<text x="0" y="{code_y}" text-anchor="middle" font-size="6" fill="{INK}" opacity="0.6">{escape(code)}</text>')
     return wrap_svg(''.join(s), scale=2.5, title=title, pad=1.5)
 
 
 def bga_tile_assets():
-    """BGA draws NO tile art itself: ground per resource + one road stub per direction, composed from tile data."""
-    out = {}
-    for kind in GROUND_FILL:
-        out[f'tiles/art_{kind}.svg'] = wrap_svg(ground_group(kind, outline=False))
-    for d in range(6):
-        out[f'tiles/road_{d}.svg'] = wrap_svg(road_group(d, True))
-        out[f'tiles/stump_{d}.svg'] = wrap_svg(road_group(d, False))
-    for n in (1, 2):
-        out[f'tiles/sockets_{n}.svg'] = wrap_svg(sockets_group(n))
-    for name in ICONS:
-        out[f'icons/{name}.svg'] = icon_svg(name)
-    return out
-
-
-def build_land_tiles():
-    """37 land tiles by level (1 centre, 6 + 12 + 18). Resources 25% none / 50% iron / 25% crystal, per Game.php rollTile."""
-    rng = random.Random(7)
-    tiles = []
-
-    def roll(level):
-        x = rng.randint(1, 4)
-        res = None if x == 1 else ('iron' if x <= 3 else 'crystal')
-        if level == 1:
-            slots = 2
-        elif level == 2:
-            slots = rng.randint(1, 2)
-        else:
-            y = rng.randint(1, 4)
-            slots = 0 if y == 1 else (1 if y <= 3 else 2)
-            if res is None:
-                slots = max(1, slots)
-        lo, hi = {1: (6, 6), 2: (5, 6)}.get(level, (4, 5))
-        k = rng.randint(lo, hi)
-        open_dirs = set(rng.sample(range(6), k))
-        return res, slots, [d in open_dirs for d in range(6)]
-
-    for level, count in [(1, 1), (2, 6), (3, 12), (4, 18)]:
-        for i in range(count):
-            res, slots, paths = roll(level)
-            tiles.append({'level': level, 'n': i + 1, 'res': res, 'slots': slots, 'paths': paths})
-    return tiles
+    """Gameplay icons for BGA. Tile art is NOT split into layers: the complete tile SVGs live in bga/img/tiles."""
+    return {f'icons/{name}.svg': icon_svg(name) for name in ICONS}
 
 
 def write(path, text):
@@ -292,9 +260,7 @@ def main():
 
     rows = ''.join(f'<tr><td>L{l}-{i:02d}</td><td>{escape(nm)}</td><td>{escape(d)}</td><td>{VP[l]}</td><td>{t}</td></tr>' for l, i, nm, d, fn, t, n in cards)
     grid = ''.join(f'<figure><img src="{fn}" alt="{escape(nm)}"><figcaption>L{l}-{i:02d} {escape(nm)}</figcaption></figure>' for l, i, nm, d, fn, t, n in cards)
-    note = ('<p><b>Known issue:</b> "Rich Land" cards (L1-16, L2-19) need hexes with two resources, but the current board '
-            'generator never creates one (<code>resource_type_2</code> is always empty), so they cannot be completed yet. '
-            'Either add double-resource tiles or replace these two cards.</p>')
+    note = '<p>Rich Land cards (L1-16, L2-19) use the four land tiles that hold two resources.</p>'
     write(os.path.join(HERE, 'missions_overview.html'), f'''<!doctype html><meta charset="utf-8"><title>Little Commanders - 40 mission cards</title>
 <style>body{{font-family:sans-serif;background:#f4ead7;color:#2b2233;margin:20px}}
 .grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}}figure{{margin:0}}img{{width:100%;display:block}}
@@ -312,10 +278,10 @@ code{{background:#e7d9b5;padding:0 3px}}</style>
     figs = ''
     for fname, col in FACTIONS:
         for side, fn in (('basic', basic_board), ('advanced', advanced_board)):
-            rel = f'boards/player_board_{fname.lower()}_{side}.svg'
-            write(os.path.join(HERE, rel), fn(col, fname.upper()))
+            rel = f'player_board_{fname.lower()}_{side}.svg'
+            write(os.path.join(HERE, '..', 'bga', 'img', 'boards', rel), fn(col, fname.upper()))  # the one place mats live
             if fname == 'Purple':
-                figs += f'<figure><img src="{rel}"><figcaption>{fname} {side}</figcaption></figure>'
+                figs += f'<figure><img src="../bga/img/boards/{rel}"><figcaption>{fname} {side}</figcaption></figure>'
     write(os.path.join(HERE, 'boards_overview.html'), f'''<!doctype html><meta charset="utf-8"><title>Player boards</title>
 <style>body{{font-family:sans-serif;background:#f4ead7;margin:20px}}figure{{margin:0 0 20px}}img{{width:100%;max-width:1100px;display:block;border:1px solid #2b2233}}</style>
 <h1>Player boards (draft)</h1><p>One pair per faction (6 colours); only the colour and art slot differ. Showing Purple. Basic numbers are draft (see BASIC_GAME.md).</p>{figs}''')
@@ -329,46 +295,44 @@ figure{{margin:0;text-align:center}}img{{width:72px;height:72px}}figcaption{{fon
 <h1>Icons ({len(ICONS)})</h1><p>One set for cards, BGA, rulebook and player boards. Defined in <code>design/icons.py</code>; the SVG files in <code>design/icons/</code> are generated.</p>
 <div class="grid">{cells}</div><h2>At 32 px</h2><div class="grid s">{cells}</div>''')
 
-    # ----- tiles
-    land = build_land_tiles()
-    groups = {'Centre (level 1)': [], 'Level 2': [], 'Level 3': [], 'Level 4': [], 'Home tiles': [], 'Port tiles': []}
-    for t in land:
-        name = f"land_L{t['level']}_{t['n']:02d}"
-        label = f"L{t['level']}-{t['n']:02d}  {t['res'] or 'empty'}  {t['slots']} slot(s)  {sum(t['paths'])} paths"
-        write(os.path.join(HERE, f'tiles/{name}.svg'), tile_svg(name, t['res'] or 'empty', t['slots'], t['paths'], code=f"L{t['level']}-{t['n']:02d}"))
+    # ----- tiles: the complete tile SVGs go straight into BGA (bga/img/tiles = the one place), plus the manifest the server deals from
+    tiles_dir = os.path.join(HERE, '..', 'bga', 'img', 'tiles')
+    for old in os.listdir(tiles_dir) if os.path.isdir(tiles_dir) else []:
+        os.remove(os.path.join(tiles_dir, old))
+    groups = {'Centre (level 1)': [], 'Level 2': [], 'Level 3': [], 'Level 4': [], 'Home tiles': [], 'Port tiles (side 0 of 6 shown)': []}
+    for t in tileset.land_tiles():
+        paths = [c == '1' for c in t['mask']]
+        write(os.path.join(tiles_dir, f"{t['art']}.svg"), tile_svg(t['code'], t['res'] or 'empty', t['slots'], paths, code=t['code']))
+        label = f"{t['code']}  {t['res'] or 'empty'}  {t['slots']} slot(s)  {sum(paths)} roads"
         key = 'Centre (level 1)' if t['level'] == 1 else f"Level {t['level']}"
-        groups[key].append((f'tiles/{name}.svg', label))
-    for i, (fname, col) in enumerate(FACTIONS, start=1):
-        name = f'home_{i}_{fname.lower()}'
-        paths = [True, True, True, False, True, False]
-        write(os.path.join(HERE, f'tiles/{name}.svg'), tile_svg(name, 'iron', 2, paths, banner=col, code=f'H{i}',
-                                                                  extra='<rect x="-8" y="30" width="16" height="5" fill="#8a6a42" stroke="#2b2233" stroke-width="0.8"/>'))
-        groups['Home tiles'].append((f'tiles/{name}.svg', f'{fname} home: iron, Dock + Guard Tower start here, 2 slots'))
-    port_combos = [(g, k) for g in ('iron', 'crystal', 'bot', 'mech') for k in ('cheaper', 'pays_more')]
-    for i in range(12):
-        g, k = port_combos[i % 8]
-        name = f'port_{i + 1:02d}_{g}_{k}'
-        paths = [False, False, False, True, True, False]  # the 2 edges facing the land
-        txt = f'{g} -2' if k == 'cheaper' else f'{g} +3'
-        extra = f'<text x="0" y="3" text-anchor="middle" font-size="9" font-weight="bold" fill="{INK}">{txt}</text>'
-        write(os.path.join(HERE, f'tiles/{name}.svg'), tile_svg(name, 'port', 0, paths, extra=extra, code=f'P{i + 1:02d}'))
-        groups['Port tiles'].append((f'tiles/{name}.svg', f'Port: {g} {"costs 2 less to buy" if k == "cheaper" else "sells for 3 more"}'))
+        groups[key].append((f"{t['art']}.svg", label))
+    for t, (fname, col) in zip(tileset.home_tiles(), FACTIONS):
+        write(os.path.join(tiles_dir, f"{t['art']}.svg"), tile_svg(t['code'], 'iron', 2, [True] * 6, banner=col, code=t['code'],
+                                                                    extra='<rect x="-8" y="30" width="16" height="5" fill="#8a6a42" stroke="#2b2233" stroke-width="0.8"/>'))
+        groups['Home tiles'].append((f"{t['art']}.svg", f'{fname} home: iron, 2 slots, all 6 roads'))
+    for t in tileset.port_tiles():
+        icons = icon_group(t['good'] if t['good'] in ICONS else 'iron', -9, 0, 17) + icon_group('down' if t['port_kind'] == 'cheaper' else 'income', 10, 0, 17)
+        write(os.path.join(tiles_dir, f"{t['art']}.svg"), tile_svg(t['code'], 'port', 0, [c == '1' for c in t['mask']], extra=icons, code=t['code']))
+        if t['side'] == 0:
+            groups['Port tiles (side 0 of 6 shown)'].append((f"{t['art']}.svg", f"{t['code']}: {t['good']}, " + ('2 cheaper to buy' if t['port_kind'] == 'cheaper' else '3 more when sold')))
+    tileset.write_manifest(os.path.join(HERE, '..', 'bga', 'modules', 'php', 'tileset.php'))
 
     body = ''
     for g, items in groups.items():
-        figs = ''.join(f'<figure><img src="{fn}"><figcaption>{escape(lb)}</figcaption></figure>' for fn, lb in items)
+        figs = ''.join(f'<figure><img src="../bga/img/tiles/{fn}"><figcaption>{escape(lb)}</figcaption></figure>' for fn, lb in items)
         body += f'<h2>{g} ({len(items)})</h2><div class="grid">{figs}</div>'
     write(os.path.join(HERE, 'tiles_overview.html'), f'''<!doctype html><meta charset="utf-8"><title>Little Commanders - tiles</title>
 <style>body{{font-family:sans-serif;background:#f4ead7;color:#2b2233;margin:20px}}.grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}}
 figure{{margin:0}}img{{width:100%;display:block}}figcaption{{font-size:11px;text-align:center}}table{{border-collapse:collapse}}td,th{{border:1px solid #2b2233;padding:4px 8px}}</style>
 <h1>Tiles</h1>
-<p><b>Maximum on the table (4-6 players): 37 land tiles + 12 port tiles = 49 hexes.</b> 2-3 players: 19 land + 6 ports = 25 hexes (level 1-3 only). Home tiles replace 1 outer-ring tile per player.</p>
+<p><b>The tile art lives in ONE place: <code>bga/img/tiles/</code>.</b> These are the exact files BGA shows and print uses. Each tile carries its own resource, building sockets and roads; BGA adds nothing on top. The server deals from <code>bga/modules/php/tileset.php</code> (generated with them).</p>
+<p><b>Maximum on the table (4-6 players): 37 land tiles + 12 port tiles = 49 hexes.</b> 2-3 players: 19 land + 4-6 ports. Home tiles replace 1 outer-ring tile per player.</p>
 <table><tr><th>Group</th><th>2-3 players</th><th>4-6 players</th></tr>
 <tr><td>Centre (level 1)</td><td>1</td><td>1</td></tr><tr><td>Level 2 (ring 1)</td><td>6</td><td>6</td></tr>
 <tr><td>Level 3 (ring 2)</td><td>12</td><td>12</td></tr><tr><td>Level 4 (ring 3)</td><td>-</td><td>18</td></tr>
 <tr><td><b>Land total</b></td><td><b>19</b></td><td><b>37</b></td></tr>
 <tr><td>Port tiles (2 per player)</td><td>4-6</td><td>8-12</td></tr></table>
-<p>Print set: 37 land + 6 home + 12 port = 55 tiles (home tiles are swapped in for outer-ring land tiles). Resource art slot = the dashed inner hex. Paths: a road stub on an edge means that edge is open; a path only works when BOTH touching tiles have it.</p>
+<p>Port tiles come in 8 good/discount types x 6 sides (the sea side decides which two edges have roads), 48 files; the table uses 2 per player. Physical print set: 37 land + 6 home + 12 ports, rotate a port to its side. Coin-plus icon = pays 3 more when you sell it, down arrow = 2 cheaper to buy. Four land tiles hold two resources (iron and crystal): the Rich Land missions need them.</p>
 {body}''')
 
     # ----- board layout (4-6p)
@@ -398,7 +362,7 @@ figure{{margin:0}}img{{width:100%;display:block}}figcaption{{font-size:11px;text
         parts.append(f'<polygon points="{hexpts(x, y, size - 1)}" fill="{fill}" stroke="{INK}" stroke-width="1.5"/><text x="{x:.0f}" y="{y + 5:.0f}" text-anchor="middle" font-size="13" fill="{INK}">{lab}</text>')
     ext = 4 * size * 1.75
     write(os.path.join(HERE, 'board_layout.svg'), f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{-ext} {-ext} {2 * ext} {2 * ext}" width="800" font-family="DejaVu Sans, Arial, sans-serif"><title>Board layout 4-6 players: 37 land + 12 ports (port positions illustrative)</title>{"".join(parts)}</svg>')
-    print('done:', len(cards), 'cards,', sum(len(v) for v in groups.values()), 'tiles')
+    print('done:', len(cards), 'cards,', len(os.listdir(tiles_dir)), 'tile files')
 
 
 if __name__ == '__main__':

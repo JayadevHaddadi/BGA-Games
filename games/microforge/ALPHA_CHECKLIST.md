@@ -19,23 +19,25 @@ Draft GMM description:
 | `zombie()` on every active state | OK (PlayerTurn, ChoosePush) |
 | `ensureSchema()` / `upgradeTableDb()` | OK |
 | Stats (`stats.jsonc`) | OK |
-| `gameinfos.jsonc` (players 2-6, interface min 320, status) | OK; `bgg_id` 0 (see A2) |
+| `gameinfos.jsonc` (players 2-6, interface min 320) | OK; deprecated `is_beta` / `is_sandbox` removed, `exception_on_warning: true` set; `bgg_id` 0 (see A2) |
 | Sounds in `bga/sounds/` (ogg + mp3), played only from confirmed notifications | Done today (placeholders from `design/make_sounds.py`) |
 | Metadata images in `bga/metadata_assets/` | Placeholders done today (see C) |
 | `GAMEHELP.wiki` | Done today (short rules) |
 | Missions in the panel, tiles, icons from the SVG set | Done |
 | Colour-blind preference (pref 100, one silhouette per faction) | NOT done. Reviewers will ask; not a Private Alpha blocker. Needs the faction art first |
 | Game options / preferences files | Not needed for Private Alpha |
-| PHP has never been executed locally (no PHP here) | You are the test; expect a few fatal errors on the first tables |
+| PHP never executed before | Now run locally: `php games/microforge/tests/smoke.php` (real Game.php on SQLite, warnings as exceptions, all 4 rules levels x 2/4/6 players). BGA itself is still untested |
+| Game option `Rules` (`gameoptions.jsonc` id 100: Basic / +Production / +Mechs / Full) | Done |
 
 ## C. Metadata images (all placeholders, regenerate with `python3 design/make_metadata.py`)
 `box_280x280.png`, `icon_50x50.png` / `icon_500x500.png`, `banner_1386x400.jpg` (no text), `publisher_280x280.png`, `display_1000x750.jpg`. Still missing: `title` 2000x2000 and real in-game screenshots for the display images (take them once the UI is final). Final art from the theme decision replaces these.
 
 ## D. Known gameplay problems to fix before inviting friends
-- "Rich Land" missions (L1-16, L2-19) can never be completed (no double-resource tiles exist).
+- (fixed) "Rich Land" missions: 4 land tiles now hold two resources.
 - Market exploit: with batch pricing, buy 10 / sell 10 loops print money. Agreed rules (one use per post per turn, 1 Credit) still leave it if prices move only after a batch. Needs per-item price steps or fixed port prices.
-- Used-coin and once-per-turn rules are agreed but not coded.
-- Basic game is a proposal only; the BGA game is the full (advanced) game.
+- (done) Once-per-turn: Extractor, Factory, Dock and Port each work once per turn for 1 Credit.
+- The Basic game exists as game option 1 (default). Numbers are untested.
+- Small touch targets: building sockets are about 13px at phone width (tiles are 42px+). Needs a tap-to-open-slot-menu pass before reviewers see it.
 
 ## E. After approval
 Each push to `main` redeploys to Studio; testers see the version on the production site only after BGA's alpha release process. Always restart the table after schema changes.
