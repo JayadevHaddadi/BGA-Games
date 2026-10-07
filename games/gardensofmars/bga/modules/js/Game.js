@@ -734,6 +734,13 @@ export class Game {
     }
 
     setupNotifications() {
+        if (typeof dojo !== 'undefined' && typeof dojo.subscribe === 'function') {
+            dojo.subscribe('martianSelected', this, 'notif_martianSelected');
+            dojo.subscribe('diceRolled', this, 'notif_diceRolled');
+            dojo.subscribe('gardenerMovedAndPlanted', this, 'notif_gardenerMovedAndPlanted');
+            dojo.subscribe('scorePenalty', this, 'notif_scorePenalty');
+            dojo.subscribe('finalScoring', this, 'notif_finalScoring');
+        }
         if (typeof this.bga?.notifications?.subscribe === 'function') {
             this.bga.notifications.subscribe('martianSelected', (n) => this.notif_martianSelected(n));
             this.bga.notifications.subscribe('diceRolled', (n) => this.notif_diceRolled(n));

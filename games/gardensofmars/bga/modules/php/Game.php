@@ -446,7 +446,7 @@ class Game extends \Bga\GameFramework\Table
                 );
                 // Place flower on board
                 static::DbQuery(sprintf(
-                    "UPDATE `cell` SET `flower_color` = '%s`, `planted_by` = %d WHERE `coord_q` = %d AND `coord_r` = %d",
+                    "UPDATE `cell` SET `flower_color` = '%s', `planted_by` = %d WHERE `coord_q` = %d AND `coord_r` = %d",
                     $flowerColor,
                     $playerId,
                     $targetQ,
