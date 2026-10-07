@@ -283,7 +283,7 @@ export class Game {
         main.innerHTML = `
             <div id="sg_container">
                 <div id="sg_reserve_tray" role="group" aria-label="${_('Reserve fruit to spend')}">
-                    <span class="sg_tray_label">${_('Choose which reserve fruit to spend (its points leave your reserve):')}</span>
+                    <span class="sg_tray_label">${_('Sacrifice any 1 fruit for this jump (its points leave your reserve):')}</span>
                     <div id="sg_tray_tiles_container" class="sg_tray_tiles"></div>
                 </div>
 
@@ -608,6 +608,9 @@ export class Game {
             return _('Your first jump will be 1 space.');
         }
         const spend = this.spendValueFor(q, r);
+        if (this.currentArgs && this.currentArgs.is_center && this.currentArgs.jumping_tile === null && spend === 0) {
+            return _('Center Nest: you sacrifice any 1 reserve fruit to glide here.');
+        }
         let text = spend > 0
             ? _('Spend from your reserve: this jump costs a ${val}-point fruit (you lose ${val} VP).').replace(/\$\{val\}/g, spend) + ' '
             : '';
@@ -635,11 +638,6 @@ export class Game {
             if (!move) return;
             this.selectedReserveTileId = move.reserve_tile_id;
         }
-        if (spending && this.selectedReserveTileId === null) {
-            this.bga?.dialogs?.showMessage?.(_('Choose a reserve fruit to spend first.'), 'error');
-            return;
-        }
-
         // Spending reserve points always needs an explicit confirmation
         if (spending || this.needsJumpConfirmation()) {
             this.setPendingTarget(q, r, isSetup);
@@ -670,21 +668,35 @@ export class Game {
         if (cell) cell.classList.add('sg-target-selected');
         this.showPreview(this.describeLanding(q, r));
 
+        const a = this.currentArgs;
+        const chooseFruit = !isSetup && a && a.is_center && a.jumping_tile === null;
+        if (chooseFruit) {
+            this.showReserveTray(a);
+        }
+
         this.clearActionButtons();
         const spend = this.spendValueFor(q, r);
-        const confirmLabel = isSetup
-            ? _('Confirm placement')
-            : (spend > 0 ? _('Confirm: spend ${val} VP from reserve').replace('${val}', spend) : _('Confirm jump'));
-        this.addActionButton('sg_confirm_btn', confirmLabel, () => {
-            this.commitTarget(q, r, isSetup);
-        }, 'primary');
+        const needChoice = chooseFruit && this.selectedReserveTileId === null;
+        if (!needChoice) {
+            const confirmLabel = isSetup
+                ? _('Confirm placement')
+                : (spend > 0 ? _('Confirm: spend ${val} VP from reserve').replace('${val}', spend) : _('Confirm jump'));
+            this.addActionButton('sg_confirm_btn', confirmLabel, () => {
+                this.commitTarget(q, r, isSetup);
+            }, 'primary');
+        }
         if (!isSetup) {
             this.addActionButton('sg_torpor_btn', this.torporLabel(), () => this.onTorpor(), 'secondary');
         }
         this.addActionButton('sg_cancel_btn', _('Cancel'), () => this.cancelPendingTarget(), 'alert');
+
         let title;
         if (isSetup) {
             title = _('${you} must confirm your starting space');
+        } else if (needChoice) {
+            const vals = [...new Set((a.reserve_tiles || []).map(t => t.value))].sort((x, y) => x - y);
+            title = _('${you} have to sacrifice any 1 fruit for this jump. Choose one: ${options}')
+                .replace('${options}', vals.map(v => v + ' pt').join(' / '));
         } else if (spend > 0) {
             title = _('${you} will spend a ${val}-point fruit from your reserve (you lose ${val} VP). Confirm the jump?').replace(/\$\{val\}/g, spend);
         } else {
@@ -695,6 +707,8 @@ export class Game {
 
     cancelPendingTarget() {
         this.pendingTarget = null;
+        this.selectedReserveTileId = null;
+        this.hideReserveTray();
         document.querySelectorAll('.sg-hex-cell.sg-target-selected').forEach(c => c.classList.remove('sg-target-selected'));
         this.showPreview('');
         const isSetup = !!(this.currentArgs && this.currentArgs.valid_spaces);
@@ -742,8 +756,10 @@ export class Game {
             this.hideReserveTray();
             this.highlightJumpTargets(args.legal_jumps);
         } else if (args.is_center) {
-            // Center Nest: any space is reachable, the player picks which reserve fruit to spend
-            this.showReserveTray(args);
+            // Center Nest: every space is pickable; the fruit to sacrifice is chosen after the space
+            this.selectedReserveTileId = null;
+            this.hideReserveTray();
+            this.highlightJumpTargets(args.legal_jumps);
         } else {
             // No tile underneath: every space reachable with some reserve fruit is highlighted,
             // the distance tells which fruit gets spent
@@ -807,9 +823,9 @@ export class Game {
         sortedVals.forEach((val, idx) => {
             const tileId = uniqueValues[val];
             const btn = document.createElement('button');
-            btn.className = `sg_tray_tile_btn ${idx === 0 ? 'selected' : ''}`;
+            btn.className = `sg_tray_tile_btn ${tileId === this.selectedReserveTileId ? 'selected' : ''}`;
             btn.type = 'button';
-            const label = _('Spend a fruit worth ${val} pt (jump ${val} space(s))').replace(/\$\{val\}/g, val);
+            const label = _('Sacrifice a fruit worth ${val} pt').replace(/\$\{val\}/g, val);
             btn.setAttribute('aria-label', label);
             btn.setAttribute('title', label);
             btn.innerHTML = `<img src="${themeUrl}img/tile_${val}.png" alt="" /><span class="sg_tray_tile_num">${val}</span>`;
@@ -818,27 +834,13 @@ export class Game {
                 document.querySelectorAll('.sg_tray_tile_btn').forEach(b => b.classList.remove('selected'));
                 btn.classList.add('selected');
                 this.selectedReserveTileId = tileId;
-                this.filterJumpsForReserveTile(tileId, args.legal_jumps);
+                if (this.pendingTarget) {
+                    this.setPendingTarget(this.pendingTarget.q, this.pendingTarget.r, false);
+                }
             });
 
             container.appendChild(btn);
         });
-
-        // Pre-select first
-        if (sortedVals.length > 0) {
-            const firstId = uniqueValues[sortedVals[0]];
-            this.selectedReserveTileId = firstId;
-            this.filterJumpsForReserveTile(firstId, args.legal_jumps);
-        }
-    }
-
-    filterJumpsForReserveTile(reserveTileId, allLegalJumps) {
-        const matching = allLegalJumps.filter(m => m.reserve_tile_id === reserveTileId);
-        this.highlightJumpTargets(matching);
-        if (this.pendingTarget === null) {
-            this.clearActionButtons();
-            this.addTorporButton(this.currentArgs);
-        }
     }
 
     hideReserveTray() {
@@ -878,7 +880,7 @@ export class Game {
                 : _('${you} must jump ${val} space(s) or enter torpor');
             statusText = statusText.replace('${val}', val);
         } else if (args.is_center) {
-            statusText = _('${you} are on the Center Nest: spend a reserve fruit to glide anywhere, or enter torpor');
+            statusText = _('${you} are on the Center Nest: pick any space to glide to (you will sacrifice any 1 reserve fruit), or enter torpor');
         } else {
             statusText = args.will_end_on_torpor
                 ? _('${you} must spend a reserve fruit to jump: pick a highlighted space (the fruit\'s points are lost). Entering torpor now would end the game')
