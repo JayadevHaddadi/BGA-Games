@@ -1,0 +1,57 @@
+==Overview==
+
+'''Gardens of Mars''' is an abstract strategy game for 2–5 players designed by Néstor Romeral Andrés and published by nestorgames. Martian gardeners plant flowers on a 91-hex hexagonal board representing the red sands of Mars, attempting to grow connected clusters of flowers and score the most points.
+
+==Components==
+
+* A hexagonal board of 91 hexes with an integrated perimeter scoring track (spaces 0 to 50).
+* 60 flowers across 6 colors: Blue, Yellow, White, Gray, Red, and Green (10 of each).
+* 6 six-sided dice.
+* Martian figures (Ali, Bob, Bot, Marty, Robby): each player controls a Gardener on the board and a matching Scoring Martian on the perimeter track.
+
+==Setup==
+
+* Flowers are distributed randomly among players from the bag:
+** '''2 players:''' 30 flowers each
+** '''3 players:''' 20 flowers each
+** '''4 players:''' 15 flowers each
+** '''5 players:''' 12 flowers each
+* Players place their Scoring Martian on space '0' (next to space 1) on the perimeter scoring track.
+* In turn order, each player places their Gardener on any empty hexagon except the central space.
+
+==Turn Structure==
+
+The game is played in turns in anticlockwise order. Each player does the following in order:
+
+===1. Rolling Dice (if table pool is empty)===
+* If there are '''no available dice''' on the table, the player counts the number of spaces adjacent to their Gardener that contain no flowers (the central space counts as having no flowers).
+* The player takes that many dice from the case (up to 6) and rolls them into the pool.
+* If the gardener is completely surrounded by flowers (0 empty adjacent spaces), no dice are rolled and the player's turn ends immediately.
+
+===2. Moving and Planting===
+If there is at least one die available on the table:
+* The player selects one of the available dice.
+* They move their Gardener in a straight line along any of the 6 directions by exactly the die's value (no turning).
+* '''Restrictions:'''
+** The central space cannot be entered or passed through.
+** A Gardener cannot move through or land on a space occupied by another Gardener.
+* '''Outcomes:'''
+** '''Cannot Move / Land on existing flower:''' If the Gardener lands on an existing flower or has no valid legal moves, the player loses 1 point (scoring Martian moves back 1 position, minimum 0).
+** '''Empty Hexagon:''' If the Gardener stops on an empty hexagon, the player chooses and plants any one flower from their remaining reserve. They immediately score points equal to the total number of connected flowers of that same color already touching the newly planted flower.
+* The used die is discarded back into the case.
+
+===3. Extra Turns (Variants)===
+* '''Last Flower:''' If a player plants the very last flower of a given color from their reserve, they receive an extra turn immediately, provided at least one unused die remains on the table.
+* '''Scoring Track Leapfrog & 25+ Landing:''' On the perimeter track, if a Scoring Martian would land on a space occupied by another player's Martian, it advances forward in the same direction to the next unoccupied space. Furthermore, if a player moves their Scoring Martian to a space above 25 points that is already occupied by another Martian, they earn an extra turn (if an unused die remains).
+
+==Game End==
+
+The game ends immediately when:
+* Any player runs out of flowers in their reserve.
+* None of the players can move or roll any dice (rare stalemate).
+
+The player with the highest score wins! Tiebreaker: player with the most total flowers planted breaks ties.
+
+==Credits==
+
+Game design: Néstor Romeral Andrés. Published by nestorgames. BGA implementation: Jayadev Haddadi.

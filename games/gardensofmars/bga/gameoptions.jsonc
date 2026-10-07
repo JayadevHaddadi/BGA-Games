@@ -1,0 +1,30 @@
+{
+    "100": {
+        "name": "Scoring track variant",
+        "values": {
+            "1": {
+                "name": "Enabled (Official Rules)",
+                "description": "Scoring martians leapfrog occupied spaces on the track, and landing on an occupied space above 25 points earns an extra turn."
+            },
+            "2": {
+                "name": "Disabled (Direct VP)",
+                "description": "Points are scored directly without leapfrog jumps or scoring-track extra turns."
+            }
+        },
+        "default": 1
+    },
+    "101": {
+        "name": "Last flower extra turn",
+        "values": {
+            "1": {
+                "name": "Enabled",
+                "description": "Planting the last flower of any color grants an extra turn if dice remain."
+            },
+            "2": {
+                "name": "Disabled",
+                "description": "Planting the last flower of a color does not grant an extra turn."
+            }
+        },
+        "default": 1
+    }
+}
