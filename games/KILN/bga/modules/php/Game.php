@@ -744,9 +744,39 @@ class Game extends \Bga\GameFramework\Table
      */
     public function normalizeShapeForPlayer(int $playerId, array $shape): array
     {
-        // Pieces taken from the central board retain their exact visible screen orientation
-        // as they move directly into the player's mat below (no rotation).
-        return static::normalizeShape($shape);
+        // The shared kiln is displayed rotated per viewer seat (seat 0 = as stored, 1 = 90 deg
+        // counter-clockwise, 2 = 180, 3 = 90 clockwise). The piece must reach the player's mat in
+        // the orientation THEY see, so rotate the absolute shape by the same transform.
+        $seats = $this->getPlayerSeats();
+        $seat = (int) ($seats[$playerId] ?? 0);
+        return static::normalizeShape(static::rotateShapeForSeat($shape, $seat));
+    }
+
+    /**
+     * Rotate absolute board cells ({x,y}) as seen from the given seat (screen coords, y down).
+     */
+    public static function rotateShapeForSeat(array $shape, int $seat): array
+    {
+        $seat = (($seat % 4) + 4) % 4;
+        $out = [];
+        foreach ($shape as $cell) {
+            $x = (int) $cell['x'];
+            $y = (int) $cell['y'];
+            switch ($seat) {
+                case 1:
+                    $out[] = ['x' => $y, 'y' => -$x];
+                    break;
+                case 2:
+                    $out[] = ['x' => -$x, 'y' => -$y];
+                    break;
+                case 3:
+                    $out[] = ['x' => -$y, 'y' => $x];
+                    break;
+                default:
+                    $out[] = ['x' => $x, 'y' => $y];
+            }
+        }
+        return $out;
     }
 
     public static function normalizeShape(array $shape): array
