@@ -276,6 +276,14 @@ export class Game {
                 <div id="gom_layout">
                     <div class="game-board-scaler" id="gom_board_scaler">
                         <div id="garden_board">
+                            <div class="gom_track_indicator gom_track_indicator_leapfrog" title="${_('Track 1-25: Landing on an occupied space skips forward to the next empty space!')}">
+                                <span class="gom_track_icon">↷</span>
+                                <span class="gom_track_badge_text">${_('1–25: Leapfrog')}</span>
+                            </div>
+                            <div class="gom_track_indicator gom_track_indicator_extraturn" title="${_('Track 26-50: Landing on an occupied space above 25 grants an Extra Turn!')}">
+                                <span class="gom_track_icon">+1</span>
+                                <span class="gom_track_badge_text">${_('26–50: Extra Turn')}</span>
+                            </div>
                             <div id="gom_spots_layer"></div>
                             <div id="gom_track_layer"></div>
                             <div id="gom_gardeners_layer"></div>
@@ -352,57 +360,20 @@ export class Game {
         const dice = this.gamedatas.dice_pool || [];
         if (dice.length === 0) {
             list.innerHTML = `<span style="font-size:13px;color:#555">${_('No dice on table — active player will roll upon their turn')}</span>`;
-            this.renderPlayerPanelsDice();
             return;
         }
 
         dice.forEach(d => {
+            if (parseInt(d.is_used)) return; // Hide used dice from the shared pool
             const btn = document.createElement('button');
             btn.type = 'button';
-            btn.className = 'gom_die_token' + (parseInt(d.is_used) ? ' used' : '');
+            btn.className = 'gom_die_token';
             if (parseInt(d.die_id) === this.selectedDieId) {
                 btn.classList.add('selected');
             }
             btn.textContent = d.die_value;
-            btn.disabled = !!parseInt(d.is_used);
             btn.addEventListener('click', () => this.onDieSelected(parseInt(d.die_id)));
             list.appendChild(btn);
-        });
-
-        this.renderPlayerPanelsDice();
-    }
-
-    renderPlayerPanelsDice() {
-        const dice = this.gamedatas.dice_pool || [];
-        const players = this.gamedatas.players || {};
-
-        Object.keys(players).forEach(pid => {
-            const panel = this.bga?.playerPanels?.getElement?.(parseInt(pid));
-            if (!panel) return;
-
-            let box = document.getElementById(`gom_panel_dice_${pid}`);
-            if (!box) {
-                box = document.createElement('div');
-                box.id = `gom_panel_dice_${pid}`;
-                box.className = 'gom_panel_dice';
-                panel.appendChild(box);
-            }
-
-            box.innerHTML = `<span class="gom_panel_dice_label">${_('Dice')}:</span>`;
-            if (dice.length === 0) {
-                const empty = document.createElement('span');
-                empty.style.fontSize = '11px';
-                empty.style.color = '#777';
-                empty.textContent = _('None');
-                box.appendChild(empty);
-            } else {
-                dice.forEach(d => {
-                    const dt = document.createElement('span');
-                    dt.className = 'gom_panel_die_token' + (parseInt(d.is_used) ? ' used' : '');
-                    dt.textContent = d.die_value;
-                    box.appendChild(dt);
-                });
-            }
         });
     }
 
@@ -631,53 +602,72 @@ export class Game {
         const tLayer = document.getElementById('gom_track_layer');
         if (!gLayer || !tLayer || !this.gamedatas?.gardeners) return;
 
-        gLayer.innerHTML = '';
-        tLayer.innerHTML = '';
+        const currentPids = new Set(Object.keys(this.gamedatas.gardeners));
+
+        // Clean up any stale tokens for non-existent players
+        gLayer.querySelectorAll('.gom_gardener_token').forEach(el => {
+            const pid = el.id.replace('gardener_', '');
+            if (!currentPids.has(pid)) el.remove();
+        });
+        tLayer.querySelectorAll('.gom_track_token').forEach(el => {
+            const pid = el.id.replace('track_martian_', '');
+            if (!currentPids.has(pid)) el.remove();
+        });
 
         Object.values(this.gamedatas.gardeners).forEach(g => {
+            const pid = String(g.player_id);
+            const pColor = this.gamedatas.players?.[pid]?.color;
+
             // 1. Gardener token on the hexagonal garden board
             if (g.q !== null && g.r !== null && g.q !== undefined) {
                 const pos = this.axialToPixel(g.q, g.r);
-                const token = document.createElement('div');
-                token.className = 'gom_gardener_token';
-                token.id = `gardener_${g.player_id}`;
+                let token = document.getElementById(`gardener_${pid}`);
+                if (!token) {
+                    token = document.createElement('div');
+                    token.className = 'gom_gardener_token';
+                    token.id = `gardener_${pid}`;
+                    const img = document.createElement('img');
+                    img.src = this.imgUrl(`${g.martian || 'bot'}.png`);
+                    img.alt = g.martian;
+                    token.appendChild(img);
+
+                    // Lift alien on click so colour-blind players can inspect flower underneath
+                    token.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        token.classList.toggle('lifted');
+                    });
+                    gLayer.appendChild(token);
+                }
+
                 token.dataset.name = (g.martian || '').toUpperCase();
                 token.style.left = `${pos.x}px`;
                 token.style.top = `${pos.y}px`;
-
-                const pColor = this.gamedatas.players?.[g.player_id]?.color;
                 if (pColor) token.style.borderColor = `#${pColor}`;
 
-                const img = document.createElement('img');
-                img.src = this.imgUrl(`${g.martian || 'bot'}.png`);
-                img.alt = g.martian;
-                token.appendChild(img);
-
-                // Lift alien on click so colour-blind players can inspect flower underneath
-                token.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    token.classList.toggle('lifted');
-                });
-
-                gLayer.appendChild(token);
+                const img = token.querySelector('img');
+                if (img && g.martian) img.src = this.imgUrl(`${g.martian}.png`);
             }
 
             // 2. Scoring Martian token on the perimeter track
             const trackPt = this.getTrackPixel(g.track_pos || 0);
-            const trackToken = document.createElement('div');
-            trackToken.className = 'gom_track_token';
-            trackToken.id = `track_martian_${g.player_id}`;
+            let trackToken = document.getElementById(`track_martian_${pid}`);
+            if (!trackToken) {
+                trackToken = document.createElement('div');
+                trackToken.className = 'gom_track_token';
+                trackToken.id = `track_martian_${pid}`;
+                const tImg = document.createElement('img');
+                tImg.src = this.imgUrl(`${g.martian || 'bot'}.png`);
+                tImg.alt = '';
+                trackToken.appendChild(tImg);
+                tLayer.appendChild(trackToken);
+            }
+
             trackToken.style.left = `${trackPt.x}px`;
             trackToken.style.top = `${trackPt.y}px`;
-
-            const pColor = this.gamedatas.players?.[g.player_id]?.color;
             if (pColor) trackToken.style.borderColor = `#${pColor}`;
 
-            const tImg = document.createElement('img');
-            tImg.src = this.imgUrl(`${g.martian || 'bot'}.png`);
-            tImg.alt = '';
-            trackToken.appendChild(tImg);
-            tLayer.appendChild(trackToken);
+            const tImg = trackToken.querySelector('img');
+            if (tImg && g.martian) tImg.src = this.imgUrl(`${g.martian}.png`);
         });
 
         if (this.myTurnPulse) this.setMyTurnPulse(true);
@@ -700,7 +690,28 @@ export class Game {
                 panel.appendChild(box);
             }
             box.innerHTML = '';
+
+            // Player Martian character figure with player color
+            const gardener = this.gamedatas.gardeners?.[pid];
+            const pColor = this.gamedatas.players?.[pid]?.color || '888888';
+            const mBadge = document.createElement('div');
+            mBadge.className = 'gom_panel_martian_badge';
+            mBadge.style.borderColor = `#${pColor}`;
+            mBadge.style.boxShadow = `0 0 0 2px #${pColor}44`;
+            const mImg = document.createElement('img');
+            mImg.src = this.imgUrl(`${gardener?.martian || 'bot'}.png`);
+            mImg.alt = gardener?.martian || 'Martian';
+            mBadge.appendChild(mImg);
+            const mName = document.createElement('span');
+            mName.className = 'gom_panel_martian_name';
+            mName.textContent = (gardener?.martian || 'Martian').toUpperCase();
+            mName.style.color = `#${pColor}`;
+            mBadge.appendChild(mName);
+            box.appendChild(mBadge);
+
             let total = 0;
+            const flowerList = document.createElement('div');
+            flowerList.className = 'gom_panel_flower_list';
 
             colors.forEach(col => {
                 const n = all[pid]?.[col] || 0;
@@ -709,16 +720,15 @@ export class Game {
                 item.className = 'gom_panel_flower';
                 item.title = `${col}: ${n}`;
                 item.innerHTML = `<img src="${this.imgUrl(`flower_${col}.png`)}" alt="${col}"><b>${n}</b>`;
-                box.appendChild(item);
+                flowerList.appendChild(item);
             });
+            box.appendChild(flowerList);
 
             const pen = document.createElement('div');
             pen.className = 'gom_panel_penalty';
             pen.textContent = `${total} ${_('flowers remaining')}`;
             box.appendChild(pen);
         });
-
-        this.renderPlayerPanelsDice();
     }
 
     setMyTurnPulse(on) {
@@ -887,16 +897,41 @@ export class Game {
         this.layoutColorPicker();
     }
 
+    updateScoreForPlayer(pid, scoreVal) {
+        const val = Number(scoreVal) || 0;
+        if (!this.gamedatas.scores) this.gamedatas.scores = {};
+        this.gamedatas.scores[pid] = val;
+
+        // Modern BGA playerPanels score counter
+        try {
+            const counter = this.bga?.playerPanels?.getScoreCounter?.(parseInt(pid));
+            if (counter) {
+                if (typeof counter.toValue === 'function') counter.toValue(val);
+                else if (typeof counter.setValue === 'function') counter.setValue(val);
+            }
+        } catch (e) {}
+
+        // Fallback: gameui.scoreCtrl
+        try {
+            if (typeof gameui !== 'undefined' && gameui.scoreCtrl?.[pid]) {
+                if (typeof gameui.scoreCtrl[pid].toValue === 'function') gameui.scoreCtrl[pid].toValue(val);
+                else if (typeof gameui.scoreCtrl[pid].setValue === 'function') gameui.scoreCtrl[pid].setValue(val);
+            }
+        } catch (e) {}
+
+        // Fallback: Direct DOM node update if framework counter is not bound yet
+        const domScore = document.getElementById(`player_score_${pid}`);
+        if (domScore) {
+            domScore.textContent = String(val);
+        }
+    }
+
     syncScoreCounters() {
         const scores = this.gamedatas.scores || {};
         const players = this.gamedatas.players || {};
         Object.keys(players).forEach(pid => {
             const val = scores[pid] !== undefined ? Number(scores[pid]) : 0;
-            const counter = this.bga?.playerPanels?.getScoreCounter?.(parseInt(pid));
-            if (counter) {
-                if (typeof counter.setValue === 'function') counter.setValue(val);
-                else if (typeof counter.toValue === 'function') counter.toValue(val);
-            }
+            this.updateScoreForPlayer(pid, val);
         });
     }
 
@@ -911,12 +946,14 @@ export class Game {
             dojo.subscribe('martianSelected', this, 'notif_martianSelected');
             dojo.subscribe('diceRolled', this, 'notif_diceRolled');
             dojo.subscribe('gardenerMovedAndPlanted', this, 'notif_gardenerMovedAndPlanted');
+            dojo.subscribe('extraTurnGranted', this, 'notif_extraTurnGranted');
             dojo.subscribe('scorePenalty', this, 'notif_scorePenalty');
             dojo.subscribe('finalScoring', this, 'notif_finalScoring');
         } else if (typeof this.bga?.notifications?.subscribe === 'function') {
             this.bga.notifications.subscribe('martianSelected', (n) => this.notif_martianSelected(n));
             this.bga.notifications.subscribe('diceRolled', (n) => this.notif_diceRolled(n));
             this.bga.notifications.subscribe('gardenerMovedAndPlanted', (n) => this.notif_gardenerMovedAndPlanted(n));
+            this.bga.notifications.subscribe('extraTurnGranted', (n) => this.notif_extraTurnGranted(n));
             this.bga.notifications.subscribe('scorePenalty', (n) => this.notif_scorePenalty(n));
             this.bga.notifications.subscribe('finalScoring', (n) => this.notif_finalScoring(n));
         }
@@ -934,6 +971,7 @@ export class Game {
         };
         sounds.playMove();
         this.renderGardenState();
+        this.renderPlayerFlowers();
     }
 
     notif_diceRolled(notif) {
@@ -942,7 +980,6 @@ export class Game {
         this.selectedDieId = null;
         sounds.playMove();
         this.renderDicePool();
-        this.renderPlayerPanelsDice();
         if (this.isCurrentPlayerActive()) {
             this.updateMoveHighlights();
         }
@@ -989,13 +1026,7 @@ export class Game {
 
         // 6. Update score counter in player panel
         if (args.score !== undefined) {
-            if (!this.gamedatas.scores) this.gamedatas.scores = {};
-            this.gamedatas.scores[args.player_id] = args.score;
-            const counter = this.bga?.playerPanels?.getScoreCounter?.(parseInt(args.player_id));
-            if (counter) {
-                if (typeof counter.toValue === 'function') counter.toValue(args.score);
-                else if (typeof counter.setValue === 'function') counter.setValue(args.score);
-            }
+            this.updateScoreForPlayer(args.player_id, args.score);
         }
 
         // 7. Update flower reserves
@@ -1005,6 +1036,14 @@ export class Game {
         }
 
         this.renderGardenState();
+    }
+
+    notif_extraTurnGranted(notif) {
+        const args = this._getNotifArgs(notif);
+        sounds.playScore();
+        if (this.isCurrentPlayerActive()) {
+            this.bga?.statusBar?.setTitle?.(_('Extra move granted! Play another available die.'));
+        }
     }
 
     notif_scorePenalty(notif) {
@@ -1040,13 +1079,7 @@ export class Game {
         }
 
         if (args.score !== undefined) {
-            if (!this.gamedatas.scores) this.gamedatas.scores = {};
-            this.gamedatas.scores[args.player_id] = args.score;
-            const counter = this.bga?.playerPanels?.getScoreCounter?.(parseInt(args.player_id));
-            if (counter) {
-                if (typeof counter.toValue === 'function') counter.toValue(args.score);
-                else if (typeof counter.setValue === 'function') counter.setValue(args.score);
-            }
+            this.updateScoreForPlayer(args.player_id, args.score);
         }
 
         this.renderGardenState();
