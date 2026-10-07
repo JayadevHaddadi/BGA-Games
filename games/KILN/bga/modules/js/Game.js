@@ -830,7 +830,7 @@ export class Game {
         el.id = `kiln_arrow_${slot}`;
         el.setAttribute('data-slot', slot);
         el.innerHTML = `
-            <div class="kiln_arrow_icon">${symbol}</div>
+            <svg class="kiln_arrow_svg" viewBox="0 0 100 100" aria-hidden="true"><polygon points="25,3 75,3 75,50 97,50 50,97 3,50 25,50"></polygon></svg>
             <div class="kiln_outer_tile_holder" id="kiln_outer_slot_${slot}"></div>
         `;
 

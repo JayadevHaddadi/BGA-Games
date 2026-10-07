@@ -1116,7 +1116,7 @@
 .kiln_cb_on .kiln_tile_green,
 .kiln_cb_on .kiln_disc_green,
 .kiln_cb_on .kiln_dot_green {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 11.80 14.80'%3E%3Cpath transform='translate(0.900 0.900)' d='M0 0 H10 V2.4 H6.8 V10.6 H10 V13 H0 V10.6 H3.2 V2.4 H0 Z' fill='%230a3410'/%3E%3C/svg%3E"), linear-gradient(135deg, #43a047 0%, #2e7d32 100%);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 15.90 16.72'%3E%3Cpath transform='translate(0.9 0.9)' d='M5.55 1.26 H8.55 Q9.05 1.26 9.05 1.76 V13.16 Q9.05 13.66 8.55 13.66 H5.55 Q5.05 13.66 5.05 13.16 V1.76 Q5.05 1.26 5.55 1.26 Z' fill='%230a3410'/%3E%3C/svg%3E"), linear-gradient(135deg, #43a047 0%, #2e7d32 100%);
     background-repeat: no-repeat, no-repeat;
     background-position: center, center;
     background-size: 42%, 100% 100%;
@@ -1200,3 +1200,35 @@
 .kiln_cb_on .kiln_panel_glyph.kiln_tile_blue,
 .kiln_cb_on .kiln_panel_glyph.kiln_tile_green,
 .kiln_cb_on .kiln_panel_glyph.kiln_tile_yellow { background-size: 62%, 100% 100%; }
+
+/* Arrows: hollow block arrows like the printed nestorgames board (thin outline, paper fill) */
+.kiln_arrow_slot,
+.kiln_arrow_clickable {
+    background: transparent;
+    border: none;
+}
+.kiln_arrow_svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    overflow: visible;
+}
+.kiln_arrow_svg polygon {
+    fill: #f3e9d6;
+    stroke: #5a4a3c;
+    stroke-width: 2.5;
+    stroke-linejoin: miter;
+}
+.kiln_arrow_up .kiln_arrow_svg { transform: rotate(180deg); }
+.kiln_arrow_left .kiln_arrow_svg { transform: rotate(90deg); }
+.kiln_arrow_right .kiln_arrow_svg { transform: rotate(-90deg); }
+.kiln_arrow_clickable { cursor: pointer; }
+.kiln_arrow_clickable .kiln_arrow_svg polygon {
+    fill: #dbe9f8;
+    stroke: #1565c0;
+    stroke-width: 4;
+}
+@media (hover: hover) {
+.kiln_arrow_clickable:hover .kiln_arrow_svg polygon { fill: #1565c0; }
+}
+.kiln_outer_tile_holder { z-index: 2; }
