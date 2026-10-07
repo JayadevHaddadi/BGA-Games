@@ -203,10 +203,10 @@
 .sg-glider-belly.color-white, .sg-glider-head.sg-glider-dorsal.color-white { fill: #eceff1; opacity: 0.92; stroke: #b0bec5; }
 .sg-glider-tail.color-white, .sg-glider-ear.color-white { fill: #cfd8dc; stroke: #90a4ae; }
 
-/* Black */
-.sg-glider-wings.color-black, .sg-glider-head.color-black { fill: #263238; stroke: #455a64; }
-.sg-glider-belly.color-black, .sg-glider-head.sg-glider-dorsal.color-black { fill: #546e7a; opacity: 0.88; stroke: #455a64; }
-.sg-glider-tail.color-black, .sg-glider-ear.color-black { fill: #1c252a; stroke: #37474f; }
+/* Purple */
+.sg-glider-wings.color-purple, .sg-glider-head.color-purple { fill: #8e44e0; stroke: #4a148c; }
+.sg-glider-belly.color-purple, .sg-glider-head.sg-glider-dorsal.color-purple { fill: #d9c4f5; opacity: 0.9; stroke: #4a148c; }
+.sg-glider-tail.color-purple, .sg-glider-ear.color-purple { fill: #6a2fb5; stroke: #3a0f73; }
 
 /* Red */
 .sg-glider-wings.color-red, .sg-glider-head.color-red { fill: #e53935; stroke: #b71c1c; }

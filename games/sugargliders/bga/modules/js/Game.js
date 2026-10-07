@@ -258,7 +258,11 @@ export class Game {
         this.HEX_RADIUS = gamedatas.hex_radius || 4;
         this.boardTiles = gamedatas.board_tiles || {};
         this.gliders = gamedatas.gliders || {};
-        this.playerColors = gamedatas.player_colors || {};
+        this.playerColors = {};
+        for (const pid in (gamedatas.player_colors || {})) {
+            const n = gamedatas.player_colors[pid];
+            this.playerColors[pid] = (n === 'black') ? 'purple' : n;
+        }
         this.playerReserves = gamedatas.player_reserves || {};
         this.jumpingTiles = gamedatas.jumping_tiles || {};
         this.scores = gamedatas.scores || {};
@@ -279,7 +283,7 @@ export class Game {
         main.innerHTML = `
             <div id="sg_container">
                 <div id="sg_reserve_tray" role="group" aria-label="${_('Reserve fruit to spend')}">
-                    <span class="sg_tray_label">${_('Spend a reserve fruit to jump:')}</span>
+                    <span class="sg_tray_label">${_('Choose which reserve fruit to spend (its points leave your reserve):')}</span>
                     <div id="sg_tray_tiles_container" class="sg_tray_tiles"></div>
                 </div>
 
@@ -487,7 +491,7 @@ export class Game {
     }
 
     symbolForColor(colorName) {
-        const map = { white: 'circle', black: 'square', red: 'triangle', blue: 'diamond', yellow: 'star', green: 'cross' };
+        const map = { white: 'circle', purple: 'square', red: 'triangle', blue: 'diamond', yellow: 'star', green: 'cross' };
         return map[colorName] || 'circle';
     }
 
@@ -583,16 +587,36 @@ export class Game {
         this.addTip('sg_cell_0_0', _('Center Nest: a glider resting here can spend any reserve fruit to glide to any empty space on the tree.'));
     }
 
+    // Points of the reserve fruit that would be spent to reach (q, r); 0 if no reserve fruit is spent
+    spendValueFor(q, r) {
+        const a = this.currentArgs;
+        if (!a || a.valid_spaces || a.jumping_tile !== null) return 0;
+        if (a.is_center) {
+            const t = (a.reserve_tiles || []).find(x => x.tile_id === this.selectedReserveTileId);
+            return t ? t.value : 0;
+        }
+        const move = (a.legal_jumps || []).find(m => m.target_q === q && m.target_r === r);
+        if (!move) return 0;
+        const t = (a.reserve_tiles || []).find(x => x.tile_id === move.reserve_tile_id);
+        return t ? t.value : 0;
+    }
+
     describeLanding(q, r) {
         const isSetup = !!(this.currentArgs && this.currentArgs.valid_spaces);
         const tile = this.boardTiles[`${q}_${r}`];
         if (isSetup) {
             return _('Your first jump will be 1 space.');
         }
+        const spend = this.spendValueFor(q, r);
+        let text = spend > 0
+            ? _('Spend from your reserve: this jump costs a ${val}-point fruit (you lose ${val} VP).').replace(/\$\{val\}/g, spend) + ' '
+            : '';
         if (tile) {
-            return _('Landing here: you keep this fruit under you and your next jump is ${val} space(s).').replace('${val}', tile.value);
+            text += _('Landing here: you keep this fruit under you and your next jump is ${val} space(s).').replace('${val}', tile.value);
+        } else {
+            text += _('Landing on an empty space: next turn you must spend a reserve fruit to jump.');
         }
-        return _('Landing on an empty space: next turn you must spend a reserve fruit to jump.');
+        return text;
     }
 
     showPreview(text) {
@@ -605,12 +629,19 @@ export class Game {
         const isSetup = !!this.currentArgs.valid_spaces;
         if (!isSetup && !this.currentArgs.legal_jumps) return;
 
-        if (!isSetup && this.currentArgs.jumping_tile === null && this.selectedReserveTileId === null) {
+        const spending = !isSetup && this.currentArgs.jumping_tile === null;
+        if (spending && !this.currentArgs.is_center) {
+            const move = this.currentArgs.legal_jumps.find(m => m.target_q === q && m.target_r === r);
+            if (!move) return;
+            this.selectedReserveTileId = move.reserve_tile_id;
+        }
+        if (spending && this.selectedReserveTileId === null) {
             this.bga?.dialogs?.showMessage?.(_('Choose a reserve fruit to spend first.'), 'error');
             return;
         }
 
-        if (this.needsJumpConfirmation()) {
+        // Spending reserve points always needs an explicit confirmation
+        if (spending || this.needsJumpConfirmation()) {
             this.setPendingTarget(q, r, isSetup);
         } else {
             this.commitTarget(q, r, isSetup);
@@ -640,16 +671,26 @@ export class Game {
         this.showPreview(this.describeLanding(q, r));
 
         this.clearActionButtons();
-        this.addActionButton('sg_confirm_btn', isSetup ? _('Confirm placement') : _('Confirm jump'), () => {
+        const spend = this.spendValueFor(q, r);
+        const confirmLabel = isSetup
+            ? _('Confirm placement')
+            : (spend > 0 ? _('Confirm: spend ${val} VP from reserve').replace('${val}', spend) : _('Confirm jump'));
+        this.addActionButton('sg_confirm_btn', confirmLabel, () => {
             this.commitTarget(q, r, isSetup);
         }, 'primary');
         if (!isSetup) {
             this.addActionButton('sg_torpor_btn', this.torporLabel(), () => this.onTorpor(), 'secondary');
         }
         this.addActionButton('sg_cancel_btn', _('Cancel'), () => this.cancelPendingTarget(), 'alert');
-        this.bga?.statusBar?.setTitle(isSetup
-            ? _('${you} must confirm your starting space')
-            : _('${you} must confirm your jump'));
+        let title;
+        if (isSetup) {
+            title = _('${you} must confirm your starting space');
+        } else if (spend > 0) {
+            title = _('${you} will spend a ${val}-point fruit from your reserve (you lose ${val} VP). Confirm the jump?').replace(/\$\{val\}/g, spend);
+        } else {
+            title = _('${you} must confirm your jump');
+        }
+        this.bga?.statusBar?.setTitle(title);
     }
 
     cancelPendingTarget() {
@@ -700,9 +741,14 @@ export class Game {
         if (args.jumping_tile !== null) {
             this.hideReserveTray();
             this.highlightJumpTargets(args.legal_jumps);
-        } else {
-            // Must spend a reserve tile!
+        } else if (args.is_center) {
+            // Center Nest: any space is reachable, the player picks which reserve fruit to spend
             this.showReserveTray(args);
+        } else {
+            // No tile underneath: every space reachable with some reserve fruit is highlighted,
+            // the distance tells which fruit gets spent
+            this.hideReserveTray();
+            this.highlightJumpTargets(args.legal_jumps);
         }
     }
 
@@ -712,8 +758,12 @@ export class Game {
         const cx = this.GRID_CX;
         const cy = this.GRID_CY;
 
+        const seen = new Set();
         legalJumps.forEach(m => {
-            const cell = document.getElementById(`sg_cell_${m.target_q}_${m.target_r}`);
+            const key = `${m.target_q}_${m.target_r}`;
+            if (seen.has(key)) return;
+            seen.add(key);
+            const cell = document.getElementById(`sg_cell_${key}`);
             if (cell) {
                 cell.classList.add('selectable');
                 const { x, y } = this.axialToPixel(m.target_q, m.target_r, cx, cy, this.HEX_SIZE);
@@ -831,8 +881,8 @@ export class Game {
             statusText = _('${you} are on the Center Nest: spend a reserve fruit to glide anywhere, or enter torpor');
         } else {
             statusText = args.will_end_on_torpor
-                ? _('${you} must spend a reserve fruit to jump. Entering torpor now would end the game')
-                : _('${you} must spend a reserve fruit to jump, or enter torpor');
+                ? _('${you} must spend a reserve fruit to jump: pick a highlighted space (the fruit\'s points are lost). Entering torpor now would end the game')
+                : _('${you} must spend a reserve fruit to jump: pick a highlighted space (the fruit\'s points are lost), or enter torpor');
         }
         this.bga.statusBar.setTitle(statusText);
     }
@@ -924,7 +974,7 @@ export class Game {
     }
 
     markerFill(colorName) {
-        const map = { white: '#ffffff', black: '#263238', red: '#e53935', blue: '#1e88e5', yellow: '#fbc02d', green: '#43a047' };
+        const map = { white: '#ffffff', purple: '#8e44e0', red: '#e53935', blue: '#1e88e5', yellow: '#fbc02d', green: '#43a047' };
         return map[colorName] || '#ffffff';
     }
 
@@ -961,6 +1011,9 @@ export class Game {
         const restOffsetY = -6;
 
         sounds.playJump();
+        // The glider is awake again: drop the torpor tag so it does not travel with it
+        gliderEl.classList.remove('in-torpor');
+        gliderEl.querySelectorAll('.sg-torpor-zzz').forEach(z => z.remove());
 
         const dist = Math.hypot(toPos.x - fromPos.x, toPos.y - fromPos.y);
         const duration = Math.min(800, Math.max(450, dist * 2.2));

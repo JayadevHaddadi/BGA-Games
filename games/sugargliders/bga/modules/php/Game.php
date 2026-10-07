@@ -100,9 +100,9 @@ class Game extends \Bga\GameFramework\Table
         static::DbQuery("DELETE FROM `board_tile`");
         static::DbQuery("DELETE FROM `glider`");
 
-        // Player setup: 4 standard distinct colors (White, Black, Red, Blue)
-        $default_colors = ['ffffff', '222222', 'd32f2f', '1976d2'];
-        $colorNames = ['white', 'black', 'red', 'blue'];
+        // Player setup: 4 standard distinct colors (White, Purple, Red, Blue)
+        $default_colors = ['ffffff', '982fff', 'd32f2f', '1976d2'];
+        $colorNames = ['white', 'purple', 'red', 'blue'];
         $query_values = [];
         $playerColors = [];
         $idx = 0;
