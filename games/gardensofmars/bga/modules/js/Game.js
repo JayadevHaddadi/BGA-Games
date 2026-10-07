@@ -117,7 +117,11 @@ export class Game {
         sounds.bga = this.bga;
         this.applyShapePreference();
         this.createBoardDOM();
-        setTimeout(() => this.renderPlayerFlowers(), 300);
+        setTimeout(() => {
+            this.renderPlayerFlowers();
+            this.syncScoreCounters();
+        }, 200);
+        this.syncScoreCounters();
         this.renderGardenState();
         this.renderDicePool();
         this.setupResponsiveScaling();
@@ -883,19 +887,33 @@ export class Game {
         this.layoutColorPicker();
     }
 
+    syncScoreCounters() {
+        const scores = this.gamedatas.scores || {};
+        const players = this.gamedatas.players || {};
+        Object.keys(players).forEach(pid => {
+            const val = scores[pid] !== undefined ? Number(scores[pid]) : 0;
+            const counter = this.bga?.playerPanels?.getScoreCounter?.(parseInt(pid));
+            if (counter) {
+                if (typeof counter.setValue === 'function') counter.setValue(val);
+                else if (typeof counter.toValue === 'function') counter.toValue(val);
+            }
+        });
+    }
+
     _getNotifArgs(notif) {
         return (notif && notif.args !== undefined) ? notif.args : notif;
     }
 
     setupNotifications() {
-        if (typeof dojo !== 'undefined' && typeof dojo.subscribe === 'function') {
+        if (this.bga?.notifications?.setupPromiseNotifications) {
+            this.bga.notifications.setupPromiseNotifications();
+        } else if (typeof dojo !== 'undefined' && typeof dojo.subscribe === 'function') {
             dojo.subscribe('martianSelected', this, 'notif_martianSelected');
             dojo.subscribe('diceRolled', this, 'notif_diceRolled');
             dojo.subscribe('gardenerMovedAndPlanted', this, 'notif_gardenerMovedAndPlanted');
             dojo.subscribe('scorePenalty', this, 'notif_scorePenalty');
             dojo.subscribe('finalScoring', this, 'notif_finalScoring');
-        }
-        if (typeof this.bga?.notifications?.subscribe === 'function') {
+        } else if (typeof this.bga?.notifications?.subscribe === 'function') {
             this.bga.notifications.subscribe('martianSelected', (n) => this.notif_martianSelected(n));
             this.bga.notifications.subscribe('diceRolled', (n) => this.notif_diceRolled(n));
             this.bga.notifications.subscribe('gardenerMovedAndPlanted', (n) => this.notif_gardenerMovedAndPlanted(n));
@@ -925,34 +943,62 @@ export class Game {
         sounds.playMove();
         this.renderDicePool();
         this.renderPlayerPanelsDice();
+        if (this.isCurrentPlayerActive()) {
+            this.updateMoveHighlights();
+        }
     }
 
     notif_gardenerMovedAndPlanted(notif) {
         const args = this._getNotifArgs(notif);
         sounds.playPlant();
 
-        // Update gardener coordinates & track
-        if (this.gamedatas.gardeners?.[args.player_id]) {
-            this.gamedatas.gardeners[args.player_id].q = args.target_q;
-            this.gamedatas.gardeners[args.player_id].r = args.target_r;
-            this.gamedatas.gardeners[args.player_id].track_pos = args.track_pos;
+        // 1. Update data models
+        if (!this.gamedatas.gardeners) this.gamedatas.gardeners = {};
+        if (!this.gamedatas.gardeners[args.player_id]) {
+            this.gamedatas.gardeners[args.player_id] = { player_id: args.player_id };
+        }
+        this.gamedatas.gardeners[args.player_id].q = args.target_q;
+        this.gamedatas.gardeners[args.player_id].r = args.target_r;
+        this.gamedatas.gardeners[args.player_id].track_pos = args.track_pos;
+
+        // 2. Direct DOM gardener movement
+        const gToken = document.getElementById(`gardener_${args.player_id}`);
+        if (gToken) {
+            const pos = this.axialToPixel(args.target_q, args.target_r);
+            gToken.style.left = `${pos.x}px`;
+            gToken.style.top = `${pos.y}px`;
         }
 
-        // Add flower to board
+        // 3. Direct DOM track movement
+        const tToken = document.getElementById(`track_martian_${args.player_id}`);
+        if (tToken) {
+            const tPos = this.getTrackPixel(args.track_pos || 0);
+            tToken.style.left = `${tPos.x}px`;
+            tToken.style.top = `${tPos.y}px`;
+        }
+
+        // 4. Add flower to board
         this.addFlowerToSpot(args.target_q, args.target_r, args.flower_color);
 
-        // Update die usage in pool
+        // 5. Update die usage in pool
         if (this.gamedatas.dice_pool) {
             const die = this.gamedatas.dice_pool.find(d => parseInt(d.die_value) === parseInt(args.die_value) && !parseInt(d.is_used));
             if (die) die.is_used = 1;
         }
         this.renderDicePool();
 
-        // Update score counter
-        const counter = this.bga?.playerPanels?.getScoreCounter?.(parseInt(args.player_id));
-        if (counter && args.score !== undefined) counter.toValue(args.score);
+        // 6. Update score counter in player panel
+        if (args.score !== undefined) {
+            if (!this.gamedatas.scores) this.gamedatas.scores = {};
+            this.gamedatas.scores[args.player_id] = args.score;
+            const counter = this.bga?.playerPanels?.getScoreCounter?.(parseInt(args.player_id));
+            if (counter) {
+                if (typeof counter.toValue === 'function') counter.toValue(args.score);
+                else if (typeof counter.setValue === 'function') counter.setValue(args.score);
+            }
+        }
 
-        // Update flower reserves
+        // 7. Update flower reserves
         if (args.flowers && this.gamedatas.player_flowers) {
             this.gamedatas.player_flowers[args.player_id] = args.flowers;
             this.renderPlayerFlowers();
@@ -963,20 +1009,46 @@ export class Game {
 
     notif_scorePenalty(notif) {
         const args = this._getNotifArgs(notif);
-        if (this.gamedatas.gardeners?.[args.player_id]) {
-            if (args.target_q !== undefined && args.target_r !== undefined) {
-                this.gamedatas.gardeners[args.player_id].q = args.target_q;
-                this.gamedatas.gardeners[args.player_id].r = args.target_r;
-            }
-            this.gamedatas.gardeners[args.player_id].track_pos = args.track_pos;
+        if (!this.gamedatas.gardeners) this.gamedatas.gardeners = {};
+        if (!this.gamedatas.gardeners[args.player_id]) {
+            this.gamedatas.gardeners[args.player_id] = { player_id: args.player_id };
         }
+
+        if (args.target_q !== undefined && args.target_r !== undefined) {
+            this.gamedatas.gardeners[args.player_id].q = args.target_q;
+            this.gamedatas.gardeners[args.player_id].r = args.target_r;
+            const gToken = document.getElementById(`gardener_${args.player_id}`);
+            if (gToken) {
+                const pos = this.axialToPixel(args.target_q, args.target_r);
+                gToken.style.left = `${pos.x}px`;
+                gToken.style.top = `${pos.y}px`;
+            }
+        }
+
+        this.gamedatas.gardeners[args.player_id].track_pos = args.track_pos;
+        const tToken = document.getElementById(`track_martian_${args.player_id}`);
+        if (tToken) {
+            const tPos = this.getTrackPixel(args.track_pos || 0);
+            tToken.style.left = `${tPos.x}px`;
+            tToken.style.top = `${tPos.y}px`;
+        }
+
         if (args.die_value && this.gamedatas.dice_pool) {
             const die = this.gamedatas.dice_pool.find(d => parseInt(d.die_value) === parseInt(args.die_value) && !parseInt(d.is_used));
             if (die) die.is_used = 1;
             this.renderDicePool();
         }
-        const counter = this.bga?.playerPanels?.getScoreCounter?.(parseInt(args.player_id));
-        if (counter && args.score !== undefined) counter.toValue(args.score);
+
+        if (args.score !== undefined) {
+            if (!this.gamedatas.scores) this.gamedatas.scores = {};
+            this.gamedatas.scores[args.player_id] = args.score;
+            const counter = this.bga?.playerPanels?.getScoreCounter?.(parseInt(args.player_id));
+            if (counter) {
+                if (typeof counter.toValue === 'function') counter.toValue(args.score);
+                else if (typeof counter.setValue === 'function') counter.setValue(args.score);
+            }
+        }
+
         this.renderGardenState();
     }
 
