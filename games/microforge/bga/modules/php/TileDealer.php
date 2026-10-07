@@ -32,22 +32,40 @@ class TileDealer
         }
         $angle = fn(int $q, int $r): float => atan2(1.5 * $r, sqrt(3) * ($q + $r / 2));
 
-        // Home positions: evenly spaced on the outer ring; players are seated in random order
+        // Perimeter corners on the outer ring
         $perimeter = array_values(array_filter($land, fn($h) => $h['ring'] === $radius));
         usort($perimeter, fn($a, $b) => $angle($a['q'], $a['r']) <=> $angle($b['q'], $b['r']));
         $playerIds = array_keys($players);
         self::shuffle($playerIds, $rand);
         $homeAt = []; // "q_r" => player id
-        foreach ($playerIds as $i => $pid) {
-            $pos = $perimeter[intdiv($i * count($perimeter), $n)];
-            $homeAt[$pos['q'] . '_' . $pos['r']] = $pid;
+
+        $corners = [];
+        foreach ($perimeter as $pos) {
+            $q = $pos['q'];
+            $r = $pos['r'];
+            $abs = [abs($q), abs($r), abs(-$q - $r)];
+            if (count(array_filter($abs, fn($v) => $v === $radius)) === 2) {
+                $corners[] = $pos;
+            }
+        }
+        usort($corners, fn($a, $b) => $angle($a['q'], $a['r']) <=> $angle($b['q'], $b['r']));
+
+        if ($n === 2) {
+            // In a 2-player game, players start in opposite corners (corners 0 and 3)
+            $homeAt[$corners[0]['q'] . '_' . $corners[0]['r']] = $playerIds[0];
+            $homeAt[$corners[3]['q'] . '_' . $corners[3]['r']] = $playerIds[1];
+        } else {
+            foreach ($playerIds as $i => $pid) {
+                $pos = $perimeter[intdiv($i * count($perimeter), $n)];
+                $homeAt[$pos['q'] . '_' . $pos['r']] = $pid;
+            }
         }
         $homeByColor = [];
         foreach ($set['home'] as $t) {
             $homeByColor[$t['color']] = $t;
         }
 
-        // Port positions: the non-corner spots of the ring just outside the land each touch exactly 2 land tiles
+        // Port positions: outer ring spots touching the land
         $ports = [];
         if ($withPorts) {
             $outer = $radius + 1;
@@ -61,26 +79,59 @@ class TileDealer
                 }
             }
             usort($spots, fn($a, $b) => $angle($a['q'], $a['r']) <=> $angle($b['q'], $b['r']));
-            $count = 2 * $n;
             $combos = count($set['combos']);
             $bag = [];
-            for ($p = 0; $p < $count; $p++) {
-                $spot = $spots[intdiv((2 * $p + 1) * count($spots), 2 * $count) % count($spots)];
-                $dirs = [];
-                foreach (self::DIRS as $d => [$dq, $dr]) {
-                    $nq = $spot['q'] + $dq;
-                    $nr = $spot['r'] + $dr;
-                    if (max(abs($nq), abs($nr), abs(-$nq - $nr)) <= $radius) {
-                        $dirs[] = $d;
+
+            if ($n === 2) {
+                // In a 2-player game, exactly 2 ports on other corners of the map (corners 1 and 4)
+                $chosenSpots = [];
+                foreach ([$corners[1], $corners[4]] as $c) {
+                    // Find a spot touching this corner
+                    foreach ($spots as $s) {
+                        $d = max(abs($s['q'] - $c['q']), abs($s['r'] - $c['r']), abs(-$s['q'] - $s['r'] - (-$c['q'] - $c['r'])));
+                        if ($d === 1 && !in_array($s, $chosenSpots, true)) {
+                            $chosenSpots[] = $s;
+                            break;
+                        }
                     }
                 }
-                $side = (count($dirs) === 2 && $dirs[1] - $dirs[0] === 1) ? $dirs[0] : 5;
-                if (empty($bag)) {
-                    $bag = range(0, $combos - 1);
-                    self::shuffle($bag, $rand);
+                foreach ($chosenSpots as $spot) {
+                    $dirs = [];
+                    foreach (self::DIRS as $d => [$dq, $dr]) {
+                        $nq = $spot['q'] + $dq;
+                        $nr = $spot['r'] + $dr;
+                        if (max(abs($nq), abs($nr), abs(-$nq - $nr)) <= $radius) {
+                            $dirs[] = $d;
+                        }
+                    }
+                    $side = (count($dirs) === 2 && $dirs[1] - $dirs[0] === 1) ? $dirs[0] : (count($dirs) > 0 ? $dirs[0] : 5);
+                    if (empty($bag)) {
+                        $bag = range(0, $combos - 1);
+                        self::shuffle($bag, $rand);
+                    }
+                    $combo = $set['combos'][array_pop($bag)];
+                    $ports[] = ['q' => $spot['q'], 'r' => $spot['r'], 'side' => $side, 'good' => $combo[0], 'kind' => $combo[1]];
                 }
-                $combo = $set['combos'][array_pop($bag)];
-                $ports[] = ['q' => $spot['q'], 'r' => $spot['r'], 'side' => $side, 'good' => $combo[0], 'kind' => $combo[1]];
+            } else {
+                $count = 2 * $n;
+                for ($p = 0; $p < $count; $p++) {
+                    $spot = $spots[intdiv((2 * $p + 1) * count($spots), 2 * $count) % count($spots)];
+                    $dirs = [];
+                    foreach (self::DIRS as $d => [$dq, $dr]) {
+                        $nq = $spot['q'] + $dq;
+                        $nr = $spot['r'] + $dr;
+                        if (max(abs($nq), abs($nr), abs(-$nq - $nr)) <= $radius) {
+                            $dirs[] = $d;
+                        }
+                    }
+                    $side = (count($dirs) === 2 && $dirs[1] - $dirs[0] === 1) ? $dirs[0] : 5;
+                    if (empty($bag)) {
+                        $bag = range(0, $combos - 1);
+                        self::shuffle($bag, $rand);
+                    }
+                    $combo = $set['combos'][array_pop($bag)];
+                    $ports[] = ['q' => $spot['q'], 'r' => $spot['r'], 'side' => $side, 'good' => $combo[0], 'kind' => $combo[1]];
+                }
             }
         }
         $portTile = [];

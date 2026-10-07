@@ -32,7 +32,7 @@ class Game extends \Bga\GameFramework\Table
     public const MISSION_DECK_PER_LEVEL = 10; // drawn at random from the 20 designed per level; level 1 on top of level 2
     public const MISSION_VP_BY_LEVEL = [1 => 1, 2 => 2];
     public const PORT_BONUS = 3;
-    public const START_CREDITS = 0; // income comes at the start of each turn; the first player's first one is given at setup
+    public const START_CREDITS = 5;
     public const START_BOTS = 3;
 
     public const RAW = ['iron', 'crystal'];
@@ -45,12 +45,13 @@ class Game extends \Bga\GameFramework\Table
     // The home Dock is a plain port: only iron and bots, at the normal board price
     public const DOCK_GOODS = ['bot', 'iron'];
     // Real ports: Credits off when buying their cheap goods
-    public const PORT_DISCOUNT = 2;
+    public const PORT_DISCOUNT = 0; // standard market price
 
     // Player board: supply of pieces each player starts with (bots/mechs/buildings not yet on the map)
-    public const SUPPLY = ['bot' => 20, 'mech' => 5, 'factory' => 5, 'extractor' => 5, 'tower' => 5];
+    public const SUPPLY = ['bot' => 20, 'mech' => 5, 'factory' => 5, 'extractor' => 5];
     // Construction cost: iron tokens that must be standing on the tile being built on
-    public const BUILD_IRON = ['extractor' => 1, 'factory' => 2, 'tower' => 2];
+    public const BUILD_IRON = ['extractor' => 1, 'factory' => 2];
+    public const BUILDINGS = ['extractor', 'factory'];
     public const BASE_INCOME = 10;
     public const BOTS_PER_IRON = 2; // a Factory turns 1 iron into 2 bots
     public const START_IRON = 2;
@@ -234,8 +235,6 @@ class Game extends \Bga\GameFramework\Table
         $this->tableStats->init(['turns_number', 'missions_completed'], 0);
         $this->playerStats->init(['turns_number', 'vp_earned', 'credits_earned', 'mechs_manufactured', 'battles_won'], 0);
 
-        // The first player's first turn starts without a startTurn() call: pay their income now
-        $this->adjustCredits($playerIds[0], $this->playerIncome($playerIds[0]));
         $this->gamestate->changeActivePlayer($playerIds[0]);
 
         return PlayerTurn::class;
@@ -299,7 +298,6 @@ class Game extends \Bga\GameFramework\Table
             if ($this->hasMarket()) {
                 static::DbQuery("INSERT INTO `building` (`hex_id`, `building_type`, `owner_id`, `slot`) VALUES ({$hid}, 'dock', {$pid}, 0)");
             }
-            static::DbQuery("INSERT INTO `building` (`hex_id`, `building_type`, `owner_id`, `slot`) VALUES ({$hid}, 'tower', {$pid}, 0)");
             for ($i = 0; $i < self::START_IRON; $i++) {
                 static::DbQuery("INSERT INTO `item` (`owner_id`, `kind`, `hex_id`) VALUES ({$pid}, 'iron', {$hid})");
             }
@@ -503,12 +501,16 @@ class Game extends \Bga\GameFramework\Table
     {
         $hexes = [];
         $byCoord = [];
-        foreach (static::getObjectListFromDb("SELECT `hex_id`, `coord_q`, `coord_r`, `edges`, `owner_id` FROM `hex_tile`") as $h) {
+        foreach (static::getObjectListFromDb("SELECT `hex_id`, `coord_q`, `coord_r`, `edges`, `owner_id`, `is_port` FROM `hex_tile`") as $h) {
             $h['hex_id'] = (int) $h['hex_id'];
             $hexes[$h['hex_id']] = $h;
             $byCoord[$h['coord_q'] . '_' . $h['coord_r']] = $h['hex_id'];
         }
         if (!isset($hexes[$fromId]) || !isset($hexes[$toId])) {
+            return null;
+        }
+        // Ports cannot be moved into
+        if (!empty($hexes[$toId]['is_port'])) {
             return null;
         }
         $dist = [$fromId => 0];
@@ -520,7 +522,7 @@ class Game extends \Bga\GameFramework\Table
             }
             foreach (self::DIRS as $d => [$dq, $dr]) {
                 $nid = $byCoord[((int) $hexes[$cur]['coord_q'] + $dq) . '_' . ((int) $hexes[$cur]['coord_r'] + $dr)] ?? null;
-                if ($nid === null || isset($dist[$nid]) || !$this->isConnected($hexes[$cur], $hexes[$nid])) {
+                if ($nid === null || isset($dist[$nid]) || !empty($hexes[$nid]['is_port']) || !$this->isConnected($hexes[$cur], $hexes[$nid])) {
                     continue;
                 }
                 $owner = $hexes[$nid]['owner_id'];
@@ -651,7 +653,7 @@ class Game extends \Bga\GameFramework\Table
         foreach (['bot', 'mech'] as $t) {
             $supply[$t] = self::SUPPLY[$t] - (int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `unit` WHERE `owner_id` = {$playerId} AND `unit_type` = '{$t}'");
         }
-        foreach (['factory', 'extractor', 'tower'] as $t) {
+        foreach (['factory', 'extractor'] as $t) {
             $supply[$t] = self::SUPPLY[$t] - (int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `building` WHERE `owner_id` = {$playerId} AND `building_type` = '{$t}'");
         }
         return $supply;
@@ -672,6 +674,7 @@ class Game extends \Bga\GameFramework\Table
                 $types[$def[0]] = true;
             }
         }
+        unset($types['towers']); // turrets removed from game for now
         if (!$this->hasMarket()) {
             unset($types['ports']); // no Ports in the Basic game
         }

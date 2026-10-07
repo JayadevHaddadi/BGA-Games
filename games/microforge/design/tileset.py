@@ -18,42 +18,45 @@ KINDS = ('cheaper', 'pays_more')
 DIRS = [(1, 0), (1, -1), (0, -1), (-1, 0), (-1, 1), (0, 1)]
 FACTION_COLORS = [('red', 'c0392b'), ('blue', '2980b9'), ('green', '27ae60'), ('yellow', 'e1b12c'), ('purple', '8e44ad'), ('orange', 'd35400')]
 
-# which land tiles hold two resources (so the "Rich Land" missions can be completed): (level, number)
-DOUBLE = {(2, 5), (3, 3), (3, 9), (4, 7)}
+# which land tiles hold two resources (empty set under new distribution)
+DOUBLE = set()
 
 
 def land_tiles(seed=7):
-    """37 land tiles: 1 centre (level 1), 6 level 2, 12 level 3, 18 level 4."""
+    """37 land tiles: 1 centre (level 1, 2 slots), 6 level 2 (1 slot), 12 level 3 (1 slot), 18 level 4 (1 slot).
+    Distribution: 50% nothing (18), 30% iron (11), 20% crystal (7).
+    """
     rng = random.Random(seed)
     tiles = []
-    for level, count in [(1, 1), (2, 6), (3, 12), (4, 18)]:
-        for n in range(1, count + 1):
-            x = rng.randint(1, 4)
-            res = None if x == 1 else ('iron' if x <= 3 else 'crystal')
-            if (level, n) in DOUBLE:
-                res = 'double'
-            if level == 1:
-                slots = 2
-            elif level == 2:
-                slots = rng.randint(1, 2)
-            else:
-                y = rng.randint(1, 4)
-                slots = 0 if y == 1 else (1 if y <= 3 else 2)
-                if res is None:
-                    slots = max(1, slots)
-            if res == 'double':
-                slots = max(slots, 1)
-            lo, hi = {1: (6, 6), 2: (5, 6)}.get(level, (4, 5))
+    
+    # Centre tile: level 1, 2 slots, all 6 roads open
+    tiles.append({'kind': 'land', 'code': 'L1-01', 'art': 'land_L1_01', 'level': 1,
+                  'res': None, 'slots': 2, 'mask': '111111'})
+
+    # Sub-distributions per level:
+    # Level 2 (6 tiles): 3 empty, 2 iron, 1 crystal
+    # Level 3 (12 tiles): 6 empty, 4 iron, 2 crystal
+    # Level 4 (18 tiles): 9 empty, 5 iron, 4 crystal
+    level_dist = {
+        2: [None]*3 + ['iron']*2 + ['crystal']*1,
+        3: [None]*6 + ['iron']*4 + ['crystal']*2,
+        4: [None]*9 + ['iron']*5 + ['crystal']*4,
+    }
+
+    for level, res_list in level_dist.items():
+        rng.shuffle(res_list)
+        for n, res in enumerate(res_list, start=1):
+            lo, hi = {2: (5, 6)}.get(level, (4, 5))
             open_dirs = set(rng.sample(range(6), rng.randint(lo, hi)))
             mask = ''.join('1' if d in open_dirs else '0' for d in range(6))
             tiles.append({'kind': 'land', 'code': f'L{level}-{n:02d}', 'art': f'land_L{level}_{n:02d}', 'level': level,
-                          'res': res, 'slots': slots, 'mask': mask})
+                          'res': res, 'slots': 1, 'mask': mask})
     return tiles
 
 
 def home_tiles():
-    """One per faction colour. All six roads open so a home always joins the board (its neighbours decide)."""
-    return [{'kind': 'home', 'code': f'H{i}', 'art': f'home_{i}_{name}', 'color': hexcol, 'res': 'iron', 'slots': 2, 'mask': '111111'}
+    """One per faction colour. Starting positions have NO resource and NO building slots."""
+    return [{'kind': 'home', 'code': f'H{i}', 'art': f'home_{i}_{name}', 'color': hexcol, 'res': None, 'slots': 0, 'mask': '111111'}
             for i, (name, hexcol) in enumerate(FACTION_COLORS, start=1)]
 
 

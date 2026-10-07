@@ -8,7 +8,7 @@ return json_decode(<<<'JSON'
    "code": "L1-01",
    "art": "land_L1_01",
    "level": 1,
-   "res": "iron",
+   "res": null,
    "slots": 2,
    "mask": "111111"
   },
@@ -17,7 +17,7 @@ return json_decode(<<<'JSON'
    "code": "L2-01",
    "art": "land_L2_01",
    "level": 2,
-   "res": null,
+   "res": "iron",
    "slots": 1,
    "mask": "101111"
   },
@@ -27,8 +27,8 @@ return json_decode(<<<'JSON'
    "art": "land_L2_02",
    "level": 2,
    "res": null,
-   "slots": 2,
-   "mask": "111011"
+   "slots": 1,
+   "mask": "110111"
   },
   {
    "kind": "land",
@@ -37,7 +37,7 @@ return json_decode(<<<'JSON'
    "level": 2,
    "res": "crystal",
    "slots": 1,
-   "mask": "111110"
+   "mask": "101111"
   },
   {
    "kind": "land",
@@ -46,59 +46,59 @@ return json_decode(<<<'JSON'
    "level": 2,
    "res": "iron",
    "slots": 1,
-   "mask": "111111"
+   "mask": "111011"
   },
   {
    "kind": "land",
    "code": "L2-05",
    "art": "land_L2_05",
    "level": 2,
-   "res": "double",
+   "res": null,
    "slots": 1,
-   "mask": "011111"
+   "mask": "111101"
   },
   {
    "kind": "land",
    "code": "L2-06",
    "art": "land_L2_06",
    "level": 2,
-   "res": "iron",
-   "slots": 2,
-   "mask": "111111"
+   "res": null,
+   "slots": 1,
+   "mask": "101111"
   },
   {
    "kind": "land",
    "code": "L3-01",
    "art": "land_L3_01",
    "level": 3,
-   "res": "iron",
-   "slots": 2,
-   "mask": "101111"
+   "res": "crystal",
+   "slots": 1,
+   "mask": "011111"
   },
   {
    "kind": "land",
    "code": "L3-02",
    "art": "land_L3_02",
    "level": 3,
-   "res": null,
-   "slots": 2,
-   "mask": "011110"
+   "res": "iron",
+   "slots": 1,
+   "mask": "111011"
   },
   {
    "kind": "land",
    "code": "L3-03",
    "art": "land_L3_03",
    "level": 3,
-   "res": "double",
+   "res": null,
    "slots": 1,
-   "mask": "011111"
+   "mask": "011110"
   },
   {
    "kind": "land",
    "code": "L3-04",
    "art": "land_L3_04",
    "level": 3,
-   "res": null,
+   "res": "iron",
    "slots": 1,
    "mask": "111110"
   },
@@ -107,54 +107,54 @@ return json_decode(<<<'JSON'
    "code": "L3-05",
    "art": "land_L3_05",
    "level": 3,
-   "res": "crystal",
+   "res": "iron",
    "slots": 1,
-   "mask": "111011"
+   "mask": "011110"
   },
   {
    "kind": "land",
    "code": "L3-06",
    "art": "land_L3_06",
    "level": 3,
-   "res": "iron",
-   "slots": 0,
-   "mask": "111101"
+   "res": null,
+   "slots": 1,
+   "mask": "111001"
   },
   {
    "kind": "land",
    "code": "L3-07",
    "art": "land_L3_07",
    "level": 3,
-   "res": "crystal",
-   "slots": 2,
-   "mask": "111110"
+   "res": null,
+   "slots": 1,
+   "mask": "101111"
   },
   {
    "kind": "land",
    "code": "L3-08",
    "art": "land_L3_08",
    "level": 3,
-   "res": "iron",
-   "slots": 2,
-   "mask": "011111"
+   "res": null,
+   "slots": 1,
+   "mask": "111110"
   },
   {
    "kind": "land",
    "code": "L3-09",
    "art": "land_L3_09",
    "level": 3,
-   "res": "double",
+   "res": null,
    "slots": 1,
-   "mask": "011011"
+   "mask": "111101"
   },
   {
    "kind": "land",
    "code": "L3-10",
    "art": "land_L3_10",
    "level": 3,
-   "res": "iron",
-   "slots": 0,
-   "mask": "111011"
+   "res": "crystal",
+   "slots": 1,
+   "mask": "110111"
   },
   {
    "kind": "land",
@@ -162,16 +162,16 @@ return json_decode(<<<'JSON'
    "art": "land_L3_11",
    "level": 3,
    "res": "iron",
-   "slots": 2,
-   "mask": "101111"
+   "slots": 1,
+   "mask": "011110"
   },
   {
    "kind": "land",
    "code": "L3-12",
    "art": "land_L3_12",
    "level": 3,
-   "res": "crystal",
-   "slots": 2,
+   "res": null,
+   "slots": 1,
    "mask": "111101"
   },
   {
@@ -181,25 +181,25 @@ return json_decode(<<<'JSON'
    "level": 4,
    "res": null,
    "slots": 1,
-   "mask": "110101"
+   "mask": "010111"
   },
   {
    "kind": "land",
    "code": "L4-02",
    "art": "land_L4_02",
    "level": 4,
-   "res": "iron",
-   "slots": 0,
-   "mask": "111010"
+   "res": null,
+   "slots": 1,
+   "mask": "111110"
   },
   {
    "kind": "land",
    "code": "L4-03",
    "art": "land_L4_03",
    "level": 4,
-   "res": null,
+   "res": "iron",
    "slots": 1,
-   "mask": "110101"
+   "mask": "111011"
   },
   {
    "kind": "land",
@@ -208,43 +208,43 @@ return json_decode(<<<'JSON'
    "level": 4,
    "res": "iron",
    "slots": 1,
-   "mask": "111110"
+   "mask": "111101"
   },
   {
    "kind": "land",
    "code": "L4-05",
    "art": "land_L4_05",
    "level": 4,
-   "res": "crystal",
-   "slots": 2,
-   "mask": "111011"
+   "res": "iron",
+   "slots": 1,
+   "mask": "110101"
   },
   {
    "kind": "land",
    "code": "L4-06",
    "art": "land_L4_06",
    "level": 4,
-   "res": "iron",
-   "slots": 2,
-   "mask": "111010"
+   "res": null,
+   "slots": 1,
+   "mask": "101101"
   },
   {
    "kind": "land",
    "code": "L4-07",
    "art": "land_L4_07",
    "level": 4,
-   "res": "double",
+   "res": null,
    "slots": 1,
-   "mask": "101011"
+   "mask": "110011"
   },
   {
    "kind": "land",
    "code": "L4-08",
    "art": "land_L4_08",
    "level": 4,
-   "res": "iron",
+   "res": null,
    "slots": 1,
-   "mask": "011101"
+   "mask": "110101"
   },
   {
    "kind": "land",
@@ -253,34 +253,34 @@ return json_decode(<<<'JSON'
    "level": 4,
    "res": "iron",
    "slots": 1,
-   "mask": "011110"
+   "mask": "111011"
   },
   {
    "kind": "land",
    "code": "L4-10",
    "art": "land_L4_10",
    "level": 4,
-   "res": "crystal",
+   "res": null,
    "slots": 1,
-   "mask": "111100"
+   "mask": "010111"
   },
   {
    "kind": "land",
    "code": "L4-11",
    "art": "land_L4_11",
    "level": 4,
-   "res": "iron",
+   "res": "crystal",
    "slots": 1,
-   "mask": "101111"
+   "mask": "111011"
   },
   {
    "kind": "land",
    "code": "L4-12",
    "art": "land_L4_12",
    "level": 4,
-   "res": null,
+   "res": "crystal",
    "slots": 1,
-   "mask": "111101"
+   "mask": "110111"
   },
   {
    "kind": "land",
@@ -289,25 +289,25 @@ return json_decode(<<<'JSON'
    "level": 4,
    "res": "crystal",
    "slots": 1,
-   "mask": "101101"
+   "mask": "101011"
   },
   {
    "kind": "land",
    "code": "L4-14",
    "art": "land_L4_14",
    "level": 4,
-   "res": "iron",
-   "slots": 2,
-   "mask": "101110"
+   "res": null,
+   "slots": 1,
+   "mask": "111101"
   },
   {
    "kind": "land",
    "code": "L4-15",
    "art": "land_L4_15",
    "level": 4,
-   "res": "crystal",
-   "slots": 2,
-   "mask": "111011"
+   "res": "iron",
+   "slots": 1,
+   "mask": "011101"
   },
   {
    "kind": "land",
@@ -316,25 +316,25 @@ return json_decode(<<<'JSON'
    "level": 4,
    "res": null,
    "slots": 1,
-   "mask": "011111"
+   "mask": "010111"
   },
   {
    "kind": "land",
    "code": "L4-17",
    "art": "land_L4_17",
    "level": 4,
-   "res": "iron",
+   "res": null,
    "slots": 1,
-   "mask": "110101"
+   "mask": "010111"
   },
   {
    "kind": "land",
    "code": "L4-18",
    "art": "land_L4_18",
    "level": 4,
-   "res": "iron",
+   "res": "crystal",
    "slots": 1,
-   "mask": "011101"
+   "mask": "111100"
   }
  ],
  "home": [
@@ -343,8 +343,8 @@ return json_decode(<<<'JSON'
    "code": "H1",
    "art": "home_1_red",
    "color": "c0392b",
-   "res": "iron",
-   "slots": 2,
+   "res": null,
+   "slots": 0,
    "mask": "111111"
   },
   {
@@ -352,8 +352,8 @@ return json_decode(<<<'JSON'
    "code": "H2",
    "art": "home_2_blue",
    "color": "2980b9",
-   "res": "iron",
-   "slots": 2,
+   "res": null,
+   "slots": 0,
    "mask": "111111"
   },
   {
@@ -361,8 +361,8 @@ return json_decode(<<<'JSON'
    "code": "H3",
    "art": "home_3_green",
    "color": "27ae60",
-   "res": "iron",
-   "slots": 2,
+   "res": null,
+   "slots": 0,
    "mask": "111111"
   },
   {
@@ -370,8 +370,8 @@ return json_decode(<<<'JSON'
    "code": "H4",
    "art": "home_4_yellow",
    "color": "e1b12c",
-   "res": "iron",
-   "slots": 2,
+   "res": null,
+   "slots": 0,
    "mask": "111111"
   },
   {
@@ -379,8 +379,8 @@ return json_decode(<<<'JSON'
    "code": "H5",
    "art": "home_5_purple",
    "color": "8e44ad",
-   "res": "iron",
-   "slots": 2,
+   "res": null,
+   "slots": 0,
    "mask": "111111"
   },
   {
@@ -388,8 +388,8 @@ return json_decode(<<<'JSON'
    "code": "H6",
    "art": "home_6_orange",
    "color": "d35400",
-   "res": "iron",
-   "slots": 2,
+   "res": null,
+   "slots": 0,
    "mask": "111111"
   }
  ],

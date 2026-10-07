@@ -11,14 +11,14 @@
 const RES_COLORS = { iron: '#3f7a1f', crystal: '#1f7fb0' };
 const GOODS = ['iron', 'crystal', 'bot', 'mech'];
 const TOKENS = ['iron', 'crystal'];
-const BUILDINGS = ['extractor', 'factory', 'tower'];
+const BUILDINGS = ['extractor', 'factory'];
 const DIRS = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
 const TILE_COLORS = { iron: '#a9d07c', crystal: '#9fd0e6' };
 const NO_RESOURCE_COLOR = '#c3c6cc';
 const SEA_COLOR = '#6f95b0';
-const BUILDING_NAMES = { extractor: 'Extractor', factory: 'Factory', tower: 'Guard Tower' };
+const BUILDING_NAMES = { extractor: 'Extractor', factory: 'Factory' };
 const BUILDING_NEUTRAL = '#7a6a58'; // buildings are universal: no player colour
-const BUILDING_ICON = { extractor: 'extractor', factory: 'factory', tower: 'tower' };
+const BUILDING_ICON = { extractor: 'extractor', factory: 'factory' };
 const ITEM_ICON = { iron: 'iron', crystal: 'crystal' };
 // faction colour -> mat file name (design/icons + design/boards generate these from the same list)
 const COLOR_NAME = { c0392b: 'red', '2980b9': 'blue', '27ae60': 'green', e1b12c: 'yellow', '8e44ad': 'purple', d35400: 'orange' };
@@ -390,11 +390,10 @@ export class Game {
                     .reduce((a, u) => a + this.unitPower(u.unit_type), 0);
                 const power = committed + this.selPower();
                 const defenders = this.data.units.filter(u => u.hex_id === to);
-                const towers = this.data.buildings.filter(b => b.hex_id === to && b.building_type === 'tower').length;
-                const out = this.combatOutcome(power, defenders.map(u => this.unitPower(u.unit_type)), towers);
-                sb.setTitle(_('Attack hex ${hex}: power ${a} vs ${d} defender(s)${t} would kill ${k} and push ${p}. Costs ${cost} Credits (${cr} available); resolved when you end your turn')
+                const out = this.combatOutcome(power, defenders.map(u => this.unitPower(u.unit_type)), 0);
+                sb.setTitle(_('Attack hex ${hex}: power ${a} vs ${d} defender(s) would kill ${k} and push ${p}. Costs ${cost} Credits (${cr} available); resolved when you end your turn')
                     .replace('${hex}', this.coordOf(to)).replace('${a}', power).replace('${d}', defenders.length)
-                    .replace('${t}', towers ? ` + ${towers} Guard Tower(s)` : '').replace('${k}', out.kills).replace('${p}', out.pushes).replace('${cost}', cost).replace('${cr}', myCredits));
+                    .replace('${k}', out.kills).replace('${p}', out.pushes).replace('${cost}', cost).replace('${cr}', myCredits));
                 sb.addActionButton(_('Attack'), () => {
                     const args = { fromHexId: this.selFrom, toHexId: to, pieces: this.selPieces() };
                     this.pending = null;
@@ -603,9 +602,6 @@ export class Game {
 
             box.innerHTML = `
                 <div class="mf_panel_stats">
-                    <span class="mf_stat mf_vp" title="${_('Victory Points')} (${s.vp}/${d.vp_target})">
-                        <img src="${base}img/icons/vp.svg" class="mf_stat_icon" alt="VP"> <b>${s.vp}</b><small>/${d.vp_target}</small>
-                    </span>
                     <span class="mf_stat mf_credits" title="${_('Credits')}">
                         <img src="${base}img/icons/credit.svg" class="mf_stat_icon" alt="${_('Credits')}"> <b>${s.credits}</b>
                     </span>
@@ -870,7 +866,7 @@ export class Game {
             if ((dock && dock.used) || (port && port.used)) {
                 parts.push(`<image href="${themeUrl}img/icons/used.svg" x="${x + 18}" y="${y - 34}" width="13" height="13" pointer-events="none"><title>${_('Used this turn')}</title></image>`);
             }
-            // Unit stacks: circles = bots, squares = mechs. Coins under a stack = it has moved (1 Credit per step).
+            // Unit stacks: circles = bots, squares = mechs.
             const groups = {};
             this.data.units.filter(u => u.hex_id === h.hex_id).forEach(u => {
                 const key = `${u.owner_id}|${u.unit_type}|${u.moved_cost}|${u.attack_target || 0}`;
@@ -883,16 +879,10 @@ export class Game {
                 const key = `${g.type}|${g.moved}`;
                 const nSel = this.selFrom === h.hex_id ? (this.sel[key] || 0) : 0;
                 const outline = nSel > 0 ? '#ffe600' : (g.attack ? '#ff3b3b' : '#222');
-                if (g.moved) {
-                    parts.push(`<circle cx="${sx}" cy="${sy + 3}" r="8" fill="#e0b100" stroke="#7a5d00"/>`);
-                }
                 parts.push(g.type === 'bot'
                     ? `<circle cx="${sx}" cy="${sy}" r="6" fill="${this.colorOf(g.owner)}" stroke="${outline}" stroke-width="${nSel > 0 ? 3 : 1.5}"/>`
                     : `<rect x="${sx - 6}" y="${sy - 6}" width="12" height="12" fill="${this.colorOf(g.owner)}" stroke="${outline}" stroke-width="${nSel > 0 ? 3 : 1.5}"/>`);
                 parts.push(`<text x="${sx + 8}" y="${sy + 3}" font-size="9" fill="#2b2118" pointer-events="none">${nSel > 0 ? nSel + '/' : ''}${g.n}${g.attack ? ' atk' : ''}</text>`);
-                if (g.moved) {
-                    parts.push(`<text x="${sx}" y="${sy + 15}" text-anchor="middle" font-size="7" fill="#7a5d00" pointer-events="none">${g.moved}c</text>`);
-                }
                 if (selectable) {
                     parts.push(`<rect class="mf_stack" data-hex="${h.hex_id}" data-kind="${key}" x="${sx - 9}" y="${sy - 9}" width="28" height="18" fill="transparent"/>`);
                 }
@@ -904,9 +894,6 @@ export class Game {
                 const selectable = h.owner_id === me && this.active;
                 const itemKey = `${it.kind}|${it.moved_cost}`;
                 const nSel = this.selFrom === h.hex_id && selectable ? (this.sel[itemKey] || 0) : 0;
-                if (it.moved_cost) {
-                    parts.push(`<circle cx="${ix}" cy="${iy}" r="7" fill="#e0b100" stroke="#7a5d00"/>`);
-                }
                 parts.push(`<image href="${themeUrl}img/icons/${ITEM_ICON[it.kind]}.svg" x="${ix - 8}" y="${iy - 8}" width="14" height="15" pointer-events="none"/>`
                     + (nSel > 0 ? `<rect x="${ix - 8}" y="${iy - 8}" width="14" height="15" fill="none" stroke="#ffe600" stroke-width="2.5"/>` : '')
                     + `<text x="${ix + 7}" y="${iy + 4}" font-size="9" fill="#2b2118" pointer-events="none">${nSel > 0 ? nSel + '/' : ''}${it.n}</text>`);
@@ -1019,7 +1006,6 @@ export class Game {
         const info = {
             extractor: _('extracts one of the tile resources for 1 Credit (once per turn)'),
             factory: _('turns iron into bots, or iron + crystal into a mech'),
-            tower: _('defenders on this hex need 1 more attack power to be pushed away and 1 more to be killed'),
         };
         if (hex.building_slots === 0) {
             return `<div class="mf_row">${_('Resources')}: ${[hex.resource_type, hex.resource_type_2].filter(Boolean).join(', ') || _('none')}. ${_('This hex has no production areas.')}</div>`;
@@ -1085,8 +1071,6 @@ export class Game {
                         lines.push(`<div class="mf_row">${_('Factory')}: `
                             + btn(`${_('Make')} ${d.bots_per_iron} ${_('bots')} (1 iron)`, 'actManufacture', { buildingId: b.building_id, product: 'bot' }, avail.iron >= 1)
                             + btn(`${_('Make mech')} (1 iron + 1 crystal)`, 'actManufacture', { buildingId: b.building_id, product: 'mech' }, avail.iron >= 1 && avail.crystal >= 1) + '</div>');
-                    } else if (b.building_type === 'tower') {
-                        lines.push(`<div class="mf_row">${_('Guard Tower')}: ${_('defenders here need 1 more attack power to be pushed and 1 more to be killed')}</div>`);
                     }
                 });
             }

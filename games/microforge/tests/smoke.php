@@ -96,14 +96,14 @@ foreach ([1, 2] as $level) { // 1 = Basic, 2 = Advanced (market, ports, triangul
         $ids = array_keys($players);
         $g->setup($players, [100 => $level]);
 
-        $expectHexes = ($n <= 3 ? 19 : 37) + ($level === 2 ? 2 * $n : 0);
+        $expectHexes = ($n <= 3 ? 19 : 37) + ($level === 2 ? ($n === 2 ? 2 : 2 * $n) : 0);
         check('hex count', (int) $g->one("SELECT COUNT(*) FROM `hex_tile`") === $expectHexes, (string) $g->one("SELECT COUNT(*) FROM `hex_tile`"));
         check('3 bots each', (int) $g->one("SELECT COUNT(*) FROM `unit`") === 3 * $n);
         check('homes owned', (int) $g->one("SELECT COUNT(*) FROM `hex_tile` WHERE `owner_id` IS NOT NULL") === $n);
         check('every tile has art', (int) $g->one("SELECT COUNT(*) FROM `hex_tile` WHERE `tile_art` = ''") === 0);
-        check('buildings at start (tower, + Dock in Advanced)', (int) $g->one("SELECT COUNT(*) FROM `building`") === ($level === 2 ? 2 * $n : $n));
-        check('ports', (int) $g->one("SELECT COUNT(*) FROM `trade_port`") === ($level === 2 ? 2 * $n : 0));
-        check('first player starts with the income (10)', (int) $g->one("SELECT `credits` FROM `player_state` WHERE `player_id` = {$ids[0]}") === 10);
+        check('buildings at start (0 in Basic, Dock in Advanced)', (int) $g->one("SELECT COUNT(*) FROM `building`") === ($level === 2 ? $n : 0));
+        check('ports', (int) $g->one("SELECT COUNT(*) FROM `trade_port`") === ($level === 2 ? ($n === 2 ? 2 : 2 * $n) : 0));
+        check('first player starts with 5 credits', (int) $g->one("SELECT `credits` FROM `player_state` WHERE `player_id` = {$ids[0]}") === 5);
         $all = $g->all();
         check('getAllDatas encodes', strlen(json_encode($all)) > 1000 && $all['rules_level'] === $level && $all['vp_target'] === 5 && $all['has_market'] === ($level === 2));
         check('missions face-up', count($all['missions']) === 5);
@@ -177,11 +177,13 @@ foreach ([1, 2] as $level) { // 1 = Basic, 2 = Advanced (market, ports, triangul
         check('strong: 15 vs mech(5) kills', $kill['kill'] === [1]);
 
         {
-            $g->exec("INSERT INTO `item` (`owner_id`, `kind`, `hex_id`) VALUES ($p, 'iron', $home), ($p, 'iron', $home), ($p, 'iron', $home)");
-            $g->exec("UPDATE `hex_tile` SET `owner_id` = $p WHERE `hex_id` = $home");
-            $g->exec("INSERT INTO `unit` (`owner_id`, `unit_type`, `hex_id`) VALUES ($p, 'bot', $home)");
+            // Build factory on $to if it has building slots, or give $to a slot for testing
+            $buildHex = $to ?? $home;
+            $g->exec("UPDATE `hex_tile` SET `building_slots` = 1, `owner_id` = $p WHERE `hex_id` = $buildHex");
+            $g->exec("INSERT INTO `item` (`owner_id`, `kind`, `hex_id`) VALUES ($p, 'iron', $buildHex), ($p, 'iron', $buildHex), ($p, 'iron', $buildHex)");
+            $g->exec("INSERT INTO `unit` (`owner_id`, `unit_type`, `hex_id`) VALUES ($p, 'bot', $buildHex)");
             $g->exec("UPDATE `player_state` SET `credits` = 40 WHERE `player_id` = $p");
-            $g->build($p, $home, 'factory', 0);
+            $g->build($p, $buildHex, 'factory', 0);
             $fid = (int) $g->one("SELECT `building_id` FROM `building` WHERE `building_type` = 'factory' AND `owner_id` = $p");
             $g->manufacture($p, $fid, 'bot');
             check('factory makes 2 bots', true);

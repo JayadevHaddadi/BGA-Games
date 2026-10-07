@@ -218,7 +218,7 @@ def ground_group(kind, outline=True):
 
 
 def road_group(d, open_=True):
-    """Open edge: road from the edge midpoint to the middle of the tile. Closed edge: a very small broken stump."""
+    """Open edge: road from edge to middle. Closed edge: bold black/yellow hazard blockade."""
     a = math.radians(EDGE_ANG[d])
     ca, sa = math.cos(a), math.sin(a)
     ex, ey = 0.866 * U * ca, 0.866 * U * sa
@@ -226,12 +226,24 @@ def road_group(d, open_=True):
         ix, iy = 0.45 * U * ca, 0.45 * U * sa
         return (f'<line x1="{ex:.1f}" y1="{ey:.1f}" x2="{ix:.1f}" y2="{iy:.1f}" stroke="#6b5a3e" stroke-width="6.4"/>'
                 f'<line x1="{ex:.1f}" y1="{ey:.1f}" x2="{ix:.1f}" y2="{iy:.1f}" stroke="#e7d9b5" stroke-width="3.6"/>')
-    ix, iy = (0.866 * U - 5) * ca, (0.866 * U - 5) * sa
-    px, py = (0.866 * U - 9) * ca - 3 * sa, (0.866 * U - 9) * sa + 3 * ca  # a loose stone beside the break
-    return (f'<line x1="{ex:.1f}" y1="{ey:.1f}" x2="{ix:.1f}" y2="{iy:.1f}" stroke="#6b5a3e" stroke-width="6.4"/>'
-            f'<line x1="{ex:.1f}" y1="{ey:.1f}" x2="{ix:.1f}" y2="{iy:.1f}" stroke="#e7d9b5" stroke-width="3.6"/>'
-            f'<line x1="{ix - 1.5 * sa:.1f}" y1="{iy + 1.5 * ca:.1f}" x2="{ix + 1.5 * sa:.1f}" y2="{iy - 1.5 * ca:.1f}" stroke="#6b5a3e" stroke-width="1.2"/>'
-            f'<circle cx="{px:.1f}" cy="{py:.1f}" r="1.3" fill="#6b5a3e"/>')
+    bx, by = (0.866 * U - 4) * ca, (0.866 * U - 4) * sa
+    rot = EDGE_ANG[d] + 90
+    cid = f'blk_{d}'
+    return (
+        f'<g transform="translate({bx:.1f},{by:.1f}) rotate({rot:.1f})">'
+        f'<defs><clipPath id="{cid}"><rect x="-11" y="-3" width="22" height="6" rx="1"/></clipPath></defs>'
+        f'<rect x="-11" y="-3" width="22" height="6" rx="1" fill="#f1c40f" stroke="#1a1a1a" stroke-width="1.2"/>'
+        f'<g clip-path="url(#{cid})">'
+        f'<line x1="-14" y1="-4" x2="-8" y2="4" stroke="#1a1a1a" stroke-width="3"/>'
+        f'<line x1="-7" y1="-4" x2="-1" y2="4" stroke="#1a1a1a" stroke-width="3"/>'
+        f'<line x1="0" y1="-4" x2="6" y2="4" stroke="#1a1a1a" stroke-width="3"/>'
+        f'<line x1="7" y1="-4" x2="13" y2="4" stroke="#1a1a1a" stroke-width="3"/>'
+        f'</g>'
+        f'<rect x="-11" y="-3" width="22" height="6" rx="1" fill="none" stroke="#1a1a1a" stroke-width="1.2"/>'
+        f'<rect x="-9.5" y="2.5" width="2.5" height="2.5" fill="#2c2c2c"/>'
+        f'<rect x="7" y="2.5" width="2.5" height="2.5" fill="#2c2c2c"/>'
+        f'</g>'
+    )
 
 
 def sockets_group(slots):
@@ -330,9 +342,8 @@ figure{{margin:0;text-align:center}}img{{width:72px;height:72px}}figcaption{{fon
         key = 'Centre (level 1)' if t['level'] == 1 else f"Level {t['level']}"
         groups[key].append((f"{t['art']}.svg", label))
     for t, (fname, col) in zip(tileset.home_tiles(), FACTIONS):
-        write(os.path.join(tiles_dir, f"{t['art']}.svg"), tile_svg(t['code'], 'iron', 2, [True] * 6, banner=col, code=t['code'],
-                                                                    extra='<rect x="-8" y="30" width="16" height="5" fill="#8a6a42" stroke="#2b2233" stroke-width="0.8"/>'))
-        groups['Home tiles'].append((f"{t['art']}.svg", f'{fname} home: iron, 2 slots, all 6 roads'))
+        write(os.path.join(tiles_dir, f"{t['art']}.svg"), tile_svg(t['code'], 'empty', 0, [True] * 6, banner=col, code=t['code']))
+        groups['Home tiles'].append((f"{t['art']}.svg", f'{fname} home: no resource, 0 slots, all 6 roads'))
     for t in tileset.port_tiles():
         icons = icon_group(t['good'] if t['good'] in ICONS else 'iron', -9, 0, 17) + icon_group('down' if t['port_kind'] == 'cheaper' else 'income', 10, 0, 17)
         write(os.path.join(tiles_dir, f"{t['art']}.svg"), tile_svg(t['code'], 'port', 0, [c == '1' for c in t['mask']], extra=icons, code=t['code']))
