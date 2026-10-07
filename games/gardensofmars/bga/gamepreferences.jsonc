@@ -8,5 +8,14 @@
       "2": { "name": "Off" }
     },
     "default": 1
+  },
+  "101": {
+    "name": "Move Confirmation",
+    "needReload": false,
+    "values": {
+      "1": { "name": "Always Confirm (Undo available)" },
+      "2": { "name": "Instant (One-click)" }
+    },
+    "default": 1
   }
 }

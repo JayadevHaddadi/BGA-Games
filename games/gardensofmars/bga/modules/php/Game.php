@@ -470,6 +470,9 @@ class Game extends \Bga\GameFramework\Table
                 // Advance scoring track
                 $landedOn25Occupied = $this->advanceScoreTrack($playerId, $clusterPoints);
 
+                // Discard used die before notifications
+                static::DbQuery("UPDATE `dice_pool` SET `is_used` = 1 WHERE `die_id` = $dieId");
+
                 $remainingOfColor = $reserve - 1;
                 $this->notifyAllPlayers(
                     "gardenerMovedAndPlanted",
@@ -480,6 +483,7 @@ class Game extends \Bga\GameFramework\Table
                         'player_name' => $this->getPlayerNameById($playerId),
                         'target_q' => $targetQ,
                         'target_r' => $targetR,
+                        'die_id' => $dieId,
                         'die_value' => $dieValue,
                         'flower_color' => $flowerColor,
                         'color_name' => $this->getColorName($flowerColor),
@@ -487,6 +491,7 @@ class Game extends \Bga\GameFramework\Table
                         'score' => (int) $this->playerScore->get($playerId),
                         'track_pos' => $this->getGardenerTrackPos($playerId),
                         'flowers' => $this->getPlayerFlowers($playerId),
+                        'remaining_dice' => $this->getAvailableDice(),
                     ]
                 );
 
@@ -521,7 +526,7 @@ class Game extends \Bga\GameFramework\Table
             }
         }
 
-        // Discard used die
+        // Ensure used die is marked used (for penalty path too)
         static::DbQuery("UPDATE `dice_pool` SET `is_used` = 1 WHERE `die_id` = $dieId");
 
         // Check if extra turn can be taken (requires at least 1 unused die remaining)
@@ -657,7 +662,10 @@ class Game extends \Bga\GameFramework\Table
 
     public function getAllGardeners(): array
     {
-        return static::getObjectListFromDb("SELECT `player_id`, `martian`, `coord_q` as `q`, `coord_r` as `r`, `track_pos` FROM `gardener`");
+        return static::getCollectionFromDb(
+            "SELECT `player_id`, `martian`, `coord_q` as `q`, `coord_r` as `r`, `track_pos` FROM `gardener`",
+            true
+        );
     }
 
     public function getColorName(string $color): string
