@@ -24,6 +24,7 @@ on:
           - kiln
           - sugargliders
           - gardensofuranus
+          - gardensofmars
           - nestorgamesgp
           - microforge
 
@@ -121,6 +122,12 @@ jobs:
             if echo "$CHANGED" | grep -qi "games/gardensofuranus"; then
               echo "Deploying Gardens of Uranus..."
               python tools/sync.py gardensofuranus
+              DEPLOYED=1
+            fi
+
+            if echo "$CHANGED" | grep -qi "games/gardensofmars"; then
+              echo "Deploying Gardens of Mars..."
+              python tools/sync.py gardensofmars
               DEPLOYED=1
             fi
 

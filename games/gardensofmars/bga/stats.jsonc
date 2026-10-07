@@ -1,0 +1,36 @@
+{
+    "table": {
+        "turns_number": {
+            "id": 10,
+            "name": "Number of turns",
+            "type": "int"
+        },
+        "flowers_planted": {
+            "id": 11,
+            "name": "Total flowers planted",
+            "type": "int"
+        }
+    },
+    "player": {
+        "turns_number": {
+            "id": 10,
+            "name": "Number of turns",
+            "type": "int"
+        },
+        "flowers_planted": {
+            "id": 20,
+            "name": "Flowers planted",
+            "type": "int"
+        },
+        "max_connection": {
+            "id": 21,
+            "name": "Largest connected flower cluster",
+            "type": "int"
+        },
+        "penalties_taken": {
+            "id": 22,
+            "name": "Penalties suffered",
+            "type": "int"
+        }
+    }
+}

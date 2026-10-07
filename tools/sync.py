@@ -41,6 +41,8 @@ TARGET_MAP = {
     "nestorgamesgptest": ("games/nestorgamesgp/bga", "nestorgamesgp"),
     "microforge": ("games/microforge/bga", "microforge"),
     "microforgetest": ("games/microforge/bga", "microforgetest"),
+    "gardensofmars": ("games/gardensofmars/bga", "gardensofmars"),
+    "gardensofmarstest": ("games/gardensofmars/bga", "gardensofmars"),
 }
 
 def load_credentials():

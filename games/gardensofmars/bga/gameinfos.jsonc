@@ -1,0 +1,23 @@
+{
+    "game_name": "Gardens of Mars",
+    "publisher": "nestorgames",
+    "publisher_website": "https://www.nestorgames.com",
+    "publisher_bga_id": null,
+    "bgg_id": 89319,
+    "players": [2, 3, 4, 5],
+    "suggest_player_number": 3,
+    "not_recommend_player_number": null,
+    "estimated_duration": 30,
+    "fast_additional_time_per_turn": 20,
+    "medium_additional_time_per_turn": 30,
+    "slow_additional_time_per_turn": 45,
+    "tie_breaker_description": "Most total flowers planted breaks the tie.",
+    "is_coop": 0,
+    "is_sandbox": 0,
+    "turn_control": "standard",
+    "is_beta": 0,
+    "status": "alpha",
+    "game_interface_width": {
+        "min": 320
+    }
+}

@@ -54,8 +54,33 @@ Every change should be committed and pushed to `main`. The GitHub Actions deploy
 | **Kiln** | `games/KILN/bga/` | `kiln` | `python tools/sync.py kiln` |
 | **Sugar Gliders** | `games/sugargliders/bga/` | `sugargliders` | `python tools/sync.py sugargliders` |
 | **Gardens of Uranus** | `games/gardensofuranus/bga/` | `gardensofuranustest` / `gardensofuranus` | `python tools/sync.py gardensofuranus` |
+| **Gardens of Mars** | `games/gardensofmars/bga/` | `gardensofmarstest` / `gardensofmars` | `python tools/sync.py gardensofmars` |
 | **nestorgames GP** | `games/nestorgamesgp/bga/` | `nestorgamesgptest` / `nestorgamesgp` | `python tools/sync.py nestorgamesgp` |
 | **MicroForge** | `games/microforge/bga/` | `microforgetest` / `microforge` | `python tools/sync.py microforge` |
+| **GoCaine** | not pulled locally yet | `gocaine` (exists on Studio, has code) | add to `TARGET_MAP` in `tools/sync.py` first |
+| **Blitzkrieg** | not pulled locally yet | `blitzkrieg` (exists on Studio) | add to `TARGET_MAP` in `tools/sync.py` first |
+
+### 🔑 How to access BGA Studio (READ THIS FIRST if you "can't access" a game)
+
+BGA Studio projects are plain folders on an SFTP server. There is no browser step and nothing to "log in" to; you already have access through the git-ignored credentials file.
+
+* **Server**: `1.studio.boardgamearena.com`, port `2022`, user `JayadevHaddadi` (BGA account `jayadevhaddadi`).
+* **Password**: never written in tracked files. It lives in `tools/sftp.config.json` (git-ignored; keys `host`, `port`, `username`, `password`) or in env var `BGA_SFTP_PASSWORD` (used by GitHub Actions). If the file is missing, ask the user; do not ask them to paste it into tracked files.
+* **Layout**: the SFTP root lists one folder per Studio project, e.g. `mandala`, `pushfight`, `yavalath`, `omega`, `lordsofscotland`, `kiln`, `microforge`, `gocaine`, `sugargliders`, `nestorgamesgp`, `gardensofuranus`, `blitzkrieg`. A folder existing there means the user has access to that project. Folders ending in `test` are sandbox slots.
+* **Check access / list projects** (also works to read or download any project, e.g. GoCaine):
+  ```bash
+  python3 - <<'EOF'
+  import json, paramiko
+  c = json.load(open('tools/sftp.config.json'))
+  t = paramiko.Transport((c['host'], c['port'])); t.connect(username=c['username'], password=c['password'])
+  s = paramiko.SFTPClient.from_transport(t)
+  print(s.listdir('.'))            # all projects
+  print(s.listdir('gocaine'))      # files in one project
+  EOF
+  ```
+* **Deploy local to Studio**: `python tools/sync.py <target>` (upload-only delta sync; targets are in `TARGET_MAP` inside `tools/sync.py`). A project not in `TARGET_MAP` must be added there, and its files pulled to `games/<name>/bga/` first.
+* **Read-only on the server**: `_ide_helper.php` and `bga-framework.d.ts` (BGA generates them; `sync.py` ignores them).
+* **Verified 2026-10-07**: `gocaine` is readable and writable (GoCaine, publisher Kharitago Games Inc., 2-6 players, has `modules/php/Game.php`, `States/`, `GameData.php`). Licence status not yet checked.
 
 ---
 

@@ -12,6 +12,7 @@ This document tracks publisher/designer permissions, communications, contact inf
 | **KILN** | Néstor Romeral Andrés | Eclipse Editorial / nestorgames | ✅ **BGA License Granted (2026-10-01)** | Active Dev (`kiln`) |
 | **nestorgames GP** | Néstor Romeral Andrés | nestorgames | ✅ **BGA License Granted (2026-10-01)** | Active Dev (`nestorgamesgp`) |
 | **Gardens of Uranus** | Néstor Romeral Andrés | nestorgames | ✅ **BGA License Granted (2026-10-01)** | Active Dev (`gardensofuranus`) |
+| **Gardens of Mars** | Néstor Romeral Andrés | nestorgames | 🚀 **Active Dev / Approved (nestorgames)** | Active Dev (`gardensofmars`) |
 | **Omega** | Néstor Romeral Andrés | Eclipse Editorial / nestorgames | ✅ **BGA License Granted (2024-07-24)** | Ready for Testing (`omega`) |
 | **Seven** | Néstor Romeral Andrés | Eclipse Editorial / nestorgames | ✅ **BGA License Granted (2024-07-24)** | Scaffolding / Assets In Hand |
 | **Taiji** | Néstor Romeral Andrés | Eclipse Editorial / nestorgames | ✅ **BGA License Granted (2024-07-24)** | Backlog / Approved |
