@@ -7,106 +7,24 @@
  *------
  */
 
+// Native BGA sounds (files in sounds/), so BGA volume/mute settings apply. Only fired from confirmed game events.
 class SoundController {
     constructor() {
-        this.ctx = null;
+        this.bga = null;
         this.isMuted = () => false;
     }
 
-    init() {
-        if (!this.ctx) {
-            const AudioCtx = window.AudioContext || window.webkitAudioContext;
-            if (AudioCtx) {
-                this.ctx = new AudioCtx();
-            }
-        }
-        if (this.ctx && this.ctx.state === 'suspended') {
-            this.ctx.resume();
-        }
-    }
-
-    playJump() {
+    play(id) {
         if (this.isMuted()) return;
         try {
-            this.init();
-            if (!this.ctx) return;
-            const now = this.ctx.currentTime;
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.type = 'sine';
-            // Light gliding swoosh pitch bend
-            osc.frequency.setValueAtTime(320, now);
-            osc.frequency.exponentialRampToValueAtTime(640, now + 0.18);
-            gain.gain.setValueAtTime(0.12, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start(now);
-            osc.stop(now + 0.22);
+            this.bga?.sounds?.play?.(id);
         } catch (e) {}
     }
 
-    playHarvest() {
-        if (this.isMuted()) return;
-        try {
-            this.init();
-            if (!this.ctx) return;
-            const now = this.ctx.currentTime;
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(523.25, now);
-            osc.frequency.setValueAtTime(659.25, now + 0.08);
-            gain.gain.setValueAtTime(0.12, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start(now);
-            osc.stop(now + 0.2);
-        } catch (e) {}
-    }
-
-    playTorpor() {
-        if (this.isMuted()) return;
-        try {
-            this.init();
-            if (!this.ctx) return;
-            const now = this.ctx.currentTime;
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(440, now);
-            osc.frequency.exponentialRampToValueAtTime(261.63, now + 0.25);
-            gain.gain.setValueAtTime(0.10, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start(now);
-            osc.stop(now + 0.28);
-        } catch (e) {}
-    }
-
-    playVictory() {
-        if (this.isMuted()) return;
-        try {
-            this.init();
-            if (!this.ctx) return;
-            const now = this.ctx.currentTime;
-            const notes = [440, 554.37, 659.25, 880];
-            notes.forEach((f, i) => {
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(f, now + i * 0.1);
-                gain.gain.setValueAtTime(0.12, now + i * 0.1);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + 0.35);
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start(now + i * 0.1);
-                osc.stop(now + i * 0.1 + 0.35);
-            });
-        } catch (e) {}
-    }
+    playJump() { this.play('sugargliders_jump'); }
+    playHarvest() { this.play('sugargliders_collect'); }
+    playTorpor() { this.play('sugargliders_torpor'); }
+    playVictory() { this.play('sugargliders_win'); }
 }
 
 const sounds = new SoundController();
@@ -267,6 +185,7 @@ export class Game {
         this.jumpingTiles = gamedatas.jumping_tiles || {};
         this.scores = gamedatas.scores || {};
 
+        sounds.bga = this.bga;
         sounds.isMuted = () => Number(this.bga?.userPreferences?.get?.(100) ?? 1) === 2;
         this.initDom();
         this.initScaler();
