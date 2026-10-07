@@ -19,7 +19,7 @@ This document tracks publisher/designer permissions, communications, contact inf
 | **Counterplays** | Néstor Romeral Andrés | Eclipse Editorial / nestorgames | ✅ **BGA License Granted (2024-09-05)** | Backlog / Approved |
 | **Stack-22** | Néstor Romeral Andrés | Eclipse Editorial / nestorgames | ✅ **BGA License Granted (2024-09-05)** | Backlog / Approved |
 | **Line or Colour** | Néstor Romeral Andrés | Eclipse Editorial / nestorgames | ✅ **BGA License Granted (2025-03-27)** | Backlog / Approved |
-| **Push Fight** | Brett Picotte | Brettco Inc. / New Publisher | 🟡 **BGA License Granted (2019-12-13)** | Private Alpha; awaiting new publisher |
+| **Push Fight / Tsuki-Dashi** | Brett Picotte | Tinkerhouse Games (Mike) | 🤝 **In Discussion with Tinkerhouse (2026-10-07)** | Sublicense & Tsuki-Dashi Branding (`pushfight`) |
 | **Mandala** | Trevor Benjamin, Brett J. Gilbert | Lookout Games / Asmodee | ✅ **Live / Released** | Maintained (`mandala`) |
 | **Yavalath** | Cameron Browne, Ludi | Cameron Browne / Cyberite Ltd | 🚀 **Public Alpha (2026-10-06)** | Reviewer Testing (`yavalath`) |
 | **Lords of Scotland**| Richard James (Evertide Games) | Rights reverted to designer | 🔴 **Blocked: need designer contact** | Core Engine Ready (`lordsofscotland`) |
@@ -112,12 +112,32 @@ This document tracks publisher/designer permissions, communications, contact inf
 
 ---
 
+### 7. Push Fight / Tsuki-Dashi
+* **Designer**: Brett Picotte
+* **Publisher / Rights Holder**: **Tinkerhouse Games** (Mike)
+  * Tinkerhouse Games holds the exclusive worldwide digital & physical license with right to sublicense.
+  * Rebranded edition: **Tsuki-Dashi** (gameplay identical).
+  * Webstore / Edition: [Tsuki-Dashi on Tinkerhouse Games](https://shop.tinkerhousegames.com/collections/tsuki-dashi)
+* **Official Terminology**:
+  * Square pieces: **"Pushers"**
+  * Round pieces: **"Blockers"**
+  * Anchor piece: **"Anchor"**
+* **AI Engine & Research**:
+  * Best known AI / solver for Push Fight: [https://pushfight.verver.ch/#](https://pushfight.verver.ch/#)
+* **Status**: **Collaborative Discussion in Progress**
+  * Mike confirmed willingness to sublicense to BGA.
+  * Offered official branding assets and elevated board styling.
+  * Clarifying BGA's revenue share model and official BGA publisher onboarding (`boardgamearena.com/gamepublishers`).
+
+---
+
 ## 🗂️ Contacts Directory
 
 | Contact Name | Organization / Role | Email / Channel |
 | :--- | :--- | :--- |
 | **Cameron Browne** | Inventor (Yavalath, Ludi) | `cambolbro@gmail.com` (his `@maastrichtuniversity.nl` address bounces) |
 | **Néstor Romeral Andrés** | Founder, nestorgames | `orders@nestorgames.com` |
+| **Mike** | Tinkerhouse Games (Tsuki-Dashi / Push Fight) | Primary contact / publisher |
 | **Lupe Gonzalez** | Senior Game Producer, Studio Big (Z-Man / Asmodee) | Follow-up pending (`PUBLISHER_FOLLOW_UP_EMAIL.md`) |
 | **Britta Fisher** | Content Marketing Specialist, Studio Big | Email intro from Z-Man |
 | **Sophie Gravel** | Former Head of Studio, Z-Man Games | LinkedIn / historical reference |
