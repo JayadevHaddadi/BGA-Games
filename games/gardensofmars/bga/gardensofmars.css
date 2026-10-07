@@ -196,6 +196,22 @@
     cursor: not-allowed;
 }
 
+.garden_spot.has_peak {
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.gom_peak_cone {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 52px;
+    height: 52px;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 2;
+}
+
 .garden_spot.valid_move::after {
     content: '';
     position: absolute;

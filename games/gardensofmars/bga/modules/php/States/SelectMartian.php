@@ -29,11 +29,16 @@ class SelectMartian extends GameState
         $chosenList = array_map(fn($row) => $row['martian'], $chosen);
         $availableMartians = array_values(array_diff($allMartians, $chosenList));
 
-        // Available empty spots on 91-hex board (cannot place in center spot (0,0) or on another gardener)
+        // Cannot place in center (0,0), on another gardener, or on a peak
         $allGardeners = $this->game->getObjectListFromDb("SELECT `coord_q` as `q`, `coord_r` as `r` FROM `gardener` WHERE `coord_q` IS NOT NULL");
         $occupied = [];
         foreach ($allGardeners as $g) {
             $occupied[$g['q'] . '_' . $g['r']] = true;
+        }
+
+        $allPeaks = $this->game->getAllPeaks();
+        foreach ($allPeaks as $p) {
+            $occupied[$p['q'] . '_' . $p['r']] = true;
         }
 
         $allCells = $this->game->generateGridCells();

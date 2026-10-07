@@ -26,5 +26,19 @@
             }
         },
         "default": 1
+    },
+    "102": {
+        "name": "Peaks variant",
+        "values": {
+            "1": {
+                "name": "Disabled (Standard)",
+                "description": "Play without peaks on the Martian garden."
+            },
+            "2": {
+                "name": "Enabled",
+                "description": "Play with peaks (gray cones) placed on non-adjacent hexes. Peaks block movement and cannot be planted on or entered."
+            }
+        },
+        "default": 1
     }
 }

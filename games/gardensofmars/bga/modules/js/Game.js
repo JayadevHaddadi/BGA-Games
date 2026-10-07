@@ -41,8 +41,8 @@ const BOARD_CONFIG = {
 const FLOWER_SYMBOLS = {
     blue: '●',
     yellow: '▲',
-    white: '◆',
-    gray: '■',
+    orange: '◆',
+    purple: '■',
     red: '★',
     green: '✚',
 };
@@ -114,13 +114,7 @@ export class Game {
 
     setup(gamedatas) {
         this.gamedatas = gamedatas;
-        if (Array.isArray(this.gamedatas.gardeners)) {
-            const map = {};
-            this.gamedatas.gardeners.forEach(g => {
-                map[String(g.player_id)] = g;
-            });
-            this.gamedatas.gardeners = map;
-        }
+        this.normalizeGardeners();
 
         sounds.bga = this.bga;
         this.applyShapePreference();
@@ -137,6 +131,43 @@ export class Game {
 
         // Subscribe to notifications
         this.setupNotifications();
+    }
+
+    normalizeGardeners() {
+        if (!this.gamedatas.gardeners) {
+            this.gamedatas.gardeners = {};
+            return;
+        }
+        if (Array.isArray(this.gamedatas.gardeners)) {
+            const map = {};
+            this.gamedatas.gardeners.forEach(g => {
+                if (g && typeof g === 'object' && g.player_id !== undefined) {
+                    map[String(g.player_id)] = g;
+                }
+            });
+            this.gamedatas.gardeners = map;
+        } else if (typeof this.gamedatas.gardeners === 'object') {
+            // Ensure every gardener entry is a valid object
+            const map = {};
+            Object.entries(this.gamedatas.gardeners).forEach(([pid, val]) => {
+                if (val && typeof val === 'object') {
+                    map[String(val.player_id || pid)] = val;
+                } else if (typeof val === 'string') {
+                    map[String(pid)] = { player_id: pid, martian: val, q: null, r: null, track_pos: 0 };
+                }
+            });
+            this.gamedatas.gardeners = map;
+        }
+    }
+
+    setGardenerData(playerId, patch) {
+        this.normalizeGardeners();
+        const pid = String(playerId);
+        if (!this.gamedatas.gardeners[pid] || typeof this.gamedatas.gardeners[pid] !== 'object') {
+            this.gamedatas.gardeners[pid] = { player_id: pid, track_pos: 0 };
+        }
+        Object.assign(this.gamedatas.gardeners[pid], patch);
+        return this.gamedatas.gardeners[pid];
     }
 
     isCurrentPlayerActive() {
@@ -354,6 +385,37 @@ export class Game {
         (this.gamedatas.board_flowers || []).forEach(f => {
             this.addFlowerToSpot(Number(f.q), Number(f.r), f.color);
         });
+
+        // Place peaks (gray cones) if variant active
+        (this.gamedatas.peaks || []).forEach(p => {
+            this.addPeakToSpot(Number(p.q), Number(p.r));
+        });
+    }
+
+    addPeakToSpot(q, r) {
+        const spot = document.getElementById(`spot_${q}_${r}`);
+        if (!spot) return;
+        spot.classList.add('has_peak');
+        spot.title = _('Peak (gray cone) — blocks movement, cannot be entered or planted on');
+        spot.innerHTML = `
+            <svg class="gom_peak_cone" viewBox="0 0 44 44" role="img" aria-label="${_('Peak')}">
+                <defs>
+                    <radialGradient id="peakGrad" cx="40%" cy="35%" r="60%">
+                        <stop offset="0%" stop-color="#cfd8dc" />
+                        <stop offset="60%" stop-color="#78909c" />
+                        <stop offset="100%" stop-color="#455a64" />
+                    </radialGradient>
+                    <filter id="peakShadow" x="-20%" y="-20%" width="140%" height="140%">
+                        <feDropShadow dx="1" dy="3" stdDeviation="2" flood-color="#000" flood-opacity="0.4" />
+                    </filter>
+                </defs>
+                <circle cx="22" cy="22" r="18" fill="url(#peakGrad)" stroke="#37474f" stroke-width="2" filter="url(#peakShadow)"/>
+                <!-- 3D Cone facets -->
+                <path d="M22 6 L36 29 L22 34 Z" fill="#546e7a" opacity="0.6"/>
+                <path d="M22 6 L8 29 L22 34 Z" fill="#b0bec5" opacity="0.7"/>
+                <circle cx="22" cy="6" r="3.5" fill="#eceff1" stroke="#37474f" stroke-width="1"/>
+            </svg>
+        `;
     }
 
     addFlowerToSpot(q, r, color) {
@@ -511,7 +573,7 @@ export class Game {
         const board = document.getElementById('garden_board');
         if (!board) return;
 
-        const colors = ['blue', 'yellow', 'white', 'gray', 'red', 'green'];
+        const colors = ['blue', 'yellow', 'orange', 'purple', 'red', 'green'];
         const picker = document.createElement('div');
         picker.id = 'gom_color_picker';
         this.pickerSpot = { q, r };
@@ -716,7 +778,7 @@ export class Game {
 
     renderPlayerFlowers() {
         const all = this.gamedatas.player_flowers || {};
-        const colors = ['blue', 'yellow', 'white', 'gray', 'red', 'green'];
+        const colors = ['blue', 'yellow', 'orange', 'purple', 'red', 'green'];
 
         Object.keys(all).forEach(pid => {
             const panel = this.bga?.playerPanels?.getElement?.(parseInt(pid));
@@ -1002,14 +1064,13 @@ export class Game {
 
     notif_martianSelected(notif) {
         const args = this._getNotifArgs(notif);
-        if (!this.gamedatas.gardeners) this.gamedatas.gardeners = {};
-        this.gamedatas.gardeners[args.player_id] = {
+        this.setGardenerData(args.player_id, {
             player_id: args.player_id,
             martian: args.martian,
             q: args.q,
             r: args.r,
             track_pos: args.track_pos || 0,
-        };
+        });
         sounds.playMove();
         this.renderGardenState();
         this.renderPlayerFlowers();
@@ -1030,14 +1091,12 @@ export class Game {
         const args = this._getNotifArgs(notif);
         sounds.playPlant();
 
-        // 1. Update data models
-        if (!this.gamedatas.gardeners) this.gamedatas.gardeners = {};
-        if (!this.gamedatas.gardeners[args.player_id]) {
-            this.gamedatas.gardeners[args.player_id] = { player_id: args.player_id };
-        }
-        this.gamedatas.gardeners[args.player_id].q = args.target_q;
-        this.gamedatas.gardeners[args.player_id].r = args.target_r;
-        this.gamedatas.gardeners[args.player_id].track_pos = args.track_pos;
+        // 1. Update data models safely via setGardenerData
+        this.setGardenerData(args.player_id, {
+            q: args.target_q,
+            r: args.target_r,
+            track_pos: args.track_pos,
+        });
 
         // 2. Direct DOM gardener movement
         const gToken = document.getElementById(`gardener_${args.player_id}`);
@@ -1091,14 +1150,10 @@ export class Game {
 
     notif_scorePenalty(notif) {
         const args = this._getNotifArgs(notif);
-        if (!this.gamedatas.gardeners) this.gamedatas.gardeners = {};
-        if (!this.gamedatas.gardeners[args.player_id]) {
-            this.gamedatas.gardeners[args.player_id] = { player_id: args.player_id };
-        }
-
+        const patch = { track_pos: args.track_pos };
         if (args.target_q !== undefined && args.target_r !== undefined) {
-            this.gamedatas.gardeners[args.player_id].q = args.target_q;
-            this.gamedatas.gardeners[args.player_id].r = args.target_r;
+            patch.q = args.target_q;
+            patch.r = args.target_r;
             const gToken = document.getElementById(`gardener_${args.player_id}`);
             if (gToken) {
                 const pos = this.axialToPixel(args.target_q, args.target_r);
@@ -1106,8 +1161,8 @@ export class Game {
                 gToken.style.top = `${pos.y}px`;
             }
         }
+        this.setGardenerData(args.player_id, patch);
 
-        this.gamedatas.gardeners[args.player_id].track_pos = args.track_pos;
         const tToken = document.getElementById(`track_martian_${args.player_id}`);
         if (tToken) {
             const tPos = this.getTrackPixel(args.track_pos || 0);

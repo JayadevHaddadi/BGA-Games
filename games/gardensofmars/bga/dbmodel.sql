@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS `cell` (
     `coord_r` smallint(5) NOT NULL,
     `flower_color` varchar(16) DEFAULT NULL,
     `planted_by` int(10) unsigned DEFAULT NULL,
+    `has_peak` tinyint(1) NOT NULL DEFAULT 0,
     PRIMARY KEY (`coord_q`, `coord_r`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

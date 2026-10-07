@@ -20,7 +20,7 @@ use Bga\Games\gardensofmars\States\EndScore;
 
 class Game extends \Bga\GameFramework\Table
 {
-    public const FLOWER_COLORS = ['blue', 'yellow', 'white', 'gray', 'red', 'green'];
+    public const FLOWER_COLORS = ['blue', 'yellow', 'orange', 'purple', 'red', 'green'];
 
     public const HEX_RADIUS = 5; // Radius 5 = 91 cells
 
@@ -75,8 +75,14 @@ class Game extends \Bga\GameFramework\Table
                     `coord_r` smallint(5) NOT NULL,
                     `flower_color` varchar(16) DEFAULT NULL,
                     `planted_by` int(10) unsigned DEFAULT NULL,
+                    `has_peak` tinyint(1) NOT NULL DEFAULT 0,
                     PRIMARY KEY (`coord_q`, `coord_r`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+            } else {
+                $peakCols = static::getObjectListFromDb("SHOW COLUMNS FROM `cell` LIKE 'has_peak'");
+                if (empty($peakCols)) {
+                    static::DbQuery("ALTER TABLE `cell` ADD COLUMN `has_peak` tinyint(1) NOT NULL DEFAULT 0");
+                }
             }
 
             $gardenerCols = static::getObjectListFromDb("SHOW COLUMNS FROM `gardener` LIKE 'player_id'");
@@ -163,8 +169,10 @@ class Game extends \Bga\GameFramework\Table
         // 3. Options
         $trackVariant = isset($options[100]) ? (int) $options[100] : 1;
         $lastFlowerVariant = isset($options[101]) ? (int) $options[101] : 1;
+        $peaksVariant = isset($options[102]) ? (int) $options[102] : 1;
         $this->globals->set('track_variant', $trackVariant);
         $this->globals->set('last_flower_variant', $lastFlowerVariant);
+        $this->globals->set('peaks_variant', $peaksVariant);
         $this->globals->set('extra_turn_active', 0);
         $this->globals->set('consecutive_stuck_turns', 0);
 
@@ -172,9 +180,23 @@ class Game extends \Bga\GameFramework\Table
         $cells = $this->generateGridCells();
         $cellValues = [];
         foreach ($cells as $c) {
-            $cellValues[] = sprintf("(%d, %d, NULL, NULL)", $c['q'], $c['r']);
+            $cellValues[] = sprintf("(%d, %d, NULL, NULL, 0)", $c['q'], $c['r']);
         }
-        static::DbQuery("INSERT INTO `cell` (`coord_q`, `coord_r`, `flower_color`, `planted_by`) VALUES " . implode(",", $cellValues));
+        static::DbQuery("INSERT INTO `cell` (`coord_q`, `coord_r`, `flower_color`, `planted_by`, `has_peak`) VALUES " . implode(",", $cellValues));
+
+        // 4b. If Peaks variant enabled (option 102 == 2):
+        // Random number of peaks: Players + trees <= 5 => peaks <= 5 - count(players)
+        // With 2 players: 1..3 peaks (so 2 + peaks <= 5)
+        // With 3 players: 1..2 peaks
+        // With 4 players: 1 peak
+        // With 5 players: 0 peaks (5 + 0 <= 5)
+        if ($peaksVariant === 2) {
+            $maxPeaks = max(0, 5 - count($playerIds));
+            if ($maxPeaks > 0) {
+                $peakCount = random_int(1, $maxPeaks);
+                $this->placeRandomPeaks($cells, $peakCount);
+            }
+        }
 
         // 5. Deal flowers randomly from 60 total (10 of each of 6 colors)
         $playerCount = count($playerIds);
@@ -218,6 +240,40 @@ class Game extends \Bga\GameFramework\Table
         return SelectMartian::class;
     }
 
+    public function placeRandomPeaks(array $allCells, int $peakCount): void
+    {
+        // Peaks cannot be placed on center (0,0) and cannot be placed adjacent to each other
+        $candidates = array_values(array_filter($allCells, fn($c) => !($c['q'] === 0 && $c['r'] === 0)));
+        shuffle($candidates);
+
+        $placedPeaks = [];
+        foreach ($candidates as $cand) {
+            if (count($placedPeaks) >= $peakCount) {
+                break;
+            }
+
+            // Check if adjacent to any already placed peak
+            $tooClose = false;
+            foreach ($placedPeaks as $p) {
+                foreach (self::DIRECTIONS as [$dq, $dr]) {
+                    if ($cand['q'] === $p['q'] + $dq && $cand['r'] === $p['r'] + $dr) {
+                        $tooClose = true;
+                        break 2;
+                    }
+                }
+            }
+
+            if (!$tooClose) {
+                $placedPeaks[] = $cand;
+                static::DbQuery(sprintf(
+                    "UPDATE `cell` SET `has_peak` = 1 WHERE `coord_q` = %d AND `coord_r` = %d",
+                    $cand['q'],
+                    $cand['r']
+                ));
+            }
+        }
+    }
+
     public function generateGridCells(): array
     {
         $cells = [];
@@ -235,7 +291,7 @@ class Game extends \Bga\GameFramework\Table
     public function getCell(int $q, int $r): ?array
     {
         return static::getObjectFromDb(
-            "SELECT `coord_q` as `q`, `coord_r` as `r`, `flower_color`, `planted_by` FROM `cell` WHERE `coord_q` = $q AND `coord_r` = $r"
+            "SELECT `coord_q` as `q`, `coord_r` as `r`, `flower_color`, `planted_by`, `has_peak` FROM `cell` WHERE `coord_q` = $q AND `coord_r` = $r"
         );
     }
 
@@ -256,6 +312,7 @@ class Game extends \Bga\GameFramework\Table
     public function getEmptyAdjacentCount(int $q, int $r): int
     {
         // Central space (0,0) counts as empty space with no flowers per rulebook!
+        // Peaks block flower planting and do not count as empty spaces
         $count = 0;
         foreach (self::DIRECTIONS as [$dq, $dr]) {
             $nq = $q + $dq;
@@ -265,7 +322,7 @@ class Game extends \Bga\GameFramework\Table
                 $count++;
             } else {
                 $cell = $this->getCell($nq, $nr);
-                if ($cell !== null && $cell['flower_color'] === null) {
+                if ($cell !== null && $cell['flower_color'] === null && (int) $cell['has_peak'] === 0) {
                     $count++;
                 }
             }
@@ -352,6 +409,12 @@ class Game extends \Bga\GameFramework\Table
                 $cell = $this->getCell($currQ, $currR);
                 if ($cell === null) {
                     // Out of board boundaries
+                    $blocked = true;
+                    break;
+                }
+
+                // Rule 3: Peaks (gray cones) block movement entirely — cannot enter or pass through
+                if ((int) ($cell['has_peak'] ?? 0) === 1) {
                     $blocked = true;
                     break;
                 }
@@ -660,11 +723,15 @@ class Game extends \Bga\GameFramework\Table
         return static::getObjectListFromDb("SELECT `coord_q` as `q`, `coord_r` as `r`, `flower_color` as `color`, `planted_by` FROM `cell` WHERE `flower_color` IS NOT NULL");
     }
 
+    public function getAllPeaks(): array
+    {
+        return static::getObjectListFromDb("SELECT `coord_q` as `q`, `coord_r` as `r` FROM `cell` WHERE `has_peak` = 1");
+    }
+
     public function getAllGardeners(): array
     {
-        return static::getCollectionFromDb(
-            "SELECT `player_id`, `martian`, `coord_q` as `q`, `coord_r` as `r`, `track_pos` FROM `gardener`",
-            true
+        return static::getObjectListFromDb(
+            "SELECT `player_id`, `martian`, `coord_q` as `q`, `coord_r` as `r`, `track_pos` FROM `gardener`"
         );
     }
 
@@ -673,8 +740,8 @@ class Game extends \Bga\GameFramework\Table
         return match ($color) {
             'blue' => clienttranslate('Blue'),
             'yellow' => clienttranslate('Yellow'),
-            'white' => clienttranslate('White'),
-            'gray' => clienttranslate('Gray'),
+            'orange' => clienttranslate('Orange'),
+            'purple' => clienttranslate('Purple'),
             'red' => clienttranslate('Red'),
             'green' => clienttranslate('Green'),
             default => ucfirst($color),
@@ -712,6 +779,7 @@ class Game extends \Bga\GameFramework\Table
         $result['scores'] = $scores;
         $result['board_cells'] = $this->generateGridCells();
         $result['board_flowers'] = $this->getAllBoardFlowers();
+        $result['peaks'] = $this->getAllPeaks();
         $result['gardeners'] = $this->getAllGardeners();
         $result['dice_pool'] = $this->getDicePool();
         $result['flower_colors'] = self::FLOWER_COLORS;
