@@ -9,7 +9,7 @@
       },
       "2": {
         "name": "Advanced",
-        "description": "Adds Docks, Ports and the market with moving prices, and a triangular movement cost (1, 3, 6, 10 Credits for 1 to 4 steps)."
+        "description": "Adds Docks, Ports and the market with moving prices."
       }
     },
     "default": 1

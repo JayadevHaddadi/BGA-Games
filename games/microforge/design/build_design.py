@@ -137,7 +137,7 @@ def card_svg(level, idx, mtype, n):
         s.append(f'<text x="{W / 2}" y="{y_mid + 85}" text-anchor="middle" font-size="42" font-weight="bold" fill="{INK}">CENTRE HEX</text>')
     else:
         s.append(mission_icon(mtype, x0 + 160, y_mid, 165))
-        s.append(f'<text x="{x0 + 310}" y="{y_mid + 20}" font-size="75" font-weight="bold" fill="#7a6e60">&times;</text>')
+        s.append(f'<text x="{x0 + 310}" y="{y_mid + 20}" font-size="75" font-weight="bold" fill="#7a6e60">&#215;</text>')
         s.append(f'<text x="{x0 + 380}" y="{y_mid + 46}" font-size="130" font-weight="bold" fill="{INK}">{n}</text>')
 
     # clear description banner inside condition card
@@ -154,7 +154,7 @@ def card_svg(level, idx, mtype, n):
         f'<text x="{x0 + 65}" y="{cy + 14}" text-anchor="middle" font-size="40" font-weight="bold" fill="{INK}">5</text></g>',
         f'<text x="{x0 + 118}" y="{y1 - 76}" font-size="24" font-weight="bold" fill="{INK}">Cost: 5 Credits</text>',
         f'<text x="{x0 + 118}" y="{y1 - 50}" font-size="18" fill="{INK}">+1 for each bought</text>',
-        f'<text x="{x0 + 118}" y="{y1 - 25}" font-size="16" fill="#7d7388">Level {level} &bull; {idx:02d}/20</text>',
+        f'<text x="{x0 + 118}" y="{y1 - 25}" font-size="16" fill="#7d7388">Level {level} &#8226; {idx:02d}/20</text>',
         # VP Star Icon Badge
         f'<g id="reward">',
         f'<polygon points="{star_at(x1 - 80, cy - 4, 52, 23)}" fill="{GOLD}" stroke="{INK}" stroke-width="4"/>',

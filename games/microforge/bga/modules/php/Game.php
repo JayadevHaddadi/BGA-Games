@@ -323,7 +323,7 @@ class Game extends \Bga\GameFramework\Table
         $result['vp_target'] = $this->vpTarget();
         $result['rules_level'] = $this->rulesLevel();
         $result['has_market'] = $this->hasMarket();
-        $result['triangular_move'] = $this->hasMarket();
+        $result['triangular_move'] = false;
         $result['homes'] = $this->globals->get('homes', []);
         $result['build_iron'] = self::BUILD_IRON;
         $result['base_income'] = self::BASE_INCOME;
@@ -538,25 +538,17 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Coins paid in total for a piece that has moved $steps steps this turn. Basic: 1 Credit per step.
-     * Advanced: triangular, n(n+1)/2 = 1, 3, 6, 10 (slow movement is cheaper per step).
+     * Coins paid in total for a piece that has moved $steps steps this turn: 1 Credit per unit per step.
      */
     public function coinsForSteps(int $steps): int
     {
-        return $this->hasMarket() ? intdiv($steps * ($steps + 1), 2) : $steps;
+        return $steps;
     }
 
     /** Number of steps a piece has already moved this turn, from the coins lying under it. */
     public function stepsFromCoins(int $coins): int
     {
-        if (!$this->hasMarket()) {
-            return $coins;
-        }
-        $s = 0;
-        while (intdiv(($s + 1) * ($s + 2), 2) <= $coins) {
-            $s++;
-        }
-        return $s;
+        return $coins;
     }
 
     /** A hex is controlled by whoever has units on it. */
@@ -606,6 +598,10 @@ class Game extends \Bga\GameFramework\Table
         static::DbQuery("UPDATE `player_state` SET `credits` = `credits` + ({$delta}) WHERE `player_id` = {$playerId}");
         if ($delta > 0) {
             $this->playerStats->inc('credits_earned', $delta, $playerId);
+        }
+        $newCredits = (int) static::getUniqueValueFromDb("SELECT `credits` FROM `player_state` WHERE `player_id` = {$playerId}");
+        if ($this->bga && isset($this->bga->playerScoreAux)) {
+            $this->bga->playerScoreAux->set($playerId, $newCredits);
         }
     }
 
@@ -768,10 +764,28 @@ class Game extends \Bga\GameFramework\Table
         $toHex = $this->getHex($toHexId);
         $isAttack = $toHex['owner_id'] !== null && (int) $toHex['owner_id'] !== $playerId;
         $count = 0;
+        $hasResources = false;
+        $movingBots = 0;
         foreach ($groups as [$kind, , $qty]) {
             $count += $qty;
+            if (in_array($kind, ['iron', 'crystal'], true)) {
+                $hasResources = true;
+            }
+            if ($kind === 'bot') {
+                $movingBots += $qty;
+            }
             if ($isAttack && !in_array($kind, ['bot', 'mech'], true)) {
                 throw new UserException(clienttranslate("Only bots and mechs can attack."));
+            }
+        }
+        if ($hasResources) {
+            $startBots = (int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `unit` WHERE `owner_id` = {$playerId} AND `hex_id` = {$fromHexId} AND `unit_type` = 'bot' AND `attack_target` IS NULL");
+            if ($startBots < 1) {
+                throw new UserException(clienttranslate("Resources cannot move on their own: you must have a Bot at the starting hex."));
+            }
+            $destBots = (int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `unit` WHERE `owner_id` = {$playerId} AND `hex_id` = {$toHexId} AND `unit_type` = 'bot' AND `attack_target` IS NULL");
+            if ($destBots + $movingBots < 1) {
+                throw new UserException(clienttranslate("Resources cannot move on their own: you must have a Bot at the destination hex (or send a Bot with them)."));
             }
         }
         $dist = $this->pathDistance($playerId, $fromHexId, $toHexId);

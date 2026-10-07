@@ -22,18 +22,20 @@
 }
 
 #mf_market {
-    max-width: 520px;
+    max-width: 540px;
     margin: 6px auto;
-    padding: 6px 10px;
-    background: #efe3c8;
-    border: 2px solid #5a4630;
-    border-radius: 6px;
+    padding: 0;
+    background: transparent;
+    border: none;
+}
+#mf_market svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 10px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.22);
 }
 .mf_hint { font-size: 11px; display: block; color: #5a4630; margin-top: 2px; }
-.mf_table { width: 100%; border-collapse: collapse; }
-.mf_table td, .mf_table th { padding: 2px 4px; text-align: left; font-size: 12px; }
-.mf_range { position: relative; width: 80px; height: 8px; background: #bda97f; border-radius: 2px; }
-.mf_range_pos { position: absolute; top: -2px; width: 4px; height: 12px; background: #2b2118; border-radius: 1px; }
 
 #mf_board { width: 100%; max-width: 700px; margin: 0 auto; }
 #mf_panel { padding: 6px; }

@@ -4,7 +4,7 @@
 
 == Rules (game option) ==
 * '''Basic''': production, Mechs, combat and Missions. Moving costs 1 Credit per step. No Docks, Ports or market.
-* '''Advanced''': Basic plus Docks, Ports and the market with moving prices, and a triangular movement cost (1, 3, 6, 10 Credits for 1 to 4 steps).
+* '''Advanced''': Basic plus Docks, Ports and the market with moving prices.
 
 == Goal ==
 Be the first commander to reach '''5 Victory Points'''. Victory Points come only from '''Mission cards'''.
@@ -21,7 +21,7 @@ You '''control''' a tile while one of your pieces stands on it. Everything print
 * '''Guard Tower''' (2 iron): makes the tile harder to push and kill.
 
 == Moving ==
-Basic: every step costs 1 Credit per piece. Advanced: a piece pays 1, 3, 6, 10 Credits in total for 1, 2, 3, 4 steps this turn, minus what it already paid. Pieces follow open roads and cannot pass through enemy pieces.
+Every step costs 1 Credit per piece. Pieces follow open roads and cannot pass through enemy pieces. Resources (iron and crystal) cannot move on their own: you must have a Bot at the starting hex and destination hex (or send a Bot escorting them).
 
 == Missions ==
 Pay 5 Credits (plus 1 for each Mission you already bought) to buy a face-up Mission, one per turn. You score only if you meet its condition at that moment; otherwise the Credits are lost.

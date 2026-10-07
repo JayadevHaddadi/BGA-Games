@@ -173,16 +173,13 @@ export class Game {
         return Object.values(this.sel).reduce((a, b) => a + b, 0);
     }
 
-    /** Total coins for a piece that moved `steps` steps this turn: Basic 1 per step, Advanced triangular (1, 3, 6, 10). */
+    /** Total coins for a piece that moved `steps` steps this turn: 1 Credit per unit per step. */
     coinsForSteps(steps) {
-        return this.data.triangular_move ? steps * (steps + 1) / 2 : steps;
+        return steps;
     }
 
     stepsFromCoins(coins) {
-        if (!this.data.triangular_move) return coins;
-        let s = 0;
-        while ((s + 1) * (s + 2) / 2 <= coins) s++;
-        return s;
+        return coins;
     }
 
     /** Credits to move the whole selection `dist` steps: every piece pays the coins for its total steps minus the coins under it. */
@@ -368,41 +365,56 @@ export class Game {
         if (!this.active || !sb) return;
         sb.removeActionButtons?.();
         const total = this.moveTotal();
+        const me = this.me();
+        const myCredits = this.data.player_state[me]?.credits ?? 0;
         if (this.pending) {
             const cost = this.selCost(this.pending.dist);
-            const credits = this.data.player_state[this.me()].credits;
             const to = this.pending.to;
+            const tokens = this.selTokens();
+            let resourceBotMissing = false;
+            let resourceBotMsg = '';
+            if (tokens > 0) {
+                const startBots = this.data.units.filter(u => u.owner_id === me && u.hex_id === this.selFrom && u.unit_type === 'bot' && !u.attack_target).length;
+                const destBots = this.data.units.filter(u => u.owner_id === me && u.hex_id === to && u.unit_type === 'bot' && !u.attack_target).length;
+                const movingBots = Object.entries(this.sel).filter(([k]) => k.startsWith('bot')).reduce((a, [, n]) => a + n, 0);
+                if (startBots < 1) {
+                    resourceBotMissing = true;
+                    resourceBotMsg = _(' (Requires a Bot at start hex)');
+                } else if (destBots + movingBots < 1) {
+                    resourceBotMissing = true;
+                    resourceBotMsg = _(' (Requires a Bot at destination or escorting)');
+                }
+            }
             if (this.pending.attack) {
-                const committed = this.data.units.filter(u => u.owner_id === this.me() && u.attack_target === to)
+                const committed = this.data.units.filter(u => u.owner_id === me && u.attack_target === to)
                     .reduce((a, u) => a + this.unitPower(u.unit_type), 0);
                 const power = committed + this.selPower();
                 const defenders = this.data.units.filter(u => u.hex_id === to);
                 const towers = this.data.buildings.filter(b => b.hex_id === to && b.building_type === 'tower').length;
                 const out = this.combatOutcome(power, defenders.map(u => this.unitPower(u.unit_type)), towers);
-                const tokens = this.selTokens();
-                sb.setTitle(_('Attack hex ${hex}: power ${a} vs ${d} defender(s)${t} would kill ${k} and push ${p}. Costs ${cost} Credits; resolved when you end your turn')
+                sb.setTitle(_('Attack hex ${hex}: power ${a} vs ${d} defender(s)${t} would kill ${k} and push ${p}. Costs ${cost} Credits (${cr} available); resolved when you end your turn')
                     .replace('${hex}', this.coordOf(to)).replace('${a}', power).replace('${d}', defenders.length)
-                    .replace('${t}', towers ? ` + ${towers} Guard Tower(s)` : '').replace('${k}', out.kills).replace('${p}', out.pushes).replace('${cost}', cost));
+                    .replace('${t}', towers ? ` + ${towers} Guard Tower(s)` : '').replace('${k}', out.kills).replace('${p}', out.pushes).replace('${cost}', cost).replace('${cr}', myCredits));
                 sb.addActionButton(_('Attack'), () => {
                     const args = { fromHexId: this.selFrom, toHexId: to, pieces: this.selPieces() };
                     this.pending = null;
                     this.act('actMove', args);
-                }, { color: 'primary', disabled: cost > credits || tokens > 0 });
+                }, { color: 'primary', disabled: cost > myCredits || tokens > 0 });
             } else {
-                sb.setTitle(_('Moving these ${n} piece(s) ${steps} step(s) costs ${cost} Credits').replace('${n}', total).replace('${steps}', this.pending.dist).replace('${cost}', cost));
+                sb.setTitle(_('Moving ${n} piece(s) ${steps} step(s) costs ${cost} Credits (${cr} available)${botMsg}')
+                    .replace('${n}', total).replace('${steps}', this.pending.dist).replace('${cost}', cost).replace('${cr}', myCredits).replace('${botMsg}', resourceBotMsg));
                 sb.addActionButton(_('Move'), () => {
                     const args = { fromHexId: this.selFrom, toHexId: to, pieces: this.selPieces() };
                     this.pending = null;
                     this.act('actMove', args);
-                }, { color: 'primary', disabled: cost > credits });
+                }, { color: 'primary', disabled: cost > myCredits || resourceBotMissing });
             }
             sb.addActionButton(_('Cancel'), () => { this.clearSel(); this.render(); }, { color: 'alert' });
         } else if (total > 0) {
-            sb.setTitle(_('${n} piece(s) selected: click a highlighted hex to see the cost').replace('${n}', total));
+            sb.setTitle(_('${n} piece(s) selected: click a highlighted hex to see the cost (${cr} Credits available)').replace('${n}', total).replace('${cr}', myCredits));
             sb.addActionButton(_('Cancel'), () => { this.clearSel(); this.render(); }, { color: 'alert' });
         } else if (this.missionSel) {
             const d = this.data;
-            const me = this.me();
             const m = d.missions.find(x => x.id === this.missionSel);
             if (!m) {
                 this.missionSel = null;
@@ -411,8 +423,8 @@ export class Game {
             const txt = this.missionText(m);
             const fee = d.player_state[me].mission_fee;
             const met = !!(d.mission_met[me] && d.mission_met[me][m.id]);
-            sb.setTitle(_('Mission "${n}" (${vp} VP): ${desc} Buy it for ${fee} Credits? You meet it now: ${met}')
-                .replace('${n}', txt.name).replace('${vp}', m.vp).replace('${desc}', txt.desc).replace('${fee}', fee)
+            sb.setTitle(_('Mission "${n}" (${vp} VP): ${desc} Buy it for ${fee} Credits (${cr} available)? You meet it now: ${met}')
+                .replace('${n}', txt.name).replace('${vp}', m.vp).replace('${desc}', txt.desc).replace('${fee}', fee).replace('${cr}', myCredits)
                 .replace('${met}', met ? _('yes') : _('no (the Credits would be wasted)')));
             const canBuy = this.args.can_claim_mission !== false && d.player_state[me].credits >= fee;
             sb.addActionButton(`${_('Buy')} (${fee})`, () => {
@@ -425,8 +437,9 @@ export class Game {
         } else if (this.tradeSel) {
             this.tradeBanner(sb);
         } else {
-            sb.setTitle(this.data.has_market ? _('${you} may move, build, extract, manufacture and trade, then end your turn')
-                : _('${you} may move, build, extract, manufacture and buy a Mission, then end your turn'));
+            sb.setTitle(this.data.has_market
+                ? _('Your turn (${c} Credits): Move, build, extract, manufacture and trade, then end your turn').replace('${c}', myCredits)
+                : _('Your turn (${c} Credits): Move, build, extract, manufacture and buy a Mission, then end your turn').replace('${c}', myCredits));
             sb.addActionButton(_('End turn'), () => this.act('actEndTurn'), { color: 'primary' });
             if ((this.args.undo_count || 0) > 0) {
                 sb.addActionButton(_('Undo'), () => this.act('actUndo'), { color: 'alert' });
@@ -619,17 +632,113 @@ export class Game {
     }
 
     renderMarket() {
+        const el = document.getElementById('mf_market');
+        if (!el) return;
         if (!this.data.has_market) {
-            document.getElementById('mf_market').innerHTML = '';
+            el.innerHTML = '';
             return;
         }
-        const rows = GOODS.map(g => {
-            const lo = this.data.price_min[g], hi = this.data.price_max[g], p = this.data.prices[g];
-            const pct = Math.round((p - lo) / (hi - lo) * 100);
-            return `<tr><td>${g}</td><td>${p}</td><td><div class="mf_range" title="${lo}-${hi}"><div class="mf_range_pos" style="left:${pct}%"></div></div></td><td>${lo}-${hi}</td></tr>`;
+        const d = this.data;
+        const prices = d.prices || { iron: 3, crystal: 6, bot: 5, mech: 9 };
+        const priceMin = d.price_min || { iron: 2, crystal: 4, bot: 3, mech: 6 };
+        const priceMax = d.price_max || { iron: 5, crystal: 10, bot: 7, mech: 14 };
+        const steps = {
+            iron: [2, 3, 4, 5],
+            crystal: [4, 6, 8, 10],
+            bot: [3, 4, 5, 6, 7],
+            mech: [6, 8, 10, 12, 14]
+        };
+        const labels = {
+            iron: _('IRON'),
+            crystal: _('CRYSTAL'),
+            bot: _('BOT'),
+            mech: _('MECH')
+        };
+        const colors = {
+            iron: '#4f5b66',
+            crystal: '#00838f',
+            bot: '#d35400',
+            mech: '#962d22'
+        };
+
+        const goodIcon = (g, x, y) => {
+            if (g === 'iron') {
+                return `<g transform="translate(${x},${y})">`
+                    + `<polygon points="4,18 20,18 24,25 0,25" fill="#7f8c8d" stroke="#2c3e50" stroke-width="1.2"/>`
+                    + `<polygon points="4,18 7,10 23,10 20,18" fill="#bdc3c7" stroke="#2c3e50" stroke-width="1.2"/>`
+                    + `<polygon points="20,18 23,10 27,17 24,25" fill="#95a5a6" stroke="#2c3e50" stroke-width="1.2"/>`
+                    + `</g>`;
+            }
+            if (g === 'crystal') {
+                return `<g transform="translate(${x},${y})">`
+                    + `<polygon points="13,7 22,14 18,25 8,25 4,14" fill="#16a085" stroke="#0e6251" stroke-width="1.2"/>`
+                    + `<polygon points="13,7 18,14 13,21 8,14" fill="#a3e4d7" stroke="#0e6251" stroke-width="0.8"/>`
+                    + `</g>`;
+            }
+            if (g === 'bot') {
+                return `<g transform="translate(${x},${y})">`
+                    + `<rect x="7" y="10" width="13" height="9" rx="2.5" fill="#e67e22" stroke="#7e3805" stroke-width="1.2"/>`
+                    + `<circle cx="10.5" cy="14" r="1.2" fill="#fff"/>`
+                    + `<circle cx="16.5" cy="14" r="1.2" fill="#fff"/>`
+                    + `<line x1="13.5" y1="6" x2="13.5" y2="10" stroke="#7e3805" stroke-width="1.2"/>`
+                    + `<circle cx="13.5" cy="5.5" r="1.2" fill="#c0392b"/>`
+                    + `<rect x="6" y="20" width="15" height="4" rx="1.2" fill="#ba4a00" stroke="#7e3805" stroke-width="1"/>`
+                    + `</g>`;
+            }
+            return `<g transform="translate(${x},${y})">`
+                + `<polygon points="6,8 21,8 24,16 18,23 9,23 3,16" fill="#c0392b" stroke="#641e16" stroke-width="1.2"/>`
+                + `<polygon points="8,12 19,12 17,15 10,15" fill="#f5b7b1" stroke="#641e16" stroke-width="0.8"/>`
+                + `<rect x="5" y="21" width="4" height="4" fill="#78281f" stroke="#641e16" stroke-width="0.8"/>`
+                + `<rect x="18" y="21" width="4" height="4" fill="#78281f" stroke="#641e16" stroke-width="0.8"/>`
+                + `</g>`;
+        };
+
+        const rowsSvg = GOODS.map((g, idx) => {
+            const y = 52 + idx * 42;
+            const curP = prices[g] ?? priceMin[g];
+            const lo = priceMin[g], hi = priceMax[g];
+            const trackSteps = steps[g] || [lo, hi];
+            const nSteps = trackSteps.length;
+            const trackX = 125, trackW = 270;
+
+            const pegsSvg = trackSteps.map((val, i) => {
+                const cx = trackX + 16 + i * ((trackW - 32) / (nSteps - 1));
+                const cy = y + 20;
+                if (val === curP) {
+                    return `<g class="mf_peg">`
+                        + `<circle cx="${cx}" cy="${cy}" r="14" fill="#f39c12" stroke="#6e4104" stroke-width="2"/>`
+                        + `<circle cx="${cx}" cy="${cy}" r="11" fill="#f1c40f" stroke="#fff8dc" stroke-width="1.2"/>`
+                        + `<text x="${cx}" y="${cy + 4.5}" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="12" font-weight="bold" fill="#4d2c00">${val}</text>`
+                        + `</g>`;
+                }
+                return `<circle cx="${cx}" cy="${cy}" r="9" fill="#f5eedd" stroke="#b09f82" stroke-width="1"/>`
+                    + `<text x="${cx}" y="${cy + 3.5}" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="9" font-weight="600" fill="#7d6c52">${val}</text>`;
+            }).join('');
+
+            return `<g class="mf_market_row">`
+                + `<rect x="12" y="${y}" width="516" height="38" rx="6" fill="${idx % 2 === 0 ? '#ede2cc' : '#f5ecd6'}" stroke="#cfc0a3" stroke-width="1"/>`
+                + goodIcon(g, 18, y + 4)
+                + `<text x="56" y="${y + 24}" font-family="'Segoe UI', Arial, sans-serif" font-size="11.5" font-weight="bold" fill="${colors[g]}">${labels[g]}</text>`
+                + `<rect x="${trackX}" y="${y + 10}" width="${trackW}" height="20" rx="10" fill="#dacbb0" stroke="#ad9c7c" stroke-width="1.2"/>`
+                + pegsSvg
+                + `<rect x="408" y="${y + 7}" width="60" height="25" rx="6" fill="#322416" stroke="#c49a3c" stroke-width="1.5"/>`
+                + `<circle cx="420" cy="${y + 19.5}" r="7" fill="#f1c40f" stroke="#7e4a05" stroke-width="1"/>`
+                + `<text x="420" y="${y + 23}" text-anchor="middle" font-size="8.5" font-weight="bold" fill="#5b3903">C</text>`
+                + `<text x="447" y="${y + 23.5}" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="13" font-weight="bold" fill="#f9e79f">${curP}</text>`
+                + `<text x="498" y="${y + 23.5}" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="10.5" font-weight="bold" fill="#755e42">${lo}–${hi}</text>`
+                + `</g>`;
         }).join('');
-        document.getElementById('mf_market').innerHTML = `<b>${_('Price board')}</b> <span class="mf_hint">${_('To trade, click a port on the map or a hex with your Dock (you must control it).')}</span>`
-            + `<table class="mf_table"><tr><th>${_('Good')}</th><th>${_('Price')}</th><th></th><th>${_('Range')}</th></tr>${rows}</table>`;
+
+        el.innerHTML = `
+            <svg viewBox="0 0 540 238" width="100%" xmlns="http://www.w3.org/2000/svg">
+                <rect width="540" height="238" rx="10" fill="#2c2217" stroke="#18120b" stroke-width="2"/>
+                <rect x="5" y="5" width="530" height="228" rx="8" fill="#f5ecda" stroke="#846545" stroke-width="1.5"/>
+                <rect x="12" y="10" width="516" height="34" rx="5" fill="#3a2b1c"/>
+                <text x="270" y="27" text-anchor="middle" font-family="'Trebuchet MS', 'Segoe UI', Arial, sans-serif" font-size="14" font-weight="bold" fill="#f5d57f" letter-spacing="2">${_('THE MARKET')}</text>
+                <text x="270" y="38" text-anchor="middle" font-family="'Trebuchet MS', 'Segoe UI', Arial, sans-serif" font-size="8" font-weight="600" fill="#c4b094" letter-spacing="0.5">${_('COMMODITY EXCHANGE &#8226; PORTS &amp; DOCKS')}</text>
+                ${rowsSvg}
+                <text x="270" y="230" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="8.5" fill="#7a6245">${_('Trade at Ports or Docks &#8226; Buying raises price &#8226; Selling drops price')}</text>
+            </svg>`;
     }
 
     renderMissions() {

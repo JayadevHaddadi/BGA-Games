@@ -111,7 +111,7 @@ foreach ([1, 2] as $level) { // 1 = Basic, 2 = Advanced (market, ports, triangul
         if ($level === 1) {
             check('no Port missions in Basic', !in_array('ports', $types, true), implode(',', $types));
         }
-        check('step coins: Basic linear, Advanced triangular', $g->coinsForSteps(3) === ($level === 2 ? 6 : 3) && $g->stepsFromCoins(6) === ($level === 2 ? 3 : 6));
+        check('step coins: linear (1 Credit per unit per step)', $g->coinsForSteps(3) === 3 && $g->stepsFromCoins(3) === 3);
 
         // turn flow
         $p = $ids[0];
@@ -123,6 +123,23 @@ foreach ([1, 2] as $level) { // 1 = Basic, 2 = Advanced (market, ports, triangul
             check('move 2 bots 1 step: 1 Credit each', (int) $g->one("SELECT COUNT(*) FROM `unit` WHERE `hex_id` = $to AND `owner_id` = $p") === 2
                 && (int) $g->one("SELECT `credits` FROM `player_state` WHERE `player_id` = $p") === 28);
             check('income is a flat 10', $g->playerIncome($p) === 10);
+
+            // test resource movement constraints
+            $g->exec("INSERT INTO `item` (`owner_id`, `kind`, `hex_id`) VALUES ($p, 'iron', $home)");
+            $to2 = freeNeighbour($g, $home);
+            if ($to2 !== null && $to2 !== $to) {
+                // Moving iron alone to hex with no bots must throw
+                $threw = false;
+                try {
+                    $g->movePieces($p, $home, $to2, 'iron:0:1');
+                } catch (\Exception $ex) {
+                    $threw = true;
+                }
+                check('iron cannot move without bot at destination', $threw);
+            }
+            // Moving iron to $to (where player has 2 bots stationed) succeeds!
+            $g->movePieces($p, $home, $to, 'iron:0:1');
+            check('iron moves between hexes with bots', (int) $g->one("SELECT COUNT(*) FROM `item` WHERE `hex_id` = $to AND `kind` = 'iron'") === 1);
         } else {
             echo "  (no free connected neighbour next to home in this deal)\n";
         }

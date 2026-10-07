@@ -8,7 +8,7 @@
 <text class="placeholder" x="345.0" y="240" text-anchor="middle" font-size="22" fill="#9a8f7c">ART SLOT 590 x 170</text></g>
 <rect x="50" y="328" width="590" height="375" rx="14" fill="#fffbf0" stroke="#2b2233" stroke-width="3.5"/>
 <g transform="translate(190.0,475.0) scale(2.578)" stroke="#2b2233" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" fill="none"><rect x="-28" y="-6" width="56" height="32" fill="#c9b79a"/><rect x="8" y="-30" width="12" height="26" fill="#8a7a62"/><rect x="-18" y="6" width="12" height="12" fill="#f4ead7"/><rect x="2" y="6" width="12" height="12" fill="#f4ead7"/></g>
-<text x="340" y="495" font-size="75" font-weight="bold" fill="#7a6e60">&times;</text>
+<text x="340" y="495" font-size="75" font-weight="bold" fill="#7a6e60">&#215;</text>
 <text x="410" y="521" font-size="130" font-weight="bold" fill="#2b2233">1</text>
 <rect x="65" y="635" width="560" height="56" rx="8" fill="#f4ead7" stroke="#2b2233" stroke-width="2"/>
 <text x="345.0" y="674" text-anchor="middle" font-size="32" font-weight="bold" fill="#2b2233">Control 1 Factory.</text>
@@ -18,7 +18,7 @@
 <text x="95" y="859" text-anchor="middle" font-size="40" font-weight="bold" fill="#2b2233">5</text></g>
 <text x="148" y="834" font-size="24" font-weight="bold" fill="#2b2233">Cost: 5 Credits</text>
 <text x="148" y="860" font-size="18" fill="#2b2233">+1 for each bought</text>
-<text x="148" y="885" font-size="16" fill="#7d7388">Level 1 &bull; 03/20</text>
+<text x="148" y="885" font-size="16" fill="#7d7388">Level 1 &#8226; 03/20</text>
 <g id="reward">
 <polygon points="580.0,789.0 593.5,822.4 629.5,824.9 601.9,848.1 610.6,883.1 580.0,864.0 549.4,883.1 558.1,848.1 530.5,824.9 566.5,822.4" fill="#e6c455" stroke="#2b2233" stroke-width="4"/>
 <polygon points="580.0,809.0 588.2,829.7 610.4,831.1 593.3,845.3 598.8,866.9 580.0,855.0 561.2,866.9 566.7,845.3 549.6,831.1 571.8,829.7" fill="#fff59d" stroke="none"/>
