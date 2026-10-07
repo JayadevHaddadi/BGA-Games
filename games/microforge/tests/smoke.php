@@ -84,9 +84,9 @@ function freeNeighbour(TestGame $g, int $from): ?int
     return null;
 }
 
-foreach ([1, 2, 3, 4] as $level) {
+foreach ([1, 2] as $level) { // 1 = Basic, 2 = Advanced (market, ports, triangular moves)
     foreach ([2, 4, 6] as $n) {
-        echo "== rules level $level, $n players ==\n";
+        echo '== ' . ($level === 1 ? 'Basic' : 'Advanced') . ", $n players ==\n";
         new_database();
         $g = new TestGame();
         $players = [];
@@ -96,40 +96,33 @@ foreach ([1, 2, 3, 4] as $level) {
         $ids = array_keys($players);
         $g->setup($players, [100 => $level]);
 
-        $expectHexes = ($n <= 3 ? 19 : 37) + ($level === 4 ? 2 * $n : 0);
+        $expectHexes = ($n <= 3 ? 19 : 37) + ($level === 2 ? 2 * $n : 0);
         check('hex count', (int) $g->one("SELECT COUNT(*) FROM `hex_tile`") === $expectHexes, (string) $g->one("SELECT COUNT(*) FROM `hex_tile`"));
         check('3 bots each', (int) $g->one("SELECT COUNT(*) FROM `unit`") === 3 * $n);
         check('homes owned', (int) $g->one("SELECT COUNT(*) FROM `hex_tile` WHERE `owner_id` IS NOT NULL") === $n);
         check('every tile has art', (int) $g->one("SELECT COUNT(*) FROM `hex_tile` WHERE `tile_art` = ''") === 0);
-        check('buildings at start', (int) $g->one("SELECT COUNT(*) FROM `building`") === ($level === 1 ? 0 : ($level === 4 ? 2 * $n : $n)));
-        check('ports', (int) $g->one("SELECT COUNT(*) FROM `trade_port`") === ($level === 4 ? 2 * $n : 0));
-        check('first player credits = 2 + income 1', (int) $g->one("SELECT `credits` FROM `player_state` WHERE `player_id` = {$ids[0]}") === 3);
+        check('buildings at start (tower, + Dock in Advanced)', (int) $g->one("SELECT COUNT(*) FROM `building`") === ($level === 2 ? 2 * $n : $n));
+        check('ports', (int) $g->one("SELECT COUNT(*) FROM `trade_port`") === ($level === 2 ? 2 * $n : 0));
+        check('first player starts with the income (10)', (int) $g->one("SELECT `credits` FROM `player_state` WHERE `player_id` = {$ids[0]}") === 10);
         $all = $g->all();
-        check('getAllDatas encodes', strlen(json_encode($all)) > 1000 && $all['rules_level'] === $level && $all['vp_target'] === ($level === 1 ? 3 : 5));
+        check('getAllDatas encodes', strlen(json_encode($all)) > 1000 && $all['rules_level'] === $level && $all['vp_target'] === 5 && $all['has_market'] === ($level === 2));
         check('missions face-up', count($all['missions']) === 5);
         $types = array_unique(array_map(fn($m) => $m['type'], $all['missions']));
         if ($level === 1) {
-            check('basic missions only use basic types', empty(array_diff($types, ['hexes', 'bots', 'pieces', 'credits', 'center'])), implode(',', $types));
+            check('no Port missions in Basic', !in_array('ports', $types, true), implode(',', $types));
         }
+        check('step coins: Basic linear, Advanced triangular', $g->coinsForSteps(3) === ($level === 2 ? 6 : 3) && $g->stepsFromCoins(6) === ($level === 2 ? 3 : 6));
 
         // turn flow
         $p = $ids[0];
         $home = (int) json_decode(json_encode($g->globals->get('homes')), true)[$p];
         $g->exec("UPDATE `player_state` SET `credits` = 30 WHERE `player_id` = $p");
-        if ($level < 4) {
-            $before = (int) $g->one("SELECT COUNT(*) FROM `unit` WHERE `owner_id` = $p");
-            $g->recruit($p);
-            check('recruit adds a bot', (int) $g->one("SELECT COUNT(*) FROM `unit` WHERE `owner_id` = $p") === $before + 1);
-            check('recruit cost 2', (int) $g->one("SELECT `credits` FROM `player_state` WHERE `player_id` = $p") === 28);
-        } else {
-            expectUserError(fn() => $g->recruit($p), 'recruit not allowed in the full game');
-        }
         $to = freeNeighbour($g, $home);
         if ($to !== null) {
             $g->movePieces($p, $home, $to, 'bot:0:2');
-            check('move 2 bots: 1 Credit per step each', (int) $g->one("SELECT COUNT(*) FROM `unit` WHERE `hex_id` = $to AND `owner_id` = $p") === 2
-                && (int) $g->one("SELECT `credits` FROM `player_state` WHERE `player_id` = $p") === ($level < 4 ? 26 : 28));
-            check('income counts held tiles', $g->playerIncome($p) === 2);
+            check('move 2 bots 1 step: 1 Credit each', (int) $g->one("SELECT COUNT(*) FROM `unit` WHERE `hex_id` = $to AND `owner_id` = $p") === 2
+                && (int) $g->one("SELECT `credits` FROM `player_state` WHERE `player_id` = $p") === 28);
+            check('income is a flat 10', $g->playerIncome($p) === 10);
         } else {
             echo "  (no free connected neighbour next to home in this deal)\n";
         }
@@ -161,18 +154,12 @@ foreach ([1, 2, 3, 4] as $level) {
             check('attackers hold the tile', (int) $g->one("SELECT `owner_id` FROM `hex_tile` WHERE `hex_id` = $target") === $p || (int) $g->one("SELECT COUNT(*) FROM `unit` WHERE `owner_id` = $e AND `hex_id` = $target") > 0);
         }
         // combat maths
-        $basic = Game::combatOutcome(3, [1 => 1, 2 => 1], 0, false);
-        check('basic: 3 vs 2 pushes both', count($basic['push']) === 2 && empty($basic['kill']));
-        $tie = Game::combatOutcome(2, [1 => 1, 2 => 1], 0, false);
-        check('basic: tie fails', empty($tie['push']));
-        $tower = Game::combatOutcome(3, [1 => 1, 2 => 1], 1, false);
-        check('basic: tower counts as a defender', empty($tower['push']));
-        $strong = Game::combatOutcome(10, [1 => 5], 0, true);
+        $strong = Game::combatOutcome(10, [1 => 5], 0);
         check('strong: 10 vs mech(5) pushes', $strong['push'] === [1] && empty($strong['kill']));
-        $kill = Game::combatOutcome(15, [1 => 5], 0, true);
+        $kill = Game::combatOutcome(15, [1 => 5], 0);
         check('strong: 15 vs mech(5) kills', $kill['kill'] === [1]);
 
-        if ($level >= 2) {
+        {
             $g->exec("INSERT INTO `item` (`owner_id`, `kind`, `hex_id`) VALUES ($p, 'iron', $home), ($p, 'iron', $home), ($p, 'iron', $home)");
             $g->exec("UPDATE `hex_tile` SET `owner_id` = $p WHERE `hex_id` = $home");
             $g->exec("INSERT INTO `unit` (`owner_id`, `unit_type`, `hex_id`) VALUES ($p, 'bot', $home)");
@@ -182,14 +169,9 @@ foreach ([1, 2, 3, 4] as $level) {
             $g->manufacture($p, $fid, 'bot');
             check('factory makes 2 bots', true);
             expectUserError(fn() => $g->manufacture($p, $fid, 'bot'), 'factory only once per turn');
-            if ($level < 3) {
-                expectUserError(fn() => $g->manufacture($p, $fid, 'mech'), 'no mechs below level 3');
-            }
-        } else {
-            expectUserError(fn() => $g->build($p, $home, 'factory', 0), 'no buildings in the basic game');
         }
 
-        if ($level === 4) {
+        if ($level === 2) {
             $port = (int) $g->one("SELECT `adjacent_hex_id` FROM `trade_port` LIMIT 1");
             $g->exec("INSERT INTO `unit` (`owner_id`, `unit_type`, `hex_id`) VALUES ($p, 'bot', $port)");
             $g->exec("UPDATE `hex_tile` SET `owner_id` = $p WHERE `hex_id` = $port");
@@ -201,9 +183,8 @@ foreach ([1, 2, 3, 4] as $level) {
             $g->startTurn($p);
             $g->sellGood($p, $port, 'iron', 1);
             check('port usable again next turn', true);
-            expectUserError(fn() => $g->recruit($p), 'recruit disabled with a market');
         } else {
-            expectUserError(fn() => $g->buyGood($p, $home, 'iron', 1), 'no market below level 4');
+            expectUserError(fn() => $g->buyGood($p, $home, 'iron', 1), 'no market in Basic');
         }
 
         // missions

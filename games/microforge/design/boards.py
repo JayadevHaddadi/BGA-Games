@@ -1,6 +1,7 @@
 """Player boards (A4 landscape, 297x210 mm, 5 units per mm): BASIC side and ADVANCED side, one pair per faction colour.
 
-Numbers in BASIC / ADV below are the DRAFT rules; change them and rerun build_design.py. Faction colour and the art slot
+Basic = production, Mechs, combat, Missions, 1 Credit per step. Advanced adds Docks, Ports, the market and the
+triangular movement cost. Numbers in ADV below are the rules; change them and rerun build_design.py. Faction colour and the art slot
 (id="art-slot") are the only per-faction parts. All pictograms come from icons.py.
 """
 from html import escape
@@ -12,9 +13,7 @@ PAPER = '#f4ead7'
 PANEL = '#fffaf0'
 W, H = 1485, 1050
 
-# DRAFT basic-game numbers (see BASIC_GAME.md)
-BASIC = {'recruit': 2, 'step': 1, 'mission': 5, 'win_vp': 3}
-# Current (advanced) rules
+# Rules numbers
 ADV = {'income': 10, 'extract': 1, 'factory': 1, 'step': 1, 'mission': 5, 'win_vp': 5, 'bot_power': 1, 'mech_power': 5}
 
 
@@ -59,57 +58,9 @@ def circles(x, y, cols, rows, gap, r, icon=None, fill='#ebe1cd'):
     return s
 
 
-def basic_board(col, name):
-    B = BASIC
-    s = frame(col, f'{name}  -  BASIC SIDE  (flip for the full game)', f'Player board {name} basic')
-    # supply of bots
-    s.append(panel(30, 190, 450, 440, 'Your Bots', col))
-    s.append(icon_group('bot', 440, 215, 44))
-    s.append(circles(100, 300, 5, 4, 80, 30, 'bot'))
-    s.append(t(255, 618, 'Supply of 20', 22, anchor='middle', fill='#7d7388'))
-    # credits
-    s.append(panel(30, 650, 450, 370, 'Your Credits', col))
-    s.append(icon_group('credit', 440, 675, 44))
-    s.append(f'<rect x="60" y="710" width="390" height="280" rx="8" fill="none" stroke="{INK}" stroke-width="2.5" stroke-dasharray="10 7"/>')
-    s.append(t(255, 860, 'keep your coins here', 24, anchor='middle', fill='#9a8f7c'))
-    # turn
-    s.append(panel(510, 190, 945, 580, 'Your turn', col))
-    # 1 income
-    s.append(f'<circle cx="560" cy="270" r="26" fill="{col}"/>' + t(560, 280, '1', 32, 'bold', 'middle', PAPER))
-    s.append(icon_group('income', 650, 270, 70))
-    s.append(t(715, 262, 'Income', 30, 'bold') + t(715, 298, 'Gain 1 Credit for every tile you hold.', 26))
-    # 2 spend
-    s.append(f'<circle cx="560" cy="390" r="26" fill="{col}"/>' + t(560, 400, '2', 32, 'bold', 'middle', PAPER))
-    s.append(t(715, 380, 'Spend Credits, in any order', 30, 'bold'))
-    rows = [('bot', f'Recruit a Bot on your home tile', B['recruit']),
-            ('move', 'Move a piece one step along a road', B['step']),
-            ('mission', 'Buy a Mission (+1 each time you buy)', B['mission'])]
-    for i, (ic, label, price) in enumerate(rows):
-        y = 430 + i * 62
-        s.append(icon_group(ic, 650, y + 18, 48))
-        s.append(t(715, y + 28, label, 26))
-        s.append(cost(1360, y + 14, price, 40))
-    # 3 fight
-    s.append(f'<circle cx="560" cy="660" r="26" fill="{col}"/>' + t(560, 670, '3', 32, 'bold', 'middle', PAPER))
-    s.append(icon_group('push', 650, 660, 70))
-    s.append(t(715, 646, 'Fight', 30, 'bold') + t(715, 682, 'Move onto an enemy tile. More Bots than', 26))
-    s.append(t(715, 714, 'the defenders: they retreat. Otherwise yours go back.', 26))
-    # win
-    s.append(panel(510, 790, 945, 230, 'How to win', col))
-    for i in range(B['win_vp']):
-        s.append(icon_group('vp', 600 + i * 90, 880, 64))
-    s.append(t(880, 872, f'First to {B["win_vp"]} Victory Points.', 32, 'bold'))
-    s.append(t(880, 906, 'Missions give the points, but only if you meet', 24))
-    s.append(t(880, 934, 'the card at the moment you buy it.', 24))
-    s.append(t(880, 962, 'Otherwise the Credits are lost.', 24))
-    s.append(t(560, 995, 'You hold a tile while one of your pieces stands on it.', 24, fill='#7d7388'))
-    s.append('</svg>')
-    return '\n'.join(s)
-
-
-def advanced_board(col, name):
+def _board(col, name, adv):
     A = ADV
-    s = frame(col, f'{name}  -  ADVANCED SIDE', f'Player board {name} advanced')
+    s = frame(col, f'{name}  -  ' + ('ADVANCED SIDE  (adds Docks, Ports and the market)' if adv else 'BASIC SIDE  (flip for Docks, Ports and the market)'), f'Player board {name} ' + ('advanced' if adv else 'basic'))
     # supplies
     s.append(panel(30, 190, 450, 830, 'Your supply', col))
     s.append(icon_group('bot', 100, 262, 40) + t(130, 270, 'Bots (20)', 24, 'bold'))
@@ -123,25 +74,28 @@ def advanced_board(col, name):
     # turn flow
     s.append(panel(510, 190, 945, 150, 'Start of your turn', col))
     s.append(icon_group('income', 600, 285, 64))
-    s.append(t(660, 282, 'Gain 1 Credit for every tile you hold.', 30, 'bold'))
+    s.append(t(660, 282, f'Gain {A["income"]} Credits.', 30, 'bold'))
     s.append(t(660, 316, 'Take the coins off your buildings (they can work again).', 24))
     # actions
     s.append(panel(510, 360, 945, 410, 'Then, in any order', col))
+    move_label = 'Move: 1, 3, 6, 10 Credits for 1-4 steps (per piece)' if adv else 'Move a piece: 1 Credit per step'
     rows = [
         ('extractor', 'Extract: 1 token of the tile\'s resource', f'{A["extract"]}', 'used'),
         ('factory', 'Factory: 1 iron = 2 Bots,  or iron + crystal = 1 Mech', f'{A["factory"]}', 'used'),
-        ('move', 'Move a piece: 1 Credit per step', f'{A["step"]}', None),
-        ('trade', 'Trade at your Dock or a Port (current price)', '1', 'used'),
-        ('mission', 'Buy a Mission (+1 for each you have bought)', f'{A["mission"]}', None),
+        ('move', move_label, '1+' if adv else '1', None),
     ]
+    if adv:
+        rows.append(('trade', 'Trade at your Dock or a Port (current price)', '1', 'used'))
+    rows.append(('mission', 'Buy a Mission (+1 for each you have bought)', f'{A["mission"]}', None))
+    gap = 66 if adv else 82
     for i, (ic, label, price, mark) in enumerate(rows):
-        y = 435 + i * 66
+        y = 435 + i * gap
         s.append(icon_group(ic, 570, y, 50))
         s.append(t(620, y + 9, label, 24))
         s.append(cost(1330, y - 4, price, 38))
         if mark:
             s.append(icon_group('used', 1420, y, 40))
-    s.append(t(540, 755, 'Coin icon at the right: a coin on the building or post shows it was used this turn.', 20, fill='#7d7388'))
+    s.append(t(540, 755, 'A coin on a building' + (' or post' if adv else '') + ' = used this turn. Take coins off at the start of your turn.', 20, fill='#7d7388'))
     # build + combat + win
     s.append(panel(510, 790, 470, 230, 'Build (iron on the tile)', col))
     for i, (ic, n) in enumerate([('extractor', 1), ('factory', 2), ('tower', 2)]):
@@ -157,3 +111,11 @@ def advanced_board(col, name):
     s.append(t(1030, 1003, f'Win: {A["win_vp"]} VP, only from Missions', 22, 'bold'))
     s.append('</svg>')
     return '\n'.join(s)
+
+
+def basic_board(col, name):
+    return _board(col, name, False)
+
+
+def advanced_board(col, name):
+    return _board(col, name, True)

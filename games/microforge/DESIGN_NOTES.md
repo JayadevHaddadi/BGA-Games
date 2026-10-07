@@ -8,8 +8,8 @@ Original rule: a piece pays n(n+1)/2 Credits for n total steps in a turn (1, 3, 
 - B. One moving price (iron): ports apply a fixed printed bonus on top.
 - C. Current: four price tracks (iron, bots, crystal, mechs) that move per item traded.
 
-## Income (changed 2026-10-07)
-Was a flat 10 Credits per turn. Now 1 Credit per tile held (all rules levels), start 2 Credits. Constant `BASE_INCOME` in `Game.php` is unused; `playerIncome()` counts held tiles.
+## Basic vs Advanced (2026-10-07)
+Two game settings only (option `Rules`). Basic = production, Mechs, combat, Missions, flat 10 Credits income, linear movement (1 per step), no Docks/Ports/market, no Port missions. Advanced = Basic + Docks, Ports, market, triangular movement. An earlier invented "basic game" (recruit Bots for 2, income per tile, 3 VP, count-the-Bots combat) was dropped because it made no sense; its income-per-tile idea is not used.
 
 ## Market exploit (open)
 A trade is priced at today's price for every item, then the price moves. Buying 10 and selling 10 in one turn between a Dock and a Port still profits. Fix options: per-item price steps, fixed port prices (market option A/B in BASIC_GAME.md), or a quantity cap per trade.

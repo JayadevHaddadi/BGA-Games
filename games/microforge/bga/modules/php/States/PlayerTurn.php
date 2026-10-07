@@ -38,14 +38,6 @@ class PlayerTurn extends GameState
     }
 
     #[PossibleAction]
-    public function actRecruit(int $activePlayerId): string
-    {
-        $this->game->pushUndo();
-        $this->game->recruit($activePlayerId);
-        return PlayerTurn::class;
-    }
-
-    #[PossibleAction]
     public function actBuild(int $hexId, string $buildingType, int $slot, int $activePlayerId): string
     {
         $this->game->pushUndo();

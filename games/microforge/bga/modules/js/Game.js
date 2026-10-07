@@ -121,11 +121,8 @@ export class Game {
     notif_gameUpdate(args) {
         Object.assign(this.data, args.state);
         if (args.failure) {
-            this.notice = args.basic
-                ? _('ATTACK FAILURE on hex ${hex}: ${power} attacking against ${defense} (defending Bots plus Guard Towers). You need more than the defenders. The attackers returned.')
-                    .replace('${hex}', args.hex).replace('${power}', args.power).replace('${defense}', args.defense)
-                : _('ATTACK FAILURE on hex ${hex}: attack power ${power}, but pushing the weakest defender needs ${need}. You need twice the defender\'s power to push it (three times to kill it); a Guard Tower adds 1 per point of defender power. The attackers returned.')
-                    .replace('${hex}', args.hex).replace('${power}', args.power).replace('${need}', args.need);
+            this.notice = _('ATTACK FAILURE on hex ${hex}: attack power ${power}, but pushing the weakest defender needs ${need}. You need twice the defender\'s power to push it (three times to kill it); a Guard Tower adds 1 per point of defender power. The attackers returned.')
+                .replace('${hex}', args.hex).replace('${power}', args.power).replace('${need}', args.need);
         }
         this.clearSel();
         this.slotSel = null;
@@ -164,17 +161,24 @@ export class Game {
         return Object.values(this.sel).reduce((a, b) => a + b, 0);
     }
 
-    stepsFromCoins(coins) {
-        return coins; // linear movement: 1 coin per step
+    /** Total coins for a piece that moved `steps` steps this turn: Basic 1 per step, Advanced triangular (1, 3, 6, 10). */
+    coinsForSteps(steps) {
+        return this.data.triangular_move ? steps * (steps + 1) / 2 : steps;
     }
 
-    /** Credits to move the whole selection `dist` steps: every piece pays 1 Credit per step. */
+    stepsFromCoins(coins) {
+        if (!this.data.triangular_move) return coins;
+        let s = 0;
+        while ((s + 1) * (s + 2) / 2 <= coins) s++;
+        return s;
+    }
+
+    /** Credits to move the whole selection `dist` steps: every piece pays the coins for its total steps minus the coins under it. */
     selCost(dist) {
         let cost = 0;
         Object.entries(this.sel).forEach(([key, n]) => {
             const coins = Number(key.split('|')[1]);
-            const steps = this.stepsFromCoins(coins) + dist;
-            cost += n * (steps - coins);
+            cost += n * (this.coinsForSteps(this.stepsFromCoins(coins) + dist) - coins);
         });
         return cost;
     }
@@ -210,9 +214,9 @@ export class Game {
         return d >= 0 && a.edges[d] === '1' && b.edges[(d + 3) % 6] === '1';
     }
 
-    /** Every piece pays 1 Credit per step; mirrors the server. */
+    /** Mirrors the server. */
     moveCost(pieces, steps) {
-        return pieces * steps;
+        return pieces * this.coinsForSteps(steps);
     }
 
     missionText(m) {
@@ -226,11 +230,6 @@ export class Game {
 
     /** Mirror of Game::combatOutcome: how many defenders an attack of `power` kills / pushes. */
     combatOutcome(power, weights, towers) {
-        if (!this.data.has_mechs) {
-            // Basic combat: more attackers than defenders (a Guard Tower counts as one more) and they all retreat; no kills
-            const defense = weights.reduce((a, b) => a + b, 0) + towers;
-            return { kills: 0, pushes: power > defense ? weights.length : 0 };
-        }
         const push = this.data.push_need + towers, kill = this.data.kill_need + towers;
         const sorted = weights.slice().sort((a, b) => a - b);
         let left = power;
@@ -414,18 +413,8 @@ export class Game {
         } else if (this.tradeSel) {
             this.tradeBanner(sb);
         } else {
-            const d = this.data;
-            const level = d.rules_level;
-            sb.setTitle(level === 1 ? _('${you} may recruit, move and buy a Mission, then end your turn')
-                : (level < 4 ? _('${you} may recruit, move, build, extract, manufacture and buy a Mission, then end your turn')
-                    : _('${you} may move, build, extract, manufacture and trade, then end your turn')));
-            if (!d.has_market) {
-                const me = this.me();
-                const home = d.homes ? this.hexById(Number(d.homes[me])) : null;
-                const blocked = !home || (home.owner_id !== null && home.owner_id !== me);
-                sb.addActionButton(`${_('Recruit a Bot')} (${d.recruit_cost})`, () => this.act('actRecruit'),
-                    { color: 'secondary', disabled: blocked || d.player_state[me].credits < d.recruit_cost || d.player_state[me].supply.bot < 1 });
-            }
+            sb.setTitle(this.data.has_market ? _('${you} may move, build, extract, manufacture and trade, then end your turn')
+                : _('${you} may move, build, extract, manufacture and buy a Mission, then end your turn'));
             sb.addActionButton(_('End turn'), () => this.act('actEndTurn'), { color: 'primary' });
             if ((this.args.undo_count || 0) > 0) {
                 sb.addActionButton(_('Undo'), () => this.act('actUndo'), { color: 'alert' });
@@ -499,11 +488,6 @@ export class Game {
             cancel();
             return;
         }
-        if (!d.has_production) {
-            sb.setTitle(_('Buildings are not part of this game level'));
-            cancel();
-            return;
-        }
         const iron = this.availOf(s.hex, 'iron');
         const credits = d.player_state[me].credits;
         const supply = d.player_state[me].supply;
@@ -543,11 +527,9 @@ export class Game {
             sb.addActionButton(`${_('Make')} ${d.bots_per_iron} ${_('bots')} (1 ${_('iron')})`, () => {
                 this.act('actManufacture', { buildingId: content.building_id, product: 'bot' });
             }, { color: 'primary', disabled: !idle || iron < 1 || d.player_state[me].supply.bot < 1 });
-            if (d.has_mechs) {
-                sb.addActionButton(`${_('Make mech')} (1 ${_('iron')} + 1 ${_('crystal')})`, () => {
-                    this.act('actManufacture', { buildingId: content.building_id, product: 'mech' });
-                }, { color: 'primary', disabled: !idle || iron < 1 || crystal < 1 || d.player_state[me].supply.mech < 1 });
-            }
+            sb.addActionButton(`${_('Make mech')} (1 ${_('iron')} + 1 ${_('crystal')})`, () => {
+                this.act('actManufacture', { buildingId: content.building_id, product: 'mech' });
+            }, { color: 'primary', disabled: !idle || iron < 1 || crystal < 1 || d.player_state[me].supply.mech < 1 });
         } else {
             sb.setTitle(_('${b}: sell it and get ${n} iron back?').replace('${b}', niceName(content.building_type)).replace('${n}', refund));
         }
@@ -577,7 +559,7 @@ export class Game {
         // The player mat (img/boards): basic side for the basic game, advanced side for the other levels
         const mine = d.players[me];
         const colour = mine ? (COLOR_NAME[String(mine.color).toLowerCase()] || 'purple') : null;
-        const side = d.rules_level === 1 ? 'basic' : 'advanced';
+        const side = d.has_market ? 'advanced' : 'basic';
         const base = typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : '';
         document.getElementById('mf_matbox').innerHTML = colour ? `<img class="mf_mat" src="${base}img/boards/player_board_${colour}_${side}.svg" alt="${_('Your player board')}">` : '';
     }
@@ -726,7 +708,7 @@ export class Game {
             } else {
                 parts.push(`<polygon points="${pts}" fill="#c3c6cc" stroke="#5a4630" stroke-width="1.5"/>`); // table created before the tile set
             }
-            parts.push(`<polygon points="${pts}" fill="transparent" stroke="${stroke}" stroke-width="${strokeWidth}"><title>${this.coordOf(h.hex_id)}${h.tile_code ? ' (' + h.tile_code + ')' : ''}</title></polygon>`);
+            parts.push(`<polygon points="${pts}" fill="transparent" stroke="${stroke}" stroke-width="${strokeWidth}"><title>${this.coordOf(h.hex_id)}</title></polygon>`);
             const blds = this.data.buildings.filter(b => b.hex_id === h.hex_id);
             // Building sockets are printed on the tile; the clickable areas sit exactly on them
             const built = blds.filter(b => b.building_type !== 'dock');
@@ -957,20 +939,20 @@ export class Game {
                     + ` <span class="mf_hint">${_('All items are traded at the current price, then the price moves one step per item.')}</span></div>`);
             }
 
-            if (mine && d.has_production) {
+            if (mine) {
                 d.buildings.filter(b => b.hex_id === hid).forEach(b => {
                     if (b.building_type === 'extractor') {
                         lines.push(`<div class="mf_row">${_('Extractor')}: ${_('click it on the map to extract')}</div>`);
                     } else if (b.building_type === 'factory') {
                         lines.push(`<div class="mf_row">${_('Factory')}: `
                             + btn(`${_('Make')} ${d.bots_per_iron} ${_('bots')} (1 iron)`, 'actManufacture', { buildingId: b.building_id, product: 'bot' }, avail.iron >= 1)
-                            + (d.has_mechs ? btn(`${_('Make mech')} (1 iron + 1 crystal)`, 'actManufacture', { buildingId: b.building_id, product: 'mech' }, avail.iron >= 1 && avail.crystal >= 1) : '') + '</div>');
+                            + btn(`${_('Make mech')} (1 iron + 1 crystal)`, 'actManufacture', { buildingId: b.building_id, product: 'mech' }, avail.iron >= 1 && avail.crystal >= 1) + '</div>');
                     } else if (b.building_type === 'tower') {
                         lines.push(`<div class="mf_row">${_('Guard Tower')}: ${_('defenders here need 1 more attack power to be pushed and 1 more to be killed')}</div>`);
                     }
                 });
             }
-            if (d.has_production) lines.push(this.buildOptions(hex, hid, avail));
+            lines.push(this.buildOptions(hex, hid, avail));
         } else {
             lines.push(`<div class="mf_row mf_hint">${_('Click a hex, a building slot or a port.')}</div>`);
         }

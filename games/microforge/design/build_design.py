@@ -228,9 +228,6 @@ def tile_svg(title, kind, slots, paths, extra='', banner=None, code=''):
     if banner:
         s.append(f'<rect x="-9" y="-34" width="18" height="6" fill="{banner}" stroke="{INK}" stroke-width="0.9"/>')
     s.append(extra)
-    if code:  # small internal code name, centre under the sockets, quiet
-        code_y = 25 if kind == 'port' else 8
-        s.append(f'<text x="0" y="{code_y}" text-anchor="middle" font-size="6" fill="{INK}" opacity="0.6">{escape(code)}</text>')
     return wrap_svg(''.join(s), scale=2.5, title=title, pad=1.5)
 
 

@@ -26,8 +26,8 @@ Draft GMM description:
 | Missions in the panel, tiles, icons from the SVG set | Done |
 | Colour-blind preference (pref 100, one silhouette per faction) | NOT done. Reviewers will ask; not a Private Alpha blocker. Needs the faction art first |
 | Game options / preferences files | Not needed for Private Alpha |
-| PHP never executed before | Now run locally: `php games/microforge/tests/smoke.php` (real Game.php on SQLite, warnings as exceptions, all 4 rules levels x 2/4/6 players). BGA itself is still untested |
-| Game option `Rules` (`gameoptions.jsonc` id 100: Basic / +Production / +Mechs / Full) | Done |
+| PHP never executed before | Now run locally: `php games/microforge/tests/smoke.php` (real Game.php on SQLite, warnings as exceptions, Basic and Advanced x 2/4/6 players). BGA itself is still untested |
+| Game option `Rules` (`gameoptions.jsonc` id 100: Basic / Advanced) | Done |
 
 ## C. Metadata images (all placeholders, regenerate with `python3 design/make_metadata.py`)
 `box_280x280.png`, `icon_50x50.png` / `icon_500x500.png`, `banner_1386x400.jpg` (no text), `publisher_280x280.png`, `display_1000x750.jpg`. Still missing: `title` 2000x2000 and real in-game screenshots for the display images (take them once the UI is final). Final art from the theme decision replaces these.
@@ -36,7 +36,6 @@ Draft GMM description:
 - (fixed) "Rich Land" missions: 4 land tiles now hold two resources.
 - Market exploit: with batch pricing, buy 10 / sell 10 loops print money. Agreed rules (one use per post per turn, 1 Credit) still leave it if prices move only after a batch. Needs per-item price steps or fixed port prices.
 - (done) Once-per-turn: Extractor, Factory, Dock and Port each work once per turn for 1 Credit.
-- The Basic game exists as game option 1 (default). Numbers are untested.
 - Small touch targets: building sockets are about 13px at phone width (tiles are 42px+). Needs a tap-to-open-slot-menu pass before reviewers see it.
 
 ## E. After approval

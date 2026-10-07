@@ -53,3 +53,13 @@ Not done / open: used-coin and once-per-turn rules (agreed, not coded), market e
 
 Also done on the way: income is now 1 Credit per tile held (was flat 10), Rich Land missions fixed (4 two-resource tiles), once-per-turn use + 1 Credit for Factory, Dock and Port, local PHP smoke test (`tests/`).
 Open: market price exploit, small building-socket tap targets on phones, colour-blind preference, final art.
+
+---
+# Round 4 list (simplify to two settings, no numbers on tiles)
+
+| # | You asked | Status | Where |
+|---|---|---|---|
+| 1 | Skip the basic game I made; it made no sense | Done: removed (recruit, income per tile, 3 VP, Bot-count combat, `BASIC_GAME.md`) | `Game.php`, `Game.js` |
+| 2 | Two settings only: Basic = no market/ports; Advanced = ports, market and the triangular cost | Done: option `Rules` Basic (default) / Advanced; flat 10 income back; Basic linear movement, Advanced triangular; no Port missions in Basic | `gameoptions.jsonc`, `Game.php coinsForSteps`, `Game.js` |
+| 3 | Tiles must not have numbers on them; letters/numbers on the outside are enough | Done: tile SVGs carry no text (codes stay in file names and the tile manifest); tooltip shows only the board coordinate | `design/build_design.py`, `bga/img/tiles/` |
+| 4 | Mats, rulebook, help text match the two settings | Done | `bga/img/boards/`, `rulebook/rulebook.pdf`, `bga/GAMEHELP.wiki` |

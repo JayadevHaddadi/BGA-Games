@@ -21,21 +21,18 @@ require_once __DIR__ . '/TileDealer.php';
 
 class Game extends \Bga\GameFramework\Table
 {
-    // Rules level (game option 100): each level adds one layer to the one before.
-    public const LEVEL_BASIC = 1;       // bots, Credits, missions
-    public const LEVEL_PRODUCTION = 2;  // + iron / crystal, Extractor, Factory, Guard Tower
-    public const LEVEL_MECHS = 3;       // + Mechs and the strong combat (push x2, kill x3)
-    public const LEVEL_FULL = 4;        // + market, Docks and Ports
-    public const VP_TARGET = 5;         // from level 2 up
-    public const VP_TARGET_BASIC = 3;
-    public const RECRUIT_COST = 2;      // a Bot on your home tile (levels without a market)
+    // Rules (game option 100): Basic = production, Mechs, combat and missions with linear movement.
+    // Advanced = Basic + Docks, Ports and the market + triangular movement cost.
+    public const LEVEL_BASIC = 1;
+    public const LEVEL_ADVANCED = 2;
+    public const VP_TARGET = 5;
     public const MISSION_FEE = 5; // base price of a mission card
     public const MISSION_FEE_STEP = 1; // each mission card a player has bought makes their next one 1 Credit dearer
     public const MISSION_FACEUP = 5;
     public const MISSION_DECK_PER_LEVEL = 10; // drawn at random from the 20 designed per level; level 1 on top of level 2
     public const MISSION_VP_BY_LEVEL = [1 => 1, 2 => 2];
     public const PORT_BONUS = 3;
-    public const START_CREDITS = 2; // everyone; income (1 per tile held) comes at the start of each turn, the first player's first one is given at setup
+    public const START_CREDITS = 0; // income comes at the start of each turn; the first player's first one is given at setup
     public const START_BOTS = 3;
 
     public const RAW = ['iron', 'crystal'];
@@ -54,7 +51,7 @@ class Game extends \Bga\GameFramework\Table
     public const SUPPLY = ['bot' => 20, 'mech' => 6, 'factory' => 5, 'extractor' => 5, 'tower' => 5];
     // Construction cost: iron tokens that must be standing on the tile being built on
     public const BUILD_IRON = ['extractor' => 1, 'factory' => 2, 'tower' => 2];
-    public const BASE_INCOME = 10; // unused since income = tiles held (kept for the client data)
+    public const BASE_INCOME = 10;
     public const BOTS_PER_IRON = 2; // a Factory turns 1 iron into 2 bots
     public const START_IRON = 2;
     // Combat: a bot has power 1, a mech power 5. Pushing a defender takes PUSH_NEED x its power, killing it
@@ -102,33 +99,24 @@ class Game extends \Bga\GameFramework\Table
 
     public function rulesLevel(): int
     {
-        return (int) $this->globals->get('rules_level', self::LEVEL_FULL);
+        return (int) $this->globals->get('rules_level', self::LEVEL_ADVANCED);
     }
 
-    public function hasProduction(): bool
-    {
-        return $this->rulesLevel() >= self::LEVEL_PRODUCTION;
-    }
-
-    public function hasMechs(): bool
-    {
-        return $this->rulesLevel() >= self::LEVEL_MECHS;
-    }
-
+    /** Docks, Ports, the market and the triangular movement cost. */
     public function hasMarket(): bool
     {
-        return $this->rulesLevel() >= self::LEVEL_FULL;
+        return $this->rulesLevel() >= self::LEVEL_ADVANCED;
     }
 
     public function vpTarget(): int
     {
-        return $this->rulesLevel() === self::LEVEL_BASIC ? self::VP_TARGET_BASIC : self::VP_TARGET;
+        return self::VP_TARGET;
     }
 
     protected function requireRule(bool $allowed): void
     {
         if (!$allowed) {
-            throw new UserException(clienttranslate("That action is not part of the rules level of this game."));
+            throw new UserException(clienttranslate("That action is not part of the rules of this game."));
         }
     }
 
@@ -201,7 +189,7 @@ class Game extends \Bga\GameFramework\Table
         $this->ensureSchema();
 
         $level = (int) ($options[100] ?? ($this->tableOptions ? $this->tableOptions->get(100) : 1) ?? 1);
-        $this->globals->set('rules_level', min(self::LEVEL_FULL, max(self::LEVEL_BASIC, $level)));
+        $this->globals->set('rules_level', min(self::LEVEL_ADVANCED, max(self::LEVEL_BASIC, $level)));
 
         $values = [];
         $colors = [];
@@ -253,8 +241,8 @@ class Game extends \Bga\GameFramework\Table
      * The board is dealt from the fixed tile set (tileset.php, generated from design/tileset.py): 19 land tiles (radius 2)
      * for 2-3 players, 37 (radius 3) for 4-6. Every tile carries its own resource, building sockets and roads, so the
      * server only stores which tile lies where. Home tiles (one colour per player) sit evenly on the outer ring.
-     * Port tiles (market levels only) lie just outside the land. Players start with 3 Bots on their home tile; levels with
-     * production add a Guard Tower and 2 iron, and the full game also a Dock.
+     * Port tiles (market levels only) lie just outside the land. Players start with 3 Bots, a Guard Tower and 2 iron
+     * on their home tile; the Advanced game adds a Dock.
      *
      * @param array<int,string> $colors player_id => colour hex
      */
@@ -304,14 +292,12 @@ class Game extends \Bga\GameFramework\Table
         $homes = [];
         foreach ($deal['homes'] as $pid => $hid) {
             $homes[(int) $pid] = (int) $hid;
-            if ($this->hasProduction()) {
-                if ($this->hasMarket()) {
-                    static::DbQuery("INSERT INTO `building` (`hex_id`, `building_type`, `owner_id`, `slot`) VALUES ({$hid}, 'dock', {$pid}, 0)");
-                }
-                static::DbQuery("INSERT INTO `building` (`hex_id`, `building_type`, `owner_id`, `slot`) VALUES ({$hid}, 'tower', {$pid}, 0)");
-                for ($i = 0; $i < self::START_IRON; $i++) {
-                    static::DbQuery("INSERT INTO `item` (`owner_id`, `kind`, `hex_id`) VALUES ({$pid}, 'iron', {$hid})");
-                }
+            if ($this->hasMarket()) {
+                static::DbQuery("INSERT INTO `building` (`hex_id`, `building_type`, `owner_id`, `slot`) VALUES ({$hid}, 'dock', {$pid}, 0)");
+            }
+            static::DbQuery("INSERT INTO `building` (`hex_id`, `building_type`, `owner_id`, `slot`) VALUES ({$hid}, 'tower', {$pid}, 0)");
+            for ($i = 0; $i < self::START_IRON; $i++) {
+                static::DbQuery("INSERT INTO `item` (`owner_id`, `kind`, `hex_id`) VALUES ({$pid}, 'iron', {$hid})");
             }
             for ($i = 0; $i < self::START_BOTS; $i++) {
                 static::DbQuery("INSERT INTO `unit` (`owner_id`, `unit_type`, `hex_id`) VALUES ({$pid}, 'bot', {$hid})");
@@ -332,10 +318,8 @@ class Game extends \Bga\GameFramework\Table
         $result['hex_radius'] = (int) $this->globals->get('hex_radius', 2);
         $result['vp_target'] = $this->vpTarget();
         $result['rules_level'] = $this->rulesLevel();
-        $result['has_production'] = $this->hasProduction();
-        $result['has_mechs'] = $this->hasMechs();
         $result['has_market'] = $this->hasMarket();
-        $result['recruit_cost'] = self::RECRUIT_COST;
+        $result['triangular_move'] = $this->hasMarket();
         $result['homes'] = $this->globals->get('homes', []);
         $result['build_iron'] = self::BUILD_IRON;
         $result['base_income'] = self::BASE_INCOME;
@@ -446,7 +430,7 @@ class Game extends \Bga\GameFramework\Table
     {
         foreach ([
             'ATTACK FAILURE' => 'mf_fail', 'wasted' => 'mf_fail', 'completes a mission' => 'mf_mission',
-            'takes hex' => 'mf_attack', 'recruits' => 'mf_build', 'attack power' => 'mf_attack', 'builds' => 'mf_build', 'extracts' => 'mf_build',
+            'takes hex' => 'mf_attack', 'attack power' => 'mf_attack', 'builds' => 'mf_build', 'extracts' => 'mf_build',
             'sends' => 'mf_move', 'moves' => 'mf_move', 'retreats' => 'mf_move', 'buys' => 'mf_trade', 'sells' => 'mf_trade',
         ] as $needle => $sound) {
             if (strpos($message, $needle) !== false) {
@@ -550,18 +534,25 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Coins paid in total for a piece that has moved $steps steps this turn. Linear: 1 Credit per step.
-     * (Design note: the earlier rule was triangular, n(n+1)/2 = 1, 3, 6, 10; see DESIGN_NOTES.md.)
+     * Coins paid in total for a piece that has moved $steps steps this turn. Basic: 1 Credit per step.
+     * Advanced: triangular, n(n+1)/2 = 1, 3, 6, 10 (slow movement is cheaper per step).
      */
-    public static function coinsForSteps(int $steps): int
+    public function coinsForSteps(int $steps): int
     {
-        return $steps;
+        return $this->hasMarket() ? intdiv($steps * ($steps + 1), 2) : $steps;
     }
 
     /** Number of steps a piece has already moved this turn, from the coins lying under it. */
-    public static function stepsFromCoins(int $coins): int
+    public function stepsFromCoins(int $coins): int
     {
-        return $coins;
+        if (!$this->hasMarket()) {
+            return $coins;
+        }
+        $s = 0;
+        while (intdiv(($s + 1) * ($s + 2), 2) <= $coins) {
+            $s++;
+        }
+        return $s;
     }
 
     /** A hex is controlled by whoever has units on it. */
@@ -669,46 +660,22 @@ class Game extends \Bga\GameFramework\Table
     /** Credits received at the start of each of the player's turns. */
     public function playerIncome(int $playerId): int
     {
-        return (int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `hex_tile` WHERE `owner_id` = {$playerId}");
-    }
-
-    /** Recruit a Bot on your home tile (levels without a market). */
-    public function recruit(int $playerId): void
-    {
-        $this->requireRule(!$this->hasMarket());
-        $homes = $this->globals->get('homes', []);
-        $hexId = (int) ($homes[$playerId] ?? $homes[(string) $playerId] ?? -1);
-        if ($hexId < 0) {
-            throw new UserException(clienttranslate("You have no home tile."));
-        }
-        $hex = $this->getHex($hexId);
-        if ($hex['owner_id'] !== null && (int) $hex['owner_id'] !== $playerId) {
-            throw new UserException(clienttranslate("An enemy holds your home tile."));
-        }
-        if ($this->playerSupply($playerId)['bot'] < 1) {
-            throw new UserException(clienttranslate("None left on your player board."));
-        }
-        $this->spendCredits($playerId, self::RECRUIT_COST);
-        $this->addUnit($playerId, 'bot', $hexId);
-        $this->notifyUpdate(clienttranslate('${player_name} recruits a Bot at ${coord} (${cost} Credits)'), [
-            'player_id' => $playerId, 'player_name' => $this->playerName($playerId), 'coord' => $this->coordLabel($hexId), 'cost' => self::RECRUIT_COST,
-        ]);
+        return self::BASE_INCOME;
     }
 
     /** Which mission conditions make sense at this rules level (so no card asks for something that cannot exist). */
     protected function missionTypesAllowed(): array
     {
-        $types = ['hexes', 'bots', 'pieces', 'credits', 'center'];
-        if ($this->hasProduction()) {
-            $types = array_merge($types, ['extractors', 'factories', 'towers', 'buildings', 'iron_tokens', 'crystal_tokens', 'tokens', 'double_tiles']);
+        $types = [];
+        foreach (self::MISSION_POOL as $pool) {
+            foreach ($pool as $def) {
+                $types[$def[0]] = true;
+            }
         }
-        if ($this->hasMechs()) {
-            $types[] = 'mechs';
+        if (!$this->hasMarket()) {
+            unset($types['ports']); // no Ports in the Basic game
         }
-        if ($this->hasMarket()) {
-            $types[] = 'ports';
-        }
-        return $types;
+        return array_keys($types);
     }
 
     /** One trade per Dock or Port per turn: costs 1 Credit and marks the post as used. */
@@ -811,7 +778,7 @@ class Game extends \Bga\GameFramework\Table
         $cost = 0;
         $moves = []; // [table, ids, new coin total]
         foreach ($groups as [$kind, $moved, $qty]) {
-            $newCoins = self::coinsForSteps(self::stepsFromCoins($moved) + $dist);
+            $newCoins = $this->coinsForSteps($this->stepsFromCoins($moved) + $dist);
             $cost += $qty * ($newCoins - $moved);
             if (in_array($kind, ['bot', 'mech'], true)) {
                 $rows = static::getObjectListFromDb("SELECT `unit_id` AS id FROM `unit` WHERE `owner_id` = {$playerId} AND `hex_id` = {$fromHexId} AND `unit_type` = '{$kind}' AND `moved_cost` = {$moved} AND `attack_target` IS NULL LIMIT {$qty}");
@@ -860,7 +827,6 @@ class Game extends \Bga\GameFramework\Table
     /** Build from the player board; the iron tokens must be standing on this very hex and are used up. */
     public function build(int $playerId, int $hexId, string $type, int $slot = 0): void
     {
-        $this->requireRule($this->hasProduction());
         if (!isset(self::BUILD_IRON[$type])) {
             throw new UserException(clienttranslate("Unknown building."));
         }
@@ -886,7 +852,6 @@ class Game extends \Bga\GameFramework\Table
     /** Scrap one of your buildings: it returns to the player board and refunds its iron cost minus one onto the hex. */
     public function sellBuilding(int $playerId, int $buildingId): void
     {
-        $this->requireRule($this->hasProduction());
         $b = $this->getOwnBuilding($playerId, $buildingId, array_keys(self::BUILD_IRON));
         $hexId = (int) $b['hex_id'];
         $refund = max(0, self::BUILD_IRON[$b['building_type']] - 1);
@@ -901,7 +866,6 @@ class Game extends \Bga\GameFramework\Table
     /** Extractor: once per turn, pay 1 Credit for 1 token of one of the tile's resources. Tokens appear on its hex. */
     public function produce(int $playerId, int $buildingId, string $kind): void
     {
-        $this->requireRule($this->hasProduction());
         $b = $this->getOwnBuilding($playerId, $buildingId, ['extractor']);
         if ((int) $b['used'] === 1) {
             throw new UserException(clienttranslate("This Extractor already produced this turn."));
@@ -921,13 +885,11 @@ class Game extends \Bga\GameFramework\Table
     /** Factory: 1 iron -> 2 bots, or 1 iron + 1 crystal -> 1 mech. Inputs must be on the factory's hex. */
     public function manufacture(int $playerId, int $buildingId, string $product): void
     {
-        $this->requireRule($this->hasProduction());
         $b = $this->getOwnBuilding($playerId, $buildingId, ['factory']);
         $hexId = (int) $b['hex_id'];
         if (!in_array($product, ['bot', 'mech'], true)) {
             throw new UserException(clienttranslate("Unknown product."));
         }
-        $this->requireRule($product === 'bot' || $this->hasMechs());
         if ((int) $b['used'] === 1) {
             throw new UserException(clienttranslate("This Factory already worked this turn."));
         }
@@ -1146,13 +1108,8 @@ class Game extends \Bga\GameFramework\Table
      * Attackers push as many defenders as they can (lightest first), then spend what is left upgrading pushes to kills.
      * Returns ['kill' => [ids], 'push' => [ids]] (ids not listed stay).
      */
-    public static function combatOutcome(int $power, array $weights, int $towers, bool $strong = true): array
+    public static function combatOutcome(int $power, array $weights, int $towers): array
     {
-        if (!$strong) {
-            // Basic combat: more attackers than defenders (each Guard Tower counts as one more) and they all retreat. No kills.
-            $defense = array_sum($weights) + $towers;
-            return ['kill' => [], 'push' => $power > $defense ? array_keys($weights) : []];
-        }
         $push = self::PUSH_NEED + $towers;
         $kill = self::KILL_NEED + $towers;
         asort($weights);
@@ -1226,7 +1183,7 @@ class Game extends \Bga\GameFramework\Table
             $weights[(int) $d['unit_id']] = self::unitPower($d['unit_type']);
         }
         $towers = (int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `building` WHERE `hex_id` = {$targetHexId} AND `owner_id` = {$defenderId} AND `building_type` = 'tower'");
-        $out = self::combatOutcome($power, $weights, $towers, $this->hasMechs());
+        $out = self::combatOutcome($power, $weights, $towers);
         $killIds = $out['kill'];
         $pushIds = $out['push'];
         $options = $this->pushOptions($targetHexId, $defenderId);
@@ -1304,20 +1261,15 @@ class Game extends \Bga\GameFramework\Table
             $lightest = min(array_map(fn($r) => self::unitPower($r['unit_type']), $remaining));
             $defenderId = (int) static::getUniqueValueFromDb("SELECT `owner_id` FROM `unit` WHERE `hex_id` = {$targetHexId} AND `owner_id` <> {$attackerId} LIMIT 1");
             $towers = (int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `building` WHERE `hex_id` = {$targetHexId} AND `building_type` = 'tower'");
-            $strong = $this->hasMechs();
-            $defense = array_sum(array_map(fn($r) => self::unitPower($r['unit_type']), $remaining)) + $towers;
-            $need = $strong ? (self::PUSH_NEED + $towers) * $lightest : $defense + 1;
+            $need = (self::PUSH_NEED + $towers) * $lightest;
             $froms = array_unique(array_map(fn($a) => (int) $a['attack_from'], $attackers));
             static::DbQuery("UPDATE `unit` SET `hex_id` = `attack_from`, `attack_target` = NULL, `attack_from` = NULL WHERE `owner_id` = {$attackerId} AND `attack_target` = {$targetHexId}");
             foreach ($froms as $f) {
                 $this->refreshControl($f);
             }
             $this->refreshControl($targetHexId);
-            $message = $strong
-                ? clienttranslate('ATTACK FAILURE on hex ${hex}: attack power ${power}, but pushing the weakest defender needs ${need} (twice its power, +1 per Guard Tower for every point of its power). The attackers return.')
-                : clienttranslate('ATTACK FAILURE on hex ${hex}: ${power} attacking against ${defense} (defending Bots plus Guard Towers). You need more than the defenders. The attackers return.');
-            $this->notifyUpdate($message, [
-                'hex' => $this->coordLabel($targetHexId), 'power' => $power, 'need' => $need, 'defense' => $defense, 'basic' => $strong ? 0 : 1, 'failure' => 1, 'attacker_id' => $attackerId,
+            $this->notifyUpdate(clienttranslate('ATTACK FAILURE on hex ${hex}: attack power ${power}, but pushing the weakest defender needs ${need} (twice its power, +1 per Guard Tower for every point of its power). The attackers return.'), [
+                'hex' => $this->coordLabel($targetHexId), 'power' => $power, 'need' => $need, 'failure' => 1, 'attacker_id' => $attackerId,
             ]);
         }
         $this->globals->set('push', null);
