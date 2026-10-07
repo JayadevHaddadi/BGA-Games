@@ -122,7 +122,11 @@ foreach ([1, 2] as $level) { // 1 = Basic, 2 = Advanced (market, ports, triangul
             $g->movePieces($p, $home, $to, 'bot:0:2');
             check('move 2 bots 1 step: 1 Credit each', (int) $g->one("SELECT COUNT(*) FROM `unit` WHERE `hex_id` = $to AND `owner_id` = $p") === 2
                 && (int) $g->one("SELECT `credits` FROM `player_state` WHERE `player_id` = $p") === 28);
-            check('income is a flat 10', $g->playerIncome($p) === 10);
+            check('income is a flat 5', $g->playerIncome($p) === 5);
+
+            // Center tile (ring 0) transit test: cannot end move on ring 0, but can transit
+            $centerHex = (int) $g->one("SELECT `hex_id` FROM `hex_tile` WHERE `ring` = 0 LIMIT 1");
+            check('cannot move directly to center tile', $g->pathDistance($p, $home, $centerHex) === null);
 
             // test resource movement constraints
             $g->exec("INSERT INTO `item` (`owner_id`, `kind`, `hex_id`) VALUES ($p, 'iron', $home)");
@@ -192,16 +196,30 @@ foreach ([1, 2] as $level) { // 1 = Basic, 2 = Advanced (market, ports, triangul
 
         if ($level === 2) {
             $port = (int) $g->one("SELECT `adjacent_hex_id` FROM `trade_port` LIMIT 1");
-            $g->exec("INSERT INTO `unit` (`owner_id`, `unit_type`, `hex_id`) VALUES ($p, 'bot', $port)");
-            $g->exec("UPDATE `hex_tile` SET `owner_id` = $p WHERE `hex_id` = $port");
-            $g->exec("UPDATE `player_state` SET `credits` = 60 WHERE `player_id` = $p");
-            $credits = (int) $g->one("SELECT `credits` FROM `player_state` WHERE `player_id` = $p");
-            $g->buyGood($p, $port, 'iron', 2);
-            check('port trade costs the goods plus 1 Credit', $credits - (int) $g->one("SELECT `credits` FROM `player_state` WHERE `player_id` = $p") >= 3);
-            expectUserError(fn() => $g->sellGood($p, $port, 'iron', 1), 'second trade at the same port is refused');
-            $g->startTurn($p);
-            $g->sellGood($p, $port, 'iron', 1);
-            check('port usable again next turn', true);
+            $portHex = $g->q("SELECT * FROM `hex_tile` WHERE `hex_id` = $port")[0];
+            // Find a land neighbor of $port
+            $adjLand = null;
+            foreach (Game::DIRS as [$dq, $dr]) {
+                $row = $g->q("SELECT `hex_id` FROM `hex_tile` WHERE `coord_q` = " . ((int)$portHex['coord_q'] + $dq) . " AND `coord_r` = " . ((int)$portHex['coord_r'] + $dr) . " AND `is_port` = 0 LIMIT 1");
+                if (!empty($row)) {
+                    $adjLand = (int) $row[0]['hex_id'];
+                    break;
+                }
+            }
+            if ($adjLand !== null) {
+                // Place a bot on $adjLand so player controls it
+                $g->exec("INSERT INTO `unit` (`owner_id`, `unit_type`, `hex_id`) VALUES ($p, 'bot', $adjLand)");
+                $g->exec("UPDATE `hex_tile` SET `owner_id` = $p WHERE `hex_id` = $adjLand");
+                $g->exec("UPDATE `player_state` SET `credits` = 60 WHERE `player_id` = $p");
+                $credits = (int) $g->one("SELECT `credits` FROM `player_state` WHERE `player_id` = $p");
+                $g->buyGood($p, $port, 'iron', 2);
+                check('port trade costs the goods plus 1 Credit', $credits - (int) $g->one("SELECT `credits` FROM `player_state` WHERE `player_id` = $p") >= 3);
+                check('bought goods land on adjacent land hex', (int) $g->one("SELECT COUNT(*) FROM `item` WHERE `hex_id` = $adjLand AND `kind` = 'iron'") >= 2);
+                expectUserError(fn() => $g->sellGood($p, $port, 'iron', 1), 'second trade at the same port is refused');
+                $g->startTurn($p);
+                $g->sellGood($p, $port, 'iron', 1);
+                check('port usable again next turn', true);
+            }
         } else {
             expectUserError(fn() => $g->buyGood($p, $home, 'iron', 1), 'no market in Basic');
         }

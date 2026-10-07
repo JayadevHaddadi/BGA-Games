@@ -31,7 +31,7 @@ class Game extends \Bga\GameFramework\Table
     public const MISSION_FACEUP = 5;
     public const MISSION_DECK_PER_LEVEL = 10; // drawn at random from the 20 designed per level; level 1 on top of level 2
     public const MISSION_VP_BY_LEVEL = [1 => 1, 2 => 2];
-    public const PORT_BONUS = 3;
+    public const PORT_BONUS = 0; // all sales at standard market price
     public const START_CREDITS = 5;
     public const START_BOTS = 3;
 
@@ -52,7 +52,7 @@ class Game extends \Bga\GameFramework\Table
     // Construction cost: iron tokens that must be standing on the tile being built on
     public const BUILD_IRON = ['extractor' => 1, 'factory' => 2];
     public const BUILDINGS = ['extractor', 'factory'];
-    public const BASE_INCOME = 10;
+    public const BASE_INCOME = 5;
     public const BOTS_PER_IRON = 2; // a Factory turns 1 iron into 2 bots
     public const START_IRON = 2;
     // Combat: a bot has power 1, a mech power 5. Pushing a defender takes PUSH_NEED x its power, killing it
@@ -501,7 +501,7 @@ class Game extends \Bga\GameFramework\Table
     {
         $hexes = [];
         $byCoord = [];
-        foreach (static::getObjectListFromDb("SELECT `hex_id`, `coord_q`, `coord_r`, `edges`, `owner_id`, `is_port` FROM `hex_tile`") as $h) {
+        foreach (static::getObjectListFromDb("SELECT `hex_id`, `coord_q`, `coord_r`, `ring`, `edges`, `owner_id`, `is_port` FROM `hex_tile`") as $h) {
             $h['hex_id'] = (int) $h['hex_id'];
             $hexes[$h['hex_id']] = $h;
             $byCoord[$h['coord_q'] . '_' . $h['coord_r']] = $h['hex_id'];
@@ -509,8 +509,8 @@ class Game extends \Bga\GameFramework\Table
         if (!isset($hexes[$fromId]) || !isset($hexes[$toId])) {
             return null;
         }
-        // Ports cannot be moved into
-        if (!empty($hexes[$toId]['is_port'])) {
+        // Ports cannot be moved into, and center tile (ring 0) cannot be landed on
+        if (!empty($hexes[$toId]['is_port']) || (int) $hexes[$toId]['ring'] === 0) {
             return null;
         }
         $dist = [$fromId => 0];
@@ -522,6 +522,7 @@ class Game extends \Bga\GameFramework\Table
             }
             foreach (self::DIRS as $d => [$dq, $dr]) {
                 $nid = $byCoord[((int) $hexes[$cur]['coord_q'] + $dq) . '_' . ((int) $hexes[$cur]['coord_r'] + $dr)] ?? null;
+                // Hazard barricades / closed paths are blocked; ports cannot be transited
                 if ($nid === null || isset($dist[$nid]) || !empty($hexes[$nid]['is_port']) || !$this->isConnected($hexes[$cur], $hexes[$nid])) {
                     continue;
                 }
@@ -681,10 +682,39 @@ class Game extends \Bga\GameFramework\Table
         return array_keys($types);
     }
 
+    /** Find controlled land hex adjacent to a port, or null. */
+    public function controlledHexAdjacentToPort(int $playerId, int $portHexId): ?int
+    {
+        $portHex = $this->getHex($portHexId);
+        foreach (self::DIRS as [$dq, $dr]) {
+            $nq = (int) $portHex['coord_q'] + $dq;
+            $nr = (int) $portHex['coord_r'] + $dr;
+            $adj = static::getObjectListFromDb("SELECT `hex_id`, `owner_id`, `is_port` FROM `hex_tile` WHERE `coord_q` = {$nq} AND `coord_r` = {$nr} LIMIT 1")[0] ?? null;
+            if ($adj !== null && empty($adj['is_port']) && (int) $adj['owner_id'] === $playerId) {
+                return (int) $adj['hex_id'];
+            }
+        }
+        return null;
+    }
+
     /** One trade per Dock or Port per turn: costs 1 Credit and marks the post as used. */
     protected function useTradingPost(int $playerId, int $hexId): void
     {
+        // $hexId can be a port hex or a controlled land hex
         $port = static::getObjectListFromDb("SELECT `port_id`, `used` FROM `trade_port` WHERE `adjacent_hex_id` = {$hexId} LIMIT 1")[0] ?? null;
+        if ($port === null) {
+            // Check if $hexId is adjacent to any port
+            $hex = $this->getHex($hexId);
+            foreach (self::DIRS as [$dq, $dr]) {
+                $nq = (int) $hex['coord_q'] + $dq;
+                $nr = (int) $hex['coord_r'] + $dr;
+                $adjPort = static::getObjectListFromDb("SELECT p.`port_id`, p.`used` FROM `trade_port` p JOIN `hex_tile` h ON h.`hex_id` = p.`adjacent_hex_id` WHERE h.`coord_q` = {$nq} AND h.`coord_r` = {$nr} LIMIT 1")[0] ?? null;
+                if ($adjPort !== null) {
+                    $port = $adjPort;
+                    break;
+                }
+            }
+        }
         if ($port !== null) {
             if ((int) $port['used'] === 1) {
                 throw new UserException(clienttranslate("This Port was already used this turn."));
@@ -705,18 +735,40 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * What the player can trade on a hex they control, with the Credits price of each good:
-     * a real port trades every good (cheap goods cost PORT_DISCOUNT less, demanded goods pay PORT_BONUS more);
-     * the home Dock trades iron and bots at the plain board price.
+     * What the player can trade on a hex (port hex or controlled land hex), with the Credits price of each good.
+     * All goods can be bought and sold at standard market price without discount.
      */
     public function tradeTerms(int $playerId, int $hexId): array
     {
-        $this->assertControls($playerId, $hexId);
-        $ports = static::getObjectListFromDb("SELECT * FROM `trade_port` WHERE `adjacent_hex_id` = {$hexId} LIMIT 1");
-        $port = $ports[0] ?? null;
-        $hasDock = (int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `building` WHERE `hex_id` = {$hexId} AND `building_type` = 'dock'") > 0;
+        $hex = $this->getHex($hexId);
+        $port = null;
+        $hasDock = false;
+        if (!empty($hex['is_port'])) {
+            $adj = $this->controlledHexAdjacentToPort($playerId, $hexId);
+            if ($adj === null) {
+                throw new UserException(clienttranslate("You need a unit adjacent to the port to trade here."));
+            }
+            $port = static::getObjectListFromDb("SELECT * FROM `trade_port` WHERE `adjacent_hex_id` = {$hexId} LIMIT 1")[0] ?? null;
+        } else {
+            $this->assertControls($playerId, $hexId);
+            $port = static::getObjectListFromDb("SELECT * FROM `trade_port` WHERE `adjacent_hex_id` = {$hexId} LIMIT 1")[0] ?? null;
+            if ($port === null) {
+                // Check if this hex is adjacent to any port hex
+                foreach (self::DIRS as [$dq, $dr]) {
+                    $nq = (int) $hex['coord_q'] + $dq;
+                    $nr = (int) $hex['coord_r'] + $dr;
+                    $pRow = static::getObjectListFromDb("SELECT p.* FROM `trade_port` p JOIN `hex_tile` h ON h.`hex_id` = p.`adjacent_hex_id` WHERE h.`coord_q` = {$nq} AND h.`coord_r` = {$nr} LIMIT 1")[0] ?? null;
+                    if ($pRow !== null) {
+                        $port = $pRow;
+                        break;
+                    }
+                }
+            }
+            $hasDock = (int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `building` WHERE `hex_id` = {$hexId} AND `building_type` = 'dock'") > 0;
+        }
+
         if ($port === null && !$hasDock) {
-            throw new UserException(clienttranslate("There is no Port or Dock on this hex."));
+            throw new UserException(clienttranslate("There is no Port or Dock here."));
         }
         $goods = $port !== null ? self::GOODS : self::DOCK_GOODS;
         $prices = $this->globals->get('prices');
@@ -725,14 +777,6 @@ class Game extends \Bga\GameFramework\Table
             $price = (int) $prices[$g];
             $buy = $price;
             $sell = max(self::PRICE_MIN[$g], $price - $this->priceStep($g));
-            if ($port !== null) {
-                if (in_array($g, [$port['supply_item_1'], $port['supply_item_2']], true)) {
-                    $buy = max(self::PRICE_MIN[$g], $price - self::PORT_DISCOUNT);
-                }
-                if (in_array($g, [$port['demanded_item_1'], $port['demanded_item_2'], $port['demanded_item_3']], true)) {
-                    $sell += self::PORT_BONUS;
-                }
-            }
             $terms[$g] = ['buy' => $buy, 'sell' => $sell];
         }
         return $terms;
@@ -937,13 +981,22 @@ class Game extends \Bga\GameFramework\Table
         ]);
     }
 
-    /** Buy $qty at a Port/Dock hex you control, all at the current price; the price then rises $qty steps. */
+    /** Buy $qty at a Port/Dock hex or adjacent controlled hex, all at the current price; the price then rises $qty steps. */
     public function buyGood(int $playerId, int $hexId, string $good, int $qty = 1): void
     {
         $this->requireRule($this->hasMarket());
         $this->assertGood($good);
         if ($qty < 1 || $qty > 20) {
             throw new UserException(clienttranslate("Choose a quantity between 1 and 20."));
+        }
+        $hex = $this->getHex($hexId);
+        $targetHexId = $hexId;
+        if (!empty($hex['is_port'])) {
+            $adj = $this->controlledHexAdjacentToPort($playerId, $hexId);
+            if ($adj === null) {
+                throw new UserException(clienttranslate("You need a unit adjacent to the port to trade here."));
+            }
+            $targetHexId = $adj;
         }
         $terms = $this->tradeTerms($playerId, $hexId);
         if (!isset($terms[$good])) {
@@ -957,10 +1010,10 @@ class Game extends \Bga\GameFramework\Table
         $this->spendCredits($playerId, $cost);
         if (in_array($good, ['bot', 'mech'], true)) {
             for ($i = 0; $i < $qty; $i++) {
-                $this->addUnit($playerId, $good, $hexId);
+                $this->addUnit($playerId, $good, $targetHexId);
             }
         } else {
-            $this->addItems($playerId, $good, $hexId, $qty);
+            $this->addItems($playerId, $good, $targetHexId, $qty);
         }
         $prices = $this->globals->get('prices');
         $prices[$good] = min(self::PRICE_MAX[$good], (int) $prices[$good] + $qty * $this->priceStep($good));
@@ -970,7 +1023,7 @@ class Game extends \Bga\GameFramework\Table
         ]);
     }
 
-    /** Sell $qty standing on a Port/Dock hex you control, all at the current price; the price then drops $qty steps. */
+    /** Sell $qty standing on or adjacent to a Port/Dock hex, all at the current price; the price then drops $qty steps. */
     public function sellGood(int $playerId, int $hexId, string $good, int $qty = 1): void
     {
         $this->requireRule($this->hasMarket());
@@ -978,20 +1031,29 @@ class Game extends \Bga\GameFramework\Table
         if ($qty < 1 || $qty > 20) {
             throw new UserException(clienttranslate("Choose a quantity between 1 and 20."));
         }
+        $hex = $this->getHex($hexId);
+        $targetHexId = $hexId;
+        if (!empty($hex['is_port'])) {
+            $adj = $this->controlledHexAdjacentToPort($playerId, $hexId);
+            if ($adj === null) {
+                throw new UserException(clienttranslate("You need a unit adjacent to the port to trade here."));
+            }
+            $targetHexId = $adj;
+        }
         $terms = $this->tradeTerms($playerId, $hexId);
         if (!isset($terms[$good])) {
             throw new UserException(clienttranslate("This trading post does not deal in that good."));
         }
         $this->useTradingPost($playerId, $hexId);
         if (in_array($good, ['bot', 'mech'], true)) {
-            $rows = static::getObjectListFromDb("SELECT `unit_id` FROM `unit` WHERE `owner_id` = {$playerId} AND `unit_type` = '{$good}' AND `attack_target` IS NULL AND `hex_id` = {$hexId} LIMIT {$qty}");
+            $rows = static::getObjectListFromDb("SELECT `unit_id` FROM `unit` WHERE `owner_id` = {$playerId} AND `unit_type` = '{$good}' AND `attack_target` IS NULL AND `hex_id` = {$targetHexId} LIMIT {$qty}");
             if (count($rows) < $qty) {
                 throw new UserException(clienttranslate("You do not have that many on this hex."));
             }
             static::DbQuery("DELETE FROM `unit` WHERE `unit_id` IN (" . implode(',', array_map(fn($r) => (int) $r['unit_id'], $rows)) . ")");
-            $this->refreshControl($hexId);
+            $this->refreshControl($targetHexId);
         } else {
-            $this->deleteItems($this->findItems($playerId, $good, $hexId, $qty));
+            $this->deleteItems($this->findItems($playerId, $good, $targetHexId, $qty));
         }
         $gain = $qty * $terms[$good]['sell'];
         $this->adjustCredits($playerId, $gain);

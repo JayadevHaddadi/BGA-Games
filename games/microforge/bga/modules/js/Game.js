@@ -299,12 +299,34 @@ export class Game {
             for (const [dq, dr] of DIRS) {
                 const nb = this.data.hexes.find(h => h.coord_q === cur.coord_q + dq && h.coord_r === cur.coord_r + dr);
                 if (!nb || dist[nb.hex_id] !== undefined || !this.connected(cur, nb)) continue;
-                dist[nb.hex_id] = dist[cur.hex_id] + 1;
+                // Ports and center tile (ring 0) cannot be landed on, but center tile can be traversed
+                if (!nb.is_port && nb.ring !== 0) {
+                    dist[nb.hex_id] = dist[cur.hex_id] + 1;
+                }
                 if (nb.owner_id !== null && nb.owner_id !== me) continue; // an enemy hex can be attacked but not passed
+                if (!dist[nb.hex_id] && nb.ring === 0) {
+                    // Record transit distance for path step counter through center
+                    dist[nb.hex_id] = dist[cur.hex_id] + 1;
+                }
                 queue.push(nb.hex_id);
             }
         }
+        // Center tile cannot be a destination: remove it from dist map so player cannot select it to move to
+        const center = this.data.hexes.find(h => h.ring === 0);
+        if (center && center.hex_id !== fromId) {
+            delete dist[center.hex_id];
+        }
         return dist;
+    }
+
+    /** Find a land hex controlled by player adjacent to this hex, or null. */
+    controlledAdjHex(hex) {
+        const me = this.me();
+        for (const [dq, dr] of DIRS) {
+            const nb = this.data.hexes.find(h => h.coord_q === hex.coord_q + dq && h.coord_r === hex.coord_r + dr);
+            if (nb && !nb.is_port && nb.owner_id === me) return nb;
+        }
+        return null;
     }
 
     /** Mirror of Game::tradeTerms: what can be traded on this hex and at what price, or null. */
@@ -312,8 +334,22 @@ export class Game {
         const me = this.me();
         const d = this.data;
         if (!d.has_market) return null;
-        const port = d.ports.find(p => p.adjacent_hex_id === hex.hex_id);
-        const dock = d.buildings.some(b => b.hex_id === hex.hex_id && b.building_type === 'dock');
+        let port = d.ports.find(p => p.adjacent_hex_id === hex.hex_id);
+        let dock = d.buildings.some(b => b.hex_id === hex.hex_id && b.building_type === 'dock');
+        let tradeHex = hex;
+        if (hex.is_port) {
+            const adj = this.controlledAdjHex(hex);
+            if (adj) tradeHex = adj;
+        } else if (!port && !dock) {
+            // Check if this controlled land hex touches any port
+            for (const [dq, dr] of DIRS) {
+                const nb = d.hexes.find(h => h.coord_q === hex.coord_q + dq && h.coord_r === hex.coord_r + dr);
+                if (nb && nb.is_port) {
+                    const p = d.ports.find(p => p.adjacent_hex_id === nb.hex_id);
+                    if (p) { port = p; break; }
+                }
+            }
+        }
         if (!port && !dock) return null;
         const goods = port ? GOODS : d.dock_goods;
         const terms = {};
@@ -322,25 +358,13 @@ export class Game {
             const step = (g === 'mech' || g === 'crystal') ? 2 : 1;
             let buy = price;
             let sell = Math.max(d.price_min[g], price - step);
-            if (port) {
-                if (g === port.supply_item_1 || g === port.supply_item_2) buy = Math.max(d.price_min[g], price - d.port_discount);
-                if ([port.demanded_item_1, port.demanded_item_2, port.demanded_item_3].filter(Boolean).includes(g)) sell += d.port_bonus;
-            }
             terms[g] = { buy, sell };
         });
-        return { port, terms };
-    }
-
-    /** What this port does: it sells one good cheaper, or pays more for one good. */
-    portPerk(p) {
-        const d = this.data;
-        return p.supply_item_1
-            ? `${_('buy')} ${p.supply_item_1} ${_('cheaper')} (-${d.port_discount})`
-            : `${_('sell')} ${p.demanded_item_1} ${_('for more')} (+${d.port_bonus})`;
+        return { port, dock, terms, tradeHex };
     }
 
     portText(p) {
-        return `${_('Port')} ${this.portLetter(p)}: ${this.portPerk(p)}`;
+        return `${_('Port')} ${this.portLetter(p)}: ${_('trades all goods at market price')}`;
     }
 
     // ------------------------------------------------------------------ rendering
@@ -459,14 +483,14 @@ export class Game {
             this.tradeSel = null;
             return;
         }
+        const tradeHex = info.tradeHex;
         const name = info.port ? `${_('Port')} ${this.portLetter(info.port)}` : _('Home Dock');
         const goods = Object.keys(info.terms);
         const buys = goods.map(g => `${g} ${info.terms[g].buy}`).join(', ');
         const sells = goods.map(g => `${g} ${info.terms[g].sell}`).join(', ');
-        const perks = info.port ? ` (${this.portPerk(info.port)})` : ` (${_('normal prices')})`;
-        const overview = `${name}${perks}. ${_('You pay')}: ${buys}. ${_('You get')}: ${sells}.`;
-        if (hex.owner_id !== me) {
-            sb.setTitle(`${overview} ${_('Stand one of your units on this hex to trade here.')}`);
+        const overview = `${name}. ${_('You pay')}: ${buys}. ${_('You get')}: ${sells}.`;
+        if (tradeHex.owner_id !== me) {
+            sb.setTitle(`${overview} ${_('Stand a unit on an adjacent land hex to trade with this port.')}`);
             cancel();
             return;
         }
@@ -486,9 +510,9 @@ export class Game {
         }
         const credits = d.player_state[me].credits;
         const supply = d.player_state[me].supply;
-        sb.setTitle(`${name}: ${t.mode === 'buy' ? _('buy') : _('sell')} ${qty} ${_('of which good? All at the current price; the price then moves one step per item.')} (${_('click the hex again to go back')})`);
+        sb.setTitle(`${name}: ${t.mode === 'buy' ? _('buy') : _('sell')} ${qty} ${_('of which good? All at the current price; the price then moves one step per item.')} (${_('click again to go back')})`);
         goods.forEach(g => {
-            const have = this.availOf(t.hex, (g === 'bot' || g === 'mech') ? g + 's' : g);
+            const have = this.availOf(tradeHex.hex_id, (g === 'bot' || g === 'mech') ? g + 's' : g);
             if (t.mode === 'buy') {
                 const total = info.terms[g].buy * qty;
                 const noSupply = (g === 'bot' || g === 'mech') && supply[g] < qty;
@@ -1025,12 +1049,13 @@ export class Game {
     tradeSection(hex, hid, avail, canAct) {
         const info = this.tradeInfo(hex);
         if (!info) return '';
-        const mine = hex.owner_id === this.me();
+        const tradeHex = info.tradeHex;
+        const mine = tradeHex.owner_id === this.me();
         const credits = this.data.player_state[this.me()].credits;
-        const head = info.port ? this.portText(info.port) : _('Home Dock: iron and bots at the normal price');
+        const head = info.port ? this.portText(info.port) : _('Home Dock: iron and bots at normal price');
         const rows = Object.keys(info.terms).map(g => {
             const t = info.terms[g];
-            const have = (g === 'bot' || g === 'mech') ? this.availOf(hid, g + 's') : this.availOf(hid, g);
+            const have = (g === 'bot' || g === 'mech') ? this.availOf(tradeHex.hex_id, g + 's') : this.availOf(tradeHex.hex_id, g);
             const buyOk = canAct && mine && credits >= t.buy;
             const sellOk = canAct && mine && have > 0;
             return `<tr><td>${g}</td><td>${t.buy}</td><td>${t.sell}</td>`
@@ -1038,8 +1063,8 @@ export class Game {
                 + `<button class="mf_btn" data-action="actSell" data-args='${JSON.stringify({ hexId: hid, good: g })}' ${sellOk ? '' : 'disabled'}>${_('Sell')} (${have})</button></td></tr>`;
         }).join('');
         return `<div class="mf_row"><b>${head}</b>`
-            + (mine ? '' : `<div class="mf_hint">${_('Stand a unit of yours on this hex to trade here.')}</div>`)
-            + `<div class="mf_hint">${_('Bought goods appear on this hex; goods you sell must be standing here.')}</div>`
+            + (mine ? '' : `<div class="mf_hint">${_('Stand a unit on an adjacent land hex to trade with this port.')}</div>`)
+            + `<div class="mf_hint">${_('Bought goods appear on the adjacent hex; goods you sell depart from there.')}</div>`
             + `<table class="mf_table"><tr><th>${_('Good')}</th><th>${_('You pay')}</th><th>${_('You get')}</th><th></th></tr>${rows}</table></div>`;
     }
 
@@ -1073,6 +1098,9 @@ export class Game {
                             + btn(`${_('Make mech')} (1 iron + 1 crystal)`, 'actManufacture', { buildingId: b.building_id, product: 'mech' }, avail.iron >= 1 && avail.crystal >= 1) + '</div>');
                     }
                 });
+            }
+            if (this.tradeInfo(hex)) {
+                lines.push(this.tradeSection(hex, hid, avail, canAct));
             }
             lines.push(this.buildOptions(hex, hid, avail));
         } else {
