@@ -885,6 +885,8 @@ export class Game {
         if (oven) {
             oven.style.transformOrigin = '50% 50%';
             oven.style.transform = mySeat ? `rotate(${-mySeat * 90}deg)` : 'none';
+            // Each tile is counter-rotated so its letter faces the viewer (cosmetic only)
+            oven.style.setProperty('--kiln-face', `${mySeat * 90}deg`);
         }
 
         const isMultiplayer = Object.keys(this.gamedatas.players || {}).length > 2;
@@ -1144,7 +1146,7 @@ export class Game {
                     if (badge) {
                         badge.textContent = `${gIdx + 1}`;
                         badge.style.display = 'block';
-                        badge.style.transform = `rotate(${this.mySeat * 90}deg)`;
+                        badge.style.transform = 'none';
                     }
                 }
             });

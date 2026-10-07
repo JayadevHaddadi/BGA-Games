@@ -1232,3 +1232,9 @@
 .kiln_arrow_clickable:hover .kiln_arrow_svg polygon { fill: #1565c0; }
 }
 .kiln_outer_tile_holder { z-index: 2; }
+
+/* Tiles face the viewer: counter-rotate against the seat rotation of the kiln (cosmetic) */
+.kiln_oven_wrapper .kiln_board_tile,
+.kiln_oven_wrapper .kiln_outer_tile_disc {
+    transform: rotate(var(--kiln-face, 0deg));
+}
