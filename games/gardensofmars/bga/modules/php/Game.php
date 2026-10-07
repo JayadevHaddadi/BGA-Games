@@ -427,6 +427,7 @@ class Game extends \Bga\GameFramework\Table
                 $this->applyPenalty($playerId, clienttranslate('${player_name} moved their gardener onto an existing flower (-1 point)'), [
                     'target_q' => $targetQ,
                     'target_r' => $targetR,
+                    'die_value' => $dieValue,
                 ]);
             } else {
                 // Landed on empty hex: plant a flower

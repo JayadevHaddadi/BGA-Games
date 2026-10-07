@@ -169,13 +169,23 @@ export class Game {
         }
     }
 
+    isLandscape() {
+        if (typeof window === 'undefined') return false;
+        return window.innerWidth >= 1000 && (window.innerWidth > window.innerHeight);
+    }
+
     axialToPixel(q, r) {
         q = Number(q);
         r = Number(r);
-        return {
-            x: Math.round(BOARD_CONFIG.ox + q * BOARD_CONFIG.dx),
-            y: Math.round(BOARD_CONFIG.oy + (r + q * 0.5) * BOARD_CONFIG.H),
-        };
+        const px = Math.round(BOARD_CONFIG.ox + q * BOARD_CONFIG.dx);
+        const py = Math.round(BOARD_CONFIG.oy + (r + q * 0.5) * BOARD_CONFIG.H);
+        if (this.isLandscape()) {
+            return {
+                x: 1272 - py,
+                y: px,
+            };
+        }
+        return { x: px, y: py };
     }
 
     getTrackPixel(pos) {
@@ -234,7 +244,14 @@ export class Game {
             "50": {"x": 55, "y": 975}
         };
         const p = Math.max(0, Math.min(50, Number(pos) || 0));
-        return track[String(p)] || track["0"];
+        const pt = track[String(p)] || track["0"];
+        if (this.isLandscape()) {
+            return {
+                x: 1272 - pt.y,
+                y: pt.x,
+            };
+        }
+        return pt;
     }
 
     createBoardDOM() {
@@ -331,6 +348,7 @@ export class Game {
         const dice = this.gamedatas.dice_pool || [];
         if (dice.length === 0) {
             list.innerHTML = `<span style="font-size:13px;color:#555">${_('No dice on table — active player will roll upon their turn')}</span>`;
+            this.renderPlayerPanelsDice();
             return;
         }
 
@@ -346,36 +364,130 @@ export class Game {
             btn.addEventListener('click', () => this.onDieSelected(parseInt(d.die_id)));
             list.appendChild(btn);
         });
+
+        this.renderPlayerPanelsDice();
+    }
+
+    renderPlayerPanelsDice() {
+        const dice = this.gamedatas.dice_pool || [];
+        const players = this.gamedatas.players || {};
+
+        Object.keys(players).forEach(pid => {
+            const panel = this.bga?.playerPanels?.getElement?.(parseInt(pid));
+            if (!panel) return;
+
+            let box = document.getElementById(`gom_panel_dice_${pid}`);
+            if (!box) {
+                box = document.createElement('div');
+                box.id = `gom_panel_dice_${pid}`;
+                box.className = 'gom_panel_dice';
+                panel.appendChild(box);
+            }
+
+            box.innerHTML = `<span class="gom_panel_dice_label">${_('Dice')}:</span>`;
+            if (dice.length === 0) {
+                const empty = document.createElement('span');
+                empty.style.fontSize = '11px';
+                empty.style.color = '#777';
+                empty.textContent = _('None');
+                box.appendChild(empty);
+            } else {
+                dice.forEach(d => {
+                    const dt = document.createElement('span');
+                    dt.className = 'gom_panel_die_token' + (parseInt(d.is_used) ? ' used' : '');
+                    dt.textContent = d.die_value;
+                    box.appendChild(dt);
+                });
+            }
+        });
     }
 
     onDieSelected(dieId) {
         if (!this.isCurrentPlayerActive()) return;
         this.selectedDieId = dieId;
         this.renderDicePool();
-        this.updateMoveHighlightsForDie(dieId);
-    }
-
-    updateMoveHighlightsForDie(dieId) {
-        this.clearValidMoveHighlights();
-        const dieInfo = this.validMovesByDie?.[dieId];
-        if (!dieInfo || !dieInfo.moves || dieInfo.moves.length === 0) {
-            this.bga?.statusBar?.setTitle?.(_('No valid moves with die ${val} — click below to take a -1 point penalty').replace('${val}', dieInfo?.die_value || ''));
-            this.clearActionButtons();
-            this.bga?.statusBar?.addActionButton?.(_('Cannot move (-1 point)'), () => {
-                this.bga.actions.performAction('actPlayDie', { dieId: dieId });
-            }, { color: 'alert' });
-            return;
-        }
-
-        this.bga?.statusBar?.setTitle?.(_('Die ${val}: click a highlighted destination').replace('${val}', dieInfo.die_value));
-        dieInfo.moves.forEach(m => {
-            const spot = document.getElementById(`spot_${m.q}_${m.r}`);
-            if (spot) spot.classList.add('valid_move');
-        });
+        this.updateMoveHighlights();
     }
 
     clearValidMoveHighlights() {
-        document.querySelectorAll('.garden_spot.valid_move').forEach(el => el.classList.remove('valid_move'));
+        document.querySelectorAll('.garden_spot.valid_move').forEach(el => {
+            el.classList.remove('valid_move');
+            el.querySelectorAll('.gom_mini_die').forEach(b => b.remove());
+        });
+    }
+
+    updateMoveHighlights() {
+        this.clearValidMoveHighlights();
+        this.clearActionButtons();
+
+        const avail = (this.lastTurnArgs?.available_dice || []).filter(d => !parseInt(d.is_used));
+        if (avail.length === 0) return;
+
+        // If a specific die is filtered/selected
+        if (this.selectedDieId) {
+            const dieInfo = this.validMovesByDie?.[this.selectedDieId];
+            if (!dieInfo || !dieInfo.moves || dieInfo.moves.length === 0) {
+                this.bga?.statusBar?.setTitle?.(_('No valid moves with die ${val} — take penalty').replace('${val}', dieInfo?.die_value || ''));
+                this.bga?.statusBar?.addActionButton?.(_('Cannot move (-1 point)'), () => {
+                    this.bga.actions.performAction('actPlayDie', { dieId: this.selectedDieId });
+                }, { color: 'alert' });
+                this.bga?.statusBar?.addActionButton?.(_('Show all dice options'), () => {
+                    this.selectedDieId = null;
+                    this.renderDicePool();
+                    this.updateMoveHighlights();
+                }, { color: 'secondary' });
+                return;
+            }
+
+            this.bga?.statusBar?.setTitle?.(_('Using die ${val}: click destination, or pick another die').replace('${val}', dieInfo.die_value));
+            this.bga?.statusBar?.addActionButton?.(_('Show all dice options'), () => {
+                this.selectedDieId = null;
+                this.renderDicePool();
+                this.updateMoveHighlights();
+            }, { color: 'secondary' });
+
+            dieInfo.moves.forEach(m => {
+                const spot = document.getElementById(`spot_${m.q}_${m.r}`);
+                if (spot) {
+                    spot.classList.add('valid_move');
+                    const badge = document.createElement('span');
+                    badge.className = 'gom_mini_die';
+                    badge.textContent = dieInfo.die_value;
+                    spot.appendChild(badge);
+                }
+            });
+            return;
+        }
+
+        // Show destinations for ALL available dice simultaneously
+        this.bga?.statusBar?.setTitle?.(_('Choose a die or click any highlighted hexagon to move'));
+
+        let totalMovesFound = 0;
+        avail.forEach(d => {
+            const dieInfo = this.validMovesByDie?.[d.die_id];
+            (dieInfo?.moves || []).forEach(m => {
+                totalMovesFound++;
+                const spot = document.getElementById(`spot_${m.q}_${m.r}`);
+                if (spot) {
+                    spot.classList.add('valid_move');
+                    // Add mini badge if not already added with this die value
+                    const existing = Array.from(spot.querySelectorAll('.gom_mini_die')).map(b => b.textContent);
+                    if (!existing.includes(String(dieInfo.die_value))) {
+                        const badge = document.createElement('span');
+                        badge.className = 'gom_mini_die';
+                        badge.textContent = dieInfo.die_value;
+                        spot.appendChild(badge);
+                    }
+                }
+            });
+        });
+
+        if (totalMovesFound === 0) {
+            this.bga?.statusBar?.setTitle?.(_('No valid moves available with any rolled die — take a penalty'));
+            this.bga?.statusBar?.addActionButton?.(_('Cannot move (-1 point)'), () => {
+                this.bga.actions.performAction('actPlayDie', { dieId: avail[0].die_id });
+            }, { color: 'alert' });
+        }
     }
 
     onSpotClicked(q, r) {
@@ -397,37 +509,58 @@ export class Game {
 
         // Mode 2: Move Gardener
         if (this.uiPhase === 'turn') {
-            if (!this.selectedDieId) {
-                this.showError(_('Please choose a die from the pool first!'));
-                return;
+            const avail = (this.lastTurnArgs?.available_dice || []).filter(d => !parseInt(d.is_used));
+            
+            // Find which available dice can reach (q, r)
+            const matchingDice = [];
+            avail.forEach(d => {
+                const dieInfo = this.validMovesByDie?.[d.die_id];
+                const move = dieInfo?.moves?.find(m => m.q === q && m.r === r);
+                if (move) {
+                    matchingDice.push({ dieId: parseInt(d.die_id), dieValue: d.die_value, move: move });
+                }
+            });
+
+            if (matchingDice.length === 0) return;
+
+            // If a specific die was selected and reaches this spot, use it; otherwise pick first matching
+            let chosen = null;
+            if (this.selectedDieId) {
+                chosen = matchingDice.find(m => m.dieId === this.selectedDieId);
+            }
+            if (!chosen) {
+                chosen = matchingDice[0];
+                this.selectedDieId = chosen.dieId;
+                this.renderDicePool();
             }
 
-            const dieInfo = this.validMovesByDie?.[this.selectedDieId];
-            const move = dieInfo?.moves?.find(m => m.q === q && m.r === r);
-            if (!move) return;
-
-            if (move.has_flower) {
+            if (chosen.move.has_flower) {
                 // Land on flower: -1 point penalty
-                this.bga.actions.performAction('actPlayDie', {
-                    dieId: this.selectedDieId,
-                    targetQ: q,
-                    targetR: r
-                });
+                this.bga?.statusBar?.setTitle?.(_('Using die ${val}: land on flower (-1 penalty)').replace('${val}', chosen.dieValue));
+                this.clearActionButtons();
+                this.bga?.statusBar?.addActionButton?.(_('Confirm Move (-1 point)'), () => {
+                    this.bga.actions.performAction('actPlayDie', {
+                        dieId: chosen.dieId,
+                        targetQ: q,
+                        targetR: r
+                    });
+                }, { color: 'primary' });
+                this.bga?.statusBar?.addActionButton?.(_('Cancel'), () => {
+                    this.updateMoveHighlights();
+                }, { color: 'alert' });
             } else {
                 // Land on empty space: choose color to plant
-                this.openColorPicker(q, r, this.selectedDieId);
+                this.openColorPicker(q, r, chosen.dieId, chosen.dieValue);
             }
         }
     }
 
-    openColorPicker(q, r, dieId) {
+    openColorPicker(q, r, dieId, dieValue) {
         this.closeColorPicker();
         const board = document.getElementById('garden_board');
         if (!board) return;
 
         const colors = ['blue', 'yellow', 'white', 'gray', 'red', 'green'];
-        const pos = this.axialToPixel(q, r);
-
         const picker = document.createElement('div');
         picker.id = 'gom_color_picker';
         this.pickerSpot = { q, r };
@@ -457,10 +590,13 @@ export class Game {
         this.layoutColorPicker();
 
         this.clearActionButtons();
-        this.bga?.statusBar?.setTitle?.(_('Choose a flower color to plant'));
+        this.bga?.statusBar?.setTitle?.(_('Using die ${val}: choose flower to plant at (${q},${r})')
+            .replace('${val}', dieValue || '')
+            .replace('${q}', q)
+            .replace('${r}', r));
         this.bga?.statusBar?.addActionButton?.(_('Cancel'), () => {
             this.closeColorPicker();
-            this.updatePlayerTurnUI(this.lastTurnArgs);
+            this.updateMoveHighlights();
         }, { color: 'alert' });
     }
 
@@ -501,6 +637,7 @@ export class Game {
                 const token = document.createElement('div');
                 token.className = 'gom_gardener_token';
                 token.id = `gardener_${g.player_id}`;
+                token.dataset.name = (g.martian || '').toUpperCase();
                 token.style.left = `${pos.x}px`;
                 token.style.top = `${pos.y}px`;
 
@@ -511,6 +648,13 @@ export class Game {
                 img.src = this.imgUrl(`${g.martian || 'bot'}.png`);
                 img.alt = g.martian;
                 token.appendChild(img);
+
+                // Lift alien on click so colour-blind players can inspect flower underneath
+                token.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    token.classList.toggle('lifted');
+                });
+
                 gLayer.appendChild(token);
             }
 
@@ -569,6 +713,8 @@ export class Game {
             pen.textContent = `${total} ${_('flowers remaining')}`;
             box.appendChild(pen);
         });
+
+        this.renderPlayerPanelsDice();
     }
 
     setMyTurnPulse(on) {
@@ -646,16 +792,7 @@ export class Game {
             return;
         }
 
-        const avail = args?.available_dice || [];
-        if (avail.length > 0) {
-            this.bga?.statusBar?.setTitle?.(_('Your turn: choose an available die from the pool'));
-            // Auto-select first available die if none selected
-            if (!this.selectedDieId || !avail.find(d => parseInt(d.die_id) === this.selectedDieId)) {
-                this.onDieSelected(parseInt(avail[0].die_id));
-            } else {
-                this.updateMoveHighlightsForDie(this.selectedDieId);
-            }
-        }
+        this.updateMoveHighlights();
     }
 
     clearActionButtons() {
@@ -712,8 +849,25 @@ export class Game {
         const container = document.getElementById('gardensofmars_container');
         if (!scaler || !board || !container) return;
 
-        const baseWidth = BOARD_CONFIG.w;
-        const baseHeight = BOARD_CONFIG.h;
+        const isLand = this.isLandscape();
+        if (isLand) {
+            board.classList.add('landscape');
+        } else {
+            board.classList.remove('landscape');
+        }
+
+        // Re-render spots & gardeners to new rotated coordinates if orientation flipped
+        if (this._lastLandscape !== isLand) {
+            this._lastLandscape = isLand;
+            this.renderSpots();
+            this.renderGardenState();
+            if (this.uiPhase === 'turn' && this.isCurrentPlayerActive()) {
+                this.updateMoveHighlights();
+            }
+        }
+
+        const baseWidth = isLand ? 1272 : BOARD_CONFIG.w;
+        const baseHeight = isLand ? 900 : BOARD_CONFIG.h;
         const availableWidth = container.clientWidth || window.innerWidth;
 
         let scale = Math.max(0.35, Math.min(1.0, (availableWidth - 16) / baseWidth));
@@ -770,6 +924,7 @@ export class Game {
         this.selectedDieId = null;
         sounds.playMove();
         this.renderDicePool();
+        this.renderPlayerPanelsDice();
     }
 
     notif_gardenerMovedAndPlanted(notif) {
@@ -809,7 +964,16 @@ export class Game {
     notif_scorePenalty(notif) {
         const args = this._getNotifArgs(notif);
         if (this.gamedatas.gardeners?.[args.player_id]) {
+            if (args.target_q !== undefined && args.target_r !== undefined) {
+                this.gamedatas.gardeners[args.player_id].q = args.target_q;
+                this.gamedatas.gardeners[args.player_id].r = args.target_r;
+            }
             this.gamedatas.gardeners[args.player_id].track_pos = args.track_pos;
+        }
+        if (args.die_value && this.gamedatas.dice_pool) {
+            const die = this.gamedatas.dice_pool.find(d => parseInt(d.die_value) === parseInt(args.die_value) && !parseInt(d.is_used));
+            if (die) die.is_used = 1;
+            this.renderDicePool();
         }
         const counter = this.bga?.playerPanels?.getScoreCounter?.(parseInt(args.player_id));
         if (counter && args.score !== undefined) counter.toValue(args.score);
