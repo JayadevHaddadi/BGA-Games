@@ -878,10 +878,13 @@ export class Game {
             if (el) el.innerHTML = '';
         });
 
-        // Board stays stably upright (North = slots 0..5, South = slots 12..17)
+        // The kiln sits in the middle of the table: each player sees it from their own side.
+        // Seat 0 = South (as stored: North = slots 0..5, South = 12..17); seat 1 = West, 2 = North, 3 = East.
+        // Rotate the board so the viewer's own side is at the bottom (seat 2 sees it upside down).
         const oven = document.getElementById('kiln_oven_wrapper');
         if (oven) {
-            oven.style.transform = 'none';
+            oven.style.transformOrigin = '50% 50%';
+            oven.style.transform = mySeat ? `rotate(${-mySeat * 90}deg)` : 'none';
         }
 
         const isMultiplayer = Object.keys(this.gamedatas.players || {}).length > 2;
@@ -1141,7 +1144,7 @@ export class Game {
                     if (badge) {
                         badge.textContent = `${gIdx + 1}`;
                         badge.style.display = 'block';
-                        badge.style.transform = `rotate(${-this.mySeat * 90}deg)`;
+                        badge.style.transform = `rotate(${this.mySeat * 90}deg)`;
                     }
                 }
             });
