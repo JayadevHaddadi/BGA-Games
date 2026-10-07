@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 690 940" width="69.0mm" height="94.0mm" font-family="DejaVu Sans, Arial, sans-serif">
+<title>Mission L2-18 King of the Hill</title>
+<rect id="bleed" x="0" y="0" width="690" height="940" fill="#6d3a8c"/>
+<rect id="trim" x="30" y="30" width="630" height="880" rx="26" fill="#f4ead7" stroke="#2b2233" stroke-width="4"/>
+<rect x="50" y="50" width="590" height="84" rx="10" fill="#6d3a8c"/>
+<text x="345.0" y="108" text-anchor="middle" font-size="44" font-weight="bold" fill="#f4ead7">King of the Hill</text>
+<g id="art-slot"><rect x="50" y="146" width="590" height="170" rx="10" fill="#ebe1cd" stroke="#2b2233" stroke-width="3" stroke-dasharray="12 8"/>
+<text class="placeholder" x="345.0" y="240" text-anchor="middle" font-size="22" fill="#9a8f7c">ART SLOT 590 x 170</text></g>
+<rect x="50" y="328" width="590" height="375" rx="14" fill="#fffbf0" stroke="#2b2233" stroke-width="3.5"/>
+<g transform="translate(345.0,450.0) scale(2.656)" stroke="#2b2233" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" fill="none"><polygon points="24.2,-14.0 24.2,14.0 0.0,28.0 -24.2,14.0 -24.2,-14.0 -0.0,-28.0" fill="#e7d9b5"/><polygon points="0.0,-18.0 4.7,-6.5 17.1,-5.6 7.6,2.5 10.6,14.6 0.0,8.0 -10.6,14.6 -7.6,2.5 -17.1,-5.6 -4.7,-6.5" fill="#6d3a8c"/></g>
+<text x="345.0" y="560" text-anchor="middle" font-size="42" font-weight="bold" fill="#2b2233">CENTRE HEX</text>
+<rect x="65" y="635" width="560" height="56" rx="8" fill="#f4ead7" stroke="#2b2233" stroke-width="2"/>
+<text x="345.0" y="674" text-anchor="middle" font-size="32" font-weight="bold" fill="#2b2233">Control the central hex.</text>
+<g id="cost">
+<circle cx="95" cy="845" r="38" fill="#e6c455" stroke="#2b2233" stroke-width="4"/>
+<circle cx="95" cy="845" r="30" fill="none" stroke="#fff176" stroke-width="2.5"/>
+<text x="95" y="859" text-anchor="middle" font-size="40" font-weight="bold" fill="#2b2233">5</text></g>
+<text x="148" y="834" font-size="24" font-weight="bold" fill="#2b2233">Cost: 5 Credits</text>
+<text x="148" y="860" font-size="18" fill="#2b2233">+1 for each bought</text>
+<text x="148" y="885" font-size="16" fill="#7d7388">Level 2 &#8226; 18/20</text>
+<g id="reward">
+<polygon points="580.0,789.0 593.5,822.4 629.5,824.9 601.9,848.1 610.6,883.1 580.0,864.0 549.4,883.1 558.1,848.1 530.5,824.9 566.5,822.4" fill="#e6c455" stroke="#2b2233" stroke-width="4"/>
+<polygon points="580.0,809.0 588.2,829.7 610.4,831.1 593.3,845.3 598.8,866.9 580.0,855.0 561.2,866.9 566.7,845.3 549.6,831.1 571.8,829.7" fill="#fff59d" stroke="none"/>
+<text x="580" y="857" text-anchor="middle" font-size="44" font-weight="bold" fill="#2b2233">2</text>
+<text x="580" y="897" text-anchor="middle" font-size="18" font-weight="bold" fill="#2b2233">VP</text></g>
+</svg>

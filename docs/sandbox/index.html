@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Little Commanders — Multiplayer Sandbox</title>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <style>
+    :root {
+      --bg: #1e1e24;
+      --panel: #2b2b36;
+      --text: #eaeaea;
+      --accent: #3498db;
+      --accent-hover: #2980b9;
+      --border: #444455;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+    }
+    header {
+      background: var(--panel);
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      z-index: 100;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .title {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .room-badge {
+      background: #3a3a4c;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--border);
+    }
+    .room-badge input {
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-weight: bold;
+      width: 90px;
+      text-align: center;
+    }
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #e74c3c;
+    }
+    .status-dot.connected { background: #2ecc71; }
+    .btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: background 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn:hover { background: var(--accent-hover); }
+    .btn-secondary { background: #444455; }
+    .btn-secondary:hover { background: #555566; }
+    .btn-danger { background: #e74c3c; }
+    .btn-danger:hover { background: #c0392b; }
+
+    #workspace {
+      display: flex;
+      flex: 1;
+      height: calc(100vh - 54px);
+      position: relative;
+    }
+
+    #board-container {
+      flex: 1;
+      position: relative;
+      background: radial-gradient(circle at center, #252530 0%, #17171d 100%);
+      overflow: hidden;
+      cursor: grab;
+    }
+    #board-container:active { cursor: grabbing; }
+
+    #board-stage {
+      position: absolute;
+      top: 0;
+      left: 0;
+      transform-origin: 0 0;
+      width: 2000px;
+      height: 2000px;
+    }
+
+    #board-svg {
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .remote-cursor {
+      position: absolute;
+      pointer-events: none;
+      z-index: 1000;
+      transition: transform 0.05s linear;
+      font-size: 0.75rem;
+      font-weight: bold;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .remote-cursor svg {
+      width: 20px;
+      height: 20px;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+    }
+    .cursor-label {
+      background: rgba(0,0,0,0.7);
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-top: 2px;
+      white-space: nowrap;
+    }
+
+    /* Sandbox Pieces */
+    .piece {
+      position: absolute;
+      cursor: grab;
+      touch-action: none;
+      filter: drop-shadow(0 3px 6px rgba(0,0,0,0.6));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      border-radius: 50%;
+    }
+    .piece:active {
+      cursor: grabbing;
+      z-index: 500 !important;
+      filter: drop-shadow(0 8px 16px rgba(0,0,0,0.8));
+    }
+    .piece.bot {
+      width: 32px;
+      height: 32px;
+    }
+    .piece.mech {
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+    }
+    .piece.iron, .piece.crystal, .piece.credit {
+      width: 28px;
+      height: 28px;
+    }
+    .piece.building {
+      width: 40px;
+      height: 40px;
+      border-radius: 6px;
+    }
+
+    .piece img {
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    /* Sidebar Palette */
+    #sidebar {
+      width: 240px;
+      background: var(--panel);
+      border-left: 1px solid var(--border);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+      z-index: 10;
+    }
+    .palette-group {
+      background: #22222d;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+    }
+    .palette-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #bbb;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .palette-items {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+    .spawner {
+      background: #2e2e3d;
+      border: 1px solid #444;
+      border-radius: 6px;
+      aspect-ratio: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.15s;
+    }
+    .spawner:hover {
+      background: #3b3b4f;
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+    .spawner img {
+      width: 24px;
+      height: 24px;
+      pointer-events: none;
+    }
+    .spawner span {
+      font-size: 0.65rem;
+      color: #aaa;
+      margin-top: 2px;
+    }
+
+    .color-picker-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .color-dot {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform 0.1s;
+    }
+    .color-dot.active {
+      border-color: #fff;
+      transform: scale(1.15);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(20, 20, 25, 0.95);
+      border: 1px solid var(--accent);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      pointer-events: none;
+      z-index: 2000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-left">
+      <div class="title">
+        <span>⚔️ Little Commanders Sandbox</span>
+      </div>
+      <div class="room-badge">
+        <div class="status-dot" id="status-dot" title="Peer connection status"></div>
+        <span>Room:</span>
+        <input type="text" id="room-input" readonly>
+        <button class="btn btn-secondary" id="btn-copy" style="padding:3px 8px; font-size:0.75rem;">Copy Link</button>
+      </div>
+    </div>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <button class="btn btn-secondary" id="btn-layout-2p">2P Map</button>
+      <button class="btn btn-secondary" id="btn-layout-4p">4P Map</button>
+      <button class="btn btn-secondary" id="btn-center">Center View</button>
+      <button class="btn btn-danger" id="btn-clear">Clear Pieces</button>
+    </div>
+  </header>
+
+  <div id="workspace">
+    <div id="board-container">
+      <div id="board-stage">
+        <svg id="board-svg"></svg>
+        <div id="pieces-layer"></div>
+      </div>
+    </div>
+
+    <div id="sidebar">
+      <div class="palette-group">
+        <div class="palette-title">Unit Faction Color</div>
+        <div class="color-picker-row" id="color-row">
+          <div class="color-dot active" data-color="2980b9" style="background:#2980b9;"></div>
+          <div class="color-dot" data-color="c0392b" style="background:#c0392b;"></div>
+          <div class="color-dot" data-color="27ae60" style="background:#27ae60;"></div>
+          <div class="color-dot" data-color="f39c12" style="background:#f39c12;"></div>
+          <div class="color-dot" data-color="8e44ad" style="background:#8e44ad;"></div>
+          <div class="color-dot" data-color="d35400" style="background:#d35400;"></div>
+        </div>
+      </div>
+
+      <div class="palette-group">
+        <div class="palette-title">Units (Click to Spawn)</div>
+        <div class="palette-items">
+          <div class="spawner" data-type="bot" title="Spawn Bot">
+            <img src="img/icons/bot.svg" alt="Bot">
+            <span>Bot</span>
+          </div>
+          <div class="spawner" data-type="mech" title="Spawn Mech">
+            <img src="img/icons/mech.svg" alt="Mech">
+            <span>Mech</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="palette-group">
+        <div class="palette-title">Resources & Coins</div>
+        <div class="palette-items">
+          <div class="spawner" data-type="iron" title="Spawn Iron">
+            <img src="img/icons/iron.svg" alt="Iron">
+            <span>Iron</span>
+          </div>
+          <div class="spawner" data-type="crystal" title="Spawn Crystal">
+            <img src="img/icons/crystal.svg" alt="Crystal">
+            <span>Crystal</span>
+          </div>
+          <div class="spawner" data-type="credit" title="Spawn Credit">
+            <img src="img/icons/credit.svg" alt="Credit">
+            <span>Credit</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="palette-group">
+        <div class="palette-title">Buildings</div>
+        <div class="palette-items">
+          <div class="spawner" data-type="extractor" title="Spawn Extractor">
+            <img src="img/icons/extractor.svg" alt="Extractor">
+            <span>Extract</span>
+          </div>
+          <div class="spawner" data-type="factory" title="Spawn Factory">
+            <img src="img/icons/factory.svg" alt="Factory">
+            <span>Factory</span>
+          </div>
+          <div class="spawner" data-type="dock" title="Spawn Dock">
+            <img src="img/icons/dock.svg" alt="Dock">
+            <span>Dock</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="font-size:0.75rem; color:#888; line-height:1.4;">
+        💡 <b>Sandbox Controls:</b><br>
+        • Drag pieces anywhere on the board.<br>
+        • Double-click a piece to remove it.<br>
+        • Pan by dragging the background.<br>
+        • Zoom using mouse scroll wheel.<br>
+        • Anyone with the room link sees your moves in real time!
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // --- State & Config ---
+    let currentColor = '2980b9';
+    let currentMap = '2p';
+    let pieces = {}; // pieceId -> { id, type, color, x, y }
+    let stageX = 300, stageY = 200, scale = 1.0;
+    let isPanning = false, panStart = { x: 0, y: 0 };
+    let myPeerId = null, hostConn = null, connections = [];
+    let isHost = false;
+    let peer = null;
+
+    const boardContainer = document.getElementById('board-container');
+    const boardStage = document.getElementById('board-stage');
+    const boardSvg = document.getElementById('board-svg');
+    const piecesLayer = document.getElementById('pieces-layer');
+    const toastEl = document.getElementById('toast');
+
+    function showToast(msg) {
+      toastEl.innerText = msg;
+      toastEl.classList.add('show');
+      setTimeout(() => toastEl.classList.remove('show'), 2500);
+    }
+
+    // --- Color Picker ---
+    document.querySelectorAll('.color-dot').forEach(dot => {
+      dot.addEventListener('click', () => {
+        document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+        dot.classList.add('active');
+        currentColor = dot.dataset.color;
+      });
+    });
+
+    // --- Transform & Pan/Zoom ---
+    function updateTransform() {
+      boardStage.style.transform = `translate(${stageX}px, ${stageY}px) scale(${scale})`;
+    }
+
+    boardContainer.addEventListener('mousedown', (e) => {
+      if (e.target.closest('.piece')) return;
+      isPanning = true;
+      panStart = { x: e.clientX - stageX, y: e.clientY - stageY };
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (isPanning) {
+        stageX = e.clientX - panStart.x;
+        stageY = e.clientY - panStart.y;
+        updateTransform();
+      }
+      sendCursor(e.clientX, e.clientY);
+    });
+
+    window.addEventListener('mouseup', () => { isPanning = false; });
+
+    boardContainer.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const zoomFactor = 1.1;
+      const mouseX = e.clientX - boardContainer.offsetLeft;
+      const mouseY = e.clientY - boardContainer.offsetTop;
+
+      const newScale = e.deltaY < 0 ? scale * zoomFactor : scale / zoomFactor;
+      if (newScale < 0.3 || newScale > 3.0) return;
+
+      stageX = mouseX - (mouseX - stageX) * (newScale / scale);
+      stageY = mouseY - (mouseY - stageY) * (newScale / scale);
+      scale = newScale;
+      updateTransform();
+    }, { passive: false });
+
+    document.getElementById('btn-center').addEventListener('click', () => {
+      const rect = boardContainer.getBoundingClientRect();
+      stageX = rect.width / 2 - 400;
+      stageY = rect.height / 2 - 350;
+      scale = 1.0;
+      updateTransform();
+    });
+
+    // --- Board SVG Rendering ---
+    function hexPos(q, r, size) {
+      return { x: size * Math.sqrt(3) * (q + r / 2) + 500, y: size * 1.5 * r + 500 };
+    }
+
+    async function loadBoard(file) {
+      try {
+        const res = await fetch(file);
+        const deal = await res.json();
+        renderBoardSvg(deal);
+      } catch (err) {
+        console.error('Failed to load board:', err);
+      }
+    }
+
+    function renderBoardSvg(deal) {
+      const size = 52;
+      const parts = [];
+      const hexes = deal.hexes;
+
+      // Hexes
+      hexes.forEach(h => {
+        const { x, y } = hexPos(h.q, h.r, size);
+        const pts = [0, 1, 2, 3, 4, 5].map(i => {
+          const a = Math.PI / 180 * (60 * i - 30);
+          return `${(x + size * Math.cos(a)).toFixed(1)},${(y + size * Math.sin(a)).toFixed(1)}`;
+        }).join(' ');
+
+        if (h.tile && h.tile.art) {
+          parts.push(`<image href="img/tiles/${h.tile.art}.svg" x="${(x - size * 0.866).toFixed(1)}" y="${y - size}" width="${(size * 1.732).toFixed(1)}" height="${size * 2}"/>`);
+        } else {
+          parts.push(`<polygon points="${pts}" fill="#333344" stroke="#555566" stroke-width="1.5"/>`);
+        }
+        parts.push(`<polygon points="${pts}" fill="none" stroke="#666677" stroke-width="1"/>`);
+      });
+
+      boardSvg.innerHTML = parts.join('');
+    }
+
+    document.getElementById('btn-layout-2p').addEventListener('click', () => {
+      currentMap = '2p';
+      loadBoard('default_board_2p.json');
+      broadcast({ type: 'map_change', map: '2p' });
+    });
+    document.getElementById('btn-layout-4p').addEventListener('click', () => {
+      currentMap = '4p';
+      loadBoard('default_board_4p.json');
+      broadcast({ type: 'map_change', map: '4p' });
+    });
+
+    // --- Piece Management ---
+    function spawnPiece(type, color = currentColor, x = 500, y = 500, id = null) {
+      const pieceId = id || 'p_' + Math.random().toString(36).substr(2, 9);
+      const piece = { id: pieceId, type, color, x, y };
+      pieces[pieceId] = piece;
+      renderPieceEl(piece);
+      broadcast({ type: 'piece_update', piece });
+      return piece;
+    }
+
+    function renderPieceEl(p) {
+      let el = document.getElementById(p.id);
+      if (!el) {
+        el = document.createElement('div');
+        el.id = p.id;
+        el.className = `piece ${p.type}`;
+        piecesLayer.appendChild(el);
+        initPieceDrag(el);
+      }
+      el.style.left = `${p.x}px`;
+      el.style.top = `${p.y}px`;
+
+      let icon = p.type;
+      if (p.type === 'bot' || p.type === 'mech') {
+        el.style.background = `#${p.color}`;
+        el.style.border = `2px solid #222`;
+      }
+      el.innerHTML = `<img src="img/icons/${icon}.svg" alt="${icon}">`;
+
+      el.ondblclick = () => {
+        delete pieces[p.id];
+        el.remove();
+        broadcast({ type: 'piece_remove', id: p.id });
+      };
+    }
+
+    function initPieceDrag(el) {
+      let startX = 0, startY = 0, initialLeft = 0, initialTop = 0;
+      el.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+        startX = e.clientX;
+        startY = e.clientY;
+        initialLeft = parseFloat(el.style.left) || 0;
+        initialTop = parseFloat(el.style.top) || 0;
+
+        function onMouseMove(moveEv) {
+          const dx = (moveEv.clientX - startX) / scale;
+          const dy = (moveEv.clientY - startY) / scale;
+          const newX = initialLeft + dx;
+          const newY = initialTop + dy;
+          el.style.left = `${newX}px`;
+          el.style.top = `${newY}px`;
+
+          const p = pieces[el.id];
+          if (p) {
+            p.x = newX;
+            p.y = newY;
+            broadcast({ type: 'piece_move', id: p.id, x: newX, y: newY });
+          }
+        }
+
+        function onMouseUp() {
+          window.removeEventListener('mousemove', onMouseMove);
+          window.removeEventListener('mouseup', onMouseUp);
+        }
+
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+      });
+    }
+
+    document.querySelectorAll('.spawner').forEach(s => {
+      s.addEventListener('click', () => {
+        const type = s.dataset.type;
+        // Spawn near center of view
+        const rect = boardContainer.getBoundingClientRect();
+        const stageViewX = (rect.width / 2 - stageX) / scale;
+        const stageViewY = (rect.height / 2 - stageY) / scale;
+        spawnPiece(type, currentColor, stageViewX + (Math.random() * 40 - 20), stageViewY + (Math.random() * 40 - 20));
+      });
+    });
+
+    document.getElementById('btn-clear').addEventListener('click', () => {
+      pieces = {};
+      piecesLayer.innerHTML = '';
+      broadcast({ type: 'pieces_clear' });
+      showToast('All pieces cleared');
+    });
+
+    // --- Multiplayer Networking (PeerJS) ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomFromUrl = urlParams.get('room');
+    const roomId = roomFromUrl || ('mc_' + Math.random().toString(36).substr(2, 6));
+
+    document.getElementById('room-input').value = roomId;
+
+    document.getElementById('btn-copy').addEventListener('click', () => {
+      const url = `${window.location.origin}${window.location.pathname}?room=${roomId}`;
+      navigator.clipboard.writeText(url).then(() => showToast('Room link copied! Share with your friend'));
+    });
+
+    function broadcast(data) {
+      if (isHost) {
+        connections.forEach(conn => {
+          if (conn.open) conn.send(data);
+        });
+      } else if (hostConn && hostConn.open) {
+        hostConn.send(data);
+      }
+    }
+
+    function sendCursor(cx, cy) {
+      const stageRect = boardContainer.getBoundingClientRect();
+      const x = (cx - stageRect.left - stageX) / scale;
+      const y = (cy - stageRect.top - stageY) / scale;
+      broadcast({ type: 'cursor', id: myPeerId, color: currentColor, x, y });
+    }
+
+    function renderRemoteCursor(msg) {
+      if (msg.id === myPeerId) return;
+      let cursorEl = document.getElementById('cur_' + msg.id);
+      if (!cursorEl) {
+        cursorEl = document.createElement('div');
+        cursorEl.id = 'cur_' + msg.id;
+        cursorEl.className = 'remote-cursor';
+        cursorEl.innerHTML = `
+          <svg viewBox="0 0 24 24" fill="#${msg.color}">
+            <path d="M4 0l16 12-7 2-4 10z"/>
+          </svg>
+          <div class="cursor-label" style="border-left: 3px solid #${msg.color}">Friend</div>`;
+        boardStage.appendChild(cursorEl);
+      }
+      cursorEl.style.left = `${msg.x}px`;
+      cursorEl.style.top = `${msg.y}px`;
+    }
+
+    function handleData(msg) {
+      if (msg.type === 'cursor') {
+        renderRemoteCursor(msg);
+      } else if (msg.type === 'piece_update') {
+        pieces[msg.piece.id] = msg.piece;
+        renderPieceEl(msg.piece);
+      } else if (msg.type === 'piece_move') {
+        if (pieces[msg.id]) {
+          pieces[msg.id].x = msg.x;
+          pieces[msg.id].y = msg.y;
+          const el = document.getElementById(msg.id);
+          if (el) {
+            el.style.left = `${msg.x}px`;
+            el.style.top = `${msg.y}px`;
+          }
+        }
+      } else if (msg.type === 'piece_remove') {
+        delete pieces[msg.id];
+        const el = document.getElementById(msg.id);
+        if (el) el.remove();
+      } else if (msg.type === 'pieces_clear') {
+        pieces = {};
+        piecesLayer.innerHTML = '';
+      } else if (msg.type === 'map_change') {
+        currentMap = msg.map;
+        loadBoard(`default_board_${msg.map}.json`);
+      } else if (msg.type === 'sync_state') {
+        pieces = msg.pieces;
+        piecesLayer.innerHTML = '';
+        Object.values(pieces).forEach(renderPieceEl);
+        if (msg.map !== currentMap) {
+          currentMap = msg.map;
+          loadBoard(`default_board_${msg.map}.json`);
+        }
+      }
+      if (isHost && msg.type !== 'cursor') {
+        // Forward to other connected peers
+        connections.forEach(conn => {
+          if (conn.open) conn.send(msg);
+        });
+      }
+    }
+
+    function initNetworking() {
+      // Connect to public PeerJS broker
+      peer = new Peer(roomId, {
+        debug: 1
+      });
+
+      peer.on('open', (id) => {
+        myPeerId = id;
+        isHost = true;
+        document.getElementById('status-dot').classList.add('connected');
+        showToast('You created Room ' + roomId);
+      });
+
+      peer.on('connection', (conn) => {
+        connections.push(conn);
+        conn.on('open', () => {
+          showToast('A friend joined your room!');
+          // Send full current state to newly joined friend
+          conn.send({ type: 'sync_state', pieces, map: currentMap });
+        });
+        conn.on('data', handleData);
+        conn.on('close', () => {
+          connections = connections.filter(c => c !== conn);
+        });
+      });
+
+      peer.on('error', (err) => {
+        if (err.type === 'unavailable-id') {
+          // ID taken: we are a client connecting to an existing room host!
+          peer.destroy();
+          const clientPeer = new Peer();
+          clientPeer.on('open', (cId) => {
+            myPeerId = cId;
+            isHost = false;
+            hostConn = clientPeer.connect(roomId, { reliable: true });
+            hostConn.on('open', () => {
+              document.getElementById('status-dot').classList.add('connected');
+              showToast('Connected to Room ' + roomId);
+            });
+            hostConn.on('data', handleData);
+            hostConn.on('close', () => {
+              document.getElementById('status-dot').classList.remove('connected');
+              showToast('Disconnected from host');
+            });
+          });
+        } else {
+          console.error('PeerJS error:', err);
+        }
+      });
+    }
+
+    // --- Init ---
+    window.addEventListener('DOMContentLoaded', () => {
+      loadBoard('default_board_2p.json');
+      initNetworking();
+      document.getElementById('btn-center').click();
+    });
+  </script>
+</body>
+</html>
