@@ -246,6 +246,7 @@
     height: calc(338px * var(--mdlScale));
     display: flex;
     max-width: 100%;
+    padding: 0 calc(76px * var(--mdlScale));
 }
 
 .mdl_mandala {

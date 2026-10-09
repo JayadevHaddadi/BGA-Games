@@ -846,7 +846,7 @@ function (dojo, declare, bgaHelp) {
             }
         },
         getOverlap(stockObj) {
-            var areaWidth = 375 * this.mdlScale;
+            var areaWidth = 320 * this.mdlScale;
             var cardsNbr = stockObj.count(); 
             if (cardsNbr < 5) {
                 stockObj.item_margin = 5;
