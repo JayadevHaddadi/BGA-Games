@@ -540,6 +540,59 @@
     letter-spacing: 0.4px;
 }
 
+.gom_track_indicator:hover,
+.gom_track_indicator:active {
+    background: #ffffff;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+    transform: scale(1.03);
+}
+
+/* Tap / Click Information Bubble (Mobile & Desktop) */
+#gom_info_bubble {
+    position: absolute;
+    z-index: 10000;
+    display: none;
+    max-width: min(320px, 88vw);
+    padding: 10px 14px;
+    border: 2px solid #5a301e;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #2b1810;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    line-height: 1.4;
+    animation: gomFadeIn 0.15s ease-out;
+}
+
+.gom_info_title {
+    font-size: 14px;
+    font-weight: 800;
+    color: #4a2414;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.gom_info_body {
+    font-size: 13px;
+    font-weight: 500;
+    color: #3b180a;
+    line-height: 1.35;
+}
+
+.gom_info_close {
+    font-size: 10px;
+    font-weight: 700;
+    color: #8d6e63;
+    margin-top: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+@keyframes gomFadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 /* Martian Selection Box */
 
 #gom_martian_picker {

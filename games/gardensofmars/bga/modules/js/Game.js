@@ -330,11 +330,11 @@ export class Game {
                 <div id="gom_layout">
                     <div class="game-board-scaler" id="gom_board_scaler">
                         <div id="garden_board">
-                            <div class="gom_track_indicator gom_track_indicator_leapfrog" title="${_('Track 1-25: Landing on an occupied space skips forward to the next empty space!')}">
+                            <div class="gom_track_indicator gom_track_indicator_leapfrog" id="gom_indicator_leapfrog" data-indicator="leapfrog" title="${_('Track 1-25: Landing on an occupied space skips forward to the next empty space and awards +1 VP!')}">
                                 <span class="gom_track_icon">↷</span>
                                 <span class="gom_track_badge_text">${_('1–25: Leapfrog')}</span>
                             </div>
-                            <div class="gom_track_indicator gom_track_indicator_extraturn" title="${_('Track 26-50: Landing on an occupied space above 25 grants an Extra Turn!')}">
+                            <div class="gom_track_indicator gom_track_indicator_extraturn" id="gom_indicator_extraturn" data-indicator="extraturn" title="${_('Track 26-50: Landing on an occupied space above 25 grants an Extra Turn!')}">
                                 <span class="gom_track_icon">+1</span>
                                 <span class="gom_track_badge_text">${_('26–50: Extra Turn')}</span>
                             </div>
@@ -348,9 +348,80 @@ export class Game {
         `;
 
         this.renderSpots();
+        this.setupTrackIndicatorListeners();
         if (this.gamedatas.final_scoring) {
             this.renderFinalScoring(this.gamedatas.final_scoring);
         }
+    }
+
+    setupTrackIndicatorListeners() {
+        const leapfrog = document.getElementById('gom_indicator_leapfrog');
+        const extraturn = document.getElementById('gom_indicator_extraturn');
+
+        const leapfrogTitle = _('1–25: Leapfrog Rule');
+        const leapfrogMsg = _('When moving on track spaces 1–25: If you land on a space already occupied by another player, your token leapfrogs immediately over them to the next available empty space, and you receive +1 bonus Victory Point!');
+
+        const extraturnTitle = _('26–50: Extra Turn Rule');
+        const extraturnMsg = _('When moving on track spaces 26–50: If you land on a space already occupied by another player, you are granted an immediate Extra Turn!');
+
+        if (leapfrog) {
+            leapfrog.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.showTrackInfoBubble(leapfrogTitle, leapfrogMsg, leapfrog);
+            });
+        }
+        if (extraturn) {
+            extraturn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.showTrackInfoBubble(extraturnTitle, extraturnMsg, extraturn);
+            });
+        }
+
+        // Hide bubble on click anywhere outside
+        document.addEventListener('pointerdown', (e) => {
+            if (!e.target.closest('.gom_track_indicator') && !e.target.closest('#gom_info_bubble')) {
+                this.hideTrackInfoBubble();
+            }
+        }, true);
+    }
+
+    showTrackInfoBubble(title, text, anchor) {
+        let bubble = document.getElementById('gom_info_bubble');
+        if (!bubble) {
+            bubble = document.createElement('div');
+            bubble.id = 'gom_info_bubble';
+            document.body.appendChild(bubble);
+        }
+
+        bubble.innerHTML = `
+            <div class="gom_info_title">${title}</div>
+            <div class="gom_info_body">${text}</div>
+            <div class="gom_info_close">${_('Tap anywhere to close')}</div>
+        `;
+        bubble.style.display = 'block';
+
+        const r = anchor.getBoundingClientRect();
+        const bw = bubble.offsetWidth || 280;
+        const bh = bubble.offsetHeight || 100;
+        const sx = window.scrollX || 0;
+        const sy = window.scrollY || 0;
+
+        let top = r.bottom + sy + 6;
+        if (r.bottom + bh + 12 > window.innerHeight) {
+            top = Math.max(sy + 8, r.top + sy - bh - 6);
+        }
+        let left = Math.max(8, Math.min(r.left + sx - 20, window.innerWidth + sx - bw - 8));
+
+        bubble.style.top = `${top}px`;
+        bubble.style.left = `${left}px`;
+
+        clearTimeout(this._bubbleTimer);
+        this._bubbleTimer = setTimeout(() => this.hideTrackInfoBubble(), 10000);
+    }
+
+    hideTrackInfoBubble() {
+        const bubble = document.getElementById('gom_info_bubble');
+        if (bubble) bubble.style.display = 'none';
     }
 
     renderSpots() {
@@ -1104,14 +1175,6 @@ export class Game {
             if (counter) {
                 if (typeof counter.toValue === 'function') counter.toValue(val);
                 else if (typeof counter.setValue === 'function') counter.setValue(val);
-            }
-        } catch (e) {}
-
-        // Fallback: gameui.scoreCtrl
-        try {
-            if (typeof gameui !== 'undefined' && gameui.scoreCtrl?.[pid]) {
-                if (typeof gameui.scoreCtrl[pid].toValue === 'function') gameui.scoreCtrl[pid].toValue(val);
-                else if (typeof gameui.scoreCtrl[pid].setValue === 'function') gameui.scoreCtrl[pid].setValue(val);
             }
         } catch (e) {}
 
