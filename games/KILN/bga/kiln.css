@@ -1238,3 +1238,8 @@
 .kiln_oven_wrapper .kiln_outer_tile_disc {
     transform: rotate(var(--kiln-face, 0deg));
 }
+
+/* Opponent mats are turned toward their seat: counter-rotate every cell so letters face the viewer (cosmetic) */
+.kiln_rot_90 .kiln_wh_cell { transform: rotate(-90deg); }
+.kiln_rot_180 .kiln_wh_cell { transform: rotate(-180deg); }
+.kiln_rot_270 .kiln_wh_cell { transform: rotate(-270deg); }
