@@ -34,7 +34,8 @@ If there is at least one die available on the table:
 * They move their Gardener in a straight line along any of the 6 directions by exactly the die's value (no turning).
 * '''Restrictions:'''
 ** The central space cannot be entered or passed through.
-** A Gardener cannot move through or land on a space occupied by another Gardener.
+** A Gardener cannot land on a space occupied by another Gardener (but can pass through them in a straight line).
+** If playing with the Peaks variant, Peaks (gray cones) cannot be entered or passed through.
 * '''Outcomes:'''
 ** '''Cannot Move / Land on existing flower:''' If the Gardener lands on an existing flower or has no valid legal moves, the player loses 1 point (scoring Martian moves back 1 position, minimum 0).
 ** '''Empty Hexagon:''' If the Gardener stops on an empty hexagon, the player chooses and plants any one flower from their remaining reserve. They immediately score points equal to the total number of connected flowers of that same color already touching the newly planted flower.

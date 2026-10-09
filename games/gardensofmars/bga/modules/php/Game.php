@@ -394,21 +394,15 @@ class Game extends \Bga\GameFramework\Table
                 $currQ = (int) $gardener['q'] + $step * $dq;
                 $currR = (int) $gardener['r'] + $step * $dr;
 
-                // Rule 1: Central space (0, 0) cannot be entered or passed through
-                if ($currQ === 0 && $currR === 0) {
-                    $blocked = true;
-                    break;
-                }
-
-                // Rule 2: Cannot go through or land on a space with another gardener
-                if (isset($otherGardenerMap[$currQ . '_' . $currR])) {
-                    $blocked = true;
-                    break;
-                }
-
                 $cell = $this->getCell($currQ, $currR);
                 if ($cell === null) {
                     // Out of board boundaries
+                    $blocked = true;
+                    break;
+                }
+
+                // Rule 2: Central space (0, 0) cannot be entered or passed through
+                if ($currQ === 0 && $currR === 0) {
                     $blocked = true;
                     break;
                 }
@@ -420,7 +414,13 @@ class Game extends \Bga\GameFramework\Table
                 }
 
                 if ($step === $dieValue) {
-                    // Reached destination!
+                    // Destination hex!
+                    // Cannot land on another gardener's space
+                    if (isset($otherGardenerMap[$currQ . '_' . $currR])) {
+                        break;
+                    }
+
+                    // Reached valid destination!
                     $validMoves[] = [
                         'q' => $currQ,
                         'r' => $currR,
