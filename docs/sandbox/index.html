@@ -91,6 +91,7 @@
     .btn:hover { background: var(--accent-hover); }
     .btn-secondary { background: #444455; }
     .btn-secondary:hover { background: #555566; }
+    .btn-active { background: #2980b9; border: 1px solid #5dade2; }
     .btn-danger { background: #e74c3c; }
     .btn-danger:hover { background: #c0392b; }
 
@@ -115,8 +116,8 @@
       top: 0;
       left: 0;
       transform-origin: 0 0;
-      width: 2000px;
-      height: 2000px;
+      width: 4000px;
+      height: 4000px;
     }
 
     #board-svg {
@@ -148,6 +149,61 @@
       border-radius: 4px;
       margin-top: 2px;
       white-space: nowrap;
+    }
+
+    /* Sandbox Floating Boards (Market & Player Boards) */
+    .movable-board {
+      position: absolute;
+      touch-action: none;
+      z-index: 40;
+      cursor: grab;
+      filter: drop-shadow(0 6px 14px rgba(0,0,0,0.6));
+      border-radius: 10px;
+      transition: box-shadow 0.15s;
+    }
+    .movable-board:active {
+      cursor: grabbing;
+      z-index: 200;
+      filter: drop-shadow(0 12px 24px rgba(0,0,0,0.85));
+    }
+    .movable-board .board-handle {
+      position: absolute;
+      top: -24px;
+      left: 0;
+      right: 0;
+      height: 22px;
+      background: rgba(30,30,40,0.88);
+      border: 1px solid var(--border);
+      border-bottom: none;
+      border-radius: 6px 6px 0 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 8px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #ccc;
+      cursor: grab;
+    }
+    .movable-board .board-handle .btn-close-board {
+      cursor: pointer;
+      color: #e74c3c;
+      font-weight: bold;
+    }
+    .movable-board .board-handle .btn-close-board:hover {
+      color: #ff6b6b;
+    }
+
+    /* Market Board Interactive Pegs */
+    .market-peg {
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+    .market-peg:hover {
+      filter: drop-shadow(0 0 4px #f1c40f);
+    }
+    .market-peg.active {
+      transform-origin: center;
     }
 
     /* Sandbox Pieces */
@@ -194,13 +250,13 @@
 
     /* Sidebar Palette */
     #sidebar {
-      width: 240px;
+      width: 250px;
       background: var(--panel);
       border-left: 1px solid var(--border);
       padding: 14px;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 14px;
       overflow-y: auto;
       z-index: 10;
     }
@@ -211,7 +267,7 @@
       padding: 10px;
     }
     .palette-title {
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       font-weight: 700;
       color: #bbb;
       margin-bottom: 8px;
@@ -304,7 +360,9 @@
         <button class="btn btn-secondary" id="btn-copy" style="padding:3px 8px; font-size:0.75rem;">Copy Link</button>
       </div>
     </div>
-    <div style="display: flex; gap: 8px; align-items: center;">
+    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+      <button class="btn btn-secondary" id="btn-toggle-market">📊 Toggle Market</button>
+      <button class="btn btn-secondary" id="btn-toggle-playerboard">🛡️ Player Mat</button>
       <button class="btn btn-secondary" id="btn-layout-2p">2P Map</button>
       <button class="btn btn-secondary" id="btn-layout-4p">4P Map</button>
       <button class="btn btn-secondary" id="btn-center">Center View</button>
@@ -316,20 +374,26 @@
     <div id="board-container">
       <div id="board-stage">
         <svg id="board-svg"></svg>
+        <div id="boards-layer"></div>
         <div id="pieces-layer"></div>
       </div>
     </div>
 
     <div id="sidebar">
       <div class="palette-group">
-        <div class="palette-title">Unit Faction Color</div>
+        <div class="palette-title">Faction Color</div>
         <div class="color-picker-row" id="color-row">
-          <div class="color-dot active" data-color="2980b9" style="background:#2980b9;"></div>
-          <div class="color-dot" data-color="c0392b" style="background:#c0392b;"></div>
-          <div class="color-dot" data-color="27ae60" style="background:#27ae60;"></div>
-          <div class="color-dot" data-color="f39c12" style="background:#f39c12;"></div>
-          <div class="color-dot" data-color="8e44ad" style="background:#8e44ad;"></div>
-          <div class="color-dot" data-color="d35400" style="background:#d35400;"></div>
+          <div class="color-dot active" data-color="2980b9" data-name="blue" style="background:#2980b9;"></div>
+          <div class="color-dot" data-color="c0392b" data-name="red" style="background:#c0392b;"></div>
+          <div class="color-dot" data-color="27ae60" data-name="green" style="background:#27ae60;"></div>
+          <div class="color-dot" data-color="f39c12" data-name="yellow" style="background:#f39c12;"></div>
+          <div class="color-dot" data-color="8e44ad" data-name="purple" style="background:#8e44ad;"></div>
+          <div class="color-dot" data-color="d35400" data-name="orange" style="background:#d35400;"></div>
+        </div>
+        <div style="display: flex; gap: 6px; margin-top: 6px;">
+          <button class="btn btn-secondary" id="btn-spawn-playerboard" style="width: 100%; font-size: 0.75rem; justify-content: center;">
+            Spawn Selected Player Mat
+          </button>
         </div>
       </div>
 
@@ -385,11 +449,13 @@
 
       <div style="font-size:0.75rem; color:#888; line-height:1.4;">
         💡 <b>Sandbox Controls:</b><br>
+        • <b>Market Board:</b> Click any peg value on the market board to adjust prices manually! Drag the top handle to move it.<br>
+        • <b>Player Board:</b> Move pieces on/off player boards to track barracks &amp; supply.<br>
         • Drag pieces anywhere on the board.<br>
         • Double-click a piece to remove it.<br>
         • Pan by dragging the background.<br>
         • Zoom using mouse scroll wheel.<br>
-        • Anyone with the room link sees your moves in real time!
+        • Real-time synchronization across all players!
       </div>
     </div>
   </div>
@@ -399,8 +465,23 @@
   <script>
     // --- State & Config ---
     let currentColor = '2980b9';
+    let currentColorName = 'blue';
     let currentMap = '2p';
     let pieces = {}; // pieceId -> { id, type, color, x, y }
+
+    // Market state
+    let marketState = {
+      visible: true,
+      x: 180,
+      y: 80,
+      prices: { iron: 3, crystal: 6, bot: 5, mech: 9 }
+    };
+
+    // Movable boards state (player boards, etc.)
+    let movableBoards = {
+      // id -> { id, type, colorName, side, x, y }
+    };
+
     let stageX = 300, stageY = 200, scale = 1.0;
     let isPanning = false, panStart = { x: 0, y: 0 };
     let myPeerId = null, hostConn = null, connections = [];
@@ -410,6 +491,7 @@
     const boardContainer = document.getElementById('board-container');
     const boardStage = document.getElementById('board-stage');
     const boardSvg = document.getElementById('board-svg');
+    const boardsLayer = document.getElementById('boards-layer');
     const piecesLayer = document.getElementById('pieces-layer');
     const toastEl = document.getElementById('toast');
 
@@ -425,6 +507,7 @@
         document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
         dot.classList.add('active');
         currentColor = dot.dataset.color;
+        currentColorName = dot.dataset.name;
       });
     });
 
@@ -434,7 +517,7 @@
     }
 
     boardContainer.addEventListener('mousedown', (e) => {
-      if (e.target.closest('.piece')) return;
+      if (e.target.closest('.piece') || e.target.closest('.movable-board')) return;
       isPanning = true;
       panStart = { x: e.clientX - stageX, y: e.clientY - stageY };
     });
@@ -457,7 +540,7 @@
       const mouseY = e.clientY - boardContainer.offsetTop;
 
       const newScale = e.deltaY < 0 ? scale * zoomFactor : scale / zoomFactor;
-      if (newScale < 0.3 || newScale > 3.0) return;
+      if (newScale < 0.25 || newScale > 3.0) return;
 
       stageX = mouseX - (mouseX - stageX) * (newScale / scale);
       stageY = mouseY - (mouseY - stageY) * (newScale / scale);
@@ -467,15 +550,15 @@
 
     document.getElementById('btn-center').addEventListener('click', () => {
       const rect = boardContainer.getBoundingClientRect();
-      stageX = rect.width / 2 - 400;
-      stageY = rect.height / 2 - 350;
-      scale = 1.0;
+      stageX = rect.width / 2 - 500;
+      stageY = rect.height / 2 - 400;
+      scale = 0.95;
       updateTransform();
     });
 
     // --- Board SVG Rendering ---
     function hexPos(q, r, size) {
-      return { x: size * Math.sqrt(3) * (q + r / 2) + 500, y: size * 1.5 * r + 500 };
+      return { x: size * Math.sqrt(3) * (q + r / 2) + 750, y: size * 1.5 * r + 550 };
     }
 
     async function loadBoard(file) {
@@ -493,7 +576,6 @@
       const parts = [];
       const hexes = deal.hexes;
 
-      // Hexes
       hexes.forEach(h => {
         const { x, y } = hexPos(h.q, h.r, size);
         const pts = [0, 1, 2, 3, 4, 5].map(i => {
@@ -523,7 +605,251 @@
       broadcast({ type: 'map_change', map: '4p' });
     });
 
-    // --- Piece Management ---
+    // ==================================================================
+    // Market Board (Interactive Sliders)
+    // ==================================================================
+    const GOODS = ['iron', 'crystal', 'bot', 'mech'];
+    const PRICE_STEPS = {
+      iron: [2, 3, 4, 5],
+      crystal: [4, 6, 8, 10],
+      bot: [3, 4, 5, 6, 7],
+      mech: [6, 8, 10, 12, 14]
+    };
+    const PRICE_MIN = { iron: 2, crystal: 4, bot: 3, mech: 6 };
+    const PRICE_MAX = { iron: 5, crystal: 10, bot: 7, mech: 14 };
+    const GOOD_LABELS = { iron: 'IRON', crystal: 'CRYSTAL', bot: 'BOT', mech: 'MECH' };
+    const GOOD_COLORS = { iron: '#4f5b66', crystal: '#00838f', bot: '#d35400', mech: '#962d22' };
+
+    function goodIcon(g, x, y) {
+      if (g === 'iron') {
+        return `<g transform="translate(${x},${y})">`
+          + `<polygon points="4,18 20,18 24,25 0,25" fill="#7f8c8d" stroke="#2c3e50" stroke-width="1.2"/>`
+          + `<polygon points="4,18 7,10 23,10 20,18" fill="#bdc3c7" stroke="#2c3e50" stroke-width="1.2"/>`
+          + `<polygon points="20,18 23,10 27,17 24,25" fill="#95a5a6" stroke="#2c3e50" stroke-width="1.2"/>`
+          + `</g>`;
+      }
+      if (g === 'crystal') {
+        return `<g transform="translate(${x},${y})">`
+          + `<polygon points="13,7 22,14 18,25 8,25 4,14" fill="#16a085" stroke="#0e6251" stroke-width="1.2"/>`
+          + `<polygon points="13,7 18,14 13,21 8,14" fill="#a3e4d7" stroke="#0e6251" stroke-width="0.8"/>`
+          + `</g>`;
+      }
+      if (g === 'bot') {
+        return `<g transform="translate(${x},${y})">`
+          + `<rect x="7" y="10" width="13" height="9" rx="2.5" fill="#e67e22" stroke="#7e3805" stroke-width="1.2"/>`
+          + `<circle cx="10.5" cy="14" r="1.2" fill="#fff"/>`
+          + `<circle cx="16.5" cy="14" r="1.2" fill="#fff"/>`
+          + `<line x1="13.5" y1="6" x2="13.5" y2="10" stroke="#7e3805" stroke-width="1.2"/>`
+          + `<circle cx="13.5" cy="5.5" r="1.2" fill="#c0392b"/>`
+          + `<rect x="6" y="20" width="15" height="4" rx="1.2" fill="#ba4a00" stroke="#7e3805" stroke-width="1"/>`
+          + `</g>`;
+      }
+      return `<g transform="translate(${x},${y})">`
+        + `<polygon points="6,8 21,8 24,16 18,23 9,23 3,16" fill="#c0392b" stroke="#641e16" stroke-width="1.2"/>`
+        + `<polygon points="8,12 19,12 17,15 10,15" fill="#f5b7b1" stroke="#641e16" stroke-width="0.8"/>`
+        + `<rect x="5" y="21" width="4" height="4" fill="#78281f" stroke="#641e16" stroke-width="0.8"/>`
+        + `<rect x="18" y="21" width="4" height="4" fill="#78281f" stroke="#641e16" stroke-width="0.8"/>`
+        + `</g>`;
+    }
+
+    function renderMarketSvg() {
+      const rowsSvg = GOODS.map((g, idx) => {
+        const y = 52 + idx * 42;
+        const curP = marketState.prices[g] ?? PRICE_MIN[g];
+        const lo = PRICE_MIN[g], hi = PRICE_MAX[g];
+        const trackSteps = PRICE_STEPS[g] || [lo, hi];
+        const nSteps = trackSteps.length;
+        const trackX = 125, trackW = 270;
+
+        const pegsSvg = trackSteps.map((val, i) => {
+          const cx = trackX + 16 + i * ((trackW - 32) / (nSteps - 1));
+          const cy = y + 20;
+          if (val === curP) {
+            return `<g class="market-peg active" data-good="${g}" data-val="${val}">`
+              + `<circle cx="${cx}" cy="${cy}" r="15" fill="#f39c12" stroke="#6e4104" stroke-width="2.5"/>`
+              + `<circle cx="${cx}" cy="${cy}" r="11" fill="#f1c40f" stroke="#fff8dc" stroke-width="1.2"/>`
+              + `<text x="${cx}" y="${cy + 4.5}" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="12" font-weight="bold" fill="#4d2c00">${val}</text>`
+              + `</g>`;
+          }
+          return `<g class="market-peg" data-good="${g}" data-val="${val}">`
+            + `<circle cx="${cx}" cy="${cy}" r="10" fill="#f5eedd" stroke="#b09f82" stroke-width="1.2"/>`
+            + `<text x="${cx}" y="${cy + 3.5}" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="9" font-weight="600" fill="#7d6c52">${val}</text>`
+            + `</g>`;
+        }).join('');
+
+        return `<g class="mf_market_row">`
+          + `<rect x="12" y="${y}" width="516" height="38" rx="6" fill="${idx % 2 === 0 ? '#ede2cc' : '#f5ecd6'}" stroke="#cfc0a3" stroke-width="1"/>`
+          + goodIcon(g, 18, y + 4)
+          + `<text x="56" y="${y + 24}" font-family="'Segoe UI', Arial, sans-serif" font-size="11.5" font-weight="bold" fill="${GOOD_COLORS[g]}">${GOOD_LABELS[g]}</text>`
+          + `<rect x="${trackX}" y="${y + 10}" width="${trackW}" height="20" rx="10" fill="#dacbb0" stroke="#ad9c7c" stroke-width="1.2"/>`
+          + pegsSvg
+          + `<rect x="408" y="${y + 7}" width="60" height="25" rx="6" fill="#322416" stroke="#c49a3c" stroke-width="1.5"/>`
+          + `<circle cx="420" cy="${y + 19.5}" r="7" fill="#f1c40f" stroke="#7e4a05" stroke-width="1"/>`
+          + `<text x="420" y="${y + 23}" text-anchor="middle" font-size="8.5" font-weight="bold" fill="#5b3903">C</text>`
+          + `<text x="447" y="${y + 23.5}" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="13" font-weight="bold" fill="#f9e79f">${curP}</text>`
+          + `<text x="498" y="${y + 23.5}" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="10.5" font-weight="bold" fill="#755e42">${lo}–${hi}</text>`
+          + `</g>`;
+      }).join('');
+
+      return `
+        <svg viewBox="0 0 540 238" width="540" height="238" xmlns="http://www.w3.org/2000/svg">
+          <rect width="540" height="238" rx="10" fill="#2c2217" stroke="#18120b" stroke-width="2"/>
+          <rect x="5" y="5" width="530" height="228" rx="8" fill="#f5ecda" stroke="#846545" stroke-width="1.5"/>
+          <rect x="12" y="10" width="516" height="34" rx="5" fill="#3a2b1c"/>
+          <text x="270" y="27" text-anchor="middle" font-family="'Trebuchet MS', 'Segoe UI', Arial, sans-serif" font-size="14" font-weight="bold" fill="#f5d57f" letter-spacing="2">THE MARKET</text>
+          <text x="270" y="38" text-anchor="middle" font-family="'Trebuchet MS', 'Segoe UI', Arial, sans-serif" font-size="8" font-weight="600" fill="#c4b094" letter-spacing="0.5">CLICK ANY VALUE PEGS TO SLIDE/ADJUST PRICE</text>
+          ${rowsSvg}
+          <text x="270" y="230" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="8.5" fill="#7a6245">Drag top handle to move board • Real-time synchronized</text>
+        </svg>`;
+    }
+
+    function renderMarketBoard() {
+      let el = document.getElementById('market-board');
+      if (!marketState.visible) {
+        if (el) el.remove();
+        return;
+      }
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'market-board';
+        el.className = 'movable-board';
+        boardsLayer.appendChild(el);
+        initMovableBoardDrag(el, (newX, newY) => {
+          marketState.x = newX;
+          marketState.y = newY;
+          broadcast({ type: 'market_move', x: newX, y: newY });
+        });
+      }
+      el.style.left = `${marketState.x}px`;
+      el.style.top = `${marketState.y}px`;
+      el.innerHTML = `
+        <div class="board-handle">
+          <span>📊 Market Board</span>
+          <span class="btn-close-board" title="Hide Market">✕</span>
+        </div>
+        ${renderMarketSvg()}`;
+
+      el.querySelector('.btn-close-board').onclick = (e) => {
+        e.stopPropagation();
+        marketState.visible = false;
+        renderMarketBoard();
+        broadcast({ type: 'market_visibility', visible: false });
+      };
+
+      el.querySelectorAll('.market-peg').forEach(peg => {
+        peg.onclick = (e) => {
+          e.stopPropagation();
+          const good = peg.dataset.good;
+          const val = Number(peg.dataset.val);
+          marketState.prices[good] = val;
+          renderMarketBoard();
+          broadcast({ type: 'market_price', good, val });
+          showToast(`Market ${good.toUpperCase()} price set to ${val}`);
+        };
+      });
+    }
+
+    document.getElementById('btn-toggle-market').addEventListener('click', () => {
+      marketState.visible = !marketState.visible;
+      renderMarketBoard();
+      broadcast({ type: 'market_visibility', visible: marketState.visible });
+    });
+
+    // ==================================================================
+    // Movable Player Boards
+    // ==================================================================
+    function spawnPlayerBoard(colorName = currentColorName, side = 'advanced') {
+      const id = 'pb_' + Math.random().toString(36).substr(2, 8);
+      const rect = boardContainer.getBoundingClientRect();
+      const stageViewX = (rect.width / 2 - stageX) / scale;
+      const stageViewY = (rect.height / 2 - stageY) / scale;
+
+      const boardObj = {
+        id,
+        colorName,
+        side,
+        x: stageViewX - 100,
+        y: stageViewY - 100
+      };
+      movableBoards[id] = boardObj;
+      renderMovableBoard(boardObj);
+      broadcast({ type: 'board_spawn', board: boardObj });
+      showToast(`Spawned ${colorName.toUpperCase()} Commander Board`);
+      return boardObj;
+    }
+
+    function renderMovableBoard(b) {
+      let el = document.getElementById(b.id);
+      if (!el) {
+        el = document.createElement('div');
+        el.id = b.id;
+        el.className = 'movable-board player-mat';
+        boardsLayer.appendChild(el);
+        initMovableBoardDrag(el, (newX, newY) => {
+          b.x = newX;
+          b.y = newY;
+          broadcast({ type: 'board_move', id: b.id, x: newX, y: newY });
+        });
+      }
+      el.style.left = `${b.x}px`;
+      el.style.top = `${b.y}px`;
+      el.innerHTML = `
+        <div class="board-handle">
+          <span>🛡️ ${b.colorName.toUpperCase()} Player Mat (${b.side})</span>
+          <span class="btn-close-board" title="Remove Mat">✕</span>
+        </div>
+        <img src="img/boards/player_board_${b.colorName}_${b.side}.svg" style="width:420px; display:block; border-radius:0 0 10px 10px; pointer-events:none;">`;
+
+      el.querySelector('.btn-close-board').onclick = (e) => {
+        e.stopPropagation();
+        delete movableBoards[b.id];
+        el.remove();
+        broadcast({ type: 'board_remove', id: b.id });
+      };
+    }
+
+    document.getElementById('btn-toggle-playerboard').addEventListener('click', () => {
+      spawnPlayerBoard(currentColorName, 'advanced');
+    });
+
+    document.getElementById('btn-spawn-playerboard').addEventListener('click', () => {
+      spawnPlayerBoard(currentColorName, 'advanced');
+    });
+
+    function initMovableBoardDrag(el, onMoveCallback) {
+      let startX = 0, startY = 0, initialLeft = 0, initialTop = 0;
+      const handle = el.querySelector('.board-handle') || el;
+
+      handle.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+        startX = e.clientX;
+        startY = e.clientY;
+        initialLeft = parseFloat(el.style.left) || 0;
+        initialTop = parseFloat(el.style.top) || 0;
+
+        function onMouseMove(moveEv) {
+          const dx = (moveEv.clientX - startX) / scale;
+          const dy = (moveEv.clientY - startY) / scale;
+          const newX = initialLeft + dx;
+          const newY = initialTop + dy;
+          el.style.left = `${newX}px`;
+          el.style.top = `${newY}px`;
+          if (onMoveCallback) onMoveCallback(newX, newY);
+        }
+
+        function onMouseUp() {
+          window.removeEventListener('mousemove', onMouseMove);
+          window.removeEventListener('mouseup', onMouseUp);
+        }
+
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+      });
+    }
+
+    // ==================================================================
+    // Piece Management
+    // ==================================================================
     function spawnPiece(type, color = currentColor, x = 500, y = 500, id = null) {
       const pieceId = id || 'p_' + Math.random().toString(36).substr(2, 9);
       const piece = { id: pieceId, type, color, x, y };
@@ -597,7 +923,6 @@
     document.querySelectorAll('.spawner').forEach(s => {
       s.addEventListener('click', () => {
         const type = s.dataset.type;
-        // Spawn near center of view
         const rect = boardContainer.getBoundingClientRect();
         const stageViewX = (rect.width / 2 - stageX) / scale;
         const stageViewY = (rect.height / 2 - stageY) / scale;
@@ -612,7 +937,9 @@
       showToast('All pieces cleared');
     });
 
-    // --- Multiplayer Networking (PeerJS) ---
+    // ==================================================================
+    // Multiplayer Networking (PeerJS)
+    // ==================================================================
     const urlParams = new URLSearchParams(window.location.search);
     const roomFromUrl = urlParams.get('room');
     const roomId = roomFromUrl || ('mc_' + Math.random().toString(36).substr(2, 6));
@@ -682,20 +1009,57 @@
       } else if (msg.type === 'pieces_clear') {
         pieces = {};
         piecesLayer.innerHTML = '';
+      } else if (msg.type === 'market_move') {
+        marketState.x = msg.x;
+        marketState.y = msg.y;
+        renderMarketBoard();
+      } else if (msg.type === 'market_price') {
+        marketState.prices[msg.good] = msg.val;
+        renderMarketBoard();
+      } else if (msg.type === 'market_visibility') {
+        marketState.visible = msg.visible;
+        renderMarketBoard();
+      } else if (msg.type === 'board_spawn') {
+        movableBoards[msg.board.id] = msg.board;
+        renderMovableBoard(msg.board);
+      } else if (msg.type === 'board_move') {
+        if (movableBoards[msg.id]) {
+          movableBoards[msg.id].x = msg.x;
+          movableBoards[msg.id].y = msg.y;
+          const el = document.getElementById(msg.id);
+          if (el) {
+            el.style.left = `${msg.x}px`;
+            el.style.top = `${msg.y}px`;
+          }
+        }
+      } else if (msg.type === 'board_remove') {
+        delete movableBoards[msg.id];
+        const el = document.getElementById(msg.id);
+        if (el) el.remove();
       } else if (msg.type === 'map_change') {
         currentMap = msg.map;
         loadBoard(`default_board_${msg.map}.json`);
       } else if (msg.type === 'sync_state') {
-        pieces = msg.pieces;
+        pieces = msg.pieces || {};
         piecesLayer.innerHTML = '';
         Object.values(pieces).forEach(renderPieceEl);
+
+        marketState = msg.market || marketState;
+        renderMarketBoard();
+
+        movableBoards = msg.movableBoards || {};
+        boardsLayer.innerHTML = '';
+        renderMarketBoard();
+        Object.values(movableBoards).forEach(renderMovableBoard);
+
         if (msg.map !== currentMap) {
           currentMap = msg.map;
           loadBoard(`default_board_${msg.map}.json`);
         }
       }
+
       if (isHost && msg.type !== 'cursor') {
-        // Forward to other connected peers
+        // Forward to other peers
         connections.forEach(conn => {
           if (conn.open) conn.send(msg);
         });
@@ -703,10 +1067,7 @@
     }
 
     function initNetworking() {
-      // Connect to public PeerJS broker
-      peer = new Peer(roomId, {
-        debug: 1
-      });
+      peer = new Peer(roomId, { debug: 1 });
 
       peer.on('open', (id) => {
         myPeerId = id;
@@ -719,8 +1080,13 @@
         connections.push(conn);
         conn.on('open', () => {
           showToast('A friend joined your room!');
-          // Send full current state to newly joined friend
-          conn.send({ type: 'sync_state', pieces, map: currentMap });
+          conn.send({
+            type: 'sync_state',
+            pieces,
+            market: marketState,
+            movableBoards,
+            map: currentMap
+          });
         });
         conn.on('data', handleData);
         conn.on('close', () => {
@@ -730,7 +1096,6 @@
 
       peer.on('error', (err) => {
         if (err.type === 'unavailable-id') {
-          // ID taken: we are a client connecting to an existing room host!
           peer.destroy();
           const clientPeer = new Peer();
           clientPeer.on('open', (cId) => {
@@ -756,6 +1121,7 @@
     // --- Init ---
     window.addEventListener('DOMContentLoaded', () => {
       loadBoard('default_board_2p.json');
+      renderMarketBoard();
       initNetworking();
       document.getElementById('btn-center').click();
     });
