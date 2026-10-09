@@ -961,13 +961,61 @@ export class Game {
     }
 
     setupResponsiveScaling() {
-        window.addEventListener('resize', () => this.updateBoardScale());
-        window.addEventListener('orientationchange', () => setTimeout(() => this.updateBoardScale(), 150));
+        window.addEventListener('resize', () => {
+            this.relocatePlayerBoardsForMobile();
+            this.updateBoardScale();
+        });
+        window.addEventListener('orientationchange', () => setTimeout(() => {
+            this.relocatePlayerBoardsForMobile();
+            this.updateBoardScale();
+        }, 150));
         const container = document.getElementById('gardensofmars_container');
         if (typeof ResizeObserver !== 'undefined' && container?.parentElement) {
             new ResizeObserver(() => this.updateBoardScale()).observe(container.parentElement);
         }
-        [100, 500, 1500].forEach(ms => setTimeout(() => this.updateBoardScale(), ms));
+        [100, 300, 700, 1500].forEach(ms => setTimeout(() => {
+            this.relocatePlayerBoardsForMobile();
+            this.updateBoardScale();
+        }, ms));
+    }
+
+    relocatePlayerBoardsForMobile() {
+        const pb = document.getElementById('player_boards');
+        if (!pb) return;
+
+        const isMobile = window.innerWidth <= 980 ||
+                         document.body.classList.contains('mobile_version') ||
+                         document.body.classList.contains('touch-device');
+
+        // Store original parent and next sibling for restoration on desktop
+        if (!this._pbOriginalParent) {
+            this._pbOriginalParent = pb.parentElement;
+            this._pbOriginalNextSibling = pb.nextSibling;
+        }
+
+        const gameArea = document.getElementById('game_play_area') ||
+                         document.getElementById('gardensofmars_container');
+
+        if (isMobile) {
+            // Move player_boards before game_play_area / container so it sits at the very top of mobile view
+            if (gameArea && pb.nextElementSibling !== gameArea && pb.parentElement !== gameArea.parentElement) {
+                gameArea.parentElement.insertBefore(pb, gameArea);
+                pb.classList.add('gom_mobile_docked');
+            } else if (gameArea && pb.parentElement === gameArea.parentElement && pb.nextElementSibling !== gameArea) {
+                gameArea.parentElement.insertBefore(pb, gameArea);
+                pb.classList.add('gom_mobile_docked');
+            }
+        } else {
+            // Restore to original sidebar location on wide desktop screens
+            if (this._pbOriginalParent && pb.parentElement !== this._pbOriginalParent) {
+                if (this._pbOriginalNextSibling && this._pbOriginalNextSibling.parentElement === this._pbOriginalParent) {
+                    this._pbOriginalParent.insertBefore(pb, this._pbOriginalNextSibling);
+                } else {
+                    this._pbOriginalParent.appendChild(pb);
+                }
+                pb.classList.remove('gom_mobile_docked');
+            }
+        }
     }
 
     /** On mobile viewports, widen container to use full screen width */
