@@ -387,9 +387,11 @@ function (dojo, declare, bgaHelp) {
                 return Math.max(300, Math.floor(pbRect.left - tableLeft - 15));
             }
 
-            // Otherwise, player boards are stacked below the table (mobile / narrow layout)
-            var bodyWidth = (document.body ? document.body.clientWidth : 0) || window.innerWidth;
-            return Math.max(300, Math.floor(bodyWidth - tableLeft - 20));
+            // Stacked layout (mobile): size from the parent, not the table's own offset, which
+            // shifts with the scale and would make the board shrink on every setScale call.
+            var parentEl = tableEl ? tableEl.parentNode : null;
+            var parentWidth = (parentEl && parentEl.clientWidth) || (document.body ? document.body.clientWidth : 0) || window.innerWidth;
+            return Math.max(300, Math.floor(parentWidth - 20));
         },
 
         /* @Override */
