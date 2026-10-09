@@ -970,6 +970,40 @@ export class Game {
         [100, 500, 1500].forEach(ms => setTimeout(() => this.updateBoardScale(), ms));
     }
 
+    /** On mobile viewports, widen container to use full screen width */
+    fitContainerToScreen(container) {
+        container.style.width = '';
+        container.style.marginLeft = '';
+        container.style.marginRight = '';
+
+        const viewportW = document.documentElement.clientWidth || window.innerWidth;
+        if (window.innerWidth > 980) {
+            return container.clientWidth;
+        }
+
+        let ref = null;
+        let widest = 0;
+        for (let el = container.parentElement; el && el !== document.documentElement; el = el.parentElement) {
+            if (el.clientWidth > widest) {
+                widest = el.clientWidth;
+                ref = el;
+            }
+        }
+        const targetW = Math.min(widest || viewportW, viewportW);
+        container.style.width = `${targetW}px`;
+
+        if (ref) {
+            const cRect = container.getBoundingClientRect();
+            const rRect = ref.getBoundingClientRect();
+            const unit = (container.offsetWidth && cRect.width) ? cRect.width / container.offsetWidth : 1;
+            const shift = (cRect.left - rRect.left) / unit;
+            if (Math.abs(shift) > 0.5) {
+                container.style.marginLeft = `${-shift}px`;
+            }
+        }
+        return targetW;
+    }
+
     updateBoardScale() {
         const scaler = document.getElementById('gom_board_scaler');
         const board = document.getElementById('garden_board');
@@ -995,9 +1029,10 @@ export class Game {
 
         const baseWidth = isLand ? 1272 : BOARD_CONFIG.w;
         const baseHeight = isLand ? 900 : BOARD_CONFIG.h;
-        const availableWidth = container.clientWidth || window.innerWidth;
+        const containerWidth = this.fitContainerToScreen(container) || container.clientWidth || window.innerWidth;
+        const availableWidth = Math.max(280, containerWidth - 8);
 
-        let scale = Math.max(0.35, Math.min(1.0, (availableWidth - 16) / baseWidth));
+        let scale = Math.max(0.35, Math.min(1.0, availableWidth / baseWidth));
         const scaledW = Math.round(baseWidth * scale);
         const scaledH = Math.round(baseHeight * scale);
 

@@ -626,3 +626,82 @@
 .gom_score_table th:first-child, .gom_score_table td:first-child {
     text-align: left;
 }
+
+/* ---------- Mobile Responsive Layout: Player Panels above board & Full Width ---------- */
+
+@media (max-width: 980px) {
+    /* Reorder BGA's layout so player boards appear above the game board on mobile */
+    #overall-content {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        width: 100% !important;
+    }
+
+    #right-side-first-part,
+    #right-side,
+    #player_boards {
+        order: 1 !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+    }
+
+    #left-side,
+    #left-side-wrapper,
+    #game_play_area,
+    #game_play_area_wrap {
+        order: 2 !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    #logs_and_chat,
+    #chatbar {
+        order: 3 !important;
+    }
+
+    /* Format player boards horizontally / wrapped above the board */
+    #player_boards {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+        gap: 8px !important;
+        margin-bottom: 8px !important;
+        padding: 4px !important;
+        box-sizing: border-box !important;
+    }
+
+    #player_boards .player-board,
+    #player_boards .overall_player_board_wrap {
+        flex: 1 1 260px !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Container fills width */
+    #gardensofmars_container {
+        margin: 4px 0 16px 0 !important;
+        padding: 8px 4px 12px !important;
+        border-radius: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    .gom_die_token {
+        width: 38px;
+        height: 38px;
+        min-width: 38px;
+        min-height: 38px;
+        font-size: 18px;
+    }
+
+    #gom_dice_pool_area {
+        gap: 8px;
+        padding: 4px 8px;
+    }
+}
