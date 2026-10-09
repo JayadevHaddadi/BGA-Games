@@ -885,12 +885,6 @@ export class Game {
             mName.style.color = `#${pColor}`;
             mBadge.appendChild(mName);
 
-            const mVP = document.createElement('span');
-            mVP.className = 'gom_panel_martian_vp';
-            mVP.title = _('Track Space / Victory Points');
-            mVP.textContent = `${trackPos} VP`;
-            mBadge.appendChild(mVP);
-
             box.appendChild(mBadge);
 
             let total = 0;
