@@ -503,27 +503,27 @@
 }
 
 .gom_track_indicator_leapfrog {
-    top: 300px;
-    left: 18px;
-}
-
-.gom_track_indicator_extraturn {
     top: 940px;
     right: 18px;
 }
 
-#garden_board.landscape .gom_track_indicator_leapfrog {
-    bottom: 18px;
-    left: 300px;
-    top: auto;
-    right: auto;
+.gom_track_indicator_extraturn {
+    top: 300px;
+    left: 18px;
 }
 
-#garden_board.landscape .gom_track_indicator_extraturn {
+#garden_board.landscape .gom_track_indicator_leapfrog {
     top: 18px;
     right: 300px;
     bottom: auto;
     left: auto;
+}
+
+#garden_board.landscape .gom_track_indicator_extraturn {
+    bottom: 18px;
+    left: 300px;
+    top: auto;
+    right: auto;
 }
 
 .gom_track_icon {
