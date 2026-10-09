@@ -414,13 +414,13 @@ class Game extends \Bga\GameFramework\Table
                     break;
                 }
 
-                if ($step === $dieValue) {
-                    // Destination hex!
-                    // Cannot land on another gardener's space
-                    if (isset($otherGardenerMap[$currQ . '_' . $currR])) {
-                        break;
-                    }
+                // Rule 4: Other Martian gardeners block movement entirely — cannot enter, pass through, or land on them
+                if (isset($otherGardenerMap[$currQ . '_' . $currR])) {
+                    $blocked = true;
+                    break;
+                }
 
+                if ($step === $dieValue) {
                     // Reached valid destination!
                     $validMoves[] = [
                         'q' => $currQ,
@@ -532,15 +532,21 @@ class Game extends \Bga\GameFramework\Table
                 }
 
                 // Advance scoring track
-                $landedOn25Occupied = $this->advanceScoreTrack($playerId, $clusterPoints);
+                $trackRes = $this->advanceScoreTrack($playerId, $clusterPoints);
+                $landedOn25Occupied = $trackRes['landed_on_25'];
+                $leapfrogBonus = $trackRes['leapfrog_bonus'];
 
                 // Discard used die before notifications
                 static::DbQuery("UPDATE `dice_pool` SET `is_used` = 1 WHERE `die_id` = $dieId");
 
                 $remainingOfColor = $reserve - 1;
+                $notifMsg = ($leapfrogBonus > 0)
+                    ? clienttranslate('${player_name} moved to (${target_q},${target_r}) using die ${die_value}, planted a ${color_name} flower, scored ${points} points, and leapfrogged for +${leapfrog_bonus} bonus point(s)!')
+                    : clienttranslate('${player_name} moved to (${target_q},${target_r}) using die ${die_value}, planted a ${color_name} flower, and scored ${points} points');
+
                 $this->notifyAllPlayers(
                     "gardenerMovedAndPlanted",
-                    clienttranslate('${player_name} moved to (${target_q},${target_r}) using die ${die_value}, planted a ${color_name} flower, and scored ${points} points'),
+                    $notifMsg,
                     [
                         'i18n' => ['color_name'],
                         'player_id' => $playerId,
@@ -551,7 +557,9 @@ class Game extends \Bga\GameFramework\Table
                         'die_value' => $dieValue,
                         'flower_color' => $flowerColor,
                         'color_name' => $this->getColorName($flowerColor),
-                        'points' => $clusterPoints,
+                        'points' => $clusterPoints + $leapfrogBonus,
+                        'cluster_points' => $clusterPoints,
+                        'leapfrog_bonus' => $leapfrogBonus,
                         'score' => (int) $this->playerScore->get($playerId),
                         'track_pos' => $this->getGardenerTrackPos($playerId),
                         'flowers' => $this->getPlayerFlowers($playerId),
@@ -634,10 +642,10 @@ class Game extends \Bga\GameFramework\Table
         return max(0, $count - 1);
     }
 
-    public function advanceScoreTrack(int $playerId, int $points): bool
+    public function advanceScoreTrack(int $playerId, int $points): array
     {
         if ($points <= 0) {
-            return false;
+            return ['landed_on_25' => false, 'leapfrog_bonus' => 0];
         }
 
         $this->playerScore->inc($playerId, $points);
@@ -645,6 +653,7 @@ class Game extends \Bga\GameFramework\Table
         $trackVariant = (int) $this->globals->get('track_variant', 1);
         $currentPos = $this->getGardenerTrackPos($playerId);
         $landedOnOccupied25 = false;
+        $leapfrogBonus = 0;
 
         if ($trackVariant === 1) {
             // Leapfrog mechanic: if destination is occupied by another Martian, advance to next unoccupied square!
@@ -663,10 +672,15 @@ class Game extends \Bga\GameFramework\Table
             // Leapfrog forward until reaching an unoccupied space
             while (isset($occupiedMap[$targetPos])) {
                 $targetPos++;
+                $leapfrogBonus++;
+            }
+
+            // If leapfrog occurred, award the leapfrog bonus points to player's score!
+            if ($leapfrogBonus > 0) {
+                $this->playerScore->inc($playerId, $leapfrogBonus);
             }
 
             // Wrap around or cap at 50? Track has spaces 0..50.
-            // On a 50-space track, loops around 1..50 if exceeds 50
             if ($targetPos > 50) {
                 $targetPos = (($targetPos - 1) % 50) + 1;
             }
@@ -677,7 +691,10 @@ class Game extends \Bga\GameFramework\Table
             static::DbQuery(sprintf("UPDATE `gardener` SET `track_pos` = %d WHERE `player_id` = %d", $newPos, $playerId));
         }
 
-        return $landedOnOccupied25;
+        return [
+            'landed_on_25' => $landedOnOccupied25,
+            'leapfrog_bonus' => $leapfrogBonus,
+        ];
     }
 
     public function applyPenalty(int $playerId, string $logMsg, array $logArgs = []): void
