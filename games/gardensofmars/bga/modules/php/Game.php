@@ -367,6 +367,7 @@ class Game extends \Bga\GameFramework\Table
                 'count' => $diceCount,
                 'dice' => $rolledDice,
                 'dice_values' => implode(', ', $valuesList),
+                'valid_moves_by_die' => $this->getAllValidMoves($playerId),
             ]
         );
 

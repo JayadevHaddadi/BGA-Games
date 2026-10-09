@@ -494,24 +494,25 @@
 
 .gom_track_indicator_leapfrog {
     top: 300px;
-    right: 18px;
+    left: 18px;
 }
 
 .gom_track_indicator_extraturn {
     top: 940px;
-    left: 18px;
+    right: 18px;
 }
 
 #garden_board.landscape .gom_track_indicator_leapfrog {
-    top: 18px;
+    bottom: 18px;
     left: 300px;
+    top: auto;
     right: auto;
 }
 
 #garden_board.landscape .gom_track_indicator_extraturn {
-    bottom: 18px;
+    top: 18px;
     right: 300px;
-    top: auto;
+    bottom: auto;
     left: auto;
 }
 

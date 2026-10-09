@@ -61,6 +61,12 @@ class PlayerTurn extends GameState
         $activePlayerId = (int) $this->game->getActivePlayerId();
         $availableDice = $this->game->getAvailableDice();
 
+        // If pool is empty, roll dice now so args accurately provide the rolled dice
+        if (empty($availableDice)) {
+            $rolled = $this->game->rollDiceForPlayer($activePlayerId);
+            $availableDice = $this->game->getAvailableDice();
+        }
+
         return [
             'available_dice' => $availableDice,
             'valid_moves_by_die' => $this->game->getAllValidMoves($activePlayerId),

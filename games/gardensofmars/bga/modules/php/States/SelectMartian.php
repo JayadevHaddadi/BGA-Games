@@ -118,6 +118,10 @@ class SelectMartian extends GameState
             // All gardeners placed! Roll dice or start PlayerTurn for first player
             $firstPlayerId = (int) $playerIds[0];
             $this->gamestate->changeActivePlayer($firstPlayerId);
+            $avail = $this->game->getAvailableDice();
+            if (empty($avail)) {
+                $this->game->rollDiceForPlayer($firstPlayerId);
+            }
             return PlayerTurn::class;
         }
     }
@@ -144,7 +148,12 @@ class SelectMartian extends GameState
             $this->gamestate->changeActivePlayer($nextPlayerId);
             return self::class;
         } else {
-            $this->gamestate->changeActivePlayer((int) $playerIds[0]);
+            $firstPlayerId = (int) $playerIds[0];
+            $this->gamestate->changeActivePlayer($firstPlayerId);
+            $avail = $this->game->getAvailableDice();
+            if (empty($avail)) {
+                $this->game->rollDiceForPlayer($firstPlayerId);
+            }
             return PlayerTurn::class;
         }
     }

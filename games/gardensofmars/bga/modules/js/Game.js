@@ -249,7 +249,7 @@ export class Game {
     getTrackPixel(pos) {
         // Pre-computed exact track points for positions 0..50
         const track = {
-            "0": {"x": 55, "y": 335},
+            "0": {"x": 14, "y": 290},
             "1": {"x": 55, "y": 290},
             "2": {"x": 55, "y": 245},
             "3": {"x": 55, "y": 200},
@@ -474,7 +474,7 @@ export class Game {
         this.clearActionButtons();
         this.stagedMove = null;
 
-        const avail = (this.lastTurnArgs?.available_dice || []).filter(d => !parseInt(d.is_used));
+        const avail = (this.lastTurnArgs?.available_dice || this.gamedatas?.dice_pool || []).filter(d => !parseInt(d.is_used));
         if (avail.length === 0) return;
 
         // Show all destination hexes reachable by any available die
@@ -1080,6 +1080,16 @@ export class Game {
         const args = this._getNotifArgs(notif);
         this.gamedatas.dice_pool = args.dice || [];
         this.selectedDieId = null;
+        if (args.valid_moves_by_die) {
+            this.validMovesByDie = args.valid_moves_by_die;
+        }
+        if (this.lastTurnArgs) {
+            this.lastTurnArgs.available_dice = this.gamedatas.dice_pool;
+            this.lastTurnArgs.is_stuck = (this.gamedatas.dice_pool.length === 0);
+            if (args.valid_moves_by_die) {
+                this.lastTurnArgs.valid_moves_by_die = args.valid_moves_by_die;
+            }
+        }
         sounds.playMove();
         this.renderDicePool();
         if (this.isCurrentPlayerActive()) {
