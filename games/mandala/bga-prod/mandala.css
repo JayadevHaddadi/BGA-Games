@@ -245,6 +245,7 @@
     height: calc(338px * var(--mdlScale));
     display: flex;
     max-width: 100%;
+    padding: 0 calc(76px * var(--mdlScale));
 }
 
 .mdl_mandala {
@@ -923,31 +924,66 @@
     color: #333;
 }
 
-/* Colors missing per river: a small matte panel in the empty end margin of each river row */
-.mdl_river_missing {
+/* Colors missing panels: two per river row (yours, opponent's) and one per mandala/mountain.
+   River panels sit in the empty end margins of the river row; mandala panels sit in the gutter beside each mandala. */
+.mdl_missing_panel {
     position: absolute;
-    width: calc(48px * var(--mdlScale));
+    z-index: 5;
+    width: calc(66px * var(--mdlScale));
+    box-sizing: border-box;
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: calc(4px * var(--mdlScale));
+    padding: calc(2px * var(--mdlScale));
     background: rgba(255, 255, 255, 0.85);
     border: calc(1px * var(--mdlScale)) solid rgba(0, 0, 0, 0.25);
     border-radius: 3px;
-    padding: calc(2px * var(--mdlScale));
-    box-sizing: border-box;
-    height: calc(98px * var(--mdlScale));
-    z-index: 5;
 }
-.mdl_my_river .mdl_river_missing {
+.mdl_missing_panel.mdl_missing_left {
+    flex-direction: row;
+}
+.mdl_missing_panel.mdl_missing_right {
+    flex-direction: row-reverse;
+}
+.mdl_missing_panel.mdl_missing_complete {
+    border: calc(2px * var(--mdlScale)) solid #27ae60;
+}
+
+.mdl_my_river .mdl_missing_panel {
     left: calc(4px * var(--mdlScale));
     top: calc(7px * var(--mdlScale));
+    height: calc(98px * var(--mdlScale));
 }
-.mdl_op_river .mdl_river_missing {
+.mdl_op_river .mdl_missing_panel {
     right: calc(4px * var(--mdlScale));
     top: calc(45px * var(--mdlScale));
+    height: calc(98px * var(--mdlScale));
 }
-.mdl_river_missing.mdl_river_missing_complete {
-    border: calc(2px * var(--mdlScale)) solid #27ae60;
+.mdl_mandala .mdl_missing_panel {
+    top: 50%;
+    transform: translateY(-50%);
+    height: calc(99px * var(--mdlScale));
+}
+.mdl_mandala .mdl_missing_panel.mdl_missing_left {
+    left: calc(-72px * var(--mdlScale));
+}
+.mdl_mandala .mdl_missing_panel.mdl_missing_right {
+    right: calc(-72px * var(--mdlScale));
+}
+
+.mdl_missing_title {
+    writing-mode: vertical-rl;
+    font-size: calc(9px * var(--mdlScale));
+    font-weight: 700;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: calc(0.5px * var(--mdlScale));
+    white-space: nowrap;
+    user-select: none;
+}
+.mdl_missing_left .mdl_missing_title {
+    transform: rotate(180deg);
 }
 
 .mdl_missing_cards {

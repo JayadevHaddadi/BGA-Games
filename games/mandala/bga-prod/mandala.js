@@ -242,7 +242,7 @@ function (dojo, declare, bgaHelp) {
                     this.updateMissingColors();
                 } else {
                     // Hide containers if preference is disabled
-                    dojo.query('.mdl_river_missing').style('display', 'none');
+                    dojo.query('.mdl_missing_panel').style('display', 'none');
                 }
             });
 
@@ -849,7 +849,9 @@ function (dojo, declare, bgaHelp) {
             }
         },
         getOverlap(stockObj) {
-            var areaWidth = 375 * this.mdlScale;
+            // Measure the real stock width so cards always fit, whatever gutters surround the mandala
+            var measured = stockObj.container_div ? stockObj.container_div.clientWidth : 0;
+            var areaWidth = measured > 0 ? measured : 375 * this.mdlScale;
             var cardsNbr = stockObj.count(); 
             if (cardsNbr < 5) {
                 stockObj.item_margin = 5;
@@ -1903,7 +1905,7 @@ function (dojo, declare, bgaHelp) {
         ///////////////////////////////////////////////////
         //// Mandala Missing Colors Indicator methods
 
-        // Colors missing per river: one panel per player's river listing the colors not yet in it
+        // Colors missing panels: one per player's river, one per mandala (mountain + fields)
         updateMissingColors: function() {
             // Early return if the preference is disabled (panels are hidden in setup/onPreferenceChange)
             if (this.bga.userPreferences.get(103) != 1) {
@@ -1912,6 +1914,39 @@ function (dojo, declare, bgaHelp) {
 
             try {
                 var allColors = this.colors || ['red','orange','green','yellow','purple','black'];
+
+                var resolveColor = (val) => {
+                    if (typeof val === 'string' && allColors.includes(val)) {
+                        return val;
+                    }
+                    var num = parseInt(val, 10);
+                    if (!isNaN(num) && allColors[num]) {
+                        return allColors[num];
+                    }
+                    return null;
+                };
+
+                var getStockColors = (stock) => {
+                    var found = {};
+                    if (!stock) return found;
+                    if (stock.getPresentTypeList) {
+                        var present = stock.getPresentTypeList();
+                        for (var k in present) {
+                            var c = resolveColor(k);
+                            if (c) found[c] = true;
+                        }
+                    }
+                    if (stock.getAllItems) {
+                        var items = stock.getAllItems();
+                        if (Array.isArray(items)) {
+                            items.forEach((item) => {
+                                var c = resolveColor(item.type);
+                                if (c) found[c] = true;
+                            });
+                        }
+                    }
+                    return found;
+                };
 
                 // River cards carry their colour in the class name, e.g. "mdl_red_card"
                 var getRiverColors = (playerId) => {
@@ -1929,30 +1964,52 @@ function (dojo, declare, bgaHelp) {
                     return found;
                 };
 
-                Object.keys(this.gamedatas.players).forEach((playerId) => {
-                    var container = $('mdl_river_missing_' + playerId);
-                    if (!container) return;
-
-                    var inRiver = getRiverColors(playerId);
-                    var missing = allColors.filter((c) => !inRiver[c]);
-
+                var renderPanel = (container, missing) => {
                     if (missing.length === 0) {
-                        container.innerHTML = '';
-                        container.classList.add('mdl_river_missing_complete');
+                        container.innerHTML = '<span class="mdl_missing_title">' + _('Complete!') + '</span>';
+                        container.classList.add('mdl_missing_complete');
                         container.title = _('Complete!');
                     } else {
-                        var html = '<div class="mdl_missing_cards">';
+                        var html = '<span class="mdl_missing_title">' + _('Missing colors') + '</span>';
+                        html += '<div class="mdl_missing_cards">';
                         missing.forEach((col) => {
                             var colorCap = col.charAt(0).toUpperCase() + col.slice(1);
                             html += '<div class="mdl_card mdl_' + col + '_card mdl_missing_card" title="' + _(colorCap) + '"></div>';
                         });
                         html += '</div>';
                         container.innerHTML = html;
-                        container.classList.remove('mdl_river_missing_complete');
-                        container.title = _('Colors missing');
+                        container.classList.remove('mdl_missing_complete');
+                        container.title = _('Missing colors');
                     }
                     container.style.display = 'flex';
+                };
+
+                // Rivers
+                Object.keys(this.gamedatas.players).forEach((playerId) => {
+                    var container = $('mdl_river_missing_' + playerId);
+                    if (!container) return;
+                    var inRiver = getRiverColors(playerId);
+                    renderPanel(container, allColors.filter((c) => !inRiver[c]));
                 });
+
+                // Mandalas
+                for (var m = 1; m <= 2; m++) {
+                    var mContainer = $('mdl_mandala_' + m + '_missing');
+                    if (!mContainer) continue;
+
+                    var colorsInMandala = {};
+                    if (this.mountains && this.mountains['mountain_' + m]) {
+                        var mColors = getStockColors(this.mountains['mountain_' + m]);
+                        for (var c in mColors) colorsInMandala[c] = true;
+                    }
+                    if (this.fields && this.fields['field_' + m]) {
+                        for (var pId in this.fields['field_' + m]) {
+                            var fColors = getStockColors(this.fields['field_' + m][pId]);
+                            for (var fc in fColors) colorsInMandala[fc] = true;
+                        }
+                    }
+                    renderPanel(mContainer, allColors.filter((c) => !colorsInMandala[c]));
+                }
             } catch (e) {
                 console.error("Error in updateMissingColors:", e);
             }
