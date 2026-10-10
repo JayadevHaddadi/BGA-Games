@@ -475,14 +475,7 @@ class Game extends \Bga\GameFramework\Table
 
         $grantExtraTurn = false;
         $trackVariant = (int) $this->globals->get('track_variant', 1);
-        try {
-            $trackVariant = (int) $this->getGameStateValue('100', $trackVariant);
-        } catch (\Throwable $e) {}
-
         $lastFlowerVariant = (int) $this->globals->get('last_flower_variant', 1);
-        try {
-            $lastFlowerVariant = (int) $this->getGameStateValue('101', $lastFlowerVariant);
-        } catch (\Throwable $e) {}
 
         // Case A: Cannot move
         if (empty($validMoves) || $targetQ === null || $targetR === null) {
