@@ -1,14 +1,14 @@
 {
     "100": {
-        "name": "Scoring track variant",
+        "name": "Occupied space above 25 extra turn",
         "values": {
             "1": {
-                "name": "Enabled (Official Rules)",
-                "description": "Scoring martians leapfrog occupied spaces on the track, and landing on an occupied space above 25 points earns an extra turn."
+                "name": "Disabled (Standard)",
+                "description": "Landing on an occupied space does not grant an extra turn."
             },
             "2": {
-                "name": "Disabled (Direct VP)",
-                "description": "Points are scored directly without leapfrog jumps or scoring-track extra turns."
+                "name": "Enabled (Optional Variant)",
+                "description": "Moving your scoring Martian to a space above 25 points that is occupied by another player's scoring Martian grants an extra turn if at least 1 unused die remains."
             }
         },
         "default": 1
@@ -17,8 +17,8 @@
         "name": "Last flower extra turn",
         "values": {
             "1": {
-                "name": "Enabled",
-                "description": "Planting the last flower of any color grants an extra turn if dice remain."
+                "name": "Enabled (Optional Variant)",
+                "description": "Planting the last flower of any color across the entire garden grants an extra turn if at least 1 unused die remains."
             },
             "2": {
                 "name": "Disabled",
@@ -37,6 +37,34 @@
             "2": {
                 "name": "Enabled",
                 "description": "Play with peaks (gray cones) placed on non-adjacent hexes. Peaks block movement and cannot be planted on or entered."
+            }
+        },
+        "default": 1
+    },
+    "103": {
+        "name": "Game mode",
+        "values": {
+            "1": {
+                "name": "Competitive (Standard)",
+                "description": "Players compete for the highest individual score."
+            },
+            "2": {
+                "name": "Cooperative (2–5 players)",
+                "description": "In this variant, the group score is the score of the lowest scoring Martian. Players work together to achieve the highest possible group score."
+            }
+        },
+        "default": 1
+    },
+    "104": {
+        "name": "2-Player Variant: 2 Gardeners per player",
+        "values": {
+            "1": {
+                "name": "Disabled (1 Gardener each)",
+                "description": "Each player controls 1 gardener on the board."
+            },
+            "2": {
+                "name": "Enabled (2 Gardeners each)",
+                "description": "In a 2-player game, each player controls 2 gardeners and chooses which one to move on their turn (ignored if 3+ players)."
             }
         },
         "default": 1

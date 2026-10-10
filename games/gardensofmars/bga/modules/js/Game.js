@@ -168,36 +168,34 @@ export class Game {
             this.gamedatas.gardeners = {};
             return;
         }
-        if (Array.isArray(this.gamedatas.gardeners)) {
-            const map = {};
-            this.gamedatas.gardeners.forEach(g => {
-                if (g && typeof g === 'object' && g.player_id !== undefined) {
-                    map[String(g.player_id)] = g;
-                }
-            });
-            this.gamedatas.gardeners = map;
-        } else if (typeof this.gamedatas.gardeners === 'object') {
-            // Ensure every gardener entry is a valid object
-            const map = {};
-            Object.entries(this.gamedatas.gardeners).forEach(([pid, val]) => {
-                if (val && typeof val === 'object') {
-                    map[String(val.player_id || pid)] = val;
-                } else if (typeof val === 'string') {
-                    map[String(pid)] = { player_id: pid, martian: val, q: null, r: null, track_pos: 0 };
-                }
-            });
-            this.gamedatas.gardeners = map;
-        }
+        const map = {};
+        const list = Array.isArray(this.gamedatas.gardeners)
+            ? this.gamedatas.gardeners
+            : Object.values(this.gamedatas.gardeners);
+        list.forEach(g => {
+            if (g && typeof g === 'object') {
+                const gid = String(g.gardener_id || g.player_id);
+                map[gid] = g;
+            }
+        });
+        this.gamedatas.gardeners = map;
     }
 
-    setGardenerData(playerId, patch) {
+    setGardenerData(key, patch) {
         this.normalizeGardeners();
-        const pid = String(playerId);
-        if (!this.gamedatas.gardeners[pid] || typeof this.gamedatas.gardeners[pid] !== 'object') {
-            this.gamedatas.gardeners[pid] = { player_id: pid, track_pos: 0 };
+        const k = String(key);
+        let target = this.gamedatas.gardeners[k];
+        if (!target) {
+            const found = Object.values(this.gamedatas.gardeners).find(g => String(g.gardener_id) === k || String(g.player_id) === k);
+            if (found) {
+                target = found;
+            } else {
+                this.gamedatas.gardeners[k] = { gardener_id: k, player_id: patch.player_id || key, track_pos: 0 };
+                target = this.gamedatas.gardeners[k];
+            }
         }
-        Object.assign(this.gamedatas.gardeners[pid], patch);
-        return this.gamedatas.gardeners[pid];
+        Object.assign(target, patch);
+        return target;
     }
 
     getCurrentPlayerId() {
@@ -387,11 +385,7 @@ export class Game {
                 <div id="gom_layout">
                     <div class="game-board-scaler" id="gom_board_scaler">
                         <div id="garden_board">
-                            <div class="gom_track_indicator gom_track_indicator_leapfrog" id="gom_indicator_leapfrog" data-indicator="leapfrog" title="${_('Track 1-25: Landing on an occupied space skips forward to the next empty space and awards +1 VP!')}">
-                                <span class="gom_track_icon">↷</span>
-                                <span class="gom_track_badge_text">${_('1–25: Leapfrog')}</span>
-                            </div>
-                            <div class="gom_track_indicator gom_track_indicator_extraturn" id="gom_indicator_extraturn" data-indicator="extraturn" title="${_('Track 26-50: Landing on an occupied space above 25 grants an Extra Turn!')}">
+                            <div class="gom_track_indicator gom_track_indicator_extraturn" id="gom_indicator_extraturn" data-indicator="extraturn" style="${this.gamedatas?.track_variant === 2 ? '' : 'display:none'}" title="${_('Track > 25: Landing on an occupied space above 25 grants an Extra Turn (if dice remain)!')}">
                                 <span class="gom_track_icon">+1</span>
                                 <span class="gom_track_badge_text">${_('26–50: Extra Turn')}</span>
                             </div>
@@ -412,21 +406,11 @@ export class Game {
     }
 
     setupTrackIndicatorListeners() {
-        const leapfrog = document.getElementById('gom_indicator_leapfrog');
         const extraturn = document.getElementById('gom_indicator_extraturn');
 
-        const leapfrogTitle = _('1–25: Leapfrog Rule');
-        const leapfrogMsg = _('When moving on track spaces 1–25: If you land on a space already occupied by another player, your token leapfrogs immediately over them to the next available empty space, and you receive +1 bonus Victory Point!');
+        const extraturnTitle = _('26–50: Extra Turn Variant');
+        const extraturnMsg = _('When moving on track spaces 26–50: If you land on a space already occupied by another player, you are granted an immediate Extra Turn (if at least 1 unused die remains)!');
 
-        const extraturnTitle = _('26–50: Extra Turn Rule');
-        const extraturnMsg = _('When moving on track spaces 26–50: If you land on a space already occupied by another player, you are granted an immediate Extra Turn!');
-
-        if (leapfrog) {
-            leapfrog.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.showTrackInfoBubble(leapfrogTitle, leapfrogMsg, leapfrog);
-            });
-        }
         if (extraturn) {
             extraturn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -612,6 +596,9 @@ export class Game {
         avail.forEach(d => {
             const dieInfo = this.validMovesByDie?.[d.die_id];
             (dieInfo?.moves || []).forEach(m => {
+                if (this.selectedGardenerId && m.gardener_id && m.gardener_id !== this.selectedGardenerId) {
+                    return;
+                }
                 totalMovesFound++;
                 const spot = document.getElementById(`spot_${m.q}_${m.r}`);
                 if (spot) {
@@ -657,15 +644,18 @@ export class Game {
             const matchingDice = [];
             avail.forEach(d => {
                 const dieInfo = this.validMovesByDie?.[d.die_id];
-                const move = dieInfo?.moves?.find(m => m.q === q && m.r === r);
-                if (move) {
-                    matchingDice.push({ dieId: parseInt(d.die_id), dieValue: d.die_value, move: move });
-                }
+                const moves = (dieInfo?.moves || []).filter(m => m.q === q && m.r === r);
+                moves.forEach(move => {
+                    if (!this.selectedGardenerId || move.gardener_id === this.selectedGardenerId) {
+                        matchingDice.push({ dieId: parseInt(d.die_id), dieValue: d.die_value, move: move });
+                    }
+                });
             });
 
             if (matchingDice.length === 0) return;
 
             const chosen = matchingDice[0];
+            const chosenGid = chosen.move.gardener_id || null;
 
             if (chosen.move.has_flower) {
                 // Land on flower: -1 point penalty
@@ -681,7 +671,8 @@ export class Game {
                     this.bga.actions.performAction('actPlayDie', {
                         dieId: chosen.dieId,
                         targetQ: q,
-                        targetR: r
+                        targetR: r,
+                        gardenerId: chosenGid
                     });
                 }, 'primary');
                 this.addActionButton('btnUndoMovePenalty', _('Undo / Change'), () => {
@@ -690,12 +681,12 @@ export class Game {
                 }, 'alert');
             } else {
                 // Land on empty space: choose color to plant
-                this.openColorPicker(q, r, chosen.dieId, chosen.dieValue);
+                this.openColorPicker(q, r, chosen.dieId, chosen.dieValue, chosenGid);
             }
         }
     }
 
-    openColorPicker(q, r, dieId, dieValue) {
+    openColorPicker(q, r, dieId, dieValue, gardenerId = null) {
         this.closeColorPicker();
         const board = document.getElementById('garden_board');
         if (!board) return;
@@ -719,14 +710,15 @@ export class Game {
 
                 if (this.confirmMoveOn) {
                     // Staged move with Confirm & Undo buttons
-                    this.stageMove(q, r, dieId, dieValue, col);
+                    this.stageMove(q, r, dieId, dieValue, col, gardenerId);
                 } else {
                     // Instant move per user preference
                     this.bga.actions.performAction('actPlayDie', {
                         dieId: dieId,
                         targetQ: q,
                         targetR: r,
-                        flowerColor: col
+                        flowerColor: col,
+                        gardenerId: gardenerId
                     });
                 }
             });
@@ -748,7 +740,7 @@ export class Game {
         }, 'alert');
     }
 
-    stageMove(q, r, dieId, dieValue, flowerColor) {
+    stageMove(q, r, dieId, dieValue, flowerColor, gardenerId = null) {
         this.clearValidMoveHighlights();
         this.clearActionButtons();
 
@@ -774,7 +766,8 @@ export class Game {
                 dieId: dieId,
                 targetQ: q,
                 targetR: r,
-                flowerColor: flowerColor
+                flowerColor: flowerColor,
+                gardenerId: gardenerId
             });
         }, 'primary');
 
@@ -814,10 +807,14 @@ export class Game {
 
         const currentPids = new Set(Object.keys(this.gamedatas.gardeners));
 
-        // Clean up any stale tokens for non-existent players
+        const currentGardenerIds = new Set(Object.keys(this.gamedatas.gardeners));
+        const playerIds = Object.keys(this.gamedatas.players || {});
+        const currentPids = new Set(playerIds);
+
+        // Clean up any stale tokens
         gLayer.querySelectorAll('.gom_gardener_token').forEach(el => {
-            const pid = el.id.replace('gardener_', '');
-            if (!currentPids.has(pid)) el.remove();
+            const gid = el.id.replace('gardener_', '');
+            if (!currentGardenerIds.has(gid)) el.remove();
         });
         tLayer.querySelectorAll('.gom_track_token').forEach(el => {
             const pid = el.id.replace('track_martian_', '');
@@ -831,52 +828,78 @@ export class Game {
         };
 
         const trackGroups = {};
-        Object.values(this.gamedatas.gardeners).forEach(g => {
-            const p = normalizeTrackPos(g.track_pos || 0);
+        playerIds.forEach(pid => {
+            const pScore = this.gamedatas?.scores?.[pid] ?? 0;
+            const p = normalizeTrackPos(pScore);
             if (!trackGroups[p]) trackGroups[p] = [];
-            trackGroups[p].push(String(g.player_id));
+            trackGroups[p].push(String(pid));
         });
 
+        // 1. Gardener tokens on the hexagonal garden board (one per gardener)
         Object.values(this.gamedatas.gardeners).forEach(g => {
             const pid = String(g.player_id);
+            const gid = String(g.gardener_id || g.player_id);
             const pColor = this.gamedatas.players?.[pid]?.color;
 
-            // 1. Gardener token on the hexagonal garden board
             if (g.q !== null && g.r !== null && g.q !== undefined) {
                 const pos = this.axialToPixel(g.q, g.r);
-                let token = document.getElementById(`gardener_${pid}`);
+                let token = document.getElementById(`gardener_${gid}`);
                 if (!token) {
                     token = document.createElement('div');
                     token.className = 'gom_gardener_token';
-                    token.id = `gardener_${pid}`;
+                    token.id = `gardener_${gid}`;
                     const img = document.createElement('img');
                     img.src = this.imgUrl(`${g.martian || 'bot'}.png`);
                     img.alt = g.martian;
                     token.appendChild(img);
 
-                    // Lift alien on click so colour-blind players can inspect flower underneath
+                    // Click token: if own active gardener, toggle selection to filter moves; else lift alien
                     token.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        token.classList.toggle('lifted');
+                        const myId = String(this.getCurrentPlayerId() || 0);
+                        if (String(g.player_id) === myId && this.isCurrentPlayerActive() && this.uiPhase === 'turn') {
+                            if (this.selectedGardenerId === gid) {
+                                this.selectedGardenerId = null;
+                                token.classList.remove('selected_gardener');
+                            } else {
+                                document.querySelectorAll('.gom_gardener_token.selected_gardener').forEach(t => t.classList.remove('selected_gardener'));
+                                this.selectedGardenerId = gid;
+                                token.classList.add('selected_gardener');
+                            }
+                            this.updateMoveHighlights();
+                        } else {
+                            token.classList.toggle('lifted');
+                        }
                     });
                     gLayer.appendChild(token);
                 }
 
                 token.dataset.name = (g.martian || '').toUpperCase();
+                token.dataset.gardenerId = gid;
+                token.dataset.playerId = pid;
                 token.style.left = `${pos.x}px`;
                 token.style.top = `${pos.y}px`;
                 if (pColor) token.style.borderColor = `#${pColor}`;
 
+                if (this.selectedGardenerId === gid) {
+                    token.classList.add('selected_gardener');
+                } else {
+                    token.classList.remove('selected_gardener');
+                }
+
                 const img = token.querySelector('img');
                 if (img && g.martian) img.src = this.imgUrl(`${g.martian}.png`);
             }
+        });
 
-            // 2. Scoring Martian token on the perimeter track
-            const tPos = g.track_pos || 0;
-            const normPos = normalizeTrackPos(tPos);
-            const basePt = this.getTrackPixel(tPos);
+        // 2. Scoring Martian tokens on the perimeter track (one per player)
+        playerIds.forEach(pid => {
+            const pColor = this.gamedatas.players?.[pid]?.color;
+            const pScore = this.gamedatas?.scores?.[pid] ?? 0;
+            const normPos = normalizeTrackPos(pScore);
+            const basePt = this.getTrackPixel(normPos);
 
-            // Stagger tokens sharing the same position (especially pos 0 start)
+            // Stagger tokens sharing the same track position
             const group = trackGroups[normPos] || [pid];
             const idx = group.indexOf(pid);
             let offsetX = 0;
@@ -888,13 +911,16 @@ export class Game {
                 offsetY = Math.round(Math.sin(angle) * radius);
             }
 
+            const firstG = Object.values(this.gamedatas.gardeners).find(x => String(x.player_id) === pid);
+            const martianType = firstG?.martian || 'bot';
+
             let trackToken = document.getElementById(`track_martian_${pid}`);
             if (!trackToken) {
                 trackToken = document.createElement('div');
                 trackToken.className = 'gom_track_token';
                 trackToken.id = `track_martian_${pid}`;
                 const tImg = document.createElement('img');
-                tImg.src = this.imgUrl(`${g.martian || 'bot'}.png`);
+                tImg.src = this.imgUrl(`${martianType}.png`);
                 tImg.alt = '';
                 trackToken.appendChild(tImg);
                 tLayer.appendChild(trackToken);
@@ -905,10 +931,9 @@ export class Game {
             if (pColor) trackToken.style.borderColor = `#${pColor}`;
 
             const tImg = trackToken.querySelector('img');
-            if (tImg && g.martian) tImg.src = this.imgUrl(`${g.martian}.png`);
+            if (tImg && martianType) tImg.src = this.imgUrl(`${martianType}.png`);
 
             // +50 / +100 VP Lap indicator badge
-            const pScore = this.gamedatas?.scores?.[pid] ?? 0;
             const laps = Math.floor(pScore / 50);
             let plusBadge = trackToken.querySelector('.gom_track_plus50');
             if (laps > 0) {
@@ -945,27 +970,26 @@ export class Game {
             }
             box.innerHTML = '';
 
-            // Player Martian character figure with player color and track score
-            const gardener = this.gamedatas.gardeners?.[pid];
+            // Player Martian character figure(s) with player color and track score
+            const pGardeners = Object.values(this.gamedatas.gardeners || {}).filter(g => String(g.player_id) === pid);
             const pColor = this.gamedatas.players?.[pid]?.color || '888888';
-            const trackPos = gardener?.track_pos || 0;
-            const scoreVal = this.gamedatas.scores?.[pid] ?? trackPos;
 
-            const mBadge = document.createElement('div');
-            mBadge.className = 'gom_panel_martian_badge';
-            mBadge.style.borderColor = `#${pColor}`;
-            mBadge.style.boxShadow = `0 0 0 2px #${pColor}44`;
-            const mImg = document.createElement('img');
-            mImg.src = this.imgUrl(`${gardener?.martian || 'bot'}.png`);
-            mImg.alt = gardener?.martian || 'Martian';
-            mBadge.appendChild(mImg);
-            const mName = document.createElement('span');
-            mName.className = 'gom_panel_martian_name';
-            mName.textContent = (gardener?.martian || 'Martian').toUpperCase();
-            mName.style.color = `#${pColor}`;
-            mBadge.appendChild(mName);
-
-            box.appendChild(mBadge);
+            pGardeners.forEach(g => {
+                const mBadge = document.createElement('div');
+                mBadge.className = 'gom_panel_martian_badge';
+                mBadge.style.borderColor = `#${pColor}`;
+                mBadge.style.boxShadow = `0 0 0 2px #${pColor}44`;
+                const mImg = document.createElement('img');
+                mImg.src = this.imgUrl(`${g?.martian || 'bot'}.png`);
+                mImg.alt = g?.martian || 'Martian';
+                mBadge.appendChild(mImg);
+                const mName = document.createElement('span');
+                mName.className = 'gom_panel_martian_name';
+                mName.textContent = (g?.martian || 'Martian').toUpperCase();
+                mName.style.color = `#${pColor}`;
+                mBadge.appendChild(mName);
+                box.appendChild(mBadge);
+            });
 
             let total = 0;
             const flowerList = document.createElement('div');
@@ -994,7 +1018,11 @@ export class Game {
         document.querySelectorAll('.gom_gardener_token').forEach(t => t.classList.remove('my_turn'));
         const activeId = this.getActivePlayerId() || this.getCurrentPlayerId() || 0;
         if (activeId) {
-            document.getElementById(`gardener_${activeId}`)?.classList.add('my_turn');
+            Object.values(this.gamedatas.gardeners || {}).forEach(g => {
+                if (String(g.player_id) === String(activeId)) {
+                    document.getElementById(`gardener_${g.gardener_id || g.player_id}`)?.classList.add('my_turn');
+                }
+            });
         }
     }
 
@@ -1009,8 +1037,9 @@ export class Game {
         }
 
         const myId = this.getCurrentPlayerId() || 0;
-        const myGardener = this.gamedatas?.gardeners?.[String(myId)];
-        const needsMyPlacement = !myGardener || myGardener.q === null || myGardener.q === undefined;
+        const myGardeners = Object.values(this.gamedatas?.gardeners || {}).filter(g => String(g.player_id) === String(myId));
+        const myUnplaced = myGardeners.find(g => g.q === null || g.q === undefined);
+        const needsMyPlacement = !!myUnplaced;
 
         const isActive = isCurrentPlayerActive !== null
             ? !!isCurrentPlayerActive
@@ -1021,7 +1050,7 @@ export class Game {
             return;
         }
 
-        const myMartian = args?.my_martian || myGardener?.martian || '';
+        const myMartian = args?.my_martian || myUnplaced?.martian || myGardeners[0]?.martian || '';
         const martianName = myMartian ? myMartian.toUpperCase() : '';
         const titleMsg = martianName
             ? _('${you} are ${martian}: click an empty hexagon on the board to place your gardener').replace('${martian}', martianName)
@@ -1137,16 +1166,25 @@ export class Game {
         const box = document.getElementById('gom_final_scoring');
         if (!box || !rows) return;
 
+        const isCoop = !!(this.gamedatas?.is_coop || (rows[0] && rows[0].individual_score !== undefined));
+        const groupScore = rows[0]?.score ?? 0;
         const players = this.gamedatas.players || {};
         const body = rows.map(r => {
             const info = players[r.player_id] || {};
             const name = `<span style="color:#${info.color || '000'};font-weight:700">${info.name || r.player_id}</span>`;
-            return `<tr><td>${name}</td><td><b>${r.score}</b></td><td>${r.flowers_planted}</td><td>${r.max_connection}</td><td>-${r.penalties}</td></tr>`;
+            const scoreDisplay = isCoop && r.individual_score !== undefined
+                ? `<b>${r.score}</b> <span style="font-size:11px;color:#777">(${_('individual:')} ${r.individual_score})</span>`
+                : `<b>${r.score}</b>`;
+            return `<tr><td>${name}</td><td>${scoreDisplay}</td><td>${r.flowers_planted}</td><td>${r.max_connection}</td><td>-${r.penalties}</td></tr>`;
         }).join('');
+
+        const captionText = isCoop
+            ? `${_('Final Scoring — Cooperative Mode (Group Score: ')}${groupScore})`
+            : _('Final Scoring');
 
         box.innerHTML = `
             <table class="gom_score_table">
-                <caption>${_('Final Scoring')}</caption>
+                <caption>${captionText}</caption>
                 <thead><tr><th>${_('Player')}</th><th>${_('Score')}</th><th>${_('Flowers Planted')}</th><th>${_('Largest Cluster')}</th><th>${_('Penalties')}</th></tr></thead>
                 <tbody>${body}</tbody>
             </table>
@@ -1343,7 +1381,9 @@ export class Game {
 
     notif_martianSelected(notif) {
         const args = this._getNotifArgs(notif);
-        this.setGardenerData(args.player_id, {
+        const gid = args.gardener_id || args.player_id;
+        this.setGardenerData(gid, {
+            gardener_id: gid,
             player_id: args.player_id,
             martian: args.martian,
             q: args.q,
@@ -1354,7 +1394,7 @@ export class Game {
         this.renderGardenState();
         this.renderPlayerFlowers();
 
-        // If other players still need to place their gardener, update placement highlights
+        // If other players/gardeners still need to place, update placement highlights
         const anyNeedPlacement = Object.values(this.gamedatas?.gardeners || {}).some(
             g => g && (g.q === null || g.q === undefined)
         );
@@ -1389,14 +1429,17 @@ export class Game {
         sounds.playPlant();
 
         // 1. Update data models safely via setGardenerData
-        this.setGardenerData(args.player_id, {
+        const gid = args.gardener_id || args.player_id;
+        this.setGardenerData(gid, {
+            gardener_id: gid,
+            player_id: args.player_id,
             q: args.target_q,
             r: args.target_r,
             track_pos: args.track_pos,
         });
 
         // 2. Direct DOM gardener movement
-        const gToken = document.getElementById(`gardener_${args.player_id}`);
+        const gToken = document.getElementById(`gardener_${gid}`);
         if (gToken) {
             const pos = this.axialToPixel(args.target_q, args.target_r);
             gToken.style.left = `${pos.x}px`;
@@ -1448,18 +1491,19 @@ export class Game {
 
     notif_scorePenalty(notif) {
         const args = this._getNotifArgs(notif);
+        const gid = args.gardener_id || args.player_id;
         const patch = { track_pos: args.track_pos };
         if (args.target_q !== undefined && args.target_r !== undefined) {
             patch.q = args.target_q;
             patch.r = args.target_r;
-            const gToken = document.getElementById(`gardener_${args.player_id}`);
+            const gToken = document.getElementById(`gardener_${gid}`);
             if (gToken) {
                 const pos = this.axialToPixel(args.target_q, args.target_r);
                 gToken.style.left = `${pos.x}px`;
                 gToken.style.top = `${pos.y}px`;
             }
         }
-        this.setGardenerData(args.player_id, patch);
+        this.setGardenerData(gid, patch);
 
         const tToken = document.getElementById(`track_martian_${args.player_id}`);
         if (tToken) {

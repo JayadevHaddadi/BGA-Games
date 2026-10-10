@@ -85,16 +85,25 @@ class Game extends \Bga\GameFramework\Table
                 }
             }
 
-            $gardenerCols = static::getObjectListFromDb("SHOW COLUMNS FROM `gardener` LIKE 'player_id'");
-            if (empty($gardenerCols)) {
+            $gardenerTables = static::getObjectListFromDb("SHOW TABLES LIKE 'gardener'");
+            if (empty($gardenerTables)) {
                 static::DbQuery("CREATE TABLE IF NOT EXISTS `gardener` (
+                    `gardener_id` varchar(32) NOT NULL,
                     `player_id` int(10) unsigned NOT NULL,
                     `martian` varchar(16) NOT NULL,
                     `coord_q` smallint(5) DEFAULT NULL,
                     `coord_r` smallint(5) DEFAULT NULL,
                     `track_pos` smallint(5) NOT NULL DEFAULT 0,
-                    PRIMARY KEY (`player_id`)
+                    PRIMARY KEY (`gardener_id`),
+                    KEY (`player_id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+            } else {
+                $gidCols = static::getObjectListFromDb("SHOW COLUMNS FROM `gardener` LIKE 'gardener_id'");
+                if (empty($gidCols)) {
+                    static::DbQuery("ALTER TABLE `gardener` ADD COLUMN `gardener_id` varchar(32) NOT NULL DEFAULT '' FIRST");
+                    static::DbQuery("UPDATE `gardener` SET `gardener_id` = CAST(`player_id` AS CHAR)");
+                    static::DbQuery("ALTER TABLE `gardener` DROP PRIMARY KEY, ADD PRIMARY KEY (`gardener_id`), ADD INDEX (`player_id`)");
+                }
             }
 
             $flowerCols = static::getObjectListFromDb("SHOW COLUMNS FROM `player_flower` LIKE 'player_id'");
@@ -170,9 +179,15 @@ class Game extends \Bga\GameFramework\Table
         $trackVariant = isset($options[100]) ? (int) $options[100] : 1;
         $lastFlowerVariant = isset($options[101]) ? (int) $options[101] : 1;
         $peaksVariant = isset($options[102]) ? (int) $options[102] : 1;
+        $coopVariant = isset($options[103]) ? (int) $options[103] : 1;
+        $twoGardenersVariant = isset($options[104]) ? (int) $options[104] : 1;
+        $isTwoGardeners = ($twoGardenersVariant === 2 && count($playerIds) === 2) ? 1 : 0;
+
         $this->globals->set('track_variant', $trackVariant);
         $this->globals->set('last_flower_variant', $lastFlowerVariant);
         $this->globals->set('peaks_variant', $peaksVariant);
+        $this->globals->set('coop_variant', $coopVariant);
+        $this->globals->set('two_gardeners_variant', $isTwoGardeners);
         $this->globals->set('extra_turn_active', 0);
         $this->globals->set('consecutive_stuck_turns', 0);
 
@@ -233,17 +248,31 @@ class Game extends \Bga\GameFramework\Table
             }
         }
 
-        // 6. Assign random Martians to players (each player will choose their starting position on the board in turn order)
+        // 6. Assign Martians to players (each player will choose starting positions on the board in turn order)
         $martians = ['ali', 'bob', 'bot', 'marty', 'robby'];
         shuffle($martians);
 
-        foreach ($playerIds as $idx => $pId) {
-            $martian = $martians[$idx];
+        if ($isTwoGardeners === 1) {
+            // In 2-player variant with 2 gardeners each, assign 2 martians per player (4 total)
+            $p1 = $playerIds[0];
+            $p2 = $playerIds[1];
             static::DbQuery(sprintf(
-                "INSERT INTO `gardener` (`player_id`, `martian`, `coord_q`, `coord_r`, `track_pos`) VALUES (%d, '%s', NULL, NULL, 0)",
-                $pId,
-                $martian
+                "INSERT INTO `gardener` (`gardener_id`, `player_id`, `martian`, `coord_q`, `coord_r`, `track_pos`) VALUES ('%s', %d, '%s', NULL, NULL, 0), ('%s', %d, '%s', NULL, NULL, 0), ('%s', %d, '%s', NULL, NULL, 0), ('%s', %d, '%s', NULL, NULL, 0)",
+                "{$p1}_1", $p1, $martians[0],
+                "{$p1}_2", $p1, $martians[1],
+                "{$p2}_1", $p2, $martians[2],
+                "{$p2}_2", $p2, $martians[3]
             ));
+        } else {
+            foreach ($playerIds as $idx => $pId) {
+                $martian = $martians[$idx];
+                static::DbQuery(sprintf(
+                    "INSERT INTO `gardener` (`gardener_id`, `player_id`, `martian`, `coord_q`, `coord_r`, `track_pos`) VALUES ('%s', %d, '%s', NULL, NULL, 0)",
+                    (string) $pId,
+                    $pId,
+                    $martian
+                ));
+            }
         }
 
         // 7. Turn order & first player (youngest / first player)
@@ -355,12 +384,19 @@ class Game extends \Bga\GameFramework\Table
 
     public function rollDiceForPlayer(int $playerId): array
     {
-        $gardener = static::getObjectFromDb("SELECT `coord_q` as `q`, `coord_r` as `r` FROM `gardener` WHERE `player_id` = $playerId");
-        if (!$gardener || $gardener['q'] === null) {
+        $gardeners = static::getObjectListFromDb("SELECT `gardener_id`, `martian`, `coord_q` as `q`, `coord_r` as `r` FROM `gardener` WHERE `player_id` = $playerId AND `coord_q` IS NOT NULL");
+        if (empty($gardeners)) {
             return [];
         }
 
-        $diceCount = $this->getEmptyAdjacentCount((int) $gardener['q'], (int) $gardener['r']);
+        $diceCount = 0;
+        foreach ($gardeners as $g) {
+            $cnt = $this->getEmptyAdjacentCount((int) $g['q'], (int) $g['r']);
+            if ($cnt > $diceCount) {
+                $diceCount = $cnt;
+            }
+        }
+
         static::DbQuery("DELETE FROM `dice_pool`");
 
         $rolledDice = [];
@@ -389,58 +425,68 @@ class Game extends \Bga\GameFramework\Table
 
     public function getValidMovesForDie(int $playerId, int $dieValue): array
     {
-        $gardener = static::getObjectFromDb("SELECT `coord_q` as `q`, `coord_r` as `r` FROM `gardener` WHERE `player_id` = $playerId");
-        if (!$gardener || $gardener['q'] === null) {
+        $myGardeners = static::getObjectListFromDb("SELECT `gardener_id`, `martian`, `coord_q` as `q`, `coord_r` as `r` FROM `gardener` WHERE `player_id` = $playerId AND `coord_q` IS NOT NULL");
+        if (empty($myGardeners)) {
             return [];
         }
 
-        $allGardeners = static::getObjectListFromDb("SELECT `coord_q` as `q`, `coord_r` as `r` FROM `gardener` WHERE `coord_q` IS NOT NULL AND `player_id` != $playerId");
-        $otherGardenerMap = [];
+        $allGardeners = static::getObjectListFromDb("SELECT `gardener_id`, `coord_q` as `q`, `coord_r` as `r` FROM `gardener` WHERE `coord_q` IS NOT NULL");
+        $allGardenerMap = [];
         foreach ($allGardeners as $g) {
-            $otherGardenerMap[$g['q'] . '_' . $g['r']] = true;
+            $allGardenerMap[$g['q'] . '_' . $g['r']] = $g['gardener_id'];
         }
 
         $validMoves = [];
-        foreach (self::DIRECTIONS as [$dq, $dr]) {
-            $blocked = false;
-            // Check path for the exact distance $dieValue
-            for ($step = 1; $step <= $dieValue; $step++) {
-                $currQ = (int) $gardener['q'] + $step * $dq;
-                $currR = (int) $gardener['r'] + $step * $dr;
+        foreach ($myGardeners as $myG) {
+            $gId = $myG['gardener_id'];
+            $startQ = (int) $myG['q'];
+            $startR = (int) $myG['r'];
 
-                $cell = $this->getCell($currQ, $currR);
-                if ($cell === null) {
-                    // Out of board boundaries
-                    $blocked = true;
-                    break;
-                }
+            foreach (self::DIRECTIONS as [$dq, $dr]) {
+                $blocked = false;
+                // Check path for the exact distance $dieValue
+                for ($step = 1; $step <= $dieValue; $step++) {
+                    $currQ = $startQ + $step * $dq;
+                    $currR = $startR + $step * $dr;
 
-                // Rule 2: Central space (0, 0) cannot be occupied (landed on), but can be passed through
-                if ($step === $dieValue && $currQ === 0 && $currR === 0) {
-                    $blocked = true;
-                    break;
-                }
+                    $cell = $this->getCell($currQ, $currR);
+                    if ($cell === null) {
+                        // Out of board boundaries
+                        $blocked = true;
+                        break;
+                    }
 
-                // Rule 3: Peaks (gray cones) block movement entirely — cannot enter or pass through
-                if ((int) ($cell['has_peak'] ?? 0) === 1) {
-                    $blocked = true;
-                    break;
-                }
+                    // Rule 2: Central space (0, 0) cannot be occupied (landed on), but can be passed through
+                    if ($step === $dieValue && $currQ === 0 && $currR === 0) {
+                        $blocked = true;
+                        break;
+                    }
 
-                // Rule 4: Other Martian gardeners block movement entirely — cannot enter, pass through, or land on them
-                if (isset($otherGardenerMap[$currQ . '_' . $currR])) {
-                    $blocked = true;
-                    break;
-                }
+                    // Rule 3: Peaks (gray cones) block movement entirely — cannot enter or pass through
+                    if ((int) ($cell['has_peak'] ?? 0) === 1) {
+                        $blocked = true;
+                        break;
+                    }
 
-                if ($step === $dieValue) {
-                    // Reached valid destination!
-                    $validMoves[] = [
-                        'q' => $currQ,
-                        'r' => $currR,
-                        'has_flower' => ($cell['flower_color'] !== null),
-                        'flower_color' => $cell['flower_color'],
-                    ];
+                    // Rule 4: Other Martian gardeners block movement entirely — cannot enter, pass through, or land on them
+                    if (isset($allGardenerMap[$currQ . '_' . $currR]) && $allGardenerMap[$currQ . '_' . $currR] !== $gId) {
+                        $blocked = true;
+                        break;
+                    }
+
+                    if ($step === $dieValue) {
+                        // Reached valid destination!
+                        $validMoves[] = [
+                            'gardener_id' => $gId,
+                            'martian' => $myG['martian'],
+                            'from_q' => $startQ,
+                            'from_r' => $startR,
+                            'q' => $currQ,
+                            'r' => $currR,
+                            'has_flower' => ($cell['flower_color'] !== null),
+                            'flower_color' => $cell['flower_color'],
+                        ];
+                    }
                 }
             }
         }
@@ -463,7 +509,7 @@ class Game extends \Bga\GameFramework\Table
         return $movesByDie;
     }
 
-    public function playTurnWithDie(int $playerId, int $dieId, ?int $targetQ, ?int $targetR, ?string $flowerColor): bool
+    public function playTurnWithDie(int $playerId, int $dieId, ?int $targetQ, ?int $targetR, ?string $flowerColor, ?string $gardenerId = null): bool
     {
         $die = static::getObjectFromDb("SELECT `die_id`, `die_value`, `is_used` FROM `dice_pool` WHERE `die_id` = $dieId");
         if (!$die || (int) $die['is_used'] === 1) {
@@ -488,16 +534,24 @@ class Game extends \Bga\GameFramework\Table
             $chosenMove = null;
             foreach ($validMoves as $m) {
                 if ($m['q'] === $targetQ && $m['r'] === $targetR) {
-                    $chosenMove = $m;
-                    break;
+                    if ($gardenerId === null || $m['gardener_id'] === $gardenerId) {
+                        $chosenMove = $m;
+                        break;
+                    }
                 }
             }
             if (!$chosenMove) {
                 throw new UserException(clienttranslate("Invalid move destination for this die."));
             }
 
-            // Move gardener
-            static::DbQuery(sprintf("UPDATE `gardener` SET `coord_q` = %d, `coord_r` = %d WHERE `player_id` = %d", $targetQ, $targetR, $playerId));
+            // Move gardener: update the specific gardener token
+            $targetGid = (string) $playerId;
+            if ($gardenerId !== null) {
+                $targetGid = $gardenerId;
+            } elseif (isset($chosenMove['gardener_id'])) {
+                $targetGid = $chosenMove['gardener_id'];
+            }
+            static::DbQuery(sprintf("UPDATE `gardener` SET `coord_q` = %d, `coord_r` = %d WHERE `gardener_id` = '%s'", $targetQ, $targetR, $targetGid));
 
             if ($chosenMove['has_flower']) {
                 // Landed on existing flower: lose 1 point
@@ -547,15 +601,12 @@ class Game extends \Bga\GameFramework\Table
                 // Advance scoring track
                 $trackRes = $this->advanceScoreTrack($playerId, $clusterPoints);
                 $landedOn25Occupied = $trackRes['landed_on_25'];
-                $leapfrogBonus = $trackRes['leapfrog_bonus'];
 
                 // Discard used die before notifications
                 static::DbQuery("UPDATE `dice_pool` SET `is_used` = 1 WHERE `die_id` = $dieId");
 
                 $remainingOfColor = $reserve - 1;
-                $notifMsg = ($leapfrogBonus > 0)
-                    ? clienttranslate('${player_name} moved to (${target_q},${target_r}) using die ${die_value}, planted a ${color_name} flower, scored ${points} points, and leapfrogged for +${leapfrog_bonus} bonus point(s)!')
-                    : clienttranslate('${player_name} moved to (${target_q},${target_r}) using die ${die_value}, planted a ${color_name} flower, and scored ${points} points');
+                $notifMsg = clienttranslate('${player_name} moved to (${target_q},${target_r}) using die ${die_value}, planted a ${color_name} flower, and scored ${points} points');
 
                 $this->notifyAllPlayers(
                     "gardenerMovedAndPlanted",
@@ -563,6 +614,7 @@ class Game extends \Bga\GameFramework\Table
                     [
                         'i18n' => ['color_name'],
                         'player_id' => $playerId,
+                        'gardener_id' => $targetGid,
                         'player_name' => $this->getPlayerNameById($playerId),
                         'target_q' => $targetQ,
                         'target_r' => $targetR,
@@ -570,9 +622,8 @@ class Game extends \Bga\GameFramework\Table
                         'die_value' => $dieValue,
                         'flower_color' => $flowerColor,
                         'color_name' => $this->getColorName($flowerColor),
-                        'points' => $clusterPoints + $leapfrogBonus,
+                        'points' => $clusterPoints,
                         'cluster_points' => $clusterPoints,
-                        'leapfrog_bonus' => $leapfrogBonus,
                         'score' => (int) $this->playerScore->get($playerId),
                         'track_pos' => $this->getGardenerTrackPos($playerId),
                         'flowers' => $this->getPlayerFlowers($playerId),
@@ -592,7 +643,6 @@ class Game extends \Bga\GameFramework\Table
         // Extra turn variants ONLY grant an extra turn if at least 1 unused die remains on the table!
         if ($remainingDice > 0) {
             // Trigger 1: Planted the 10th (last) flower of a color in play across all players
-            // Must have 0 remaining in ANY player's reserve, AND 10 flowers of that color planted on the board
             if ($lastFlowerVariant === 1 && $flowerColor !== null) {
                 $totalRemainingOfColor = (int) $this->getUniqueValueFromDb(
                     sprintf("SELECT COALESCE(SUM(`count`), 0) FROM `player_flower` WHERE `color` = '%s'", $flowerColor)
@@ -600,8 +650,6 @@ class Game extends \Bga\GameFramework\Table
                 $plantedOnBoardOfColor = (int) $this->getUniqueValueFromDb(
                     sprintf("SELECT COUNT(*) FROM `cell` WHERE `flower_color` = '%s'", $flowerColor)
                 );
-                // In Gardens of Mars, there are 10 flowers of each color.
-                // The variant triggers if you plant the 10th and final flower of that color in the game (and dice remain).
                 if ($totalRemainingOfColor === 0 && $plantedOnBoardOfColor === 10) {
                     $grantExtraTurn = true;
                     $this->notifyAllPlayers(
@@ -617,8 +665,8 @@ class Game extends \Bga\GameFramework\Table
                 }
             }
 
-            // Trigger 2: Landed on occupied space above 25 points (if track variant enabled and dice remain)
-            if ($trackVariant === 1 && $landedOn25Occupied) {
+            // Trigger 2: Landed on occupied space above 25 points (if track variant option 100 == 2 and dice remain)
+            if ($trackVariant === 2 && $landedOn25Occupied) {
                 $grantExtraTurn = true;
                 $this->notifyAllPlayers(
                     "extraTurnGranted",
@@ -678,53 +726,28 @@ class Game extends \Bga\GameFramework\Table
 
         $this->playerScore->inc($playerId, $points);
 
-        $trackVariant = (int) $this->globals->get('track_variant', 1);
         $currentPos = $this->getGardenerTrackPos($playerId);
-        $landedOnOccupied25 = false;
-        $leapfrogBonus = 0;
+        $targetPos = $currentPos + $points;
 
-        if ($trackVariant === 1) {
-            // Leapfrog mechanic: if destination is occupied by another Martian, advance to next unoccupied square!
-            $targetPos = $currentPos + $points;
-            $otherGardeners = static::getObjectListFromDb("SELECT `track_pos` FROM `gardener` WHERE `player_id` != $playerId");
-            $occupiedMap = [];
-            foreach ($otherGardeners as $g) {
-                $occupiedMap[(int) $g['track_pos']] = true;
-            }
-
-            // Check if exact landing position was occupied and > 25
-            if ($targetPos > 25 && isset($occupiedMap[$targetPos])) {
-                $landedOnOccupied25 = true;
-            }
-
-            // Leapfrog forward until reaching an unoccupied space
-            while (isset($occupiedMap[$targetPos])) {
-                $targetPos++;
-                $leapfrogBonus++;
-            }
-
-            // If leapfrog occurred, award the leapfrog bonus points to player's score!
-            if ($leapfrogBonus > 0) {
-                $this->playerScore->inc($playerId, $leapfrogBonus);
-            }
-
-            // Wrap around 1..50: Track has spaces 1..50 (0 is starting space).
-            if ($targetPos > 50) {
-                $targetPos = (($targetPos - 1) % 50) + 1;
-            }
-
-            static::DbQuery(sprintf("UPDATE `gardener` SET `track_pos` = %d WHERE `player_id` = %d", $targetPos, $playerId));
-        } else {
-            $newPos = $currentPos + $points;
-            if ($newPos > 50) {
-                $newPos = (($newPos - 1) % 50) + 1;
-            }
-            static::DbQuery(sprintf("UPDATE `gardener` SET `track_pos` = %d WHERE `player_id` = %d", $newPos, $playerId));
+        $otherGardeners = static::getObjectListFromDb("SELECT DISTINCT `track_pos` FROM `gardener` WHERE `player_id` != $playerId");
+        $occupiedMap = [];
+        foreach ($otherGardeners as $g) {
+            $occupiedMap[(int) $g['track_pos']] = true;
         }
+
+        // Check if landing position was occupied and > 25
+        $landedOnOccupied25 = ($targetPos > 25 && isset($occupiedMap[$targetPos]));
+
+        // Wrap around 1..50: Track has spaces 1..50 (0 is starting space).
+        if ($targetPos > 50) {
+            $targetPos = (($targetPos - 1) % 50) + 1;
+        }
+
+        static::DbQuery(sprintf("UPDATE `gardener` SET `track_pos` = %d WHERE `player_id` = %d", $targetPos, $playerId));
 
         return [
             'landed_on_25' => $landedOnOccupied25,
-            'leapfrog_bonus' => $leapfrogBonus,
+            'leapfrog_bonus' => 0,
         ];
     }
 
@@ -754,7 +777,7 @@ class Game extends \Bga\GameFramework\Table
 
     public function getGardenerTrackPos(int $playerId): int
     {
-        $pos = (int) $this->getUniqueValueFromDb("SELECT `track_pos` FROM `gardener` WHERE `player_id` = $playerId");
+        $pos = (int) $this->getUniqueValueFromDb("SELECT `track_pos` FROM `gardener` WHERE `player_id` = $playerId LIMIT 1");
         $score = (int) $this->playerScore->get($playerId);
         if ($score > 50 && ($pos === 50 || $pos > 50)) {
             $pos = (($score - 1) % 50) + 1;
@@ -788,7 +811,7 @@ class Game extends \Bga\GameFramework\Table
     public function getAllGardeners(): array
     {
         $gardeners = static::getObjectListFromDb(
-            "SELECT `player_id`, `martian`, `coord_q` as `q`, `coord_r` as `r`, `track_pos` FROM `gardener`"
+            "SELECT `gardener_id`, `player_id`, `martian`, `coord_q` as `q`, `coord_r` as `r`, `track_pos` FROM `gardener`"
         );
         foreach ($gardeners as &$g) {
             $pid = (int) $g['player_id'];
@@ -855,6 +878,9 @@ class Game extends \Bga\GameFramework\Table
         $result['gardeners'] = $this->getAllGardeners();
         $result['dice_pool'] = $this->getDicePool();
         $result['flower_colors'] = self::FLOWER_COLORS;
+        $result['is_coop'] = ((int) $this->globals->get('coop_variant', 1) === 2);
+        $result['two_gardeners'] = ((int) $this->globals->get('two_gardeners_variant', 0) === 1);
+        $result['track_variant'] = (int) $this->globals->get('track_variant', 1);
 
         $playerFlowers = [];
         foreach (array_keys($result['players']) as $pId) {

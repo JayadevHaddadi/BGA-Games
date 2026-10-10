@@ -347,6 +347,13 @@
     }
 }
 
+.gom_gardener_token.selected_gardener {
+    z-index: 30;
+    outline: 4px solid #00e676;
+    outline-offset: 4px;
+    box-shadow: 0 0 25px rgba(0, 230, 118, 1), 0 0 10px #ffffff;
+}
+
 .gom_gardener_token.lifted::after {
     content: attr(data-name);
     position: absolute;
@@ -523,7 +530,7 @@
     font-weight: 700;
 }
 
-/* Track Rule Indicators (1-25 leapfrog, 26-50 extra turn) */
+/* Track Rule Indicator (26-50 extra turn variant) */
 .gom_track_indicator {
     position: absolute;
     display: flex;
@@ -539,21 +546,9 @@
     cursor: help;
 }
 
-.gom_track_indicator_leapfrog {
-    top: 940px;
-    right: 18px;
-}
-
 .gom_track_indicator_extraturn {
     top: 300px;
     left: 18px;
-}
-
-#garden_board.landscape .gom_track_indicator_leapfrog {
-    top: 18px;
-    right: 300px;
-    bottom: auto;
-    left: auto;
 }
 
 #garden_board.landscape .gom_track_indicator_extraturn {

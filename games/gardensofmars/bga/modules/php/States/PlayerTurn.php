@@ -81,10 +81,10 @@ class PlayerTurn extends GameState
     }
 
     #[PossibleAction]
-    public function actPlayDie(int $dieId, ?int $targetQ = null, ?int $targetR = null, ?string $flowerColor = null): string
+    public function actPlayDie(int $dieId, ?int $targetQ = null, ?int $targetR = null, ?string $flowerColor = null, ?string $gardenerId = null): string
     {
         $activePlayerId = (int) $this->game->getActivePlayerId();
-        $extraTurn = $this->game->playTurnWithDie($activePlayerId, $dieId, $targetQ, $targetR, $flowerColor);
+        $extraTurn = $this->game->playTurnWithDie($activePlayerId, $dieId, $targetQ, $targetR, $flowerColor, $gardenerId);
 
         if ($extraTurn) {
             // Player gets an extra turn! Stay in PlayerTurn
@@ -113,7 +113,7 @@ class PlayerTurn extends GameState
                         }
                     }
                 }
-                $this->game->playTurnWithDie($playerId, $dieId, $m['q'], $m['r'], $flowerColor);
+                $this->game->playTurnWithDie($playerId, $dieId, $m['q'], $m['r'], $flowerColor, $m['gardener_id'] ?? null);
             } else {
                 // Cannot move: take penalty
                 $this->game->playTurnWithDie($playerId, $dieId, null, null, null);

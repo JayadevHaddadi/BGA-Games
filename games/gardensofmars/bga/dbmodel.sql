@@ -13,12 +13,14 @@ CREATE TABLE IF NOT EXISTS `cell` (
 
 DROP TABLE IF EXISTS `gardener`;
 CREATE TABLE IF NOT EXISTS `gardener` (
+    `gardener_id` varchar(32) NOT NULL,
     `player_id` int(10) unsigned NOT NULL,
     `martian` varchar(16) NOT NULL,
     `coord_q` smallint(5) DEFAULT NULL,
     `coord_r` smallint(5) DEFAULT NULL,
     `track_pos` smallint(5) NOT NULL DEFAULT 0,
-    PRIMARY KEY (`player_id`)
+    PRIMARY KEY (`gardener_id`),
+    KEY (`player_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 DROP TABLE IF EXISTS `player_flower`;
