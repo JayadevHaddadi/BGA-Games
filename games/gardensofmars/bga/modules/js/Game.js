@@ -353,7 +353,12 @@ export class Game {
             "49": {"x": 55, "y": 990},
             "50": {"x": 55, "y": 933},
         };
-        const p = Math.max(0, Math.min(50, Number(pos) || 0));
+        // Normalize position: 0 is start space, > 50 wraps around 1..50 (e.g. 51 -> 1, 56 -> 6, 100 -> 50)
+        let rawP = Math.max(0, Number(pos) || 0);
+        let p = rawP;
+        if (p > 50) {
+            p = ((p - 1) % 50) + 1;
+        }
         const pt = track[String(p)] || track["0"];
         if (this.isLandscape()) {
             return {
@@ -819,10 +824,15 @@ export class Game {
             if (!currentPids.has(pid)) el.remove();
         });
 
-        // Calculate group distribution on track positions to avoid overlapping
+        // Calculate group distribution on track positions to avoid overlapping (positions > 50 wrap around 1..50)
+        const normalizeTrackPos = (val) => {
+            let n = Math.max(0, Number(val) || 0);
+            return n > 50 ? ((n - 1) % 50) + 1 : n;
+        };
+
         const trackGroups = {};
         Object.values(this.gamedatas.gardeners).forEach(g => {
-            const p = g.track_pos || 0;
+            const p = normalizeTrackPos(g.track_pos || 0);
             if (!trackGroups[p]) trackGroups[p] = [];
             trackGroups[p].push(String(g.player_id));
         });
@@ -863,10 +873,11 @@ export class Game {
 
             // 2. Scoring Martian token on the perimeter track
             const tPos = g.track_pos || 0;
+            const normPos = normalizeTrackPos(tPos);
             const basePt = this.getTrackPixel(tPos);
 
             // Stagger tokens sharing the same position (especially pos 0 start)
-            const group = trackGroups[tPos] || [pid];
+            const group = trackGroups[normPos] || [pid];
             const idx = group.indexOf(pid);
             let offsetX = 0;
             let offsetY = 0;

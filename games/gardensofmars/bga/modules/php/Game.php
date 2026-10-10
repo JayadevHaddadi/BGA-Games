@@ -708,14 +708,17 @@ class Game extends \Bga\GameFramework\Table
                 $this->playerScore->inc($playerId, $leapfrogBonus);
             }
 
-            // Wrap around or cap at 50? Track has spaces 0..50.
+            // Wrap around 1..50: Track has spaces 1..50 (0 is starting space).
             if ($targetPos > 50) {
                 $targetPos = (($targetPos - 1) % 50) + 1;
             }
 
             static::DbQuery(sprintf("UPDATE `gardener` SET `track_pos` = %d WHERE `player_id` = %d", $targetPos, $playerId));
         } else {
-            $newPos = min(50, $currentPos + $points);
+            $newPos = $currentPos + $points;
+            if ($newPos > 50) {
+                $newPos = (($newPos - 1) % 50) + 1;
+            }
             static::DbQuery(sprintf("UPDATE `gardener` SET `track_pos` = %d WHERE `player_id` = %d", $newPos, $playerId));
         }
 
@@ -751,7 +754,15 @@ class Game extends \Bga\GameFramework\Table
 
     public function getGardenerTrackPos(int $playerId): int
     {
-        return (int) $this->getUniqueValueFromDb("SELECT `track_pos` FROM `gardener` WHERE `player_id` = $playerId");
+        $pos = (int) $this->getUniqueValueFromDb("SELECT `track_pos` FROM `gardener` WHERE `player_id` = $playerId");
+        $score = (int) $this->playerScore->get($playerId);
+        if ($score > 50 && ($pos === 50 || $pos > 50)) {
+            $pos = (($score - 1) % 50) + 1;
+            static::DbQuery("UPDATE `gardener` SET `track_pos` = $pos WHERE `player_id` = $playerId");
+        } else if ($pos > 50) {
+            $pos = (($pos - 1) % 50) + 1;
+        }
+        return $pos;
     }
 
     public function getPlayerFlowers(int $playerId): array
@@ -776,9 +787,24 @@ class Game extends \Bga\GameFramework\Table
 
     public function getAllGardeners(): array
     {
-        return static::getObjectListFromDb(
+        $gardeners = static::getObjectListFromDb(
             "SELECT `player_id`, `martian`, `coord_q` as `q`, `coord_r` as `r`, `track_pos` FROM `gardener`"
         );
+        foreach ($gardeners as &$g) {
+            $pid = (int) $g['player_id'];
+            $score = (int) $this->playerScore->get($pid);
+            $pos = (int) $g['track_pos'];
+            // If track_pos was clamped at 50, or score exceeds 50 and track_pos was not wrapped:
+            if ($score > 50 && ($pos === 50 || $pos > 50)) {
+                $pos = (($score - 1) % 50) + 1;
+                $g['track_pos'] = $pos;
+                static::DbQuery("UPDATE `gardener` SET `track_pos` = $pos WHERE `player_id` = $pid");
+            } else if ($pos > 50) {
+                $pos = (($pos - 1) % 50) + 1;
+                $g['track_pos'] = $pos;
+            }
+        }
+        return $gardeners;
     }
 
     public function getColorName(string $color): string
