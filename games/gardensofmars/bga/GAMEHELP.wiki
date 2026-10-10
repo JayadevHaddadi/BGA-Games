@@ -15,8 +15,7 @@
 ** '''2 players:''' 30 flowers each
 ** '''3 players:''' 20 flowers each
 ** '''4 players:''' 15 flowers each
-** '''5 players:''' 12 flowers each
-* Each player is assigned a Martian character (Ali, Bob, Bot, Marty, Robby) and begins with their Gardener on an empty hexagon and their Scoring Martian on space '0' (next to space 1) of the perimeter scoring track.
+* Each player is assigned a Martian character (Ali, Bob, Bot, Marty, Robby). In turn order, each player clicks an empty hexagon on the board (except the central space) to place their Gardener. Their Scoring Martian begins on space '0' (next to space 1) of the perimeter scoring track.
 
 ==Turn Structure==
 

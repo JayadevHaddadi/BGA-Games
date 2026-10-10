@@ -24,10 +24,10 @@ class SelectMartian extends GameState
 
     public function getArgs(): array
     {
-        $allMartians = ['ali', 'bob', 'bot', 'marty', 'robby'];
-        $chosen = $this->game->getObjectListFromDb("SELECT `martian` FROM `gardener`");
-        $chosenList = array_map(fn($row) => $row['martian'], $chosen);
-        $availableMartians = array_values(array_diff($allMartians, $chosenList));
+        $playerId = (int) $this->game->getActivePlayerId();
+        $myMartian = (string) $this->game->getUniqueValueFromDb(
+            "SELECT `martian` FROM `gardener` WHERE `player_id` = $playerId"
+        );
 
         // Cannot place in center (0,0), on another gardener, or on a peak
         $allGardeners = $this->game->getObjectListFromDb("SELECT `coord_q` as `q`, `coord_r` as `r` FROM `gardener` WHERE `coord_q` IS NOT NULL");
@@ -55,19 +55,20 @@ class SelectMartian extends GameState
         }
 
         return [
-            'available_martians' => $availableMartians,
+            'my_martian' => $myMartian,
             'empty_spots' => $emptySpots,
         ];
     }
 
     #[PossibleAction]
-    public function actSelectMartian(string $martian, int $q, int $r): string
+    public function actSelectMartian(?string $martian, int $q, int $r): string
     {
         $playerId = (int) $this->game->getActivePlayerId();
 
         $args = $this->getArgs();
-        if (!in_array($martian, $args['available_martians'], true)) {
-            throw new UserException(clienttranslate("That Martian has already been chosen or is invalid."));
+        $assignedMartian = $args['my_martian'];
+        if (!$assignedMartian) {
+            $assignedMartian = $martian ?: 'bot';
         }
 
         if ($q === 0 && $r === 0) {
@@ -87,35 +88,34 @@ class SelectMartian extends GameState
         }
 
         $this->game->DbQuery(sprintf(
-            "INSERT INTO `gardener` (`player_id`, `martian`, `coord_q`, `coord_r`, `track_pos`) VALUES (%d, '%s', %d, %d, 0)",
-            $playerId,
-            $martian,
+            "UPDATE `gardener` SET `coord_q` = %d, `coord_r` = %d WHERE `player_id` = %d",
             $q,
-            $r
+            $r,
+            $playerId
         ));
 
         $this->game->giveExtraTime($playerId);
 
-        $this->game->notifyAllPlayers("martianSelected", clienttranslate('${player_name} chose ${martian_name} and placed their gardener on the board'), [
+        $this->game->notifyAllPlayers("martianSelected", clienttranslate('${player_name} placed their gardener on the board'), [
             'player_id' => $playerId,
             'player_name' => $this->game->getPlayerNameById($playerId),
-            'martian' => $martian,
-            'martian_name' => ucfirst($martian),
+            'martian' => $assignedMartian,
+            'martian_name' => ucfirst($assignedMartian),
             'q' => $q,
             'r' => $r,
             'track_pos' => 0,
         ]);
 
         $playerIds = array_keys($this->game->loadPlayersBasicInfos());
-        $gardenerCount = (int) $this->game->getUniqueValueFromDb("SELECT COUNT(*) FROM `gardener`");
+        $placedCount = (int) $this->game->getUniqueValueFromDb("SELECT COUNT(*) FROM `gardener` WHERE `coord_q` IS NOT NULL");
 
-        if ($gardenerCount < count($playerIds)) {
+        if ($placedCount < count($playerIds)) {
             // Next player in anticlockwise order
             $nextPlayerId = (int) $this->game->getPlayerAfter($playerId);
             $this->gamestate->changeActivePlayer($nextPlayerId);
             return self::class;
         } else {
-            // All gardeners placed! Roll dice or start PlayerTurn for first player
+            // All gardeners placed! Roll dice & start PlayerTurn for first player
             $firstPlayerId = (int) $playerIds[0];
             $this->gamestate->changeActivePlayer($firstPlayerId);
             $avail = $this->game->getAvailableDice();
@@ -129,21 +129,19 @@ class SelectMartian extends GameState
     public function zombie(int $playerId): string
     {
         $args = $this->getArgs();
-        $martian = $args['available_martians'][0] ?? 'bot';
         $spot = $args['empty_spots'][0] ?? ['q' => 1, 'r' => 1];
 
         $this->game->DbQuery(sprintf(
-            "INSERT INTO `gardener` (`player_id`, `martian`, `coord_q`, `coord_r`, `track_pos`) VALUES (%d, '%s', %d, %d, 0)",
-            $playerId,
-            $martian,
+            "UPDATE `gardener` SET `coord_q` = %d, `coord_r` = %d WHERE `player_id` = %d",
             $spot['q'],
-            $spot['r']
+            $spot['r'],
+            $playerId
         ));
 
         $playerIds = array_keys($this->game->loadPlayersBasicInfos());
-        $gardenerCount = (int) $this->game->getUniqueValueFromDb("SELECT COUNT(*) FROM `gardener`");
+        $placedCount = (int) $this->game->getUniqueValueFromDb("SELECT COUNT(*) FROM `gardener` WHERE `coord_q` IS NOT NULL");
 
-        if ($gardenerCount < count($playerIds)) {
+        if ($placedCount < count($playerIds)) {
             $nextPlayerId = (int) $this->game->getPlayerAfter($playerId);
             $this->gamestate->changeActivePlayer($nextPlayerId);
             return self::class;

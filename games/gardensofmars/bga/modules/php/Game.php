@@ -233,48 +233,24 @@ class Game extends \Bga\GameFramework\Table
             }
         }
 
-        // 6. Assign random Martians and random starting positions to players
+        // 6. Assign random Martians to players (each player will choose their starting position on the board in turn order)
         $martians = ['ali', 'bob', 'bot', 'marty', 'robby'];
         shuffle($martians);
 
-        // Find available starting spots (not center (0,0) and not peaks)
-        $occupiedPeaks = $this->getAllPeaks();
-        $peakSet = [];
-        foreach ($occupiedPeaks as $pk) {
-            $peakSet[$pk['q'] . '_' . $pk['r']] = true;
-        }
-
-        $validStartSpots = [];
-        foreach ($cells as $c) {
-            if ($c['q'] === 0 && $c['r'] === 0) {
-                continue;
-            }
-            if (isset($peakSet[$c['q'] . '_' . $c['r']])) {
-                continue;
-            }
-            $validStartSpots[] = $c;
-        }
-        shuffle($validStartSpots);
-
-        $mIdx = 0;
         foreach ($playerIds as $idx => $pId) {
-            $martian = $martians[$mIdx++];
-            $spot = $validStartSpots[$idx];
+            $martian = $martians[$idx];
             static::DbQuery(sprintf(
-                "INSERT INTO `gardener` (`player_id`, `martian`, `coord_q`, `coord_r`, `track_pos`) VALUES (%d, '%s', %d, %d, 0)",
+                "INSERT INTO `gardener` (`player_id`, `martian`, `coord_q`, `coord_r`, `track_pos`) VALUES (%d, '%s', NULL, NULL, 0)",
                 $pId,
-                $martian,
-                $spot['q'],
-                $spot['r']
+                $martian
             ));
         }
 
         // 7. Turn order & first player (youngest / first player)
         $firstPlayerId = (int) $playerIds[0];
         $this->gamestate->changeActivePlayer($firstPlayerId);
-        $this->rollDiceForPlayer($firstPlayerId);
 
-        return PlayerTurn::class;
+        return SelectMartian::class;
     }
 
     public function placeRandomPeaks(array $allCells, int $peakCount): void

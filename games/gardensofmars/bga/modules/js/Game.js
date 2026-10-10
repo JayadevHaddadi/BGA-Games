@@ -582,14 +582,10 @@ export class Game {
     onSpotClicked(q, r) {
         if (!this.isCurrentPlayerActive()) return;
 
-        // Mode 1: Select Martian Placement
+        // Mode 1: Select Starting Position Placement
         if (this.uiPhase === 'select_martian') {
-            if (!this.selectedMartian) {
-                this.showError(_('Please pick your Martian character first!'));
-                return;
-            }
             this.bga.actions.performAction('actSelectMartian', {
-                martian: this.selectedMartian,
+                martian: this.selectedMartian || '',
                 q: q,
                 r: r
             });
@@ -928,34 +924,21 @@ export class Game {
         this.clearActionButtons();
         this.clearValidMoveHighlights();
 
+        const picker = document.getElementById('gom_martian_picker');
+        if (picker) {
+            picker.style.display = 'none';
+        }
+
         if (!this.isCurrentPlayerActive()) {
-            this.bga?.statusBar?.setTitle?.(_('Waiting for other players to choose their Martian...'));
-            document.getElementById('gom_martian_picker')?.setAttribute('style', 'display:none');
+            this.bga?.statusBar?.setTitle?.(_('Waiting for other players to choose their starting position...'));
             return;
         }
 
-        this.bga?.statusBar?.setTitle?.(_('Choose your Martian character, then click an empty hexagon on the board'));
-        const picker = document.getElementById('gom_martian_picker');
-        if (picker && args?.available_martians) {
-            picker.innerHTML = '';
-            picker.style.display = 'flex';
-            args.available_martians.forEach(m => {
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = 'gom_martian_btn' + (m === this.selectedMartian ? ' selected' : '');
-                btn.innerHTML = `<img src="${this.imgUrl(`${m}.png`)}" alt=""><span>${m.toUpperCase()}</span>`;
-                btn.addEventListener('click', () => {
-                    this.selectedMartian = m;
-                    document.querySelectorAll('.gom_martian_btn').forEach(b => b.classList.remove('selected'));
-                    btn.classList.add('selected');
-                });
-                picker.appendChild(btn);
-            });
-            if (!this.selectedMartian && args.available_martians.length > 0) {
-                this.selectedMartian = args.available_martians[0];
-                picker.firstChild?.classList.add('selected');
-            }
-        }
+        const martianName = (args?.my_martian || '').toUpperCase();
+        const titleMsg = martianName
+            ? _('${you} are ${martian}: click an empty hexagon on the board to place your gardener').replace('${martian}', martianName)
+            : _('Click an empty hexagon on the board to place your gardener');
+        this.bga?.statusBar?.setTitle?.(titleMsg);
 
         // Highlight empty spots
         (args?.empty_spots || []).forEach(spot => {
