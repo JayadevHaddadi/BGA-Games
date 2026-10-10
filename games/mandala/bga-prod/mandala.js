@@ -849,19 +849,20 @@ function (dojo, declare, bgaHelp) {
             }
         },
         getOverlap(stockObj) {
-            // Measure the real stock width so cards always fit, whatever gutters surround the mandala
+            // Measure the real stock width so a row never runs past its mandala
             var measured = stockObj.container_div ? stockObj.container_div.clientWidth : 0;
             var areaWidth = measured > 0 ? measured : 375 * this.mdlScale;
-            var cardsNbr = stockObj.count(); 
-            if (cardsNbr < 5) {
-                stockObj.item_margin = 5;
+            var gap = 5;
+            var cardsNbr = stockObj.count();
+            // Row fits with normal spacing: no overlap
+            if (cardsNbr < 2 || cardsNbr * this.cardSize + gap * (cardsNbr - 1) <= areaWidth) {
+                stockObj.item_margin = gap;
                 return 0;
-            } else {
-                stockObj.item_margin = 0;
-                var visiblePx = areaWidth / (cardsNbr - 1);
-                var visiblePct = (visiblePx / this.cardSize) * 100;
-                return visiblePct;
             }
+            // Too many cards: each card overlaps the one on its left, showing only its left shoulder
+            stockObj.item_margin = 0;
+            var visiblePx = (areaWidth - this.cardSize) / (cardsNbr - 1);
+            return (visiblePx / this.cardSize) * 100;
         },
         setSelectedStock: function( card_div, card_type_id, card_id ) {
             var objIdSplit = card_id.split('_');
