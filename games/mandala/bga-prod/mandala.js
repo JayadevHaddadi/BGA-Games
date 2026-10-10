@@ -1973,7 +1973,7 @@ function (dojo, declare, bgaHelp) {
                         container.title = _('Complete!');
                     } else {
                         var html = '<span class="mdl_missing_title">' + _('Missing colors') + '</span>';
-                        html += '<div class="mdl_missing_cards">';
+                        html += '<div class="mdl_missing_cards' + (missing.length >= 3 ? ' mdl_missing_two_cols' : '') + '">';
                         missing.forEach((col) => {
                             var colorCap = col.charAt(0).toUpperCase() + col.slice(1);
                             html += '<div class="mdl_card mdl_' + col + '_card mdl_missing_card" title="' + _(colorCap) + '"></div>';
