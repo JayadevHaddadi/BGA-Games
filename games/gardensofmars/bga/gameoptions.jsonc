@@ -67,6 +67,12 @@
                 "description": "In a 2-player game, each player controls 2 gardeners and chooses which one to move on their turn (ignored if 3+ players)."
             }
         },
-        "default": 1
+        "default": 1,
+        "displaycondition": [
+            {
+                "type": "maxplayers",
+                "value": 2
+            }
+        ]
     }
 }

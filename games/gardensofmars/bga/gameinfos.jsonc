@@ -17,5 +17,6 @@
     "status": "alpha",
     "game_interface_width": {
         "min": 320
-    }
+    },
+    "exception_on_warning": true
 }

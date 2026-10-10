@@ -805,8 +805,6 @@ export class Game {
         const tLayer = document.getElementById('gom_track_layer');
         if (!gLayer || !tLayer || !this.gamedatas?.gardeners) return;
 
-        const currentPids = new Set(Object.keys(this.gamedatas.gardeners));
-
         const currentGardenerIds = new Set(Object.keys(this.gamedatas.gardeners));
         const playerIds = Object.keys(this.gamedatas.players || {});
         const currentPids = new Set(playerIds);
