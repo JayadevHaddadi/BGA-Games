@@ -125,7 +125,7 @@ function (dojo, declare, bgaHelp) {
                 this.mountains[mountain].onItemCreate = dojo.hitch(this,'setSelectedStock');
                 this.mountains[mountain].use_vertical_overlap_as_offset = false;
                 this.mountains[mountain].vertical_overlap = 75; // overlap
-                this.mountains[mountain].resizeItems(this.cardSize,this.cardSize,this.cardSize * 8,this.cardSize);
+                this.mountains[mountain].resizeItems(this.cardSize,this.cardSize,this.getRowWidth(this.mountains[mountain]),this.cardSize);
             }
 
             // Fields stocks
@@ -502,7 +502,7 @@ function (dojo, declare, bgaHelp) {
                 this.fields[field][playerId].onItemCreate = dojo.hitch(this,'setSelectedStock');
                 this.fields[field][playerId].use_vertical_overlap_as_offset = false;
                 this.fields[field][playerId].vertical_overlap = 75; // overlap    
-                this.fields[field][playerId].resizeItems(this.cardSize,this.cardSize,this.cardSize * 8,this.cardSize);
+                this.fields[field][playerId].resizeItems(this.cardSize,this.cardSize,this.getRowWidth(this.fields[field][playerId]),this.cardSize);
             }
         },
         setupPlayerBoard: function(playerData,playerId) {
@@ -703,7 +703,7 @@ function (dojo, declare, bgaHelp) {
                 if (this.mountains) {
                     for (var mountain in this.mountains) {
                         if (this.mountains[mountain] && this.mountains[mountain].resizeItems) {
-                            this.mountains[mountain].resizeItems(this.cardSize, this.cardSize, this.cardSize * 8, this.cardSize);
+                            this.mountains[mountain].resizeItems(this.cardSize, this.cardSize, this.getRowWidth(this.mountains[mountain]), this.cardSize);
                         }
                     }
                 }            
@@ -711,7 +711,7 @@ function (dojo, declare, bgaHelp) {
                     for (var playerId in this.gamedatas.players) {
                         for (var field in this.fields) {
                             if (this.fields[field] && this.fields[field][playerId] && this.fields[field][playerId].resizeItems) {
-                                this.fields[field][playerId].resizeItems(this.cardSize, this.cardSize, this.cardSize * 8, this.cardSize);
+                                this.fields[field][playerId].resizeItems(this.cardSize, this.cardSize, this.getRowWidth(this.fields[field][playerId]), this.cardSize);
                             }
                         }
                     }
@@ -847,6 +847,11 @@ function (dojo, declare, bgaHelp) {
                     this.cupsCounter[playerId].incValue(nbr);
                     break;
             }
+        },
+        // Width a stock row may use before wrapping: the real container, so a row stays on one line
+        getRowWidth: function(stockObj) {
+            var measured = stockObj && stockObj.container_div ? stockObj.container_div.clientWidth : 0;
+            return measured > 0 ? measured : this.cardSize * 8;
         },
         getOverlap(stockObj) {
             // Measure the real stock width so a row never runs past its mandala
@@ -1356,7 +1361,7 @@ function (dojo, declare, bgaHelp) {
                 this.fields[field][playerId].onItemCreate = dojo.hitch(this,'setSelectedStock');
                 this.fields[field][playerId].use_vertical_overlap_as_offset = false;
                 this.fields[field][playerId].vertical_overlap = 75; // overlap    
-                this.fields[field][playerId].resizeItems(this.cardSize,this.cardSize,this.cardSize * 8,this.cardSize);
+                this.fields[field][playerId].resizeItems(this.cardSize,this.cardSize,this.getRowWidth(this.fields[field][playerId]),this.cardSize);
             }
         },
 
