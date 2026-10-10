@@ -654,10 +654,8 @@ class Game extends \Bga\GameFramework\Table
             }
         }
 
-        // Per rules: receives points equal to number of flowers of the same color connected to it, forming a group.
-        // If it connects to no other flowers of that color (isolated), group size is 1, so 0 points ("not scoring this time because there are no adjacent red flowers").
-        // When connected to existing flowers, score equals the entire group size (including the flower just planted, e.g. group of 5 scores 5 points).
-        return $count > 1 ? $count : 0;
+        // Per rules: receives points equal to total amount of connected flowers of the color - 1
+        return max(0, $count - 1);
     }
 
     public function advanceScoreTrack(int $playerId, int $points): array

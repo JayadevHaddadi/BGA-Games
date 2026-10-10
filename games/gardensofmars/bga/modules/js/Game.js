@@ -131,6 +131,17 @@ export class Game {
 
         // Subscribe to notifications
         this.setupNotifications();
+
+        // Restore active UI state on table start or page refresh
+        const stateName = gamedatas?.gamestate?.name || this.bga?.gamestate?.name || (typeof gameui !== 'undefined' ? gameui.gamedatas?.gamestate?.name : null);
+        const stateArgs = gamedatas?.gamestate?.args || this.bga?.gamestate?.args || (typeof gameui !== 'undefined' ? gameui.gamedatas?.gamestate?.args : null);
+        const stateId = parseInt(gamedatas?.gamestate?.id || this.bga?.gamestate?.id || (typeof gameui !== 'undefined' ? gameui.gamedatas?.gamestate?.id : 0));
+
+        if (stateName === 'SelectMartian' || stateId === 20) {
+            this.updateSelectMartianUI(stateArgs);
+        } else if (stateName === 'PlayerTurn' || stateId === 30) {
+            this.updatePlayerTurnUI(stateArgs);
+        }
     }
 
     normalizeGardeners() {
@@ -170,24 +181,46 @@ export class Game {
         return this.gamedatas.gardeners[pid];
     }
 
-    isCurrentPlayerActive() {
-        if (this.bga?.players && typeof this.bga.players.isCurrentPlayerActive === 'function') {
-            return this.bga.players.isCurrentPlayerActive();
+    getCurrentPlayerId() {
+        if (this.bga?.players && typeof this.bga.players.getCurrentPlayerId === 'function') {
+            const id = this.bga.players.getCurrentPlayerId();
+            if (id) return id;
         }
-        if (typeof gameui !== 'undefined' && typeof gameui.isCurrentPlayerActive === 'function') {
-            return gameui.isCurrentPlayerActive();
+        if (typeof gameui !== 'undefined' && typeof gameui.getCurrentPlayerId === 'function') {
+            const id = gameui.getCurrentPlayerId();
+            if (id) return id;
         }
-        return false;
+        if (typeof gameui !== 'undefined' && gameui.player_id !== undefined && gameui.player_id !== null) {
+            return gameui.player_id;
+        }
+        return null;
     }
 
     getActivePlayerId() {
         if (this.bga?.players && typeof this.bga.players.getActivePlayerId === 'function') {
-            return this.bga.players.getActivePlayerId();
+            const id = this.bga.players.getActivePlayerId();
+            if (id) return id;
         }
         if (typeof gameui !== 'undefined' && typeof gameui.getActivePlayerId === 'function') {
-            return gameui.getActivePlayerId();
+            const id = gameui.getActivePlayerId();
+            if (id) return id;
         }
-        return null;
+        return this.gamedatas?.gamestate?.active_player || null;
+    }
+
+    isCurrentPlayerActive() {
+        if (this.bga?.players && typeof this.bga.players.isCurrentPlayerActive === 'function') {
+            if (this.bga.players.isCurrentPlayerActive()) return true;
+        }
+        if (typeof gameui !== 'undefined' && typeof gameui.isCurrentPlayerActive === 'function') {
+            if (gameui.isCurrentPlayerActive()) return true;
+        }
+        const activeId = this.getActivePlayerId();
+        const currentId = this.getCurrentPlayerId();
+        if (activeId && currentId && String(activeId) === String(currentId)) {
+            return true;
+        }
+        return false;
     }
 
     imgUrl(file) {
@@ -934,14 +967,37 @@ export class Game {
             return;
         }
 
-        const martianName = (args?.my_martian || '').toUpperCase();
+        const myId = this.getCurrentPlayerId() || 0;
+        const myMartian = args?.my_martian || this.gamedatas?.gardeners?.[String(myId)]?.martian || '';
+        const martianName = myMartian ? myMartian.toUpperCase() : '';
         const titleMsg = martianName
             ? _('${you} are ${martian}: click an empty hexagon on the board to place your gardener').replace('${martian}', martianName)
             : _('Click an empty hexagon on the board to place your gardener');
         this.bga?.statusBar?.setTitle?.(titleMsg);
 
-        // Highlight empty spots
-        (args?.empty_spots || []).forEach(spot => {
+        // Highlight empty spots (from args or fallback to calculating from board state)
+        let emptySpots = args?.empty_spots;
+        if (!emptySpots || emptySpots.length === 0) {
+            const occupied = {};
+            Object.values(this.gamedatas?.gardeners || {}).forEach(g => {
+                if (g.q !== null && g.r !== null && g.q !== undefined) {
+                    occupied[`${g.q}_${g.r}`] = true;
+                }
+            });
+            (this.gamedatas?.peaks || []).forEach(p => {
+                occupied[`${p.q}_${p.r}`] = true;
+            });
+
+            emptySpots = [];
+            (this.gamedatas?.board_cells || []).forEach(c => {
+                if (Number(c.q) === 0 && Number(c.r) === 0) return;
+                if (!occupied[`${c.q}_${c.r}`]) {
+                    emptySpots.push({ q: Number(c.q), r: Number(c.r) });
+                }
+            });
+        }
+
+        emptySpots.forEach(spot => {
             const el = document.getElementById(`spot_${spot.q}_${spot.r}`);
             if (el) el.classList.add('valid_move');
         });

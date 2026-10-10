@@ -36,7 +36,7 @@ If there is at least one die available on the table:
 ** If playing with the Peaks variant, Peaks (gray cones) cannot be entered or passed through.
 * '''Outcomes:'''
 ** '''Cannot Move / Land on existing flower:''' If the Gardener lands on an existing flower or has no valid legal moves, the player loses 1 point (scoring Martian moves back 1 position, minimum 0).
-** '''Empty Hexagon:''' If the Gardener stops on an empty hexagon, the player chooses and plants any one flower from their remaining reserve. If it connects to existing flowers of that color, they immediately score points equal to the total size of the connected group of that same color (including the newly planted flower; an isolated flower scores 0).
+** '''Empty Hexagon:''' If the Gardener stops on an empty hexagon, the player chooses and plants any one flower from their remaining reserve. If it connects to existing flowers of that color, they immediately score points equal to the total size of the connected group of that same color minus 1 (i.e. the number of other flowers connected to it; an isolated flower scores 0).
 * The used die is discarded back into the case.
 
 ===3. Extra Turns (Variants)===
