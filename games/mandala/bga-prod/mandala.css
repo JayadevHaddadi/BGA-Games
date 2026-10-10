@@ -934,7 +934,7 @@
 .mdl_missing_panel {
     position: absolute;
     z-index: 5;
-    width: calc(66px * var(--mdlScale));
+    width: calc(36px * var(--mdlScale));
     box-sizing: border-box;
     display: flex;
     align-items: center;
@@ -993,13 +993,13 @@
 
 .mdl_missing_cards {
     display: grid;
-    grid-template-columns: repeat(2, auto);
-    gap: calc(3px * var(--mdlScale));
+    grid-template-columns: auto;
+    gap: calc(2px * var(--mdlScale));
 }
 
 .mdl_card.mdl_missing_card {
     position: relative !important;
-    width: calc(20px * var(--mdlScale)) !important;
-    height: calc(20px * var(--mdlScale)) !important;
+    width: calc(14px * var(--mdlScale)) !important;
+    height: calc(14px * var(--mdlScale)) !important;
     background-size: 800% 100%;
 }
