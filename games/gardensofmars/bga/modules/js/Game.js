@@ -641,48 +641,106 @@ export class Game {
             const avail = (this.lastTurnArgs?.available_dice || []).filter(d => !parseInt(d.is_used));
             
             // Find which available dice can reach (q, r)
-            const matchingDice = [];
+            const matchingMoves = [];
             avail.forEach(d => {
                 const dieInfo = this.validMovesByDie?.[d.die_id];
                 const moves = (dieInfo?.moves || []).filter(m => m.q === q && m.r === r);
                 moves.forEach(move => {
                     if (!this.selectedGardenerId || move.gardener_id === this.selectedGardenerId) {
-                        matchingDice.push({ dieId: parseInt(d.die_id), dieValue: d.die_value, move: move });
+                        matchingMoves.push({ dieId: parseInt(d.die_id), dieValue: d.die_value, move: move });
                     }
                 });
             });
 
-            if (matchingDice.length === 0) return;
+            if (matchingMoves.length === 0) return;
 
-            const chosen = matchingDice[0];
-            const chosenGid = chosen.move.gardener_id || null;
+            // Group moves by gardener_id
+            const byGardener = new Map();
+            matchingMoves.forEach(opt => {
+                const gid = String(opt.move.gardener_id || this.getActivePlayerId());
+                if (!byGardener.has(gid)) {
+                    byGardener.set(gid, []);
+                }
+                byGardener.get(gid).push(opt);
+            });
 
-            if (chosen.move.has_flower) {
-                // Land on flower: -1 point penalty
-                this.clearActionButtons();
-                this.clearValidMoveHighlights();
-                const spot = document.getElementById(`spot_${q}_${r}`);
-                if (spot) spot.classList.add('staged_move');
-
-                this.bga?.statusBar?.setTitle?.(_('Using die ${val}: land on flower (-1 penalty)').replace('${val}', chosen.dieValue));
-                this.addActionButton('btnConfirmMovePenalty', _('Confirm Move (-1 point)'), () => {
-                    this.clearValidMoveHighlights();
-                    this.clearActionButtons();
-                    this.bga.actions.performAction('actPlayDie', {
-                        dieId: chosen.dieId,
-                        targetQ: q,
-                        targetR: r,
-                        gardenerId: chosenGid
-                    });
-                }, 'primary');
-                this.addActionButton('btnUndoMovePenalty', _('Undo / Change'), () => {
-                    this.clearActionButtons();
-                    this.updateMoveHighlights();
-                }, 'alert');
+            if (byGardener.size > 1) {
+                // Spot can be moved to by multiple characters — let player choose which alien
+                this.chooseGardenerForSpot(q, r, byGardener);
             } else {
-                // Land on empty space: choose color to plant
-                this.openColorPicker(q, r, chosen.dieId, chosen.dieValue, chosenGid);
+                this.proceedWithChosenMove(q, r, matchingMoves[0]);
             }
+        }
+    }
+
+    chooseGardenerForSpot(q, r, byGardener) {
+        this.clearValidMoveHighlights();
+        this.clearActionButtons();
+        this.closeColorPicker();
+
+        const spot = document.getElementById(`spot_${q}_${r}`);
+        if (spot) spot.classList.add('staged_move');
+
+        this.bga?.statusBar?.setTitle?.(
+            _('Both gardeners can reach (${q},${r}) — choose which alien to move:')
+                .replace('${q}', q)
+                .replace('${r}', r)
+        );
+
+        byGardener.forEach((opts, gid) => {
+            const martianKey = this.gamedatas?.gardeners?.[gid]?.martian;
+            const martianName = martianKey ? (martianKey.charAt(0).toUpperCase() + martianKey.slice(1)) : _('Gardener');
+            const dieVal = opts[0].dieValue;
+            const btnLabel = `${martianName} (Die ${dieVal})`;
+
+            this.addActionButton(`btnChooseGardener_${gid}`, btnLabel, () => {
+                this.clearActionButtons();
+                this.proceedWithChosenMove(q, r, opts[0]);
+            }, 'primary');
+        });
+
+        this.addActionButton('btnCancelGardenerChoice', _('Undo / Cancel'), () => {
+            this.clearActionButtons();
+            this.updateMoveHighlights();
+        }, 'alert');
+    }
+
+    proceedWithChosenMove(q, r, chosen) {
+        const chosenGid = chosen.move.gardener_id || null;
+
+        if (chosen.move.has_flower) {
+            // Land on flower: -1 point penalty
+            this.clearActionButtons();
+            this.clearValidMoveHighlights();
+            const spot = document.getElementById(`spot_${q}_${r}`);
+            if (spot) spot.classList.add('staged_move');
+
+            const martianKey = chosenGid ? this.gamedatas?.gardeners?.[chosenGid]?.martian : null;
+            const martianName = martianKey ? (martianKey.charAt(0).toUpperCase() + martianKey.slice(1)) : '';
+            const martianStr = martianName ? ` ${martianName}` : '';
+
+            this.bga?.statusBar?.setTitle?.(
+                _('Using die ${val}: move${martian} onto flower (-1 penalty)')
+                    .replace('${val}', chosen.dieValue)
+                    .replace('${martian}', martianStr)
+            );
+            this.addActionButton('btnConfirmMovePenalty', _('Confirm Move (-1 point)'), () => {
+                this.clearValidMoveHighlights();
+                this.clearActionButtons();
+                this.bga.actions.performAction('actPlayDie', {
+                    dieId: chosen.dieId,
+                    targetQ: q,
+                    targetR: r,
+                    gardenerId: chosenGid
+                });
+            }, 'primary');
+            this.addActionButton('btnUndoMovePenalty', _('Undo / Change'), () => {
+                this.clearActionButtons();
+                this.updateMoveHighlights();
+            }, 'alert');
+        } else {
+            // Land on empty space: choose color to plant
+            this.openColorPicker(q, r, chosen.dieId, chosen.dieValue, chosenGid);
         }
     }
 
@@ -1085,6 +1143,8 @@ export class Game {
 
     updatePlayerTurnUI(args, isCurrentPlayerActive = null) {
         this.uiPhase = 'turn';
+        this.selectedGardenerId = null;
+        document.querySelectorAll('.gom_gardener_token.selected_gardener').forEach(t => t.classList.remove('selected_gardener'));
         this.lastTurnArgs = args;
         this.closeColorPicker();
         this.clearActionButtons();

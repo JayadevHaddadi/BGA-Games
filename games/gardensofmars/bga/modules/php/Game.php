@@ -520,6 +520,7 @@ class Game extends \Bga\GameFramework\Table
         $validMoves = $this->getValidMovesForDie($playerId, $dieValue);
 
         $grantExtraTurn = false;
+        $landedOn25Occupied = false;
         $trackVariant = (int) $this->globals->get('track_variant', 1);
         $lastFlowerVariant = (int) $this->globals->get('last_flower_variant', 1);
 
