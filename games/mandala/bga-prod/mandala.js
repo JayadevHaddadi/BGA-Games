@@ -155,7 +155,8 @@ function (dojo, declare, bgaHelp) {
             for (var i in this.colors) {
                 // this.mountains['mountain_1'].addItemType(i, i, g_gamethemeurl + 'img/mandala_cards'+this.cb+'.png', i);
                 // this.mountains['mountain_2'].addItemType(i, i, g_gamethemeurl + 'img/mandala_cards'+this.cb+'.png', i);
-                var weight = !this.isSoloMode() ? i : 0;
+                // Mountains keep play order: equal weights, cards are appended as they are played
+                var weight = 0;
                 this.mountains['mountain_1'].addItemType(i, weight, g_gamethemeurl + 'img/mandala_cards'+this.cb+'.png', i);
                 this.mountains['mountain_2'].addItemType(i, weight, g_gamethemeurl + 'img/mandala_cards'+this.cb+'.png', i);
                 this.playerHand.addItemType(i, i, g_gamethemeurl + 'img/mandala_cards'+this.cb+'.png', i);
@@ -172,19 +173,11 @@ function (dojo, declare, bgaHelp) {
             // Placing cards in the stocks
 
             // Mountains
-            Object.values(gamedatas.mountain_1).forEach((elem) => {
-                if (this.isSoloMode()) {
-                    var objectWeight = { [elem.type_arg]: elem.location_arg };
-                    this.mountains['mountain_1'].changeItemsWeight(objectWeight);
-                }
+            Object.values(gamedatas.mountain_1).sort((a, b) => a.location_arg - b.location_arg).forEach((elem) => {
                 this.mountains['mountain_1'].addToStockWithId(elem.type_arg,elem.id);
             });
             this.mountains['mountain_1'].horizontal_overlap = this.getOverlap(this.mountains['mountain_1']);
-            Object.values(gamedatas.mountain_2).forEach((elem) => {
-                if (this.isSoloMode()) {
-                    var objectWeight = { [elem.type_arg]: elem.location_arg };
-                    this.mountains['mountain_2'].changeItemsWeight(objectWeight);
-                }
+            Object.values(gamedatas.mountain_2).sort((a, b) => a.location_arg - b.location_arg).forEach((elem) => {
                 this.mountains['mountain_2'].addToStockWithId(elem.type_arg,elem.id);
             });
             this.mountains['mountain_2'].horizontal_overlap = this.getOverlap(this.mountains['mountain_2']);
@@ -1451,10 +1444,6 @@ function (dojo, declare, bgaHelp) {
                 var origin = playerId != this.masterYoga.id ? 'overall_player_board_' + playerId : 'mdl_draw_deck';
                 this.mountains[notif.args.mountain].addToStockWithId(cardPlayed.type_arg,cardPlayed.id,origin);
             }
-            if (this.isSoloMode()) {
-                var objectWeight = { [cardPlayed.type_arg]: cardPlayed.location_arg };
-                this.mountains[notif.args.mountain].changeItemsWeight(objectWeight);
-            }
             this.selectedStock = this.mountains[notif.args.mountain];
             this.updateStockOverlap();
             this.updateMissingColors();
@@ -1641,12 +1630,8 @@ function (dojo, declare, bgaHelp) {
         {
             // Add new cards to the mountain
             this.showBack = true;
-            notif.args.newCards.forEach((card) => {
+            notif.args.newCards.slice().sort((a, b) => a.location_arg - b.location_arg).forEach((card) => {
                 this.mountains[notif.args.mountain].addToStockWithId(card.type_arg,card.id,'mdl_draw_deck');
-                if (this.isSoloMode()) {
-                    var objectWeight = { [card.type_arg]: card.location_arg };
-                    this.mountains[notif.args.mountain].changeItemsWeight(objectWeight);
-                }
             });
             this.showBack = false;
             
