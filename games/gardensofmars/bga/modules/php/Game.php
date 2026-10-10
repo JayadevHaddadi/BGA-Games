@@ -579,13 +579,30 @@ class Game extends \Bga\GameFramework\Table
                         'remaining_dice' => $this->getAvailableDice(),
                     ]
                 );
+            }
+        }
 
-                // Check extra turn triggers:
-                // Trigger 1: 10th (last) flower of color in play across all players planted
+        // Ensure used die is marked used (for penalty path too)
+        static::DbQuery("UPDATE `dice_pool` SET `is_used` = 1 WHERE `die_id` = $dieId");
+
+        // Remaining dice on the table
+        $remainingDice = (int) $this->getUniqueValueFromDb("SELECT COUNT(*) FROM `dice_pool` WHERE `is_used` = 0");
+
+        // According to official Gardens of Mars rules & Nestor:
+        // Extra turn variants ONLY grant an extra turn if at least 1 unused die remains on the table!
+        if ($remainingDice > 0) {
+            // Trigger 1: Planted the 10th (last) flower of a color in play across all players
+            // Must have 0 remaining in ANY player's reserve, AND 10 flowers of that color planted on the board
+            if ($lastFlowerVariant === 1 && $flowerColor !== null) {
                 $totalRemainingOfColor = (int) $this->getUniqueValueFromDb(
                     sprintf("SELECT COALESCE(SUM(`count`), 0) FROM `player_flower` WHERE `color` = '%s'", $flowerColor)
                 );
-                if ($lastFlowerVariant === 1 && $totalRemainingOfColor === 0) {
+                $plantedOnBoardOfColor = (int) $this->getUniqueValueFromDb(
+                    sprintf("SELECT COUNT(*) FROM `cell` WHERE `flower_color` = '%s'", $flowerColor)
+                );
+                // In Gardens of Mars, there are 10 flowers of each color.
+                // The variant triggers if you plant the 10th and final flower of that color in the game (and dice remain).
+                if ($totalRemainingOfColor === 0 && $plantedOnBoardOfColor === 10) {
                     $grantExtraTurn = true;
                     $this->notifyAllPlayers(
                         "extraTurnGranted",
@@ -598,37 +615,28 @@ class Game extends \Bga\GameFramework\Table
                         ]
                     );
                 }
+            }
 
-                // Trigger 2: Landed on occupied space above 25 points (if track variant enabled)
-                if ($trackVariant === 1 && $landedOn25Occupied) {
-                    $grantExtraTurn = true;
-                    $this->notifyAllPlayers(
-                        "extraTurnGranted",
-                        clienttranslate('${player_name} landed on an occupied space above 25 on the scoring track and earns an extra turn!'),
-                        [
-                            'player_id' => $playerId,
-                            'player_name' => $this->getPlayerNameById($playerId),
-                        ]
-                    );
-                }
+            // Trigger 2: Landed on occupied space above 25 points (if track variant enabled and dice remain)
+            if ($trackVariant === 1 && $landedOn25Occupied) {
+                $grantExtraTurn = true;
+                $this->notifyAllPlayers(
+                    "extraTurnGranted",
+                    clienttranslate('${player_name} landed on an occupied space above 25 on the scoring track and earns an extra turn!'),
+                    [
+                        'player_id' => $playerId,
+                        'player_name' => $this->getPlayerNameById($playerId),
+                    ]
+                );
             }
         }
 
-        // Ensure used die is marked used (for penalty path too)
-        static::DbQuery("UPDATE `dice_pool` SET `is_used` = 1 WHERE `die_id` = $dieId");
-
-        // Check if extra turn was granted
-        $remainingDice = (int) $this->getUniqueValueFromDb("SELECT COUNT(*) FROM `dice_pool` WHERE `is_used` = 0");
         if ($grantExtraTurn) {
             $this->globals->set('extra_turn_active', 1);
-            return true; // Active player stays active for extra turn! (rolls fresh dice if remainingDice == 0)
-        } else if ($remainingDice > 0) {
-            // Unused dice remain from current roll
-            $this->globals->set('extra_turn_active', 0);
-            return true;
+            return true; // Active player gets an extra turn using another die from the table
         } else {
             $this->globals->set('extra_turn_active', 0);
-            return false; // Turn passes to next player
+            return false; // Turn passes to the next player (any remaining dice on table stay for subsequent players)
         }
     }
 
