@@ -56,6 +56,10 @@ export class SelectMartian {
     onEnteringState(args, isCurrentPlayerActive) {
         this.game.updateSelectMartianUI(args, isCurrentPlayerActive);
     }
+
+    onUpdateActionButtons(args, isCurrentPlayerActive) {
+        this.game.updateSelectMartianUI(args, isCurrentPlayerActive);
+    }
 }
 
 export class PlayerTurn {
@@ -65,6 +69,10 @@ export class PlayerTurn {
     }
 
     onEnteringState(args, isCurrentPlayerActive) {
+        this.game.updatePlayerTurnUI(args, isCurrentPlayerActive);
+    }
+
+    onUpdateActionButtons(args, isCurrentPlayerActive) {
         this.game.updatePlayerTurnUI(args, isCurrentPlayerActive);
     }
 
@@ -137,15 +145,22 @@ export class Game {
         const stateArgs = gamedatas?.gamestate?.args || this.bga?.gamestate?.args || (typeof gameui !== 'undefined' ? gameui.gamedatas?.gamestate?.args : null);
         const stateId = parseInt(gamedatas?.gamestate?.id || this.bga?.gamestate?.id || (typeof gameui !== 'undefined' ? gameui.gamedatas?.gamestate?.id : 0));
 
-        const myId = this.getCurrentPlayerId();
-        const myGardener = myId ? this.gamedatas?.gardeners?.[String(myId)] : null;
-        const needsPlacement = myGardener && (myGardener.q === null || myGardener.q === undefined);
+        const initActiveUI = () => {
+            const myId = this.getCurrentPlayerId();
+            const myGardener = myId ? this.gamedatas?.gardeners?.[String(myId)] : null;
+            const needsPlacement = !myGardener || myGardener.q === null || myGardener.q === undefined;
 
-        if (stateName === 'SelectMartian' || stateName === 'selectMartian' || stateId === 20 || needsPlacement) {
-            this.updateSelectMartianUI(stateArgs);
-        } else if (stateName === 'PlayerTurn' || stateName === 'playerTurn' || stateId === 30) {
-            this.updatePlayerTurnUI(stateArgs);
-        }
+            if (stateName === 'SelectMartian' || stateName === 'selectMartian' || stateId === 20 || needsPlacement) {
+                this.updateSelectMartianUI(stateArgs);
+            } else if (stateName === 'PlayerTurn' || stateName === 'playerTurn' || stateId === 30) {
+                this.updatePlayerTurnUI(stateArgs);
+            }
+        };
+
+        initActiveUI();
+        // Modern BGA often finishes player binding slightly after setup returns; re-run to ensure highlights render
+        setTimeout(initActiveUI, 50);
+        setTimeout(initActiveUI, 250);
     }
 
     normalizeGardeners() {
@@ -1311,6 +1326,14 @@ export class Game {
         sounds.playMove();
         this.renderGardenState();
         this.renderPlayerFlowers();
+
+        // If other players still need to place their gardener, update placement highlights
+        const anyNeedPlacement = Object.values(this.gamedatas?.gardeners || {}).some(
+            g => g && (g.q === null || g.q === undefined)
+        );
+        if (anyNeedPlacement) {
+            this.updateSelectMartianUI();
+        }
     }
 
     notif_diceRolled(notif) {
