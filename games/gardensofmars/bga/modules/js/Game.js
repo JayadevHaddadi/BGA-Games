@@ -1414,7 +1414,8 @@ export class Game {
         const args = this._getNotifArgs(notif);
         sounds.playScore();
         if (this.isCurrentPlayerActive()) {
-            this.bga?.statusBar?.setTitle?.(_('Extra move granted! Play another available die.'));
+            this.bga?.statusBar?.setTitle?.(_('Extra turn granted! Choose your next move.'));
+            this.updateMoveHighlights();
         }
     }
 

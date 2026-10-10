@@ -475,7 +475,14 @@ class Game extends \Bga\GameFramework\Table
 
         $grantExtraTurn = false;
         $trackVariant = (int) $this->globals->get('track_variant', 1);
+        try {
+            $trackVariant = (int) $this->getGameStateValue('100', $trackVariant);
+        } catch (\Throwable $e) {}
+
         $lastFlowerVariant = (int) $this->globals->get('last_flower_variant', 1);
+        try {
+            $lastFlowerVariant = (int) $this->getGameStateValue('101', $lastFlowerVariant);
+        } catch (\Throwable $e) {}
 
         // Case A: Cannot move
         if (empty($validMoves) || $targetQ === null || $targetR === null) {
@@ -617,11 +624,15 @@ class Game extends \Bga\GameFramework\Table
         // Ensure used die is marked used (for penalty path too)
         static::DbQuery("UPDATE `dice_pool` SET `is_used` = 1 WHERE `die_id` = $dieId");
 
-        // Check if extra turn can be taken (requires at least 1 unused die remaining)
+        // Check if extra turn was granted
         $remainingDice = (int) $this->getUniqueValueFromDb("SELECT COUNT(*) FROM `dice_pool` WHERE `is_used` = 0");
-        if ($grantExtraTurn && $remainingDice > 0) {
+        if ($grantExtraTurn) {
             $this->globals->set('extra_turn_active', 1);
-            return true; // Active player stays active for extra turn!
+            return true; // Active player stays active for extra turn! (rolls fresh dice if remainingDice == 0)
+        } else if ($remainingDice > 0) {
+            // Unused dice remain from current roll
+            $this->globals->set('extra_turn_active', 0);
+            return true;
         } else {
             $this->globals->set('extra_turn_active', 0);
             return false; // Turn passes to next player
