@@ -572,9 +572,10 @@ export class Game {
 
         if (totalMovesFound === 0) {
             this.bga?.statusBar?.setTitle?.(_('No valid moves available with any rolled die — take a penalty'));
-            this.bga?.statusBar?.addActionButton?.(_('Cannot move (-1 point)'), () => {
+            this.addActionButton('btnCannotMove', _('Cannot move (-1 point)'), () => {
+                this.clearActionButtons();
                 this.bga.actions.performAction('actPlayDie', { dieId: avail[0].die_id });
-            }, { color: 'alert' });
+            }, 'alert');
         }
     }
 
@@ -621,17 +622,19 @@ export class Game {
                 if (spot) spot.classList.add('staged_move');
 
                 this.bga?.statusBar?.setTitle?.(_('Using die ${val}: land on flower (-1 penalty)').replace('${val}', chosen.dieValue));
-                this.bga?.statusBar?.addActionButton?.(_('Confirm Move (-1 point)'), () => {
+                this.addActionButton('btnConfirmMovePenalty', _('Confirm Move (-1 point)'), () => {
                     this.clearValidMoveHighlights();
+                    this.clearActionButtons();
                     this.bga.actions.performAction('actPlayDie', {
                         dieId: chosen.dieId,
                         targetQ: q,
                         targetR: r
                     });
-                }, { color: 'primary' });
-                this.bga?.statusBar?.addActionButton?.(_('Undo / Change'), () => {
+                }, 'primary');
+                this.addActionButton('btnUndoMovePenalty', _('Undo / Change'), () => {
+                    this.clearActionButtons();
                     this.updateMoveHighlights();
-                }, { color: 'alert' });
+                }, 'alert');
             } else {
                 // Land on empty space: choose color to plant
                 this.openColorPicker(q, r, chosen.dieId, chosen.dieValue);
@@ -685,10 +688,11 @@ export class Game {
             .replace('${val}', dieValue || '')
             .replace('${q}', q)
             .replace('${r}', r));
-        this.bga?.statusBar?.addActionButton?.(_('Undo / Cancel'), () => {
+        this.addActionButton('btnCancelPicker', _('Undo / Cancel'), () => {
             this.closeColorPicker();
+            this.clearActionButtons();
             this.updateMoveHighlights();
-        }, { color: 'alert' });
+        }, 'alert');
     }
 
     stageMove(q, r, dieId, dieValue, flowerColor) {
@@ -710,7 +714,7 @@ export class Game {
             .replace('${q}', q)
             .replace('${r}', r));
 
-        this.bga?.statusBar?.addActionButton?.(_('Confirm Placement'), () => {
+        this.addActionButton('btnConfirmPlacement', _('Confirm Placement'), () => {
             this.clearValidMoveHighlights();
             this.clearActionButtons();
             this.bga.actions.performAction('actPlayDie', {
@@ -719,12 +723,13 @@ export class Game {
                 targetR: r,
                 flowerColor: flowerColor
             });
-        }, { color: 'primary' });
+        }, 'primary');
 
-        this.bga?.statusBar?.addActionButton?.(_('Undo / Change'), () => {
+        this.addActionButton('btnUndoPlacement', _('Undo / Change'), () => {
             this.clearValidMoveHighlights();
+            this.clearActionButtons();
             this.updateMoveHighlights();
-        }, { color: 'alert' });
+        }, 'alert');
     }
 
     closeColorPicker() {
@@ -978,22 +983,52 @@ export class Game {
 
         if (args?.is_stuck) {
             this.bga?.statusBar?.setTitle?.(_('Surrounded by flowers and cannot roll dice. Click below to end turn.'));
-            this.bga?.statusBar?.addActionButton?.(_('End Turn (Stuck)'), () => {
+            this.addActionButton('btnPassStuck', _('End Turn (Stuck)'), () => {
+                this.clearActionButtons();
                 this.bga.actions.performAction('actPassStuck', {});
-            }, { color: 'alert' });
+            }, 'alert');
             return;
         }
 
         this.updateMoveHighlights();
     }
 
+    addActionButton(id, text, callback, color = 'primary') {
+        const existing = document.getElementById(id);
+        if (existing) return existing;
+        let btn = null;
+        if (this.bga?.statusBar?.addActionButton) {
+            try {
+                btn = this.bga.statusBar.addActionButton(text, callback, { color: color, id: id });
+            } catch (e) {
+                try {
+                    btn = this.bga.statusBar.addActionButton(id, text, callback, color);
+                } catch (e2) {}
+            }
+        }
+        if (!btn && typeof gameui !== 'undefined' && typeof gameui.addActionButton === 'function') {
+            try {
+                gameui.addActionButton(id, text, callback, null, false, color);
+                btn = document.getElementById(id);
+            } catch (e3) {}
+        }
+        if (btn && btn instanceof HTMLElement && !btn.id) {
+            btn.id = id;
+        }
+        return btn;
+    }
+
     clearActionButtons() {
         if (this.bga?.statusBar?.removeActionButtons) {
-            this.bga.statusBar.removeActionButtons();
+            try { this.bga.statusBar.removeActionButtons(); } catch (e) {}
         }
         if (typeof gameui !== 'undefined' && typeof gameui.removeActionButtons === 'function') {
-            gameui.removeActionButtons();
+            try { gameui.removeActionButtons(); } catch (e) {}
         }
+        ['btnPassStuck', 'btnCannotMove', 'btnConfirmMovePenalty', 'btnUndoMovePenalty', 'btnCancelPicker', 'btnConfirmPlacement', 'btnUndoPlacement'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        });
     }
 
     showError(msg) {

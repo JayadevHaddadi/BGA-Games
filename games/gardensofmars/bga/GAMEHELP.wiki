@@ -16,8 +16,7 @@
 ** '''3 players:''' 20 flowers each
 ** '''4 players:''' 15 flowers each
 ** '''5 players:''' 12 flowers each
-* Players place their Scoring Martian on space '0' (next to space 1) on the perimeter scoring track.
-* In turn order, each player places their Gardener on any empty hexagon except the central space.
+* Each player is assigned a Martian character (Ali, Bob, Bot, Marty, Robby) and begins with their Gardener on an empty hexagon and their Scoring Martian on space '0' (next to space 1) of the perimeter scoring track.
 
 ==Turn Structure==
 
@@ -33,16 +32,16 @@ If there is at least one die available on the table:
 * The player selects one of the available dice.
 * They move their Gardener in a straight line along any of the 6 directions by exactly the die's value (no turning).
 * '''Restrictions:'''
-** The central space cannot be entered or passed through.
-** A Gardener cannot land on a space occupied by another Gardener (but can pass through them in a straight line).
+** The central space cannot be occupied (landed on), but can be passed through.
+** A Gardener cannot pass through or land on a space already occupied by another Gardener.
 ** If playing with the Peaks variant, Peaks (gray cones) cannot be entered or passed through.
 * '''Outcomes:'''
 ** '''Cannot Move / Land on existing flower:''' If the Gardener lands on an existing flower or has no valid legal moves, the player loses 1 point (scoring Martian moves back 1 position, minimum 0).
-** '''Empty Hexagon:''' If the Gardener stops on an empty hexagon, the player chooses and plants any one flower from their remaining reserve. They immediately score points equal to the total number of connected flowers of that same color already touching the newly planted flower.
+** '''Empty Hexagon:''' If the Gardener stops on an empty hexagon, the player chooses and plants any one flower from their remaining reserve. If it connects to existing flowers of that color, they immediately score points equal to the total size of the connected group of that same color (including the newly planted flower; an isolated flower scores 0).
 * The used die is discarded back into the case.
 
 ===3. Extra Turns (Variants)===
-* '''Last Flower:''' If a player plants the very last flower of a given color from their reserve, they receive an extra turn immediately, provided at least one unused die remains on the table.
+* '''Last Flower:''' If a player plants the 10th and final flower of a given color in play across the garden, they receive an extra turn immediately, provided at least one unused die remains on the table.
 * '''Scoring Track Leapfrog & 25+ Landing:''' On the perimeter track, if a Scoring Martian would land on a space occupied by another player's Martian, it advances forward in the same direction to the next unoccupied space. Furthermore, if a player moves their Scoring Martian to a space above 25 points that is already occupied by another Martian, they earn an extra turn (if an unused die remains).
 
 ==Game End==

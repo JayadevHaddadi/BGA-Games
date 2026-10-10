@@ -51,12 +51,6 @@ class NextPlayer extends GameState
             return EndScore::class;
         }
 
-        // Check if dice pool is empty; if so, roll dice for the newly active player
-        $avail = $this->game->getAvailableDice();
-        if (empty($avail)) {
-            $this->game->rollDiceForPlayer($nextPlayerId);
-        }
-
         return PlayerTurn::class;
     }
 

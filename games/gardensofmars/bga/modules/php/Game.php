@@ -233,11 +233,48 @@ class Game extends \Bga\GameFramework\Table
             }
         }
 
-        // 6. Turn order & first player (youngest / first player)
+        // 6. Assign random Martians and random starting positions to players
+        $martians = ['ali', 'bob', 'bot', 'marty', 'robby'];
+        shuffle($martians);
+
+        // Find available starting spots (not center (0,0) and not peaks)
+        $occupiedPeaks = $this->getAllPeaks();
+        $peakSet = [];
+        foreach ($occupiedPeaks as $pk) {
+            $peakSet[$pk['q'] . '_' . $pk['r']] = true;
+        }
+
+        $validStartSpots = [];
+        foreach ($cells as $c) {
+            if ($c['q'] === 0 && $c['r'] === 0) {
+                continue;
+            }
+            if (isset($peakSet[$c['q'] . '_' . $c['r']])) {
+                continue;
+            }
+            $validStartSpots[] = $c;
+        }
+        shuffle($validStartSpots);
+
+        $mIdx = 0;
+        foreach ($playerIds as $idx => $pId) {
+            $martian = $martians[$mIdx++];
+            $spot = $validStartSpots[$idx];
+            static::DbQuery(sprintf(
+                "INSERT INTO `gardener` (`player_id`, `martian`, `coord_q`, `coord_r`, `track_pos`) VALUES (%d, '%s', %d, %d, 0)",
+                $pId,
+                $martian,
+                $spot['q'],
+                $spot['r']
+            ));
+        }
+
+        // 7. Turn order & first player (youngest / first player)
         $firstPlayerId = (int) $playerIds[0];
         $this->gamestate->changeActivePlayer($firstPlayerId);
+        $this->rollDiceForPlayer($firstPlayerId);
 
-        return SelectMartian::class;
+        return PlayerTurn::class;
     }
 
     public function placeRandomPeaks(array $allCells, int $peakCount): void
@@ -402,8 +439,8 @@ class Game extends \Bga\GameFramework\Table
                     break;
                 }
 
-                // Rule 2: Central space (0, 0) cannot be entered or passed through
-                if ($currQ === 0 && $currR === 0) {
+                // Rule 2: Central space (0, 0) cannot be occupied (landed on), but can be passed through
+                if ($step === $dieValue && $currQ === 0 && $currR === 0) {
                     $blocked = true;
                     break;
                 }
@@ -568,12 +605,15 @@ class Game extends \Bga\GameFramework\Table
                 );
 
                 // Check extra turn triggers:
-                // Trigger 1: Last flower of color planted (if variant enabled)
-                if ($lastFlowerVariant === 1 && $remainingOfColor === 0) {
+                // Trigger 1: 10th (last) flower of color in play across all players planted
+                $totalRemainingOfColor = (int) $this->getUniqueValueFromDb(
+                    sprintf("SELECT COALESCE(SUM(`count`), 0) FROM `player_flower` WHERE `color` = '%s'", $flowerColor)
+                );
+                if ($lastFlowerVariant === 1 && $totalRemainingOfColor === 0) {
                     $grantExtraTurn = true;
                     $this->notifyAllPlayers(
                         "extraTurnGranted",
-                        clienttranslate('${player_name} planted their last ${color_name} flower and earns an extra turn!'),
+                        clienttranslate('${player_name} planted the 10th and final ${color_name} flower in the garden and earns an extra turn!'),
                         [
                             'i18n' => ['color_name'],
                             'player_id' => $playerId,
@@ -638,8 +678,10 @@ class Game extends \Bga\GameFramework\Table
             }
         }
 
-        // Per rules: receives points equal to number of flowers of the same color connected to it (including itself: group size - 1, or group size? Rule: "He will receive as many points as the number of flowers of the same colour as the one he's just planted that are connected to it, forming a group". In example: Player A starts with empty board, plants red flower: 0 adjacent = 0 points. So points = group count - 1! Wait! Example text: "Finally he plants a red flower (not scoring this time because there are no adjacent red flowers)". Example: Player A scores 4 points when connecting to 4 existing flowers, forming a group of 5!)
-        return max(0, $count - 1);
+        // Per rules: receives points equal to number of flowers of the same color connected to it, forming a group.
+        // If it connects to no other flowers of that color (isolated), group size is 1, so 0 points ("not scoring this time because there are no adjacent red flowers").
+        // When connected to existing flowers, score equals the entire group size (including the flower just planted, e.g. group of 5 scores 5 points).
+        return $count > 1 ? $count : 0;
     }
 
     public function advanceScoreTrack(int $playerId, int $points): array
