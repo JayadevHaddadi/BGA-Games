@@ -849,6 +849,12 @@ function (dojo, declare, bgaHelp) {
             stockObj.autowidth = false;
             stockObj.container_div.style.width = (this.cardSize * 16) + 'px';
             stockObj.setOverlap(this.getOverlap(stockObj), 0);
+            // The clickable layer must stay inside its own mandala, or it covers the neighbouring mandala's cards
+            var host = stockObj.container_div.parentNode;
+            var clickable = $(stockObj.control_name + '_stock');
+            if (clickable && host && host.clientWidth > 0) {
+                clickable.style.width = host.clientWidth + 'px';
+            }
         },
         getOverlap(stockObj) {
             // Measure the real stock width so a row never runs past its mandala
