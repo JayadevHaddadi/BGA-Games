@@ -103,28 +103,12 @@ export class Game {
         this.myFlowers = {};
         this.pickerSpot = null;
 
-        // Register State Handlers with BGA (both PascalCase, camelCase, and numeric IDs)
+        // Register State Handlers with BGA
         if (this.bga?.states && typeof this.bga.states.register === 'function') {
-            const selectMartianState = new SelectMartian(this, bga);
-            const playerTurnState = new PlayerTurn(this, bga);
-            const nextPlayerState = new NextPlayer(this, bga);
-            const endScoreState = new EndScore(this, bga);
-
-            this.bga.states.register('SelectMartian', selectMartianState);
-            this.bga.states.register('selectMartian', selectMartianState);
-            this.bga.states.register(20, selectMartianState);
-            this.bga.states.register('20', selectMartianState);
-
-            this.bga.states.register('PlayerTurn', playerTurnState);
-            this.bga.states.register('playerTurn', playerTurnState);
-            this.bga.states.register(30, playerTurnState);
-            this.bga.states.register('30', playerTurnState);
-
-            this.bga.states.register('NextPlayer', nextPlayerState);
-            this.bga.states.register('nextPlayer', nextPlayerState);
-
-            this.bga.states.register('EndScore', endScoreState);
-            this.bga.states.register('endScore', endScoreState);
+            this.bga.states.register('SelectMartian', new SelectMartian(this, bga));
+            this.bga.states.register('PlayerTurn', new PlayerTurn(this, bga));
+            this.bga.states.register('NextPlayer', new NextPlayer(this, bga));
+            this.bga.states.register('EndScore', new EndScore(this, bga));
         }
     }
 
@@ -1449,31 +1433,6 @@ export class Game {
     notif_finalScoring(notif) {
         const args = this._getNotifArgs(notif);
         this.renderFinalScoring(args.rows);
-    }
-
-    onEnteringState(stateName, args) {
-        const sName = stateName ? String(stateName).toLowerCase() : '';
-        if (sName === 'selectmartian' || sName === '20') {
-            this.updateSelectMartianUI(args);
-        } else if (sName === 'playerturn' || sName === '30') {
-            this.updatePlayerTurnUI(args);
-        }
-    }
-
-    onLeavingState(stateName) {
-        const sName = stateName ? String(stateName).toLowerCase() : '';
-        if (sName === 'playerturn' || sName === '30') {
-            this.setMyTurnPulse(false);
-        }
-    }
-
-    onUpdateActionButtons(stateName, args) {
-        const sName = stateName ? String(stateName).toLowerCase() : '';
-        if (sName === 'selectmartian' || sName === '20') {
-            this.updateSelectMartianUI(args);
-        } else if (sName === 'playerturn' || sName === '30') {
-            this.updatePlayerTurnUI(args);
-        }
     }
 }
 
