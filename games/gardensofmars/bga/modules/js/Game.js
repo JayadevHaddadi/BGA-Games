@@ -895,6 +895,22 @@ export class Game {
 
             const tImg = trackToken.querySelector('img');
             if (tImg && g.martian) tImg.src = this.imgUrl(`${g.martian}.png`);
+
+            // +50 / +100 VP Lap indicator badge
+            const pScore = this.gamedatas?.scores?.[pid] ?? 0;
+            const laps = Math.floor(pScore / 50);
+            let plusBadge = trackToken.querySelector('.gom_track_plus50');
+            if (laps > 0) {
+                if (!plusBadge) {
+                    plusBadge = document.createElement('span');
+                    plusBadge.className = 'gom_track_plus50';
+                    trackToken.appendChild(plusBadge);
+                }
+                plusBadge.textContent = `+${laps * 50}`;
+                if (pColor) plusBadge.style.backgroundColor = `#${pColor}`;
+            } else if (plusBadge) {
+                plusBadge.remove();
+            }
         });
 
         if (this.myTurnPulse) this.setMyTurnPulse(true);
@@ -964,10 +980,10 @@ export class Game {
 
     setMyTurnPulse(on) {
         this.myTurnPulse = !!on;
-        const myId = this.bga?.players?.getCurrentPlayerId?.() || 0;
         document.querySelectorAll('.gom_gardener_token').forEach(t => t.classList.remove('my_turn'));
-        if (on) {
-            document.getElementById(`gardener_${myId}`)?.classList.add('my_turn');
+        const activeId = this.getActivePlayerId() || this.getCurrentPlayerId() || 0;
+        if (activeId) {
+            document.getElementById(`gardener_${activeId}`)?.classList.add('my_turn');
         }
     }
 
