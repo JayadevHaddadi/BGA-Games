@@ -654,8 +654,8 @@ class Game extends \Bga\GameFramework\Table
             }
         }
 
-        // Per rules: receives points equal to total amount of connected flowers of the color - 1
-        return max(0, $count - 1);
+        // Per Nestor: receives points equal to the total size of the connected group (1 for 1st flower alone, 2 for 2nd, 5 for 5th, etc.)
+        return $count;
     }
 
     public function advanceScoreTrack(int $playerId, int $points): array
