@@ -149,10 +149,9 @@
 }
 
 #mdl_game_area.mdl_decks_in_panel {
-    width: calc(1114px * var(--mdlScale));
+    width: calc(994px * var(--mdlScale));
     display: block;
-    padding-left: calc(60px * var(--mdlScale));
-    padding-right: calc(60px * var(--mdlScale));
+    padding: 0;
     box-sizing: border-box;
 }
 
@@ -246,7 +245,6 @@
     height: calc(338px * var(--mdlScale));
     display: flex;
     max-width: 100%;
-    padding: 0 calc(76px * var(--mdlScale));
 }
 
 .mdl_mandala {
@@ -925,96 +923,42 @@
     color: #333;
 }
 
-/* FIX 2: Mandala Missing Colors Indicator - Display missing colors in each mandala */
-.mdl_mandala_missing {
+/* Colors missing per river: a small matte panel in the empty end margin of each river row */
+.mdl_river_missing {
     position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 5;
-    background: rgba(255, 255, 255, 0.94);
-    border: 1px solid rgba(0, 0, 0, 0.16);
-    border-radius: calc(6px * var(--mdlScale));
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14);
-    padding: calc(6px * var(--mdlScale)) calc(5px * var(--mdlScale));
+    width: calc(48px * var(--mdlScale));
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: opacity 0.2s ease;
+    background: rgba(255, 255, 255, 0.85);
+    border: calc(1px * var(--mdlScale)) solid rgba(0, 0, 0, 0.25);
+    border-radius: 3px;
+    padding: calc(2px * var(--mdlScale));
+    box-sizing: border-box;
+    height: calc(98px * var(--mdlScale));
+    z-index: 5;
 }
-
-.mdl_missing_left {
-    right: 100%;
-    margin-right: calc(6px * var(--mdlScale));
-    flex-direction: row;
-    gap: calc(5px * var(--mdlScale));
+.mdl_my_river .mdl_river_missing {
+    left: calc(4px * var(--mdlScale));
+    top: calc(7px * var(--mdlScale));
 }
-
-.mdl_missing_right {
-    left: 100%;
-    margin-left: calc(6px * var(--mdlScale));
-    flex-direction: row-reverse;
-    gap: calc(5px * var(--mdlScale));
+.mdl_op_river .mdl_river_missing {
+    right: calc(4px * var(--mdlScale));
+    top: calc(45px * var(--mdlScale));
 }
-
-.mdl_missing_title {
-    font-size: calc(10px * var(--mdlScale));
-    font-weight: 700;
-    color: #666;
-    text-transform: uppercase;
-    letter-spacing: calc(1px * var(--mdlScale));
-    white-space: nowrap;
-    user-select: none;
-}
-
-.mdl_missing_left .mdl_missing_title {
-    -webkit-writing-mode: vertical-rl;
-    writing-mode: vertical-rl;
-    transform: rotate(180deg);
-}
-
-.mdl_missing_right .mdl_missing_title {
-    -webkit-writing-mode: vertical-rl;
-    writing-mode: vertical-rl;
+.mdl_river_missing.mdl_river_missing_complete {
+    border: calc(2px * var(--mdlScale)) solid #27ae60;
 }
 
 .mdl_missing_cards {
-    display: flex;
-    flex-direction: column;
-    gap: calc(4px * var(--mdlScale));
-    align-items: center;
-    justify-content: center;
+    display: grid;
+    grid-template-columns: repeat(2, auto);
+    gap: calc(3px * var(--mdlScale));
 }
 
 .mdl_card.mdl_missing_card {
     position: relative !important;
-    width: calc(32px * var(--mdlScale)) !important;
-    height: calc(32px * var(--mdlScale)) !important;
-    min-width: calc(20px * var(--mdlScale));
-    min-height: calc(20px * var(--mdlScale));
-    border-radius: calc(4px * var(--mdlScale));
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22);
-    display: block;
-    flex-shrink: 0;
-}
-
-.mdl_missing_complete {
-    color: #27ae60;
-    font-weight: 800;
-    font-size: calc(11px * var(--mdlScale));
-    text-transform: uppercase;
-    letter-spacing: calc(1px * var(--mdlScale));
-    white-space: nowrap;
-    user-select: none;
-    padding: calc(4px * var(--mdlScale)) calc(2px * var(--mdlScale));
-}
-
-.mdl_missing_left .mdl_missing_complete {
-    -webkit-writing-mode: vertical-rl;
-    writing-mode: vertical-rl;
-    transform: rotate(180deg);
-}
-
-.mdl_missing_right .mdl_missing_complete {
-    -webkit-writing-mode: vertical-rl;
-    writing-mode: vertical-rl;
+    width: calc(20px * var(--mdlScale)) !important;
+    height: calc(20px * var(--mdlScale)) !important;
+    background-size: 800% 100%;
 }

@@ -25,18 +25,15 @@
                     <div id="mdl_river_3_{OPPONENT_ID}" class="mdl_card_ph mdl_op_river_3"></div>
                     <div id="mdl_river_2_{OPPONENT_ID}" class="mdl_card_ph mdl_op_river_2"></div>
                     <div id="mdl_river_1_{OPPONENT_ID}" class="mdl_card_ph mdl_op_river_1"></div>
+                    <div id="mdl_river_missing_{OPPONENT_ID}" class="mdl_river_missing"></div>
                 </div>
                 <div id="mdl_mandalas" class="mdl_mandalas">
                     <div id="mdl_mandala_1" class="mdl_mandala">
-                        <!-- FIX 2: Mandala Missing Colors Indicator - Display missing colors for mandala 1 -->
-                        <div id="mdl_mandala_1_missing" class="mdl_mandala_missing mdl_missing_left"></div>
                         <div id="mdl_field_1_{OPPONENT_ID}_wrapper" class="mdl_field"><div id="mdl_field_1_{OPPONENT_ID}"></div></div>
                         <div id="mdl_mountain_1_wrapper" class="mdl_mountain"><div id="mdl_mountain_1"><div id="mdl_mountain_1_stock" class="mdl_clickable_area"></div></div></div>
                         <div id="mdl_field_1_{PLAYER_ID}_wrapper" class="mdl_field mdl_player"><div id="mdl_field_1_{PLAYER_ID}"><div id="mdl_field_1_{PLAYER_ID}_stock" class="mdl_clickable_area"></div></div></div>
                     </div>
                     <div id="mdl_mandala_2" class="mdl_mandala">
-                        <!-- FIX 2: Mandala Missing Colors Indicator - Display missing colors for mandala 2 -->
-                        <div id="mdl_mandala_2_missing" class="mdl_mandala_missing mdl_missing_right"></div>
                         <div id="mdl_field_2_{OPPONENT_ID}_wrapper" class="mdl_field"><div id="mdl_field_2_{OPPONENT_ID}"></div></div>
                         <div id="mdl_mountain_2_wrapper" class="mdl_mountain"><div id="mdl_mountain_2"><div id="mdl_mountain_2_stock" class="mdl_clickable_area"></div></div></div>
                         <div id="mdl_field_2_{PLAYER_ID}_wrapper" class="mdl_field mdl_player"><div id="mdl_field_2_{PLAYER_ID}"><div id="mdl_field_2_{PLAYER_ID}_stock" class="mdl_clickable_area"></div></div></div>
@@ -52,7 +49,8 @@
                     <div id="mdl_cup_{PLAYER_ID}" class="mdl_card_ph mdl_my_cup">
                         <div class="player-name mdl_player_name"><span id="mdl_{PLAYER_ID}_cup_name"></span></div>
                         <span id="p{PLAYER_ID}_cup_nbr" class="mdl_cup_counter"></span>
-                    </div>                
+                    </div>
+                    <div id="mdl_river_missing_{PLAYER_ID}" class="mdl_river_missing"></div>
                 </div>
             </div>
             <div id="mdl_player_area" class="whiteblock">
