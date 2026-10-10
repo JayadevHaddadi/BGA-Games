@@ -155,8 +155,9 @@ function (dojo, declare, bgaHelp) {
             for (var i in this.colors) {
                 // this.mountains['mountain_1'].addItemType(i, i, g_gamethemeurl + 'img/mandala_cards'+this.cb+'.png', i);
                 // this.mountains['mountain_2'].addItemType(i, i, g_gamethemeurl + 'img/mandala_cards'+this.cb+'.png', i);
-                // Mountains keep play order: equal weights, cards are appended as they are played
-                var weight = 0;
+                // Item type is the colour index, so weight by colour keeps same colours next to each other;
+                // cards of one colour keep play order because they are inserted in location_arg order
+                var weight = i;
                 this.mountains['mountain_1'].addItemType(i, weight, g_gamethemeurl + 'img/mandala_cards'+this.cb+'.png', i);
                 this.mountains['mountain_2'].addItemType(i, weight, g_gamethemeurl + 'img/mandala_cards'+this.cb+'.png', i);
                 this.playerHand.addItemType(i, i, g_gamethemeurl + 'img/mandala_cards'+this.cb+'.png', i);

@@ -291,6 +291,11 @@
     cursor: default !important;
 }
 
+/* A mountain or field is always one row: overlapping cards are narrower than their boxes, so never wrap */
+.mdl_mountain, .mdl_field {
+    white-space: nowrap;
+}
+
 .mdl_mountain {
     height: calc(99px * var(--mdlScale));
     margin-top: 10px;
