@@ -35,8 +35,8 @@
 #gom_dice_pool_area {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 12px;
+    justify-content: space-between;
+    gap: 14px;
     width: 100%;
     min-height: 54px;
     padding: 6px 14px;
@@ -44,6 +44,63 @@
     background: rgba(255, 255, 255, 0.45);
     border: 1px solid rgba(80, 40, 20, 0.2);
     box-sizing: border-box;
+    flex-wrap: wrap;
+}
+
+.gom_banner_section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.gom_banner_divider {
+    width: 1px;
+    height: 32px;
+    background: rgba(80, 40, 20, 0.2);
+}
+
+.gom_banner_reserve_list {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.gom_top_reserve_item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(80, 40, 20, 0.2);
+    border-radius: 14px;
+    padding: 2px 7px 2px 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: opacity 0.2s ease;
+}
+
+.gom_top_reserve_item.depleted {
+    opacity: 0.35;
+    background: rgba(200, 200, 200, 0.4);
+}
+
+.gom_top_reserve_item img {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    display: block;
+}
+
+.gom_top_reserve_count {
+    font-size: 13px;
+    font-weight: 700;
+    color: #2b1810;
+}
+
+.gom_top_reserve_sym {
+    font-size: 10px;
+    color: #666666;
+    margin-left: 1px;
 }
 
 .gom_pool_label {
@@ -294,12 +351,11 @@
     border: 3px solid #3e2723;
     transform: translate(-50%, -50%);
     z-index: 20;
-    pointer-events: auto;
-    cursor: pointer;
+    pointer-events: none;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: left 0.4s ease, top 0.4s ease, transform 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    transition: left 0.4s ease, top 0.4s ease, transform 0.25s cubic-bezier(0.18, 0.89, 0.32, 1.28);
     box-shadow: 0 4px 10px rgba(0,0,0,0.45);
 }
 
@@ -332,19 +388,11 @@
     filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3));
 }
 
-/* Lift alien up on click/hover so color-blind players can inspect the flower underneath */
+/* Lift alien up on spot hover so color-blind players can inspect the flower underneath */
 .gom_gardener_token.lifted {
     transform: translate(-50%, calc(-50% - 52px));
     z-index: 40;
     box-shadow: 0 12px 22px rgba(0,0,0,0.5);
-}
-
-@media (hover: hover) {
-    .gom_gardener_token:hover {
-        transform: translate(-50%, calc(-50% - 52px));
-        z-index: 40;
-        box-shadow: 0 12px 22px rgba(0,0,0,0.5);
-    }
 }
 
 .gom_gardener_token.selected_gardener {

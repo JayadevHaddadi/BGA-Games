@@ -667,8 +667,8 @@ class Game extends \Bga\GameFramework\Table
         // According to official Gardens of Mars rules & Nestor:
         // Extra turn variants ONLY grant an extra turn if at least 1 unused die remains on the table!
         if ($remainingDice > 0) {
-            // Trigger 1: Planted the 10th (last) flower of a color in play across all players
-            if ($lastFlowerVariant === 1 && $flowerColor !== null) {
+            // Trigger 1: Planted the 10th (last) flower of a color in play across all players (option 101 == 2)
+            if ($lastFlowerVariant === 2 && $flowerColor !== null) {
                 $totalRemainingOfColor = (int) $this->getUniqueValueFromDb(
                     sprintf("SELECT COALESCE(SUM(`count`), 0) FROM `player_flower` WHERE `color` = '%s'", $flowerColor)
                 );

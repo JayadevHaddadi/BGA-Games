@@ -379,8 +379,15 @@ export class Game {
                 <div id="gom_final_scoring" style="display:none"></div>
                 <div id="gom_martian_picker" style="display:none"></div>
                 <div id="gom_dice_pool_area">
-                    <span class="gom_pool_label">${_('Dice Pool')}:</span>
-                    <div class="gom_dice_list" id="gom_dice_list"></div>
+                    <div class="gom_banner_section gom_banner_dice">
+                        <span class="gom_pool_label">${_('Dice Pool')}:</span>
+                        <div class="gom_dice_list" id="gom_dice_list"></div>
+                    </div>
+                    <div class="gom_banner_divider"></div>
+                    <div class="gom_banner_section gom_banner_reserve" id="gom_banner_reserve">
+                        <span class="gom_pool_label" id="gom_banner_reserve_label">${_('Reserve')}:</span>
+                        <div class="gom_banner_reserve_list" id="gom_banner_reserve_list"></div>
+                    </div>
                 </div>
                 <div id="gom_layout">
                     <div class="game-board-scaler" id="gom_board_scaler">
@@ -488,6 +495,8 @@ export class Game {
                 spot.title = _('Central space (cannot be occupied or passed through)');
             } else {
                 spot.addEventListener('click', () => this.onSpotClicked(q, r));
+                spot.addEventListener('pointerenter', () => this.onSpotHover(q, r, true));
+                spot.addEventListener('pointerleave', () => this.onSpotHover(q, r, false));
             }
 
             layer.appendChild(spot);
@@ -568,6 +577,86 @@ export class Game {
             dieDiv.textContent = d.die_value;
             list.appendChild(dieDiv);
         });
+
+        this.renderTopReserve();
+    }
+
+    onSpotHover(q, r, isEnter) {
+        if (typeof window !== 'undefined' && window.matchMedia && !window.matchMedia('(hover: hover)').matches) {
+            return;
+        }
+        const gardener = Object.values(this.gamedatas?.gardeners || {}).find(g => Number(g.q) === q && Number(g.r) === r);
+        if (!gardener) return;
+        const gid = String(gardener.gardener_id || gardener.player_id);
+        const token = document.getElementById(`gardener_${gid}`);
+        if (!token) return;
+        if (isEnter) {
+            token.classList.add('lifted');
+        } else {
+            token.classList.remove('lifted');
+        }
+    }
+
+    getColorName(color) {
+        const names = {
+            blue: _('Blue'),
+            yellow: _('Yellow'),
+            orange: _('Orange'),
+            purple: _('Purple'),
+            red: _('Red'),
+            green: _('Green')
+        };
+        return names[color] || color;
+    }
+
+    renderTopReserve() {
+        const list = document.getElementById('gom_banner_reserve_list');
+        const label = document.getElementById('gom_banner_reserve_label');
+        if (!list) return;
+
+        const activePid = this.getActivePlayerId() || this.getCurrentPlayerId();
+        if (!activePid) return;
+
+        const myId = this.getCurrentPlayerId();
+        const isActivePlayerMe = (String(activePid) === String(myId));
+        const pName = this.gamedatas?.players?.[activePid]?.name || '';
+
+        if (label) {
+            label.textContent = isActivePlayerMe
+                ? `${_('Your Reserve')}:`
+                : `${pName} ${_('Reserve')}:`;
+        }
+
+        const flowers = this.gamedatas?.player_flowers?.[activePid] || this.myFlowers || {};
+        const colors = ['blue', 'yellow', 'orange', 'purple', 'red', 'green'];
+
+        list.innerHTML = '';
+        colors.forEach(col => {
+            const cnt = flowers[col] || 0;
+            const item = document.createElement('div');
+            item.className = 'gom_top_reserve_item' + (cnt <= 0 ? ' depleted' : '');
+            item.title = `${this.getColorName(col)}: ${cnt}`;
+
+            const img = document.createElement('img');
+            img.src = this.imgUrl(`flower_${col}.png`);
+            img.alt = col;
+
+            const badge = document.createElement('span');
+            badge.className = 'gom_top_reserve_count';
+            badge.textContent = cnt;
+
+            item.appendChild(img);
+            item.appendChild(badge);
+
+            if (this.shapesOn && FLOWER_SYMBOLS[col]) {
+                const sym = document.createElement('span');
+                sym.className = 'gom_top_reserve_sym';
+                sym.textContent = FLOWER_SYMBOLS[col];
+                item.appendChild(sym);
+            }
+
+            list.appendChild(item);
+        });
     }
 
     clearValidMoveHighlights() {
@@ -638,6 +727,24 @@ export class Game {
 
         // Mode 2: Move Gardener
         if (this.uiPhase === 'turn') {
+            // Check if clicked directly on own gardener hex to toggle selection filter
+            const ownGardener = Object.values(this.gamedatas?.gardeners || {}).find(
+                g => String(g.player_id) === String(this.getCurrentPlayerId()) && Number(g.q) === q && Number(g.r) === r
+            );
+            if (ownGardener) {
+                const gid = String(ownGardener.gardener_id || ownGardener.player_id);
+                if (this.selectedGardenerId === gid) {
+                    this.selectedGardenerId = null;
+                    document.getElementById(`gardener_${gid}`)?.classList.remove('selected_gardener');
+                } else {
+                    document.querySelectorAll('.gom_gardener_token.selected_gardener').forEach(t => t.classList.remove('selected_gardener'));
+                    this.selectedGardenerId = gid;
+                    document.getElementById(`gardener_${gid}`)?.classList.add('selected_gardener');
+                }
+                this.updateMoveHighlights();
+                return;
+            }
+
             const avail = (this.lastTurnArgs?.available_dice || []).filter(d => !parseInt(d.is_used));
             
             // Find which available dice can reach (q, r)
@@ -908,25 +1015,6 @@ export class Game {
                     img.src = this.imgUrl(`${g.martian || 'bot'}.png`);
                     img.alt = g.martian;
                     token.appendChild(img);
-
-                    // Click token: if own active gardener, toggle selection to filter moves; else lift alien
-                    token.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const myId = String(this.getCurrentPlayerId() || 0);
-                        if (String(g.player_id) === myId && this.isCurrentPlayerActive() && this.uiPhase === 'turn') {
-                            if (this.selectedGardenerId === gid) {
-                                this.selectedGardenerId = null;
-                                token.classList.remove('selected_gardener');
-                            } else {
-                                document.querySelectorAll('.gom_gardener_token.selected_gardener').forEach(t => t.classList.remove('selected_gardener'));
-                                this.selectedGardenerId = gid;
-                                token.classList.add('selected_gardener');
-                            }
-                            this.updateMoveHighlights();
-                        } else {
-                            token.classList.toggle('lifted');
-                        }
-                    });
                     gLayer.appendChild(token);
                 }
 
@@ -1067,6 +1155,8 @@ export class Game {
             pen.textContent = `${total} ${_('flowers remaining')}`;
             box.appendChild(pen);
         });
+
+        this.renderTopReserve();
     }
 
     setMyTurnPulse(on) {
@@ -1153,6 +1243,7 @@ export class Game {
 
         this.validMovesByDie = args?.valid_moves_by_die || {};
         this.myFlowers = args?.player_flowers || {};
+        this.renderTopReserve();
 
         const isActive = isCurrentPlayerActive !== null ? !!isCurrentPlayerActive : this.isCurrentPlayerActive();
         this.setMyTurnPulse(isActive);
