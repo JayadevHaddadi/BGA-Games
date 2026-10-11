@@ -866,20 +866,359 @@ class Game extends \Bga\GameFramework\Table
      */
     public function calculateCardScore(array $card): int
     {
+        return $this->getCardScoreDetails($card)['score'];
+    }
+
+    /**
+     * Calculate score and identify the board spots that contributed to this card's score.
+     * Returns ['score' => int, 'scoring_spots' => array, 'explanation' => string]
+     */
+    public function getCardScoreDetails(array $card): array
+    {
         $type = $card['card_type'];
         $c1 = $card['color1'] ?? null;
         $c2 = $card['color2'] ?? null;
 
         return match ($type) {
-            'BIGGEST_GROUP' => $this->scoreBiggestGroup($c1),
-            'GROUP_COUNT' => $this->scoreGroupCount($c1),
-            'EDGE_OR_TREE' => $this->scoreEdgeOrTree($c1),
-            'ADJACENT_PAIRS' => $this->scoreAdjacentPairs($c1, $c2),
-            'STRAIGHT_LINE' => $this->scoreStraightLine($c1),
-            'TRIANGLE' => $this->scoreTriangle($c1),
-            'HEXAGON' => 0, // Instant win card
-            default => 0,
+            'BIGGEST_GROUP' => $this->scoreDetailsBiggestGroup($c1),
+            'GROUP_COUNT' => $this->scoreDetailsGroupCount($c1),
+            'EDGE_OR_TREE' => $this->scoreDetailsEdgeOrTree($c1),
+            'ADJACENT_PAIRS' => $this->scoreDetailsAdjacentPairs($c1, $c2),
+            'STRAIGHT_LINE' => $this->scoreDetailsStraightLine($c1),
+            'TRIANGLE' => $this->scoreDetailsTriangle($c1),
+            'HEXAGON' => $this->scoreDetailsHexagon(),
+            default => ['score' => 0, 'scoring_spots' => [], 'explanation' => ''],
         };
+    }
+
+    public function scoreDetailsBiggestGroup(string $color): array
+    {
+        $cells = static::getObjectListFromDb("SELECT `coord_q` as `q`, `coord_r` as `r` FROM `cell` WHERE `flower_color` = '$color'");
+        if (empty($cells)) {
+            return ['score' => 0, 'scoring_spots' => [], 'explanation' => sprintf(clienttranslate('No %s flowers found'), ucfirst($color))];
+        }
+
+        $flowerMap = [];
+        foreach ($cells as $c) {
+            $flowerMap[$c['q'] . '_' . $c['r']] = true;
+        }
+
+        $visited = [];
+        $maxGroup = [];
+
+        foreach ($cells as $c) {
+            $k = $c['q'] . '_' . $c['r'];
+            if (isset($visited[$k])) continue;
+
+            $queue = [[(int)$c['q'], (int)$c['r']]];
+            $visited[$k] = true;
+            $currentGroup = [];
+
+            while (!empty($queue)) {
+                [$q, $r] = array_shift($queue);
+                $currentGroup[] = ['q' => $q, 'r' => $r];
+
+                foreach (self::DIRECTIONS as [$dq, $dr]) {
+                    $nq = $q + $dq;
+                    $nr = $r + $dr;
+                    $nk = $nq . '_' . $nr;
+                    if (isset($flowerMap[$nk]) && !isset($visited[$nk])) {
+                        $visited[$nk] = true;
+                        $queue[] = [$nq, $nr];
+                    }
+                }
+            }
+
+            if (count($currentGroup) > count($maxGroup)) {
+                $maxGroup = $currentGroup;
+            }
+        }
+
+        $score = count($maxGroup);
+        $explanation = sprintf(clienttranslate('Largest group of %s flowers: %d flowers (%d VP)'), ucfirst($color), $score, $score);
+        return ['score' => $score, 'scoring_spots' => $maxGroup, 'explanation' => $explanation];
+    }
+
+    public function scoreDetailsGroupCount(string $color): array
+    {
+        $cells = static::getObjectListFromDb("SELECT `coord_q` as `q`, `coord_r` as `r` FROM `cell` WHERE `flower_color` = '$color'");
+        if (empty($cells)) {
+            return ['score' => 0, 'scoring_spots' => [], 'explanation' => sprintf(clienttranslate('No %s flowers found'), ucfirst($color))];
+        }
+
+        $flowerMap = [];
+        foreach ($cells as $c) {
+            $flowerMap[$c['q'] . '_' . $c['r']] = true;
+        }
+
+        $visited = [];
+        $groupCount = 0;
+        $allSpots = [];
+
+        foreach ($cells as $c) {
+            $k = $c['q'] . '_' . $c['r'];
+            if (isset($visited[$k])) continue;
+
+            $queue = [[(int)$c['q'], (int)$c['r']]];
+            $visited[$k] = true;
+            $groupCount++;
+
+            while (!empty($queue)) {
+                [$q, $r] = array_shift($queue);
+                $allSpots[] = ['q' => $q, 'r' => $r];
+                foreach (self::DIRECTIONS as [$dq, $dr]) {
+                    $nq = $q + $dq;
+                    $nr = $r + $dr;
+                    $nk = $nq . '_' . $nr;
+                    if (isset($flowerMap[$nk]) && !isset($visited[$nk])) {
+                        $visited[$nk] = true;
+                        $queue[] = [$nq, $nr];
+                    }
+                }
+            }
+        }
+
+        $explanation = sprintf(clienttranslate('%d separate groups of %s flowers (%d VP)'), $groupCount, ucfirst($color), $groupCount);
+        return ['score' => $groupCount, 'scoring_spots' => $allSpots, 'explanation' => $explanation];
+    }
+
+    public function scoreDetailsEdgeOrTree(string $color): array
+    {
+        $boardType = (int) $this->globals->get('board_type', 1);
+        $cells = static::getObjectListFromDb("SELECT `coord_q` as `q`, `coord_r` as `r` FROM `cell` WHERE `flower_color` = '$color'");
+        if (empty($cells)) {
+            return ['score' => 0, 'scoring_spots' => [], 'explanation' => sprintf(clienttranslate('No %s flowers found'), ucfirst($color))];
+        }
+
+        $scoringSpots = [];
+        foreach ($cells as $c) {
+            $q = (int) $c['q'];
+            $r = (int) $c['r'];
+
+            if ($this->isPerimeterCell($q, $r, $boardType)) {
+                $scoringSpots[] = ['q' => $q, 'r' => $r];
+                continue;
+            }
+
+            $nearTree = false;
+            foreach (self::DIRECTIONS as [$dq, $dr]) {
+                $hasTree = !empty(static::getObjectFromDb(
+                    "SELECT 1 FROM `cell` WHERE `coord_q` = " . ($q + $dq) . " AND `coord_r` = " . ($r + $dr) . " AND `has_tree` = 1 LIMIT 1"
+                ));
+                if ($hasTree) {
+                    $nearTree = true;
+                    break;
+                }
+            }
+
+            if ($nearTree) {
+                $scoringSpots[] = ['q' => $q, 'r' => $r];
+            }
+        }
+
+        $score = count($scoringSpots);
+        $explanation = sprintf(clienttranslate('%d %s flowers on the edge or next to a tree (%d VP)'), $score, ucfirst($color), $score);
+        return ['score' => $score, 'scoring_spots' => $scoringSpots, 'explanation' => $explanation];
+    }
+
+    public function scoreDetailsAdjacentPairs(string $color1, string $color2): array
+    {
+        $cells1 = static::getObjectListFromDb("SELECT `coord_q` as `q`, `coord_r` as `r` FROM `cell` WHERE `flower_color` = '$color1'");
+        $cells2 = static::getObjectListFromDb("SELECT `coord_q` as `q`, `coord_r` as `r` FROM `cell` WHERE `flower_color` = '$color2'");
+
+        if (empty($cells1) || empty($cells2)) {
+            return ['score' => 0, 'scoring_spots' => [], 'explanation' => sprintf(clienttranslate('No adjacent %s-%s pairs found'), ucfirst($color1), ucfirst($color2))];
+        }
+
+        $c2Map = [];
+        foreach ($cells2 as $c) {
+            $c2Map[$c['q'] . '_' . $c['r']] = true;
+        }
+
+        $pairSpots = [];
+        $pairsCount = 0;
+
+        foreach ($cells1 as $c) {
+            $q = (int) $c['q'];
+            $r = (int) $c['r'];
+            $hasAdjacent = false;
+            foreach (self::DIRECTIONS as [$dq, $dr]) {
+                $nk = ($q + $dq) . '_' . ($r + $dr);
+                if (isset($c2Map[$nk])) {
+                    $pairsCount++;
+                    $hasAdjacent = true;
+                    $pairSpots[$nk] = ['q' => $q + $dq, 'r' => $r + $dr];
+                }
+            }
+            if ($hasAdjacent) {
+                $pairSpots[$q . '_' . $r] = ['q' => $q, 'r' => $r];
+            }
+        }
+
+        $score = ($color1 === $color2) ? (int)($pairsCount / 2) : $pairsCount;
+        $explanation = sprintf(clienttranslate('%d connections between adjacent %s and %s flowers (%d VP)'), $score, ucfirst($color1), ucfirst($color2), $score);
+        return ['score' => $score, 'scoring_spots' => array_values($pairSpots), 'explanation' => $explanation];
+    }
+
+    public function scoreDetailsStraightLine(string $color): array
+    {
+        $cells = static::getObjectListFromDb("SELECT `coord_q` as `q`, `coord_r` as `r` FROM `cell` WHERE `flower_color` = '$color'");
+        if (empty($cells)) {
+            return ['score' => 0, 'scoring_spots' => [], 'explanation' => sprintf(clienttranslate('No %s flowers found'), ucfirst($color))];
+        }
+
+        $flowerMap = [];
+        foreach ($cells as $c) {
+            $flowerMap[$c['q'] . '_' . $c['r']] = true;
+        }
+
+        $positiveDirs = [
+            [1, 0],
+            [0, 1],
+            [-1, 1],
+        ];
+
+        $bestLine = [];
+        foreach ($cells as $c) {
+            $q = (int) $c['q'];
+            $r = (int) $c['r'];
+
+            foreach ($positiveDirs as [$dq, $dr]) {
+                $prevKey = ($q - $dq) . '_' . ($r - $dr);
+                if (isset($flowerMap[$prevKey])) continue;
+
+                $currentLine = [];
+                $currQ = $q;
+                $currR = $r;
+                while (isset($flowerMap[$currQ . '_' . $currR])) {
+                    $currentLine[] = ['q' => $currQ, 'r' => $currR];
+                    $currQ += $dq;
+                    $currR += $dr;
+                }
+
+                if (count($currentLine) > count($bestLine)) {
+                    $bestLine = $currentLine;
+                }
+            }
+        }
+
+        $len = count($bestLine);
+        $score = ($len >= 2) ? 2 * ($len - 1) : 0;
+        $explanation = ($len >= 2)
+            ? sprintf(clienttranslate('Longest straight line: %d %s flowers: 2 × (%d - 1) = %d VP'), $len, ucfirst($color), $len, $score)
+            : sprintf(clienttranslate('Longest line of %s flowers is under 2 flowers (0 VP)'), ucfirst($color));
+
+        return ['score' => $score, 'scoring_spots' => ($score > 0 ? $bestLine : []), 'explanation' => $explanation];
+    }
+
+    public function scoreDetailsTriangle(string $color): array
+    {
+        $cells = static::getObjectListFromDb("SELECT `coord_q` as `q`, `coord_r` as `r` FROM `cell` WHERE `flower_color` = '$color'");
+        if (count($cells) < 3) {
+            return ['score' => 0, 'scoring_spots' => [], 'explanation' => sprintf(clienttranslate('Fewer than 3 %s flowers for a triangle'), ucfirst($color))];
+        }
+
+        $flowerMap = [];
+        foreach ($cells as $c) {
+            $flowerMap[$c['q'] . '_' . $c['r']] = true;
+        }
+
+        $maxSide = 0;
+        $bestCorners = [];
+        $maxRadius = self::HEX_RADIUS * 2;
+
+        foreach ($cells as $c) {
+            $q = (int) $c['q'];
+            $r = (int) $c['r'];
+
+            for ($s = 1; $s <= $maxRadius; $s++) {
+                // Option A
+                $v1 = ($q + $s) . '_' . $r;
+                $v2 = $q . '_' . ($r + $s);
+                if (isset($flowerMap[$v1]) && isset($flowerMap[$v2])) {
+                    if ($this->isValidCell($q + $s, $r) && $this->isValidCell($q, $r + $s)) {
+                        if ($s > $maxSide) {
+                            $maxSide = $s;
+                            $bestCorners = [
+                                ['q' => $q, 'r' => $r],
+                                ['q' => $q + $s, 'r' => $r],
+                                ['q' => $q, 'r' => $r + $s],
+                            ];
+                        }
+                    }
+                }
+
+                // Option B
+                $v3 = $q . '_' . ($r + $s);
+                $v4 = ($q - $s) . '_' . ($r + $s);
+                if (isset($flowerMap[$v3]) && isset($flowerMap[$v4])) {
+                    if ($this->isValidCell($q, $r + $s) && $this->isValidCell($q - $s, $r + $s)) {
+                        if ($s > $maxSide) {
+                            $maxSide = $s;
+                            $bestCorners = [
+                                ['q' => $q, 'r' => $r],
+                                ['q' => $q, 'r' => $r + $s],
+                                ['q' => $q - $s, 'r' => $r + $s],
+                            ];
+                        }
+                    }
+                }
+            }
+        }
+
+        $score = ($maxSide > 0) ? ($maxSide + 1) : 0;
+        $explanation = ($score > 0)
+            ? sprintf(clienttranslate('Equilateral triangle of %s flowers: side of %d spots (%d VP)'), ucfirst($color), $score, $score)
+            : sprintf(clienttranslate('No equilateral triangle of %s flowers found'), ucfirst($color));
+
+        return ['score' => $score, 'scoring_spots' => $bestCorners, 'explanation' => $explanation];
+    }
+
+    public function scoreDetailsHexagon(): array
+    {
+        $colorsToCheck = ['blue', 'red', 'yellow', 'green', 'purple'];
+        $maxRadius = self::HEX_RADIUS;
+
+        foreach ($colorsToCheck as $col) {
+            $cells = static::getObjectListFromDb("SELECT `coord_q` as `q`, `coord_r` as `r` FROM `cell` WHERE `flower_color` = '$col'");
+            if (count($cells) < 6) continue;
+
+            $flowerMap = [];
+            foreach ($cells as $c) {
+                $flowerMap[$c['q'] . '_' . $c['r']] = true;
+            }
+
+            for ($cq = -$maxRadius; $cq <= $maxRadius; $cq++) {
+                for ($cr = -$maxRadius; $cr <= $maxRadius; $cr++) {
+                    for ($s = 1; $s <= 2; $s++) {
+                        $corners = [
+                            ['q' => $cq + $s, 'r' => $cr],
+                            ['q' => $cq, 'r' => $cr + $s],
+                            ['q' => $cq - $s, 'r' => $cr + $s],
+                            ['q' => $cq - $s, 'r' => $cr],
+                            ['q' => $cq, 'r' => $cr - $s],
+                            ['q' => $cq + $s, 'r' => $cr - $s],
+                        ];
+                        $allPresent = true;
+                        foreach ($corners as $cor) {
+                            if (!isset($flowerMap[$cor['q'] . '_' . $cor['r']])) {
+                                $allPresent = false;
+                                break;
+                            }
+                        }
+                        if ($allPresent) {
+                            return [
+                                'score' => 999,
+                                'scoring_spots' => $corners,
+                                'explanation' => sprintf(clienttranslate('Regular hexagon formed by 6 %s flowers: Instant Win!'), ucfirst($col)),
+                            ];
+                        }
+                    }
+                }
+            }
+        }
+
+        return ['score' => 0, 'scoring_spots' => [], 'explanation' => clienttranslate('No completed hexagon')];
     }
 
     public function scoreBiggestGroup(string $color): int

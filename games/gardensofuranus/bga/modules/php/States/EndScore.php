@@ -51,15 +51,32 @@ class EndScore extends GameState
 
                 // 1. Reveal and score all remaining hand cards
                 $handPoints = 0;
+                $cardDetailsList = [];
                 foreach ($this->game->getPlayerCards($pId) as $card) {
-                    $score = $this->game->calculateCardScore($card);
+                    $details = $this->game->getCardScoreDetails($card);
+                    $score = (int) ($details['score'] ?? 0);
                     $handPoints += $score;
-                    $this->game->notifyAllPlayers("finalCardScored", clienttranslate('${player_name} scores ${card_name} from hand: ${score} points'), [
+                    $cardId = (int) $card['card_id'];
+                    $cardName = $names[$cardId]['name'] ?? ('#' . $cardId);
+
+                    $cardDetailsList[] = [
+                        'card_id' => $cardId,
+                        'card_name' => $cardName,
+                        'card_type' => $card['card_type'] ?? '',
+                        'score' => $score,
+                        'scoring_spots' => $details['scoring_spots'] ?? [],
+                        'explanation' => $details['explanation'] ?? '',
+                    ];
+
+                    $this->notify->all("finalCardScored", clienttranslate('${player_name} scores ${card_name} from hand: ${score} points'), [
                         'i18n' => ['card_name'],
                         'player_id' => $pId,
                         'player_name' => $this->game->getPlayerNameById($pId),
-                        'card_name' => $names[(int) $card['card_id']]['name'] ?? ('#' . $card['card_id']),
+                        'card_id' => $cardId,
+                        'card_name' => $cardName,
                         'score' => $score,
+                        'scoring_spots' => $details['scoring_spots'] ?? [],
+                        'explanation' => $details['explanation'] ?? '',
                     ]);
                 }
                 if ($handPoints > 0) {
@@ -76,7 +93,7 @@ class EndScore extends GameState
                 }
                 $this->playerStats->set('penalty_points', $penalty, $pId);
 
-                $this->game->notifyAllPlayers("unusedFlowerPenalty", clienttranslate('${player_name} has ${unused} unused flowers: -${penalty} points'), [
+                $this->notify->all("unusedFlowerPenalty", clienttranslate('${player_name} has ${unused} unused flowers: -${penalty} points'), [
                     'player_id' => $pId,
                     'player_name' => $this->game->getPlayerNameById($pId),
                     'unused' => $unusedFlowers,
@@ -90,6 +107,7 @@ class EndScore extends GameState
                     'penalty' => $penalty,
                     'total' => (int) $this->playerScore->get($pId),
                     'instant' => false,
+                    'cards' => $cardDetailsList,
                 ];
             }
         }

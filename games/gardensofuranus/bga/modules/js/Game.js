@@ -252,6 +252,8 @@ export class Game {
 
         area.innerHTML = `
             <div id="gardensofuranus_container">
+                <div id="gou_turn_reserve_banner" style="display:none"></div>
+                <div id="gou_scoring_showcase" style="display:none"></div>
                 <div id="gou_final_scoring" style="display:none"></div>
                 <div id="gou_layout">
                     <div id="gou_martian_picker" style="display:none"></div>
@@ -308,6 +310,21 @@ export class Game {
         return m ? m.charAt(0).toUpperCase() + m.slice(1) : '';
     }
 
+    clearScoringHighlights() {
+        document.querySelectorAll('.garden_spot.scoring_highlight').forEach(el => {
+            el.classList.remove('scoring_highlight');
+        });
+    }
+
+    highlightScoringSpots(spots) {
+        this.clearScoringHighlights();
+        if (!Array.isArray(spots)) return;
+        spots.forEach(sp => {
+            const el = document.getElementById(`spot_${sp.q}_${sp.r}`);
+            if (el) el.classList.add('scoring_highlight');
+        });
+    }
+
     renderFinalScoring(rows) {
         const box = document.getElementById('gou_final_scoring');
         if (!box || !rows) return;
@@ -329,13 +346,99 @@ export class Game {
         box.style.display = 'block';
     }
 
-    notif_finalScoring(notif) {
+    async notif_finalScoring(notif) {
         const args = this._getNotifArgs(notif);
-        this.gamedatas.final_scoring = args.rows;
-        this.gamedatas.scores = this.gamedatas.scores || {};
-        (args.rows || []).forEach(r => { this.gamedatas.scores[r.player_id] = r.total; });
-        this.syncScoreCounters();
-        this.renderFinalScoring(args.rows);
+        const rows = args.rows || [];
+        this.gamedatas.final_scoring = rows;
+
+        // Hide turn reserve banner at end of game
+        const trb = document.getElementById('gou_turn_reserve_banner');
+        if (trb) trb.style.display = 'none';
+
+        // Collect all scored cards from all players
+        const items = [];
+        const players = this.gamedatas.players || {};
+        rows.forEach(r => {
+            const pInfo = players[r.player_id] || {};
+            const pName = pInfo.name || `Player ${r.player_id}`;
+            (r.cards || []).forEach(card => {
+                items.push({
+                    playerId: r.player_id,
+                    playerName: pName,
+                    playerColor: pInfo.color || '000',
+                    card: card,
+                });
+            });
+        });
+
+        const showcase = document.getElementById('gou_scoring_showcase');
+        let skipped = false;
+
+        const cleanupShowcase = () => {
+            if (showcase) showcase.style.display = 'none';
+            this.clearScoringHighlights();
+            this.gamedatas.scores = this.gamedatas.scores || {};
+            rows.forEach(r => { this.gamedatas.scores[r.player_id] = r.total; });
+            this.syncScoreCounters();
+            this.renderFinalScoring(rows);
+            this.bga?.statusBar?.setTitle?.(_('Game Over! Final scores calculated.'));
+        };
+
+        if (items.length > 0 && showcase) {
+            this.bga?.statusBar?.setTitle?.(_('Revealing and scoring remaining mission cards...'));
+            showcase.style.display = 'flex';
+
+            const skipBtn = document.createElement('button');
+            skipBtn.className = 'gou_showcase_skip';
+            skipBtn.textContent = _('Skip Animation');
+            skipBtn.onclick = () => {
+                skipped = true;
+                cleanupShowcase();
+            };
+
+            for (const item of items) {
+                if (skipped) break;
+                const card = item.card;
+                const thumbSrc = this.imgUrl(`cards/card_${card.card_id}.jpg`);
+
+                showcase.innerHTML = `
+                    <div class="gou_showcase_left">
+                        <img class="gou_showcase_thumb" src="${thumbSrc}" alt="">
+                        <div class="gou_showcase_text">
+                            <span class="gou_showcase_title" style="color:#${item.playerColor}">${item.playerName}: ${card.card_name}</span>
+                            <span class="gou_showcase_desc">${card.explanation || ''}</span>
+                        </div>
+                    </div>
+                    <div class="gou_showcase_right">
+                        <span class="gou_showcase_points">+${card.score} VP</span>
+                    </div>
+                `;
+                showcase.querySelector('.gou_showcase_right')?.appendChild(skipBtn);
+
+                this.highlightScoringSpots(card.scoring_spots || []);
+                sounds.playScore();
+
+                // Increment score counter on player panel dynamically
+                const curScore = Number(this.gamedatas.scores?.[item.playerId] || 0) + Number(card.score || 0);
+                if (!this.gamedatas.scores) this.gamedatas.scores = {};
+                this.gamedatas.scores[item.playerId] = curScore;
+                const counter = this.bga?.playerPanels?.getScoreCounter?.(parseInt(item.playerId));
+                if (counter && typeof counter.toValue === 'function') counter.toValue(curScore);
+
+                // Wait 2.8 seconds per card unless skipped
+                await new Promise(resolve => {
+                    const timer = setTimeout(resolve, 2800);
+                    const originalSkip = skipBtn.onclick;
+                    skipBtn.onclick = () => {
+                        clearTimeout(timer);
+                        originalSkip();
+                        resolve();
+                    };
+                });
+            }
+        }
+
+        cleanupShowcase();
     }
 
     showMartianPicker(available, args) {
@@ -1036,6 +1139,42 @@ export class Game {
         }, { color: 'secondary' });
     }
 
+    renderTurnReserveBanner(flowers) {
+        const banner = document.getElementById('gou_turn_reserve_banner');
+        if (!banner) return;
+        if (!flowers || typeof flowers !== 'object') {
+            banner.style.display = 'none';
+            return;
+        }
+
+        const colors = ['blue', 'red', 'yellow', 'green', 'purple'];
+        let total = 0;
+        let chipsHtml = '';
+
+        colors.forEach(col => {
+            const count = flowers[col] || 0;
+            total += count;
+            chipsHtml += `
+                <span class="gou_trb_flower" title="${this.colorLabel(col)}: ${count}">
+                    <img data-flower="${col}" src="${this.flowerSrc(col)}" alt="${this.colorLabel(col)}">
+                    <span>${count}</span>
+                </span>
+            `;
+        });
+
+        const penalty = (total * (total + 1)) / 2;
+        const penaltyHtml = penalty > 0
+            ? `<span class="gou_trb_penalty" title="${_('Unused flower penalty at end of game')}">-${penalty} VP</span>`
+            : '';
+
+        banner.innerHTML = `
+            <span class="gou_trb_title">${_('Your Reserve:')}</span>
+            <div class="gou_trb_flowers">${chipsHtml}</div>
+            ${penaltyHtml}
+        `;
+        banner.style.display = 'flex';
+    }
+
     updatePlayerTurnUI(args) {
         this.uiPhase = 'turn';
         this.hidePlaceHint();
@@ -1057,8 +1196,13 @@ export class Game {
         this.selectedMartian = null;
         if (!this.isCurrentPlayerActive()) {
             this.bga?.statusBar?.setTitle?.(_('Waiting for active player...'));
+            const banner = document.getElementById('gou_turn_reserve_banner');
+            if (banner) banner.style.display = 'none';
             return;
         }
+
+        // Display active player reserve banner
+        this.renderTurnReserveBanner(this.myFlowers);
 
         const power = args?.power;
         const bobReady = !!(power && power.available && power.martian === 'bob');
