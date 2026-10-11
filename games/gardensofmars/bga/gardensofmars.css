@@ -115,14 +115,14 @@
 .gom_status_reserve_bar {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 7px;
     margin-left: 10px;
     vertical-align: middle;
     flex-wrap: wrap;
 }
 
 .gom_status_reserve_label {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
     text-transform: uppercase;
     color: #4a2414;
@@ -132,12 +132,12 @@
 .gom_status_reserve_item {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    background: rgba(255, 255, 255, 0.9);
-    border: 1px solid rgba(80, 40, 20, 0.25);
-    border-radius: 14px;
-    padding: 2px 7px 2px 4px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    gap: 5px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(80, 40, 20, 0.28);
+    border-radius: 16px;
+    padding: 2px 8px 2px 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
     vertical-align: middle;
 }
 
@@ -147,21 +147,21 @@
 }
 
 .gom_status_reserve_item img {
-    width: 23px;
-    height: 23px;
+    width: 24px;
+    height: 24px;
     object-fit: contain;
     display: block;
 }
 
 .gom_status_reserve_count {
-    font-size: 15px;
-    font-weight: 800;
+    font-size: 22px;
+    font-weight: 900;
     color: #2b1810;
     line-height: 1;
 }
 
 .gom_status_reserve_sym {
-    font-size: 11px;
+    font-size: 12px;
     color: #555555;
     margin-left: 1px;
 }
@@ -608,27 +608,27 @@
 .gom_panel_flower_list {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 8px;
 }
 
 .gom_panel_flower {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    font-size: 13px;
-    font-weight: 700;
+    gap: 5px;
+    font-size: 18px;
+    font-weight: 800;
 }
 
 .gom_panel_flower img {
-    width: 20px;
-    height: 20px;
+    width: 27px;
+    height: 27px;
     object-fit: contain;
 }
 
 .gom_panel_penalty {
     width: 100%;
-    margin-top: 2px;
-    font-size: 11px;
+    margin-top: 4px;
+    font-size: 14px;
     color: #880e4f;
     font-weight: 700;
 }

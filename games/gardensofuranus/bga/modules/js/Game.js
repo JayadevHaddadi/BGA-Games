@@ -1141,7 +1141,7 @@ export class Game {
         colors.forEach(col => {
             const count = flowers[col] || 0;
             if (count > 0) {
-                const img = `<img data-flower="${col}" src="${this.flowerSrc(col)}" alt="${this.colorLabel(col)}" style="height:23px;width:23px;vertical-align:middle;object-fit:contain">`;
+                const img = `<img data-flower="${col}" src="${this.flowerSrc(col)}" alt="${this.colorLabel(col)}" style="height:24px;width:24px;vertical-align:middle;object-fit:contain">`;
                 items.push(`<span class="gou_status_flower" title="${this.colorLabel(col)}: ${count}">${img}&nbsp;${count}</span>`);
             }
         });

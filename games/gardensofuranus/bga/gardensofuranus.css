@@ -497,11 +497,12 @@
 .gou_panel_flower {
     display: inline-flex;
     align-items: center;
-    gap: 2px;
-    font-size: 15px;
+    gap: 4px;
+    font-size: 20px;
+    font-weight: 800;
 }
 
-.gou_panel_flower img { width: 22px; height: 22px; object-fit: contain; }
+.gou_panel_flower img { width: 30px; height: 30px; object-fit: contain; }
 
 .gou_panel_penalty {
     flex-basis: 100%;
@@ -785,15 +786,16 @@
     vertical-align: middle;
     gap: 7px;
     margin-left: 8px;
-    padding: 2px 7px;
+    padding: 2px 8px;
     background: rgba(0, 0, 0, 0.07);
-    border-radius: 5px;
-    font-size: 15px;
-    font-weight: 700;
+    border-radius: 6px;
+    font-size: 22px;
+    font-weight: 900;
 }
 
 .gou_status_reserve_title {
-    font-size: 13px;
+    font-size: 14px;
+    font-weight: 700;
     opacity: 0.85;
 }
 
@@ -804,8 +806,8 @@
 }
 
 .gou_status_flower img {
-    width: 23px;
-    height: 23px;
+    width: 24px;
+    height: 24px;
     vertical-align: middle;
     object-fit: contain;
 }
