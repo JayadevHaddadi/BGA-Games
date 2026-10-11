@@ -383,11 +383,6 @@ export class Game {
                         <span class="gom_pool_label">${_('Dice Pool')}:</span>
                         <div class="gom_dice_list" id="gom_dice_list"></div>
                     </div>
-                    <div class="gom_banner_divider"></div>
-                    <div class="gom_banner_section gom_banner_reserve" id="gom_banner_reserve">
-                        <span class="gom_pool_label" id="gom_banner_reserve_label">${_('Reserve')}:</span>
-                        <div class="gom_banner_reserve_list" id="gom_banner_reserve_list"></div>
-                    </div>
                 </div>
                 <div id="gom_layout">
                     <div class="game-board-scaler" id="gom_board_scaler">
