@@ -609,10 +609,31 @@ export class Game {
         return names[color] || color;
     }
 
+    getStatusReserveHtml(activePid) {
+        if (!activePid) {
+            activePid = this.getActivePlayerId() || this.getCurrentPlayerId();
+        }
+        if (!activePid) return '';
+
+        const flowers = this.gamedatas?.player_flowers?.[activePid] || this.myFlowers || {};
+        const colors = ['blue', 'yellow', 'orange', 'purple', 'red', 'green'];
+
+        const itemsHtml = colors.map(col => {
+            const cnt = flowers[col] || 0;
+            const symHtml = (this.shapesOn && FLOWER_SYMBOLS[col]) ? `<span class="gom_status_reserve_sym">${FLOWER_SYMBOLS[col]}</span>` : '';
+            return `<span class="gom_status_reserve_item${cnt <= 0 ? ' depleted' : ''}" title="${this.getColorName(col)}: ${cnt}">
+                <img src="${this.imgUrl(`flower_${col}.png`)}" alt="${col}" />
+                <span class="gom_status_reserve_count">${cnt}</span>
+                ${symHtml}
+            </span>`;
+        }).join('');
+
+        return `<span class="gom_status_reserve_bar"><span class="gom_status_reserve_label">${_('Reserve')}:</span>${itemsHtml}</span>`;
+    }
+
     renderTopReserve() {
         const list = document.getElementById('gom_banner_reserve_list');
         const label = document.getElementById('gom_banner_reserve_label');
-        if (!list) return;
 
         const activePid = this.getActivePlayerId() || this.getCurrentPlayerId();
         if (!activePid) return;
@@ -630,33 +651,35 @@ export class Game {
         const flowers = this.gamedatas?.player_flowers?.[activePid] || this.myFlowers || {};
         const colors = ['blue', 'yellow', 'orange', 'purple', 'red', 'green'];
 
-        list.innerHTML = '';
-        colors.forEach(col => {
-            const cnt = flowers[col] || 0;
-            const item = document.createElement('div');
-            item.className = 'gom_top_reserve_item' + (cnt <= 0 ? ' depleted' : '');
-            item.title = `${this.getColorName(col)}: ${cnt}`;
+        if (list) {
+            list.innerHTML = '';
+            colors.forEach(col => {
+                const cnt = flowers[col] || 0;
+                const item = document.createElement('div');
+                item.className = 'gom_top_reserve_item' + (cnt <= 0 ? ' depleted' : '');
+                item.title = `${this.getColorName(col)}: ${cnt}`;
 
-            const img = document.createElement('img');
-            img.src = this.imgUrl(`flower_${col}.png`);
-            img.alt = col;
+                const img = document.createElement('img');
+                img.src = this.imgUrl(`flower_${col}.png`);
+                img.alt = col;
 
-            const badge = document.createElement('span');
-            badge.className = 'gom_top_reserve_count';
-            badge.textContent = cnt;
+                const badge = document.createElement('span');
+                badge.className = 'gom_top_reserve_count';
+                badge.textContent = cnt;
 
-            item.appendChild(img);
-            item.appendChild(badge);
+                item.appendChild(img);
+                item.appendChild(badge);
 
-            if (this.shapesOn && FLOWER_SYMBOLS[col]) {
-                const sym = document.createElement('span');
-                sym.className = 'gom_top_reserve_sym';
-                sym.textContent = FLOWER_SYMBOLS[col];
-                item.appendChild(sym);
-            }
+                if (this.shapesOn && FLOWER_SYMBOLS[col]) {
+                    const sym = document.createElement('span');
+                    sym.className = 'gom_top_reserve_sym';
+                    sym.textContent = FLOWER_SYMBOLS[col];
+                    item.appendChild(sym);
+                }
 
-            list.appendChild(item);
-        });
+                list.appendChild(item);
+            });
+        }
     }
 
     clearValidMoveHighlights() {
@@ -679,7 +702,10 @@ export class Game {
         if (avail.length === 0) return;
 
         // Show all destination hexes reachable by any available die
-        this.bga?.statusBar?.setTitle?.(_('Click any highlighted hexagon to move your gardener'));
+        const reserveHtml = this.getStatusReserveHtml();
+        this.bga?.statusBar?.setTitle?.(
+            `<span class="gom_status_title_text">${_('Click any highlighted hexagon to move your gardener')}</span> ${reserveHtml}`
+        );
 
         let totalMovesFound = 0;
         avail.forEach(d => {
