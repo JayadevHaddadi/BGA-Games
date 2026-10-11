@@ -777,59 +777,35 @@
     background: #c0392b;
 }
 
-/* ---------- Top Turn Reserve Banner ---------- */
-#gou_turn_reserve_banner {
-    display: flex;
+/* ---------- Status Bar Flower Reserve ---------- */
+.gou_status_reserve {
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 8px 14px;
-    width: 100%;
-    box-sizing: border-box;
-    padding: 7px 12px;
-    margin: 0 auto 10px;
-    background: #eef6f9;
-    border: 2px solid #7fb2c2;
+    vertical-align: middle;
+    gap: 6px;
+    margin-left: 8px;
+    padding: 2px 6px;
+    background: rgba(0, 0, 0, 0.06);
     border-radius: 4px;
-    color: #12303d;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
 }
 
-#gou_turn_reserve_banner .gou_trb_title {
-    font-weight: 700;
-    color: #12303d;
-    margin-right: 4px;
+.gou_status_reserve_title {
+    font-size: 12px;
+    opacity: 0.8;
 }
 
-#gou_turn_reserve_banner .gou_trb_flowers {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-#gou_turn_reserve_banner .gou_trb_flower {
+.gou_status_flower {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 2px 6px;
-    background: #fff;
-    border: 1px solid #7fb2c2;
-    border-radius: 3px;
+    gap: 3px;
 }
 
-#gou_turn_reserve_banner .gou_trb_flower img {
+.gou_status_flower img {
     width: 18px;
     height: 18px;
+    vertical-align: middle;
     object-fit: contain;
-}
-
-#gou_turn_reserve_banner .gou_trb_penalty {
-    font-size: 13px;
-    color: #a83232;
-    background: #fbeae8;
-    border: 1px solid #e0b4b4;
-    border-radius: 3px;
-    padding: 2px 7px;
 }
 

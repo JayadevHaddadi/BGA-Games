@@ -252,7 +252,6 @@ export class Game {
 
         area.innerHTML = `
             <div id="gardensofuranus_container">
-                <div id="gou_turn_reserve_banner" style="display:none"></div>
                 <div id="gou_scoring_showcase" style="display:none"></div>
                 <div id="gou_final_scoring" style="display:none"></div>
                 <div id="gou_layout">
@@ -350,10 +349,6 @@ export class Game {
         const args = this._getNotifArgs(notif);
         const rows = args.rows || [];
         this.gamedatas.final_scoring = rows;
-
-        // Hide turn reserve banner at end of game
-        const trb = document.getElementById('gou_turn_reserve_banner');
-        if (trb) trb.style.display = 'none';
 
         // Collect all scored cards from all players
         const items = [];
@@ -1139,40 +1134,19 @@ export class Game {
         }, { color: 'secondary' });
     }
 
-    renderTurnReserveBanner(flowers) {
-        const banner = document.getElementById('gou_turn_reserve_banner');
-        if (!banner) return;
-        if (!flowers || typeof flowers !== 'object') {
-            banner.style.display = 'none';
-            return;
-        }
-
+    reserveTitleSnippet(flowers) {
+        if (!flowers || typeof flowers !== 'object') return '';
         const colors = ['blue', 'red', 'yellow', 'green', 'purple'];
-        let total = 0;
-        let chipsHtml = '';
-
+        const items = [];
         colors.forEach(col => {
             const count = flowers[col] || 0;
-            total += count;
-            chipsHtml += `
-                <span class="gou_trb_flower" title="${this.colorLabel(col)}: ${count}">
-                    <img data-flower="${col}" src="${this.flowerSrc(col)}" alt="${this.colorLabel(col)}">
-                    <span>${count}</span>
-                </span>
-            `;
+            if (count > 0) {
+                const img = `<img data-flower="${col}" src="${this.flowerSrc(col)}" alt="${this.colorLabel(col)}" style="height:20px;width:20px;vertical-align:middle;object-fit:contain">`;
+                items.push(`<span class="gou_status_flower" title="${this.colorLabel(col)}: ${count}">${img}&nbsp;${count}</span>`);
+            }
         });
-
-        const penalty = (total * (total + 1)) / 2;
-        const penaltyHtml = penalty > 0
-            ? `<span class="gou_trb_penalty" title="${_('Unused flower penalty at end of game')}">-${penalty} VP</span>`
-            : '';
-
-        banner.innerHTML = `
-            <span class="gou_trb_title">${_('Your Reserve:')}</span>
-            <div class="gou_trb_flowers">${chipsHtml}</div>
-            ${penaltyHtml}
-        `;
-        banner.style.display = 'flex';
+        if (items.length === 0) return '';
+        return ` <span class="gou_status_reserve"><span class="gou_status_reserve_title">${_('Reserve:')}</span> ${items.join('&nbsp; ')}</span>`;
     }
 
     updatePlayerTurnUI(args) {
@@ -1196,21 +1170,16 @@ export class Game {
         this.selectedMartian = null;
         if (!this.isCurrentPlayerActive()) {
             this.bga?.statusBar?.setTitle?.(_('Waiting for active player...'));
-            const banner = document.getElementById('gou_turn_reserve_banner');
-            if (banner) banner.style.display = 'none';
             return;
         }
 
-        // Display active player reserve banner
-        this.renderTurnReserveBanner(this.myFlowers);
-
         const power = args?.power;
         const bobReady = !!(power && power.available && power.martian === 'bob');
-        this.bga?.statusBar?.setTitle?.(
-            bobReady
-                ? _('Your turn: Move gardener or Score a mission card (Bob: land on a flower to replace it)')
-                : _('Your turn: Move gardener or Score a mission card')
-        );
+        const reserveSnippet = this.reserveTitleSnippet(this.myFlowers);
+        const mainTitle = bobReady
+            ? _('Your turn: Move gardener or Score a mission card (Bob: land on a flower to replace it)')
+            : _('Your turn: Move gardener or Score a mission card');
+        this.bga?.statusBar?.setTitle?.(`${mainTitle}${reserveSnippet}`);
 
         if (args?.valid_moves) {
             args.valid_moves.forEach(vm => {
