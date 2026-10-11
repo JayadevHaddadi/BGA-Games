@@ -976,13 +976,17 @@ export class Game {
 
         const pos = this.axialToPixel(this.pickerSpot.q, this.pickerSpot.r);
         const sc = this.boardScale || 1;
-        const half = 150 / sc;
-        const boardW = board.offsetWidth;
-        const left = boardW < 2 * half ? boardW / 2 : Math.max(half, Math.min(boardW - half, pos.x));
-        const offset = 60 / sc;
+        const pickerWidth = picker.offsetWidth || 380;
+        const half = (pickerWidth / 2) / sc;
+        const boardW = board.offsetWidth || 900;
+        const margin = 16 / sc;
+        const left = boardW <= (half * 2 + margin * 2)
+            ? boardW / 2
+            : Math.max(half + margin, Math.min(boardW - half - margin, pos.x));
+        const offset = 68 / sc;
 
         picker.style.left = `${left}px`;
-        picker.style.top = `${pos.y < 120 / sc ? pos.y + offset : pos.y - offset}px`;
+        picker.style.top = `${pos.y < 130 / sc ? pos.y + offset : pos.y - offset}px`;
         picker.style.transform = `translate(-50%, -50%) scale(${1 / sc})`;
     }
 

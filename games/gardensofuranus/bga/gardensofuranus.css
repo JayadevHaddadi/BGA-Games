@@ -161,9 +161,13 @@
     z-index: 50;
     transform: translate(-50%, -50%);
     display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 6px;
+    max-width: 94vw;
+    box-sizing: border-box;
     padding: 8px;
-    border-radius: 3px;
+    border-radius: 4px;
     background: #ffffff;
     border: 2px solid var(--gou-ink);
 }
@@ -810,5 +814,16 @@
     height: 24px;
     vertical-align: middle;
     object-fit: contain;
+}
+
+/* Make Status Bar follow as player scrolls down (sticky) */
+#page-title,
+.bga-statusbar,
+#pagemaintitle,
+.bga-status-bar {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 120 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
 }
 

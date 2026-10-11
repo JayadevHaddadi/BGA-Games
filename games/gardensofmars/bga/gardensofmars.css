@@ -520,7 +520,11 @@
 #gom_color_picker {
     position: absolute;
     display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 8px;
+    max-width: 94vw;
+    box-sizing: border-box;
     padding: 8px 12px;
     background: rgba(255, 255, 255, 0.95);
     border: 2px solid #5a301e;
@@ -908,4 +912,15 @@ body.mobile_version #player_boards.gom_mobile_docked {
     gap: 8px !important;
     margin: 4px auto 8px auto !important;
     width: 100% !important;
+}
+
+/* Make Status Bar follow as player scrolls down (sticky) */
+#page-title,
+.bga-statusbar,
+#pagemaintitle,
+.bga-status-bar {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 120 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
 }
