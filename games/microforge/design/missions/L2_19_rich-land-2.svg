@@ -11,7 +11,7 @@
 <text x="340" y="495" font-size="75" font-weight="bold" fill="#7a6e60">&#215;</text>
 <text x="410" y="521" font-size="130" font-weight="bold" fill="#2b2233">2</text>
 <rect x="65" y="635" width="560" height="56" rx="8" fill="#f4ead7" stroke="#2b2233" stroke-width="2"/>
-<text x="345.0" y="674" text-anchor="middle" font-size="32" font-weight="bold" fill="#2b2233">Control 2 hex(es) with two resources.</text>
+<text x="345.0" y="674" text-anchor="middle" font-size="25" font-weight="bold" fill="#2b2233">Control 2 hex(es) with two resources.</text>
 <g id="cost">
 <circle cx="95" cy="845" r="38" fill="#e6c455" stroke="#2b2233" stroke-width="4"/>
 <circle cx="95" cy="845" r="30" fill="none" stroke="#fff176" stroke-width="2.5"/>

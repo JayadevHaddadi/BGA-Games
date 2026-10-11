@@ -173,23 +173,9 @@ export class Game {
         return Object.values(this.sel).reduce((a, b) => a + b, 0);
     }
 
-    /** Total coins for a piece that moved `steps` steps this turn: 1 Credit per unit per step. */
-    coinsForSteps(steps) {
-        return steps;
-    }
-
-    stepsFromCoins(coins) {
-        return coins;
-    }
-
-    /** Credits to move the whole selection `dist` steps: every piece pays the coins for its total steps minus the coins under it. */
+    /** A move costs 1 Credit per step for the whole group, however many pieces travel together (mirrors the server). */
     selCost(dist) {
-        let cost = 0;
-        Object.entries(this.sel).forEach(([key, n]) => {
-            const coins = Number(key.split('|')[1]);
-            cost += n * (this.coinsForSteps(this.stepsFromCoins(coins) + dist) - coins);
-        });
-        return cost;
+        return dist;
     }
 
     selPieces() {
@@ -221,11 +207,6 @@ export class Game {
     connected(a, b) {
         const d = DIRS.findIndex(([dq, dr]) => a.coord_q + dq === b.coord_q && a.coord_r + dr === b.coord_r);
         return d >= 0 && a.edges[d] === '1' && b.edges[(d + 3) % 6] === '1';
-    }
-
-    /** Mirrors the server. */
-    moveCost(pieces, steps) {
-        return pieces * this.coinsForSteps(steps);
     }
 
     missionText(m) {
@@ -333,7 +314,6 @@ export class Game {
     tradeInfo(hex) {
         const me = this.me();
         const d = this.data;
-        if (!d.has_market) return null;
         let port = d.ports.find(p => p.adjacent_hex_id === hex.hex_id);
         let dock = d.buildings.some(b => b.hex_id === hex.hex_id && b.building_type === 'dock');
         let tradeHex = hex;
@@ -351,20 +331,15 @@ export class Game {
             }
         }
         if (!port && !dock) return null;
-        const goods = port ? GOODS : d.dock_goods;
+        let goods = d.dock_goods; // a Dock opens iron and bots
+        if (port) goods = port.supply_item_1 ? [port.supply_item_1, port.supply_item_2] : GOODS;
         const terms = {};
-        goods.forEach(g => {
-            const price = d.prices[g];
-            const step = (g === 'mech' || g === 'crystal') ? 2 : 1;
-            let buy = price;
-            let sell = Math.max(d.price_min[g], price - step);
-            terms[g] = { buy, sell };
-        });
+        goods.forEach(g => { terms[g] = { buy: d.prices[g], sell: d.prices[g] }; }); // buying and selling both use the market price
         return { port, dock, terms, tradeHex };
     }
 
     portText(p) {
-        return `${_('Port')} ${this.portLetter(p)}: ${_('trades all goods at market price')}`;
+        return `${_('Port')} ${this.portLetter(p)}: ${p.supply_item_1 ? _('trades') + ' ' + p.supply_item_1 + ' + ' + p.supply_item_2 : _('trades all goods')} ${_('at the market price')}`;
     }
 
     // ------------------------------------------------------------------ rendering
@@ -460,9 +435,7 @@ export class Game {
         } else if (this.tradeSel) {
             this.tradeBanner(sb);
         } else {
-            sb.setTitle(this.data.has_market
-                ? _('Your turn (${c} Credits): Move, build, extract, manufacture and trade, then end your turn').replace('${c}', myCredits)
-                : _('Your turn (${c} Credits): Move, build, extract, manufacture and buy a Mission, then end your turn').replace('${c}', myCredits));
+            sb.setTitle(_('Your turn (${c} Credits): Move, build, extract, manufacture, trade and buy a Mission, then end your turn').replace('${c}', myCredits));
             sb.addActionButton(_('End turn'), () => this.act('actEndTurn'), { color: 'primary' });
             if ((this.args.undo_count || 0) > 0) {
                 sb.addActionButton(_('Undo'), () => this.act('actUndo'), { color: 'alert' });
@@ -487,22 +460,15 @@ export class Game {
         const name = info.port ? `${_('Port')} ${this.portLetter(info.port)}` : _('Home Dock');
         const goods = Object.keys(info.terms);
         const buys = goods.map(g => `${g} ${info.terms[g].buy}`).join(', ');
-        const sells = goods.map(g => `${g} ${info.terms[g].sell}`).join(', ');
-        const overview = `${name}. ${_('You pay')}: ${buys}. ${_('You get')}: ${sells}.`;
+        const overview = `${name}. ${_('Price')}: ${buys}.`;
         if (tradeHex.owner_id !== me) {
             sb.setTitle(`${overview} ${_('Stand a unit on an adjacent land hex to trade with this port.')}`);
             cancel();
             return;
         }
-        const usedPost = info.port ? !!info.port.used : d.buildings.some(b => b.hex_id === hex.hex_id && b.building_type === 'dock' && b.used);
-        if (usedPost) {
-            sb.setTitle(`${overview} ${_('This trading post was already used this turn.')}`);
-            cancel();
-            return;
-        }
         const qty = this.tradeQty;
         if (!t.mode) {
-            sb.setTitle(`${overview} ${_('One trade per post per turn, 1 Credit extra.')} ${_('Quantity')}: ${qty} (${_('change it in the panel below')}).`);
+            sb.setTitle(`${overview} ${_('Trade as often as you like.')} ${_('Quantity')}: ${qty} (${_('change it in the panel below')}).`);
             sb.addActionButton(_('Buy'), () => { this.tradeSel.mode = 'buy'; this.render(); }, { color: 'primary' });
             sb.addActionButton(_('Sell'), () => { this.tradeSel.mode = 'sell'; this.render(); }, { color: 'secondary' });
             cancel();
@@ -510,17 +476,23 @@ export class Game {
         }
         const credits = d.player_state[me].credits;
         const supply = d.player_state[me].supply;
-        sb.setTitle(`${name}: ${t.mode === 'buy' ? _('buy') : _('sell')} ${qty} ${_('of which good? All at the current price; the price then moves one step per item.')} (${_('click again to go back')})`);
+        sb.setTitle(`${name}: ${t.mode === 'buy' ? _('buy') : _('sell')} ${qty} ${d.moving_prices ? _('of which good? All at the current price; the price then moves 1 per item.') : _('of which good? All at the fixed price.')} (${_('click again to go back')})`);
         goods.forEach(g => {
             const have = this.availOf(tradeHex.hex_id, (g === 'bot' || g === 'mech') ? g + 's' : g);
             if (t.mode === 'buy') {
                 const total = info.terms[g].buy * qty;
                 const noSupply = (g === 'bot' || g === 'mech') && supply[g] < qty;
-                sb.addActionButton(`${g} x${qty} (${total})`, () => this.act('actBuy', { hexId: t.hex, good: g, qty }), { color: 'primary', disabled: credits < total + 1 || noSupply });
+                sb.addActionButton(`${g} x${qty} (${total})`, () => this.act('actBuy', { hexId: t.hex, good: g, qty }), { color: 'primary', disabled: credits < total || noSupply || this.tradedOpposite(g, 'buy') });
             } else {
-                sb.addActionButton(`${g} x${qty} (+${info.terms[g].sell * qty})`, () => this.act('actSell', { hexId: t.hex, good: g, qty }), { color: 'secondary', disabled: have < qty || credits < 1 });
+                sb.addActionButton(`${g} x${qty} (+${info.terms[g].sell * qty})`, () => this.act('actSell', { hexId: t.hex, good: g, qty }), { color: 'secondary', disabled: have < qty || this.tradedOpposite(g, 'sell') });
             }
         });
+    }
+
+    /** Moving prices: a good bought this turn cannot be sold in the same turn, and the other way round. */
+    tradedOpposite(good, dir) {
+        const t = this.data.traded && this.data.traded[good];
+        return !!(this.data.moving_prices && t && t !== dir);
     }
 
     /** Banner for a selected production area: build options when empty, extract / sell when it holds your building. */
@@ -594,7 +566,7 @@ export class Game {
         // The commander player mat (img/boards): basic side for the basic game, advanced side for the other levels
         const mine = d.players[me];
         const colour = mine ? (COLOR_NAME[String(mine.color).toLowerCase()] || 'purple') : null;
-        const side = d.has_market ? 'advanced' : 'basic';
+        const side = d.moving_prices ? 'advanced' : 'basic';
         const base = typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : '';
         const matBox = document.getElementById('mf_matbox');
         if (matBox) {
@@ -654,20 +626,16 @@ export class Game {
     renderMarket() {
         const el = document.getElementById('mf_market');
         if (!el) return;
-        if (!this.data.has_market) {
-            el.innerHTML = '';
-            return;
-        }
         const d = this.data;
-        const prices = d.prices || { iron: 3, crystal: 6, bot: 5, mech: 9 };
-        const priceMin = d.price_min || { iron: 2, crystal: 4, bot: 3, mech: 6 };
-        const priceMax = d.price_max || { iron: 5, crystal: 10, bot: 7, mech: 14 };
-        const steps = {
-            iron: [2, 3, 4, 5],
-            crystal: [4, 6, 8, 10],
-            bot: [3, 4, 5, 6, 7],
-            mech: [6, 8, 10, 12, 14]
-        };
+        const moving = !!d.moving_prices;
+        const prices = d.prices || d.fixed_prices;
+        const priceMin = d.price_min;
+        const priceMax = d.price_max;
+        // Basic: one fixed price per good. Advanced: a track from the lowest to the highest price.
+        const steps = {};
+        GOODS.forEach(g => {
+            steps[g] = moving ? Array.from({ length: priceMax[g] - priceMin[g] + 1 }, (_v, i) => priceMin[g] + i) : [d.fixed_prices[g]];
+        });
         const labels = {
             iron: _('IRON'),
             crystal: _('CRYSTAL'),
@@ -720,9 +688,10 @@ export class Game {
             const trackSteps = steps[g] || [lo, hi];
             const nSteps = trackSteps.length;
             const trackX = 125, trackW = 270;
+            const stepX = i => trackX + 16 + (nSteps > 1 ? i * ((trackW - 32) / (nSteps - 1)) : (trackW - 32) / 2);
 
             const pegsSvg = trackSteps.map((val, i) => {
-                const cx = trackX + 16 + i * ((trackW - 32) / (nSteps - 1));
+                const cx = stepX(i);
                 const cy = y + 20;
                 if (val === curP) {
                     return `<g class="mf_peg">`
@@ -745,7 +714,7 @@ export class Game {
                 + `<circle cx="420" cy="${y + 19.5}" r="7" fill="#f1c40f" stroke="#7e4a05" stroke-width="1"/>`
                 + `<text x="420" y="${y + 23}" text-anchor="middle" font-size="8.5" font-weight="bold" fill="#5b3903">C</text>`
                 + `<text x="447" y="${y + 23.5}" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="13" font-weight="bold" fill="#f9e79f">${curP}</text>`
-                + `<text x="498" y="${y + 23.5}" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="10.5" font-weight="bold" fill="#755e42">${lo}–${hi}</text>`
+                + `<text x="498" y="${y + 23.5}" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="10.5" font-weight="bold" fill="#755e42">${moving ? `${lo}–${hi}` : _('fixed')}</text>`
                 + `</g>`;
         }).join('');
 
@@ -757,7 +726,7 @@ export class Game {
                 <text x="270" y="27" text-anchor="middle" font-family="'Trebuchet MS', 'Segoe UI', Arial, sans-serif" font-size="14" font-weight="bold" fill="#f5d57f" letter-spacing="2">${_('THE MARKET')}</text>
                 <text x="270" y="38" text-anchor="middle" font-family="'Trebuchet MS', 'Segoe UI', Arial, sans-serif" font-size="8" font-weight="600" fill="#c4b094" letter-spacing="0.5">${_('COMMODITY EXCHANGE &#8226; PORTS &amp; DOCKS')}</text>
                 ${rowsSvg}
-                <text x="270" y="230" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="8.5" fill="#7a6245">${_('Trade at Ports or Docks &#8226; Buying raises price &#8226; Selling drops price')}</text>
+                <text x="270" y="230" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="8.5" fill="#7a6245">${moving ? _('Buy or sell at Docks and Ports at the current price &#8226; every item moves the price by 1') : _('Buy or sell at Docks and Ports &#8226; the prices never change')}</text>
             </svg>`;
     }
 
@@ -1052,20 +1021,20 @@ export class Game {
         const tradeHex = info.tradeHex;
         const mine = tradeHex.owner_id === this.me();
         const credits = this.data.player_state[this.me()].credits;
-        const head = info.port ? this.portText(info.port) : _('Home Dock: iron and bots at normal price');
+        const head = info.port ? this.portText(info.port) : _('Dock: iron and bots at the market price');
         const rows = Object.keys(info.terms).map(g => {
             const t = info.terms[g];
             const have = (g === 'bot' || g === 'mech') ? this.availOf(tradeHex.hex_id, g + 's') : this.availOf(tradeHex.hex_id, g);
-            const buyOk = canAct && mine && credits >= t.buy;
-            const sellOk = canAct && mine && have > 0;
-            return `<tr><td>${g}</td><td>${t.buy}</td><td>${t.sell}</td>`
+            const buyOk = canAct && mine && credits >= t.buy && !this.tradedOpposite(g, 'buy');
+            const sellOk = canAct && mine && have > 0 && !this.tradedOpposite(g, 'sell');
+            return `<tr><td>${g}</td><td>${t.buy}</td>`
                 + `<td><button class="mf_btn" data-action="actBuy" data-args='${JSON.stringify({ hexId: hid, good: g })}' ${buyOk ? '' : 'disabled'}>${_('Buy')}</button>`
                 + `<button class="mf_btn" data-action="actSell" data-args='${JSON.stringify({ hexId: hid, good: g })}' ${sellOk ? '' : 'disabled'}>${_('Sell')} (${have})</button></td></tr>`;
         }).join('');
         return `<div class="mf_row"><b>${head}</b>`
             + (mine ? '' : `<div class="mf_hint">${_('Stand a unit on an adjacent land hex to trade with this port.')}</div>`)
             + `<div class="mf_hint">${_('Bought goods appear on the adjacent hex; goods you sell depart from there.')}</div>`
-            + `<table class="mf_table"><tr><th>${_('Good')}</th><th>${_('You pay')}</th><th>${_('You get')}</th><th></th></tr>${rows}</table></div>`;
+            + `<table class="mf_table"><tr><th>${_('Good')}</th><th>${_('Price')}</th><th></th></tr>${rows}</table></div>`;
     }
 
     renderPanel() {
@@ -1085,7 +1054,7 @@ export class Game {
 
             if (this.tradeSel && this.tradeSel.hex === hid) {
                 lines.push(`<div class="mf_row"><b>${_('Quantity')}</b> <button class="mf_qty" data-d="-1">-</button> ${this.tradeQty} <button class="mf_qty" data-d="1">+</button>`
-                    + ` <span class="mf_hint">${_('All items are traded at the current price, then the price moves one step per item.')}</span></div>`);
+                    + ` <span class="mf_hint">${this.data.moving_prices ? _('All items are traded at the current price, then the price moves 1 per item.') : _('All items are traded at the fixed price.')}</span></div>`);
             }
 
             if (mine) {

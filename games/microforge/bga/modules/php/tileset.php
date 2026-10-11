@@ -19,7 +19,7 @@ return json_decode(<<<'JSON'
    "level": 2,
    "res": "iron",
    "slots": 1,
-   "mask": "101111"
+   "mask": "011111"
   },
   {
    "kind": "land",
@@ -28,7 +28,7 @@ return json_decode(<<<'JSON'
    "level": 2,
    "res": null,
    "slots": 1,
-   "mask": "110111"
+   "mask": "111101"
   },
   {
    "kind": "land",
@@ -37,7 +37,7 @@ return json_decode(<<<'JSON'
    "level": 2,
    "res": "crystal",
    "slots": 1,
-   "mask": "101111"
+   "mask": "011111"
   },
   {
    "kind": "land",
@@ -46,7 +46,7 @@ return json_decode(<<<'JSON'
    "level": 2,
    "res": "iron",
    "slots": 1,
-   "mask": "111011"
+   "mask": "110111"
   },
   {
    "kind": "land",
@@ -64,14 +64,14 @@ return json_decode(<<<'JSON'
    "level": 2,
    "res": null,
    "slots": 1,
-   "mask": "101111"
+   "mask": "011111"
   },
   {
    "kind": "land",
    "code": "L3-01",
    "art": "land_L3_01",
    "level": 3,
-   "res": "crystal",
+   "res": "iron",
    "slots": 1,
    "mask": "011111"
   },
@@ -80,9 +80,9 @@ return json_decode(<<<'JSON'
    "code": "L3-02",
    "art": "land_L3_02",
    "level": 3,
-   "res": "iron",
+   "res": null,
    "slots": 1,
-   "mask": "111011"
+   "mask": "111101"
   },
   {
    "kind": "land",
@@ -91,39 +91,12 @@ return json_decode(<<<'JSON'
    "level": 3,
    "res": null,
    "slots": 1,
-   "mask": "011110"
+   "mask": "011111"
   },
   {
    "kind": "land",
    "code": "L3-04",
    "art": "land_L3_04",
-   "level": 3,
-   "res": "iron",
-   "slots": 1,
-   "mask": "111110"
-  },
-  {
-   "kind": "land",
-   "code": "L3-05",
-   "art": "land_L3_05",
-   "level": 3,
-   "res": "iron",
-   "slots": 1,
-   "mask": "011110"
-  },
-  {
-   "kind": "land",
-   "code": "L3-06",
-   "art": "land_L3_06",
-   "level": 3,
-   "res": null,
-   "slots": 1,
-   "mask": "111001"
-  },
-  {
-   "kind": "land",
-   "code": "L3-07",
-   "art": "land_L3_07",
    "level": 3,
    "res": null,
    "slots": 1,
@@ -131,12 +104,39 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "land",
+   "code": "L3-05",
+   "art": "land_L3_05",
+   "level": 3,
+   "res": "crystal",
+   "slots": 1,
+   "mask": "111110"
+  },
+  {
+   "kind": "land",
+   "code": "L3-06",
+   "art": "land_L3_06",
+   "level": 3,
+   "res": "iron",
+   "slots": 1,
+   "mask": "111110"
+  },
+  {
+   "kind": "land",
+   "code": "L3-07",
+   "art": "land_L3_07",
+   "level": 3,
+   "res": "crystal",
+   "slots": 1,
+   "mask": "111101"
+  },
+  {
+   "kind": "land",
    "code": "L3-08",
    "art": "land_L3_08",
    "level": 3,
-   "res": null,
+   "res": "iron",
    "slots": 1,
-   "mask": "111110"
+   "mask": "011111"
   },
   {
    "kind": "land",
@@ -152,43 +152,43 @@ return json_decode(<<<'JSON'
    "code": "L3-10",
    "art": "land_L3_10",
    "level": 3,
-   "res": "crystal",
-   "slots": 1,
-   "mask": "110111"
-  },
-  {
-   "kind": "land",
-   "code": "L3-11",
-   "art": "land_L3_11",
-   "level": 3,
-   "res": "iron",
-   "slots": 1,
-   "mask": "011110"
-  },
-  {
-   "kind": "land",
-   "code": "L3-12",
-   "art": "land_L3_12",
-   "level": 3,
    "res": null,
    "slots": 1,
    "mask": "111101"
   },
   {
    "kind": "land",
+   "code": "L3-11",
+   "art": "land_L3_11",
+   "level": 3,
+   "res": null,
+   "slots": 1,
+   "mask": "111011"
+  },
+  {
+   "kind": "land",
+   "code": "L3-12",
+   "art": "land_L3_12",
+   "level": 3,
+   "res": "iron",
+   "slots": 1,
+   "mask": "011111"
+  },
+  {
+   "kind": "land",
    "code": "L4-01",
    "art": "land_L4_01",
    "level": 4,
-   "res": null,
+   "res": "crystal",
    "slots": 1,
-   "mask": "010111"
+   "mask": "111101"
   },
   {
    "kind": "land",
    "code": "L4-02",
    "art": "land_L4_02",
    "level": 4,
-   "res": null,
+   "res": "iron",
    "slots": 1,
    "mask": "111110"
   },
@@ -197,9 +197,9 @@ return json_decode(<<<'JSON'
    "code": "L4-03",
    "art": "land_L4_03",
    "level": 4,
-   "res": "iron",
+   "res": null,
    "slots": 1,
-   "mask": "111011"
+   "mask": "011111"
   },
   {
    "kind": "land",
@@ -215,18 +215,18 @@ return json_decode(<<<'JSON'
    "code": "L4-05",
    "art": "land_L4_05",
    "level": 4,
-   "res": "iron",
+   "res": null,
    "slots": 1,
-   "mask": "110101"
+   "mask": "011111"
   },
   {
    "kind": "land",
    "code": "L4-06",
    "art": "land_L4_06",
    "level": 4,
-   "res": null,
+   "res": "iron",
    "slots": 1,
-   "mask": "101101"
+   "mask": "111101"
   },
   {
    "kind": "land",
@@ -235,21 +235,12 @@ return json_decode(<<<'JSON'
    "level": 4,
    "res": null,
    "slots": 1,
-   "mask": "110011"
+   "mask": "101111"
   },
   {
    "kind": "land",
    "code": "L4-08",
    "art": "land_L4_08",
-   "level": 4,
-   "res": null,
-   "slots": 1,
-   "mask": "110101"
-  },
-  {
-   "kind": "land",
-   "code": "L4-09",
-   "art": "land_L4_09",
    "level": 4,
    "res": "iron",
    "slots": 1,
@@ -257,12 +248,21 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "land",
+   "code": "L4-09",
+   "art": "land_L4_09",
+   "level": 4,
+   "res": "crystal",
+   "slots": 1,
+   "mask": "111110"
+  },
+  {
+   "kind": "land",
    "code": "L4-10",
    "art": "land_L4_10",
    "level": 4,
-   "res": null,
+   "res": "iron",
    "slots": 1,
-   "mask": "010111"
+   "mask": "111101"
   },
   {
    "kind": "land",
@@ -278,7 +278,7 @@ return json_decode(<<<'JSON'
    "code": "L4-12",
    "art": "land_L4_12",
    "level": 4,
-   "res": "crystal",
+   "res": null,
    "slots": 1,
    "mask": "110111"
   },
@@ -287,9 +287,9 @@ return json_decode(<<<'JSON'
    "code": "L4-13",
    "art": "land_L4_13",
    "level": 4,
-   "res": "crystal",
+   "res": null,
    "slots": 1,
-   "mask": "101011"
+   "mask": "111011"
   },
   {
    "kind": "land",
@@ -305,9 +305,9 @@ return json_decode(<<<'JSON'
    "code": "L4-15",
    "art": "land_L4_15",
    "level": 4,
-   "res": "iron",
+   "res": "crystal",
    "slots": 1,
-   "mask": "011101"
+   "mask": "111011"
   },
   {
    "kind": "land",
@@ -316,7 +316,7 @@ return json_decode(<<<'JSON'
    "level": 4,
    "res": null,
    "slots": 1,
-   "mask": "010111"
+   "mask": "110111"
   },
   {
    "kind": "land",
@@ -325,16 +325,16 @@ return json_decode(<<<'JSON'
    "level": 4,
    "res": null,
    "slots": 1,
-   "mask": "010111"
+   "mask": "110111"
   },
   {
    "kind": "land",
    "code": "L4-18",
    "art": "land_L4_18",
    "level": 4,
-   "res": "crystal",
+   "res": null,
    "slots": 1,
-   "mask": "111100"
+   "mask": "101111"
   }
  ],
  "home": [
@@ -396,10 +396,11 @@ return json_decode(<<<'JSON'
  "port": [
   {
    "kind": "port",
-   "code": "P1",
-   "art": "port_iron_cheaper_s0",
-   "good": "iron",
-   "port_kind": "cheaper",
+   "code": "PA",
+   "art": "port_all_s0",
+   "goods": [
+    "all"
+   ],
    "side": 0,
    "res": null,
    "slots": 0,
@@ -407,10 +408,11 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P1",
-   "art": "port_iron_cheaper_s1",
-   "good": "iron",
-   "port_kind": "cheaper",
+   "code": "PA",
+   "art": "port_all_s1",
+   "goods": [
+    "all"
+   ],
    "side": 1,
    "res": null,
    "slots": 0,
@@ -418,10 +420,11 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P1",
-   "art": "port_iron_cheaper_s2",
-   "good": "iron",
-   "port_kind": "cheaper",
+   "code": "PA",
+   "art": "port_all_s2",
+   "goods": [
+    "all"
+   ],
    "side": 2,
    "res": null,
    "slots": 0,
@@ -429,10 +432,11 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P1",
-   "art": "port_iron_cheaper_s3",
-   "good": "iron",
-   "port_kind": "cheaper",
+   "code": "PA",
+   "art": "port_all_s3",
+   "goods": [
+    "all"
+   ],
    "side": 3,
    "res": null,
    "slots": 0,
@@ -440,10 +444,11 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P1",
-   "art": "port_iron_cheaper_s4",
-   "good": "iron",
-   "port_kind": "cheaper",
+   "code": "PA",
+   "art": "port_all_s4",
+   "goods": [
+    "all"
+   ],
    "side": 4,
    "res": null,
    "slots": 0,
@@ -451,10 +456,11 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P1",
-   "art": "port_iron_cheaper_s5",
-   "good": "iron",
-   "port_kind": "cheaper",
+   "code": "PA",
+   "art": "port_all_s5",
+   "goods": [
+    "all"
+   ],
    "side": 5,
    "res": null,
    "slots": 0,
@@ -462,10 +468,12 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P2",
-   "art": "port_iron_pays_more_s0",
-   "good": "iron",
-   "port_kind": "pays_more",
+   "code": "PB1",
+   "art": "port_iron_crystal_s0",
+   "goods": [
+    "iron",
+    "crystal"
+   ],
    "side": 0,
    "res": null,
    "slots": 0,
@@ -473,10 +481,12 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P2",
-   "art": "port_iron_pays_more_s1",
-   "good": "iron",
-   "port_kind": "pays_more",
+   "code": "PB1",
+   "art": "port_iron_crystal_s1",
+   "goods": [
+    "iron",
+    "crystal"
+   ],
    "side": 1,
    "res": null,
    "slots": 0,
@@ -484,10 +494,12 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P2",
-   "art": "port_iron_pays_more_s2",
-   "good": "iron",
-   "port_kind": "pays_more",
+   "code": "PB1",
+   "art": "port_iron_crystal_s2",
+   "goods": [
+    "iron",
+    "crystal"
+   ],
    "side": 2,
    "res": null,
    "slots": 0,
@@ -495,10 +507,12 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P2",
-   "art": "port_iron_pays_more_s3",
-   "good": "iron",
-   "port_kind": "pays_more",
+   "code": "PB1",
+   "art": "port_iron_crystal_s3",
+   "goods": [
+    "iron",
+    "crystal"
+   ],
    "side": 3,
    "res": null,
    "slots": 0,
@@ -506,10 +520,12 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P2",
-   "art": "port_iron_pays_more_s4",
-   "good": "iron",
-   "port_kind": "pays_more",
+   "code": "PB1",
+   "art": "port_iron_crystal_s4",
+   "goods": [
+    "iron",
+    "crystal"
+   ],
    "side": 4,
    "res": null,
    "slots": 0,
@@ -517,10 +533,12 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P2",
-   "art": "port_iron_pays_more_s5",
-   "good": "iron",
-   "port_kind": "pays_more",
+   "code": "PB1",
+   "art": "port_iron_crystal_s5",
+   "goods": [
+    "iron",
+    "crystal"
+   ],
    "side": 5,
    "res": null,
    "slots": 0,
@@ -528,10 +546,12 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P3",
-   "art": "port_crystal_cheaper_s0",
-   "good": "crystal",
-   "port_kind": "cheaper",
+   "code": "PB2",
+   "art": "port_iron_bot_s0",
+   "goods": [
+    "iron",
+    "bot"
+   ],
    "side": 0,
    "res": null,
    "slots": 0,
@@ -539,10 +559,12 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P3",
-   "art": "port_crystal_cheaper_s1",
-   "good": "crystal",
-   "port_kind": "cheaper",
+   "code": "PB2",
+   "art": "port_iron_bot_s1",
+   "goods": [
+    "iron",
+    "bot"
+   ],
    "side": 1,
    "res": null,
    "slots": 0,
@@ -550,10 +572,12 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P3",
-   "art": "port_crystal_cheaper_s2",
-   "good": "crystal",
-   "port_kind": "cheaper",
+   "code": "PB2",
+   "art": "port_iron_bot_s2",
+   "goods": [
+    "iron",
+    "bot"
+   ],
    "side": 2,
    "res": null,
    "slots": 0,
@@ -561,10 +585,12 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P3",
-   "art": "port_crystal_cheaper_s3",
-   "good": "crystal",
-   "port_kind": "cheaper",
+   "code": "PB2",
+   "art": "port_iron_bot_s3",
+   "goods": [
+    "iron",
+    "bot"
+   ],
    "side": 3,
    "res": null,
    "slots": 0,
@@ -572,10 +598,12 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P3",
-   "art": "port_crystal_cheaper_s4",
-   "good": "crystal",
-   "port_kind": "cheaper",
+   "code": "PB2",
+   "art": "port_iron_bot_s4",
+   "goods": [
+    "iron",
+    "bot"
+   ],
    "side": 4,
    "res": null,
    "slots": 0,
@@ -583,10 +611,12 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P3",
-   "art": "port_crystal_cheaper_s5",
-   "good": "crystal",
-   "port_kind": "cheaper",
+   "code": "PB2",
+   "art": "port_iron_bot_s5",
+   "goods": [
+    "iron",
+    "bot"
+   ],
    "side": 5,
    "res": null,
    "slots": 0,
@@ -594,10 +624,12 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P4",
-   "art": "port_crystal_pays_more_s0",
-   "good": "crystal",
-   "port_kind": "pays_more",
+   "code": "PB3",
+   "art": "port_iron_mech_s0",
+   "goods": [
+    "iron",
+    "mech"
+   ],
    "side": 0,
    "res": null,
    "slots": 0,
@@ -605,10 +637,12 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P4",
-   "art": "port_crystal_pays_more_s1",
-   "good": "crystal",
-   "port_kind": "pays_more",
+   "code": "PB3",
+   "art": "port_iron_mech_s1",
+   "goods": [
+    "iron",
+    "mech"
+   ],
    "side": 1,
    "res": null,
    "slots": 0,
@@ -616,10 +650,12 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P4",
-   "art": "port_crystal_pays_more_s2",
-   "good": "crystal",
-   "port_kind": "pays_more",
+   "code": "PB3",
+   "art": "port_iron_mech_s2",
+   "goods": [
+    "iron",
+    "mech"
+   ],
    "side": 2,
    "res": null,
    "slots": 0,
@@ -627,10 +663,12 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P4",
-   "art": "port_crystal_pays_more_s3",
-   "good": "crystal",
-   "port_kind": "pays_more",
+   "code": "PB3",
+   "art": "port_iron_mech_s3",
+   "goods": [
+    "iron",
+    "mech"
+   ],
    "side": 3,
    "res": null,
    "slots": 0,
@@ -638,10 +676,12 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P4",
-   "art": "port_crystal_pays_more_s4",
-   "good": "crystal",
-   "port_kind": "pays_more",
+   "code": "PB3",
+   "art": "port_iron_mech_s4",
+   "goods": [
+    "iron",
+    "mech"
+   ],
    "side": 4,
    "res": null,
    "slots": 0,
@@ -649,10 +689,12 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P4",
-   "art": "port_crystal_pays_more_s5",
-   "good": "crystal",
-   "port_kind": "pays_more",
+   "code": "PB3",
+   "art": "port_iron_mech_s5",
+   "goods": [
+    "iron",
+    "mech"
+   ],
    "side": 5,
    "res": null,
    "slots": 0,
@@ -660,10 +702,12 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P5",
-   "art": "port_bot_cheaper_s0",
-   "good": "bot",
-   "port_kind": "cheaper",
+   "code": "PB4",
+   "art": "port_crystal_bot_s0",
+   "goods": [
+    "crystal",
+    "bot"
+   ],
    "side": 0,
    "res": null,
    "slots": 0,
@@ -671,10 +715,12 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P5",
-   "art": "port_bot_cheaper_s1",
-   "good": "bot",
-   "port_kind": "cheaper",
+   "code": "PB4",
+   "art": "port_crystal_bot_s1",
+   "goods": [
+    "crystal",
+    "bot"
+   ],
    "side": 1,
    "res": null,
    "slots": 0,
@@ -682,10 +728,12 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P5",
-   "art": "port_bot_cheaper_s2",
-   "good": "bot",
-   "port_kind": "cheaper",
+   "code": "PB4",
+   "art": "port_crystal_bot_s2",
+   "goods": [
+    "crystal",
+    "bot"
+   ],
    "side": 2,
    "res": null,
    "slots": 0,
@@ -693,10 +741,12 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P5",
-   "art": "port_bot_cheaper_s3",
-   "good": "bot",
-   "port_kind": "cheaper",
+   "code": "PB4",
+   "art": "port_crystal_bot_s3",
+   "goods": [
+    "crystal",
+    "bot"
+   ],
    "side": 3,
    "res": null,
    "slots": 0,
@@ -704,10 +754,12 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P5",
-   "art": "port_bot_cheaper_s4",
-   "good": "bot",
-   "port_kind": "cheaper",
+   "code": "PB4",
+   "art": "port_crystal_bot_s4",
+   "goods": [
+    "crystal",
+    "bot"
+   ],
    "side": 4,
    "res": null,
    "slots": 0,
@@ -715,10 +767,12 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P5",
-   "art": "port_bot_cheaper_s5",
-   "good": "bot",
-   "port_kind": "cheaper",
+   "code": "PB4",
+   "art": "port_crystal_bot_s5",
+   "goods": [
+    "crystal",
+    "bot"
+   ],
    "side": 5,
    "res": null,
    "slots": 0,
@@ -726,10 +780,12 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P6",
-   "art": "port_bot_pays_more_s0",
-   "good": "bot",
-   "port_kind": "pays_more",
+   "code": "PB5",
+   "art": "port_crystal_mech_s0",
+   "goods": [
+    "crystal",
+    "mech"
+   ],
    "side": 0,
    "res": null,
    "slots": 0,
@@ -737,10 +793,12 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P6",
-   "art": "port_bot_pays_more_s1",
-   "good": "bot",
-   "port_kind": "pays_more",
+   "code": "PB5",
+   "art": "port_crystal_mech_s1",
+   "goods": [
+    "crystal",
+    "mech"
+   ],
    "side": 1,
    "res": null,
    "slots": 0,
@@ -748,10 +806,12 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P6",
-   "art": "port_bot_pays_more_s2",
-   "good": "bot",
-   "port_kind": "pays_more",
+   "code": "PB5",
+   "art": "port_crystal_mech_s2",
+   "goods": [
+    "crystal",
+    "mech"
+   ],
    "side": 2,
    "res": null,
    "slots": 0,
@@ -759,10 +819,12 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P6",
-   "art": "port_bot_pays_more_s3",
-   "good": "bot",
-   "port_kind": "pays_more",
+   "code": "PB5",
+   "art": "port_crystal_mech_s3",
+   "goods": [
+    "crystal",
+    "mech"
+   ],
    "side": 3,
    "res": null,
    "slots": 0,
@@ -770,10 +832,12 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P6",
-   "art": "port_bot_pays_more_s4",
-   "good": "bot",
-   "port_kind": "pays_more",
+   "code": "PB5",
+   "art": "port_crystal_mech_s4",
+   "goods": [
+    "crystal",
+    "mech"
+   ],
    "side": 4,
    "res": null,
    "slots": 0,
@@ -781,10 +845,12 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P6",
-   "art": "port_bot_pays_more_s5",
-   "good": "bot",
-   "port_kind": "pays_more",
+   "code": "PB5",
+   "art": "port_crystal_mech_s5",
+   "goods": [
+    "crystal",
+    "mech"
+   ],
    "side": 5,
    "res": null,
    "slots": 0,
@@ -792,10 +858,12 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P7",
-   "art": "port_mech_cheaper_s0",
-   "good": "mech",
-   "port_kind": "cheaper",
+   "code": "PB6",
+   "art": "port_bot_mech_s0",
+   "goods": [
+    "bot",
+    "mech"
+   ],
    "side": 0,
    "res": null,
    "slots": 0,
@@ -803,10 +871,12 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P7",
-   "art": "port_mech_cheaper_s1",
-   "good": "mech",
-   "port_kind": "cheaper",
+   "code": "PB6",
+   "art": "port_bot_mech_s1",
+   "goods": [
+    "bot",
+    "mech"
+   ],
    "side": 1,
    "res": null,
    "slots": 0,
@@ -814,10 +884,12 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P7",
-   "art": "port_mech_cheaper_s2",
-   "good": "mech",
-   "port_kind": "cheaper",
+   "code": "PB6",
+   "art": "port_bot_mech_s2",
+   "goods": [
+    "bot",
+    "mech"
+   ],
    "side": 2,
    "res": null,
    "slots": 0,
@@ -825,10 +897,12 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P7",
-   "art": "port_mech_cheaper_s3",
-   "good": "mech",
-   "port_kind": "cheaper",
+   "code": "PB6",
+   "art": "port_bot_mech_s3",
+   "goods": [
+    "bot",
+    "mech"
+   ],
    "side": 3,
    "res": null,
    "slots": 0,
@@ -836,10 +910,12 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P7",
-   "art": "port_mech_cheaper_s4",
-   "good": "mech",
-   "port_kind": "cheaper",
+   "code": "PB6",
+   "art": "port_bot_mech_s4",
+   "goods": [
+    "bot",
+    "mech"
+   ],
    "side": 4,
    "res": null,
    "slots": 0,
@@ -847,115 +923,50 @@ return json_decode(<<<'JSON'
   },
   {
    "kind": "port",
-   "code": "P7",
-   "art": "port_mech_cheaper_s5",
-   "good": "mech",
-   "port_kind": "cheaper",
-   "side": 5,
-   "res": null,
-   "slots": 0,
-   "mask": "100001"
-  },
-  {
-   "kind": "port",
-   "code": "P8",
-   "art": "port_mech_pays_more_s0",
-   "good": "mech",
-   "port_kind": "pays_more",
-   "side": 0,
-   "res": null,
-   "slots": 0,
-   "mask": "110000"
-  },
-  {
-   "kind": "port",
-   "code": "P8",
-   "art": "port_mech_pays_more_s1",
-   "good": "mech",
-   "port_kind": "pays_more",
-   "side": 1,
-   "res": null,
-   "slots": 0,
-   "mask": "011000"
-  },
-  {
-   "kind": "port",
-   "code": "P8",
-   "art": "port_mech_pays_more_s2",
-   "good": "mech",
-   "port_kind": "pays_more",
-   "side": 2,
-   "res": null,
-   "slots": 0,
-   "mask": "001100"
-  },
-  {
-   "kind": "port",
-   "code": "P8",
-   "art": "port_mech_pays_more_s3",
-   "good": "mech",
-   "port_kind": "pays_more",
-   "side": 3,
-   "res": null,
-   "slots": 0,
-   "mask": "000110"
-  },
-  {
-   "kind": "port",
-   "code": "P8",
-   "art": "port_mech_pays_more_s4",
-   "good": "mech",
-   "port_kind": "pays_more",
-   "side": 4,
-   "res": null,
-   "slots": 0,
-   "mask": "000011"
-  },
-  {
-   "kind": "port",
-   "code": "P8",
-   "art": "port_mech_pays_more_s5",
-   "good": "mech",
-   "port_kind": "pays_more",
+   "code": "PB6",
+   "art": "port_bot_mech_s5",
+   "goods": [
+    "bot",
+    "mech"
+   ],
    "side": 5,
    "res": null,
    "slots": 0,
    "mask": "100001"
   }
  ],
- "combos": [
-  [
-   "iron",
-   "cheaper"
+ "combos": {
+  "all": [
+   [
+    "all"
+   ]
   ],
-  [
-   "iron",
-   "pays_more"
-  ],
-  [
-   "crystal",
-   "cheaper"
-  ],
-  [
-   "crystal",
-   "pays_more"
-  ],
-  [
-   "bot",
-   "cheaper"
-  ],
-  [
-   "bot",
-   "pays_more"
-  ],
-  [
-   "mech",
-   "cheaper"
-  ],
-  [
-   "mech",
-   "pays_more"
+  "two": [
+   [
+    "iron",
+    "crystal"
+   ],
+   [
+    "iron",
+    "bot"
+   ],
+   [
+    "iron",
+    "mech"
+   ],
+   [
+    "crystal",
+    "bot"
+   ],
+   [
+    "crystal",
+    "mech"
+   ],
+   [
+    "bot",
+    "mech"
+   ]
   ]
- ]
+ }
 }
 JSON, true);

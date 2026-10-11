@@ -50,20 +50,20 @@ The same pictures are used on tiles, cards, boards and in this book.
 \begin{tabular}{@{}c l @{\hspace{1.5em}} c l @{\hspace{1.5em}} c l@{}}
 \icbig{credit} & Credit & \icbig{iron} & Iron & \icbig{crystal} & Crystal \\
 \icbig{bot} & Bot (power 1) & \icbig{mech} & Mech (power 5) & \icbig{vp} & Victory Point (Star) \\
-\icbig{extractor} & Extractor & \icbig{factory} & Factory & \icbig{tower} & Guard Tower \\
-\icbig{dock} & Dock & \icbig{port} & Port & \icbig{mission} & Mission card \\
+\icbig{extractor} & Extractor & \icbig{factory} & Factory & \icbig{dock} & Dock \\
+\icbig{port} & Port & \icbig{mission} & Mission card & \icbig{income} & Income \\
 \icbig{move} & Move (1 per step) & \icbig{push} & Push & \icbig{kill} & Kill \\
-\icbig{income} & Income & \icbig{trade} & Trade & \icbig{used} & Used this turn \\
-\icbig{hex} & Tile & \icbig{centre} & Centre tile & \icbig{control} & Control a tile \\
-\icbig{up} & Price goes up & \icbig{down} & Price goes down & \icbig{road} & Road \\
+\icbig{trade} & Trade & \icbig{used} & Used this turn & \icbig{hex} & Tile \\
+\icbig{centre} & Centre tile & \icbig{control} & Control a tile & \icbig{road} & Road \\
+\icbig{up} & Price goes up & \icbig{down} & Price goes down & & \\
 \end{tabular}
 \end{center}
 
 \section{Components}
 \begin{itemize}
-\item \textbf{Tiles:} 37 land tiles, 6 Home tiles, 12 Port tiles (Ports only in the Advanced game).
-\item \textbf{Boards:} 6 Commander boards (Basic side and Advanced side), 1 Market board (Advanced game).
-\item \textbf{Per commander:} 20 Bots, 5 Mechs, 5 Extractors, 5 Factories, 5 Guard Towers, 1 Dock.
+\item \textbf{Tiles:} 37 land tiles, 6 Home tiles, 12 Port tiles with two sides (front: all goods, back: two goods).
+\item \textbf{Boards:} 6 Commander boards (Basic side and Advanced side), 1 Market board (fixed prices on one side, price tracks on the other).
+\item \textbf{Per commander:} 20 Bots, 5 Mechs, 5 Extractors, 5 Factories, 1 Dock.
 \item \textbf{Tokens:} Iron, Crystal, Credit coins (1, 5, 10), price markers, VP markers.
 \item \textbf{Cards:} 40 Missions (20 of Level 1, 20 of Level 2).
 \end{itemize}
@@ -74,8 +74,8 @@ There are two ways to play. Both use the same board, pieces and Missions.
 \renewcommand{\arraystretch}{1.3}
 \begin{tabularx}{\textwidth}{@{}l X@{}}
 \toprule
-Basic & Production, \ic{mech} Mechs, combat and \ic{mission} Missions. Moving costs 1 Credit per step. No Docks, Ports or market. \\
-Advanced & Everything in Basic, plus \ic{dock} Docks, \ic{port} Ports and the \ic{trade} market with moving prices. Moving uses the triangular cost (1, 3, 6, 10 Credits for 1 to 4 steps), so slow movement is cheaper per step. \\
+Basic & The \ic{trade} market has fixed prices: Iron 3, Crystal 4, Bots 5, Mechs 10. A \ic{port} Port shows its front side and opens all four goods. \\
+Advanced & The prices start the same but move 1 for every item bought or sold (Iron 1--6, Crystal 2--8, Bots 2--10, Mechs 3--12). A \ic{port} Port shows its back side and opens only two goods, drawn at random. \\
 \bottomrule
 \end{tabularx}
 \end{center}
@@ -84,10 +84,10 @@ On BGA this is the \emph{Rules} game option. Use the Basic side of your board fo
 \section{Setup}
 \begin{enumerate}
 \item \textbf{Build the floor.} 2--3 players: 19 land tiles (centre and 2 rings). 4--6 players: 37 land tiles (centre and 3 rings). Shuffle the tiles of each ring and place them at random, then check that you can walk from the centre to every tile over roads that \emph{both} touching tiles show (re-deal if not).
-\item \textbf{Homes.} Space the Home tiles evenly on the outer ring. Each player takes the one in their colour with \ic{bot} \textbf{3 Bots}, a \ic{tower} Guard Tower and \ic{iron} \textbf{2 Iron}.
-\item \textbf{Ports} (Advanced). Place 2 Port tiles per player around the outside, each beside 2 land tiles, and give every player a \ic{dock} Dock on their home tile.
-\item \textbf{Missions.} Reveal 5 Missions from a deck of Level 1 cards with Level 2 cards below. Basic leaves out the Port cards.
-\item \textbf{Market} (Advanced). Put each price marker at random in its starting band: Iron 4--7, Bots 4--7, Crystal 8--14, Mechs 8--14.
+\item \textbf{Homes.} Space the Home tiles evenly on the outer ring. Each player takes the one in their colour with \ic{bot} \textbf{3 Bots}, a \ic{dock} Dock and \ic{iron} \textbf{2 Iron}.
+\item \textbf{Ports.} Place 2 Port tiles per player around the outside, each beside 2 land tiles (two players: 2 Ports on the free corners). Basic: front side up. Advanced: back sides, drawn at random.
+\item \textbf{Missions.} Reveal 5 Missions from a deck of Level 1 cards with Level 2 cards below. 
+\item \textbf{Market.} Basic: the fixed prices are printed on the board. Advanced: put each price marker on its START square (Iron 3, Crystal 4, Bots 5, Mechs 10).
 \end{enumerate}
 \begin{center}\includegraphics[width=0.55\textwidth]{board_layout.png}\\
 {\small Four to six players: 37 land tiles and 12 Ports (shown schematically; L = land level, P = port).}\end{center}
@@ -97,14 +97,14 @@ On BGA this is the \emph{Rules} game option. Use the Basic side of your board fo
 Everything you need is printed on the tile itself.
 \begin{itemize}
 \item \textbf{Ground:} green \ic{iron} Iron mine, blue \ic{crystal} Crystal deposit, grey empty tile, or a green tile with both resources.
-\item \textbf{Sockets:} 0, 1 or 2 square building areas where you may build.
-\item \textbf{Roads:} a road on an edge means this tile connects there. A tiny broken stump means no road. Pieces only travel where \emph{both} tiles show a road.
-\item \textbf{Ports} (Advanced): show the good and a \ic{down} (2 cheaper to buy) or \ic{income} (3 more when you sell).
+\item \textbf{Sockets:} 0, 1 or 2 round building areas where you may build.
+\item \textbf{Roads:} a road runs to every edge except one: that edge is blocked by hazard stripes. Pieces only travel where \emph{both} tiles are open.
+\item \textbf{Ports:} the front shows all four goods, the back shows the two goods that Port opens.
 \end{itemize}
-Tiles nearer the centre have more roads. The \ic{centre} centre has all six. Letters and numbers around the board name every tile; the game log uses the same names.
+The \ic{centre} centre and the Home tiles have all six roads open; every other tile has exactly one blocked edge. The centre can be crossed but not stopped on. Letters and numbers around the board name every tile; the game log uses the same names.
 
 \section{Your Turn}
-At the start of your turn gain \ic{income} \textbf{10 Credits} and take the coins off your buildings. Then do any of the following, in any order. End your turn when you are done. Your attacks are decided then.
+At the start of your turn gain \ic{income} \textbf{3 Credits plus 1 for every land tile you control} and take the coins off your buildings. Then do any of the following, in any order. End your turn when you are done. Your attacks are decided then.
 
 \subsection{Control}
 You \ic{control} \textbf{control} a tile while at least one of your pieces stands on it. Buildings and tokens on a tile belong to whoever controls it. Bots cannot be assigned to anything; they hold tiles and attack.
@@ -116,21 +116,19 @@ Spend iron that is standing on the tile on a free socket there. Build your first
 \begin{tabularx}{0.95\textwidth}{@{}c l X c@{}}
 \ic{extractor} & Extractor & Once per turn, pay 1 Credit: take 1 token of the tile's resource. & 1 \ic{iron} \\
 \ic{factory} & Factory & Once per turn, pay 1 Credit: 1 \ic{iron} becomes 2 \ic{bot}, or 1 \ic{iron} $+$ 1 \ic{crystal} becomes 1 \ic{mech}. & 2 \ic{iron} \\
-\ic{tower} & Guard Tower & Makes the tile harder to push and kill. & 2 \ic{iron} \\
 \end{tabularx}
 \end{center}
 When a building works, put a \ic{used} coin on it. Take the coins back at the start of your turn. You may sell a building: it returns to your board and you get its cost minus 1 Iron on the tile. Resource tokens belong to whoever holds the tile; carry them with your pieces (they pay like pieces when they move).
 
 \subsection{Move}
-\ic{move} \textbf{Basic:} every step costs 1 Credit per piece. \textbf{Advanced:} a piece pays 1, 3, 6, 10 Credits in total for 1, 2, 3, 4 steps this turn, minus what it already paid, so a piece that keeps going only pays the difference. Pieces follow open roads and cannot pass through enemy pieces. Put a coin under a piece that has moved this turn.
+\ic{move} Move any pieces together from a tile you control: \textbf{1 Credit per step for the whole group}, however many pieces go. Pieces follow open roads and cannot pass through enemy pieces. Iron and crystal only travel with a Bot (one at the start and one at the destination).
 
-\subsection{Trade (Advanced)}
-\ic{trade} Stand on a tile with your \ic{dock} Dock or on a \ic{port} Port. Each post trades once per turn: pay 1 Credit, then choose one good and buy or sell any number of it at the current price.
+\subsection{Trade}
+\ic{trade} Trade at your \ic{dock} Dock or at a \ic{port} Port next to a tile you control. There is no fee and no limit: buy or sell any amount, as often as you like, all at the current price.
 \begin{itemize}
-\item \textbf{Home Dock:} Iron and Bots, at the normal price.
-\item \textbf{Port:} one good is 2 cheaper to buy, or pays 3 more when sold.
-\item Afterwards the price moves one step for every item traded: \ic{up} when you buy, \ic{down} when you sell. A step is 1 Credit for Iron and Bots and 2 for Crystal and Mechs.
-\item Ranges: Iron 1--10, Bots 1--10, Crystal 2--20, Mechs 2--20.
+\item \textbf{Dock:} Iron and Bots. \textbf{Port:} all four goods (front side) or the two printed on its back.
+\item \textbf{Basic:} the price never changes.
+\item \textbf{Advanced:} after the whole trade the price moves 1 for every item: \ic{up} when you buy, \ic{down} when you sell. You cannot buy and sell the same good in one turn. Ranges: Iron 1--6, Crystal 2--8, Bots 2--10, Mechs 3--12.
 \end{itemize}
 
 \subsection{Missions}
@@ -145,7 +143,6 @@ Move onto an enemy tile to attack it. Attackers walk in; the attack is decided w
 \item \ic{bot} Bot power 1. \ic{mech} Mech power 5. Add up each side's power.
 \item \ic{push} \textbf{Push:} attackers have at least $2\times$ the defenders' power. The defenders retreat; the defending player chooses where each piece goes.
 \item \ic{kill} \textbf{Kill:} at least $3\times$. The defenders are removed.
-\item \ic{tower} Each Guard Tower on the tile adds 1 to both multipliers ($2\to3$, $3\to4$, \dots).
 \item Not enough? The attack \textbf{fails} and the attackers return to where they came from.
 \end{itemize}
 
@@ -164,7 +161,7 @@ Each commander has a colour and a different silhouette, so the game also works w
 
 \section{Draft Notes}
 \begin{itemize}
-\item Income is a flat 10 Credits. Movement is linear in Basic and triangular in Advanced; see \texttt{DESIGN\_NOTES.md}.
+\item Income is 3 Credits plus 1 per land tile; movement is 1 Credit per step for the whole group.
 \item The market still prices a whole trade at today's price before moving, so big buy-and-sell loops between a Dock and a Port can print Credits. Needs per-item price steps or fixed port prices.
 \end{itemize}
 

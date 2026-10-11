@@ -143,7 +143,8 @@ def card_svg(level, idx, mtype, n):
     # clear description banner inside condition card
     desc_y = y0 + 605
     s.append(f'<rect x="{x0 + 35}" y="{desc_y}" width="{card_w - 70}" height="56" rx="8" fill="{PAPER}" stroke="{INK}" stroke-width="2"/>')
-    s.append(f'<text x="{W / 2}" y="{desc_y + 39}" text-anchor="middle" font-size="32" font-weight="bold" fill="{INK}">{escape(desc)}</text>')
+    fs = 32 if len(desc) <= 30 else max(18, int(32 * 30 / len(desc)))  # long conditions shrink to stay inside the banner
+    s.append(f'<text x="{W / 2}" y="{desc_y + 39}" text-anchor="middle" font-size="{fs}" font-weight="bold" fill="{INK}">{escape(desc)}</text>')
 
     # footer: Cost (bottom left), Star VP reward (bottom right)
     cy = y1 - 65
@@ -186,13 +187,22 @@ def back_svg(level):
 U = 40
 EDGE_ANG = [0, -60, -120, 180, 120, 60]
 VB = f'{-U * 0.866:.2f} {-U} {2 * U * 0.866:.2f} {2 * U}'
-GROUND_FILL = {'iron': IRON_GREEN, 'crystal': CRYSTAL_BLUE, 'empty': EMPTY_GREY, 'port': SEA, 'double': IRON_GREEN}
+GROUND_FILL = {'iron': IRON_GREEN, 'crystal': CRYSTAL_BLUE, 'empty': EMPTY_GREY, 'port': SEA, 'double': IRON_GREEN, 'centre': '#e7d9b5'}
+# Black-and-white printing: every ground gets a pattern instead of a colour so the tile types stay distinguishable.
+MONO_PATTERN = {
+    'iron': '<pattern id="pm_iron" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="3" cy="3" r="0.9" fill="#777"/></pattern>',
+    'crystal': '<pattern id="pm_crystal" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#8a8a8a" stroke-width="1.1"/></pattern>',
+    'port': '<pattern id="pm_port" width="6" height="5" patternUnits="userSpaceOnUse"><path d="M0 3 q1.5 -2 3 0 t3 0" stroke="#8a8a8a" stroke-width="0.9" fill="none"/></pattern>',
+}
 
 
-def ground_group(kind, outline=True):
+def ground_group(kind, outline=True, mono=False):
     """Ground + texture + corner emblem. Decorations stay 5 units inside the edge; centre stays free for slots and units."""
-    o = [f'<polygon points="{hexpts(0, 0, U, flat=False)}" fill="{GROUND_FILL[kind]}"' + (f' stroke="{INK}" stroke-width="1.6"' if outline else '') + '/>',
-         f'<clipPath id="c_{kind}"><polygon points="{hexpts(0, 0, U - 5, flat=False)}"/></clipPath>', f'<g clip-path="url(#c_{kind})">']
+    key = 'iron' if kind == 'double' else kind
+    o = [f'<polygon points="{hexpts(0, 0, U, flat=False)}" fill="{"#ffffff" if mono else GROUND_FILL[kind]}"' + (f' stroke="{INK}" stroke-width="1.6"' if outline else '') + '/>']
+    if mono and key in MONO_PATTERN:
+        o.append(f'<defs>{MONO_PATTERN[key]}</defs><polygon points="{hexpts(0, 0, U - 1, flat=False)}" fill="url(#pm_{key})"/>')
+    o += [f'<clipPath id="c_{kind}"><polygon points="{hexpts(0, 0, U - 5, flat=False)}"/></clipPath>', f'<g clip-path="url(#c_{kind})">']
     if kind == 'iron':
         for x, y in [(-18, 22), (-6, 28), (10, 30), (24, 20), (20, -4), (-28, 6)]:
             o.append(f'<path d="M{x} {y} l-2 -7 M{x} {y} l1 -8 M{x} {y} l3 -6" stroke="#6f9b45" stroke-width="1.6" fill="none" stroke-linecap="round"/>')
@@ -206,6 +216,9 @@ def ground_group(kind, outline=True):
             o.append(f'<path d="M{x} {y} l-2 -7 M{x} {y} l1 -8 M{x} {y} l3 -6" stroke="#6f9b45" stroke-width="1.6" fill="none" stroke-linecap="round"/>')
         o.append(f'<g stroke="{INK}" stroke-width="1.3" stroke-linejoin="round"><polygon points="-27,-14 -21,-27 -12,-24 -11,-14 -18,-10" fill="#8d8d96"/><polygon points="-14,-16 -8,-24 -1,-18 -4,-10" fill="#a9a9b3"/>'
                  f'<polygon points="10,26 15,10 20,26 15,30" fill="#4f9fc9"/><polygon points="19,24 23,14 27,24 23,28" fill="#78b9dc"/><polygon points="3,26 6,16 9,26 6,28" fill="#78b9dc"/></g>')
+    elif kind == 'centre':
+        o.append(f'<circle cx="0" cy="12" r="16" fill="none" stroke="#b9a77c" stroke-width="1.6"/><circle cx="0" cy="12" r="11" fill="none" stroke="#b9a77c" stroke-width="1"/>'
+                 f'<polygon points="{star_at(0, 12, 14, 5, 4)}" fill="{PURPLE}" stroke="{INK}" stroke-width="1"/>')
     elif kind == 'empty':
         for x, y in [(-18, 24), (-6, 30), (8, 28), (18, 24), (-24, 10), (24, 8), (-2, 18)]:
             o.append(f'<ellipse cx="{x}" cy="{y}" rx="5" ry="3.4" fill="none" stroke="#8f929a" stroke-width="1.3"/>')
@@ -247,7 +260,9 @@ def road_group(d, open_=True):
 
 
 def sockets_group(slots):
-    return ''.join(f'<rect x="{-slots * 12 + i * 24 + 1}" y="-16" width="22" height="16" fill="#ebe1cd" stroke="{INK}" stroke-width="1.2" stroke-dasharray="3"/>' for i in range(slots))
+    """Round bronze-ringed sockets (as in the tile concept art) inside the 22x16 click areas Game.js uses."""
+    return ''.join(f'<ellipse cx="{-slots * 12 + i * 24 + 12}" cy="-8" rx="11" ry="8.4" fill="#ebe1cd" stroke="#7a5a3a" stroke-width="2.2"/>'
+                   f'<ellipse cx="{-slots * 12 + i * 24 + 12}" cy="-8" rx="11" ry="8.4" fill="none" stroke="{INK}" stroke-width="0.7"/>' for i in range(slots))
 
 
 def wrap_svg(inner, scale=1.0, title='', pad=0):
@@ -257,15 +272,29 @@ def wrap_svg(inner, scale=1.0, title='', pad=0):
             + (f'<title>{escape(title)}</title>' if title else '') + inner + '</svg>')
 
 
-def tile_svg(title, kind, slots, paths, extra='', banner=None, code=''):
-    """Print tile: ground + roads on open edges + building sockets (same positions as the BGA board) + extras."""
-    s = [ground_group(kind)]
+def tile_inner(kind, slots, paths, extra='', banner=None, mono=False, pips=0):
+    """Everything printed on a tile, centred on (0,0). The BGA tile files and the print sheets both use this."""
+    s = [ground_group(kind, mono=mono)]
     s += [road_group(d, paths[d]) for d in range(6) if paths[d] or kind != 'port']
     s.append(sockets_group(slots))
-    if banner:
-        s.append(f'<rect x="-9" y="-34" width="18" height="6" fill="{banner}" stroke="{INK}" stroke-width="0.9"/>')
+    if banner:  # home flag
+        s.append(f'<line x1="-24" y1="18" x2="-24" y2="-2" stroke="{INK}" stroke-width="1.6"/><polygon points="-24,-2 -12,3 -24,8" fill="{banner}" stroke="{INK}" stroke-width="1"/>')
     s.append(extra)
-    return wrap_svg(''.join(s), scale=2.5, title=title, pad=1.5)
+    if pips:  # level marks for the paper game: 2 dots = ring 1 (level 2), 3 dots = ring 2 (level 3), 4 = ring 3
+        s += [f'<circle cx="{(i - (pips - 1) / 2) * 5:.1f}" cy="31" r="1.7" fill="{INK}"/>' for i in range(pips)]
+    return ''.join(s)
+
+
+def tile_svg(title, kind, slots, paths, extra='', banner=None, code=''):
+    """Complete tile file: ground + roads / blockades + sockets + extras. No text: coordinates are printed outside the board."""
+    return wrap_svg(tile_inner(kind, slots, paths, extra, banner), scale=2.5, title=title, pad=1.5)
+
+
+def port_extra(goods):
+    """Goods a port opens: front side ['all'] shows all four, back side shows the two it opens."""
+    if goods[0] == 'all':
+        return ''.join(icon_group(g, -10 + (i % 2) * 20, -10 + (i // 2) * 20, 17) for i, g in enumerate(('iron', 'crystal', 'bot', 'mech')))
+    return ''.join(icon_group(g, -11 + i * 22, 0, 20) for i, g in enumerate(goods))
 
 
 def bga_tile_assets():
@@ -337,7 +366,7 @@ figure{{margin:0;text-align:center}}img{{width:72px;height:72px}}figcaption{{fon
     groups = {'Centre (level 1)': [], 'Level 2': [], 'Level 3': [], 'Level 4': [], 'Home tiles': [], 'Port tiles (side 0 of 6 shown)': []}
     for t in tileset.land_tiles():
         paths = [c == '1' for c in t['mask']]
-        write(os.path.join(tiles_dir, f"{t['art']}.svg"), tile_svg(t['code'], t['res'] or 'empty', t['slots'], paths, code=t['code']))
+        write(os.path.join(tiles_dir, f"{t['art']}.svg"), tile_svg(t['code'], 'centre' if t['level'] == 1 else (t['res'] or 'empty'), t['slots'], paths, code=t['code']))
         label = f"{t['code']}  {t['res'] or 'empty'}  {t['slots']} slot(s)  {sum(paths)} roads"
         key = 'Centre (level 1)' if t['level'] == 1 else f"Level {t['level']}"
         groups[key].append((f"{t['art']}.svg", label))
@@ -345,10 +374,9 @@ figure{{margin:0;text-align:center}}img{{width:72px;height:72px}}figcaption{{fon
         write(os.path.join(tiles_dir, f"{t['art']}.svg"), tile_svg(t['code'], 'empty', 0, [True] * 6, banner=col, code=t['code']))
         groups['Home tiles'].append((f"{t['art']}.svg", f'{fname} home: no resource, 0 slots, all 6 roads'))
     for t in tileset.port_tiles():
-        icons = icon_group(t['good'] if t['good'] in ICONS else 'iron', -9, 0, 17) + icon_group('down' if t['port_kind'] == 'cheaper' else 'income', 10, 0, 17)
-        write(os.path.join(tiles_dir, f"{t['art']}.svg"), tile_svg(t['code'], 'port', 0, [c == '1' for c in t['mask']], extra=icons, code=t['code']))
+        write(os.path.join(tiles_dir, f"{t['art']}.svg"), tile_svg(t['code'], 'port', 0, [c == '1' for c in t['mask']], extra=port_extra(t['goods']), code=t['code']))
         if t['side'] == 0:
-            groups['Port tiles (side 0 of 6 shown)'].append((f"{t['art']}.svg", f"{t['code']}: {t['good']}, " + ('2 cheaper to buy' if t['port_kind'] == 'cheaper' else '3 more when sold')))
+            groups['Port tiles (side 0 of 6 shown)'].append((f"{t['art']}.svg", 'front: all four goods' if t['goods'][0] == 'all' else 'back: ' + ' + '.join(t['goods'])))
     tileset.write_manifest(os.path.join(HERE, '..', 'bga', 'modules', 'php', 'tileset.php'))
 
     body = ''
@@ -366,7 +394,7 @@ figure{{margin:0}}img{{width:100%;display:block}}figcaption{{font-size:11px;text
 <tr><td>Level 3 (ring 2)</td><td>12</td><td>12</td></tr><tr><td>Level 4 (ring 3)</td><td>-</td><td>18</td></tr>
 <tr><td><b>Land total</b></td><td><b>19</b></td><td><b>37</b></td></tr>
 <tr><td>Port tiles (2 per player)</td><td>4-6</td><td>8-12</td></tr></table>
-<p>Port tiles come in 8 good/discount types x 6 sides (the sea side decides which two edges have roads), 48 files; the table uses 2 per player. Physical print set: 37 land + 6 home + 12 ports, rotate a port to its side. Coin-plus icon = pays 3 more when you sell it, down arrow = 2 cheaper to buy. Four land tiles hold two resources (iron and crystal): the Rich Land missions need them.</p>
+<p>Port tiles have two sides: the front opens all four goods at market price (Basic), the back opens two of the four (Advanced; 6 possible pairs, one dealt at random per port). Each side comes in 6 positions (the sea side decides which two edges have roads): 42 files. Every land tile except the centre has exactly one blocked edge; home tiles are fully open.</p>
 {body}''')
 
     # ----- board layout (4-6p)

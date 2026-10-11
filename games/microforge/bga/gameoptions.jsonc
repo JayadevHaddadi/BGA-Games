@@ -5,11 +5,11 @@
     "values": {
       "1": {
         "name": "Basic",
-        "description": "Production, Mechs, combat and Missions. Movement costs 1 Credit per step. No Docks, Ports or market."
+        "description": "Fixed market prices; every Port opens all four goods."
       },
       "2": {
         "name": "Advanced",
-        "description": "Adds Docks, Ports and the market with moving prices."
+        "description": "Market prices move 1 per item traded; every Port opens only two goods."
       }
     },
     "default": 1

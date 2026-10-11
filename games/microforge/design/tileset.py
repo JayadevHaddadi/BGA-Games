@@ -14,7 +14,6 @@ import os
 import random
 
 GOODS = ('iron', 'crystal', 'bot', 'mech')
-KINDS = ('cheaper', 'pays_more')
 DIRS = [(1, 0), (1, -1), (0, -1), (-1, 0), (-1, 1), (0, 1)]
 FACTION_COLORS = [('red', 'c0392b'), ('blue', '2980b9'), ('green', '27ae60'), ('yellow', 'e1b12c'), ('purple', '8e44ad'), ('orange', 'd35400')]
 
@@ -23,7 +22,7 @@ DOUBLE = set()
 
 
 def land_tiles(seed=7):
-    """37 land tiles: 1 centre (level 1, 2 slots), 6 level 2 (1 slot), 12 level 3 (1 slot), 18 level 4 (1 slot).
+    """37 land tiles: 1 centre (level 1, 2 slots, all roads open), 6 level 2, 12 level 3, 18 level 4 (1 slot each, ONE blocked edge each).
     Distribution: 50% nothing (18), 30% iron (11), 20% crystal (7).
     """
     rng = random.Random(seed)
@@ -46,9 +45,8 @@ def land_tiles(seed=7):
     for level, res_list in level_dist.items():
         rng.shuffle(res_list)
         for n, res in enumerate(res_list, start=1):
-            lo, hi = {2: (5, 6)}.get(level, (4, 5))
-            open_dirs = set(rng.sample(range(6), rng.randint(lo, hi)))
-            mask = ''.join('1' if d in open_dirs else '0' for d in range(6))
+            blocked = rng.randrange(6)  # every tile except the centre and the homes has exactly ONE blocked edge
+            mask = ''.join('0' if d == blocked else '1' for d in range(6))
             tiles.append({'kind': 'land', 'code': f'L{level}-{n:02d}', 'art': f'land_L{level}_{n:02d}', 'level': level,
                           'res': res, 'slots': 1, 'mask': mask})
     return tiles
@@ -60,23 +58,31 @@ def home_tiles():
             for i, (name, hexcol) in enumerate(FACTION_COLORS, start=1)]
 
 
+PORT_PAIRS = [('iron', 'crystal'), ('iron', 'bot'), ('iron', 'mech'), ('crystal', 'bot'), ('crystal', 'mech'), ('bot', 'mech')]
+
+
 def port_combos():
-    return [(g, k) for g in GOODS for k in KINDS]
+    """Both sides of a port. 'all' = front: every good at market price. Each pair = back: only those two goods (a random pair per port)."""
+    return [('all',)] + [p for p in PORT_PAIRS]
+
+
+def port_art(combo, side):
+    return f"port_{'_'.join(combo)}_s{side}"
 
 
 def port_tiles():
-    """Every good x kind x side. Side k = the land is on edges k and k+1 (a port always touches exactly 2 land tiles)."""
+    """Every port side x position. Position k = the land is on edges k and k+1 (a port always touches exactly 2 land tiles)."""
     out = []
-    for ci, (good, kind) in enumerate(port_combos(), start=1):
+    for ci, combo in enumerate(port_combos()):
         for k in range(6):
             mask = ''.join('1' if d in (k, (k + 1) % 6) else '0' for d in range(6))
-            out.append({'kind': 'port', 'code': f'P{ci}', 'art': f'port_{good}_{kind}_s{k}', 'good': good, 'port_kind': kind,
+            out.append({'kind': 'port', 'code': 'PA' if combo[0] == 'all' else f'PB{ci}', 'art': port_art(combo, k), 'goods': list(combo),
                         'side': k, 'res': None, 'slots': 0, 'mask': mask})
     return out
 
 
 def manifest():
-    return {'land': land_tiles(), 'home': home_tiles(), 'port': port_tiles(), 'combos': [list(c) for c in port_combos()]}
+    return {'land': land_tiles(), 'home': home_tiles(), 'port': port_tiles(), 'combos': {'all': [['all']], 'two': [list(p) for p in PORT_PAIRS]}}
 
 
 def write_manifest(path):

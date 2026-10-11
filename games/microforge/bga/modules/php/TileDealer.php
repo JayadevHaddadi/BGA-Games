@@ -16,10 +16,11 @@ class TileDealer
 
     /**
      * @param array<int,string> $players player_id => faction colour hex (no #), in turn order
+     * @param ?string           $portMode null = no ports, 'all' = port front side (every good), 'two' = back side (a random pair of goods)
      * @param callable          $rand    fn(int $min, int $max): int
      * @return array{hexes: array<int,array<string,mixed>>, homes: array<int,int>, attempts: int, connected: bool}
      */
-    public static function deal(int $radius, array $players, bool $withPorts, array $set, callable $rand): array
+    public static function deal(int $radius, array $players, ?string $portMode, array $set, callable $rand): array
     {
         $n = count($players);
         $land = [];
@@ -67,7 +68,7 @@ class TileDealer
 
         // Port positions: outer ring spots touching the land
         $ports = [];
-        if ($withPorts) {
+        if ($portMode !== null) {
             $outer = $radius + 1;
             $spots = [];
             for ($q = -$outer; $q <= $outer; $q++) {
@@ -79,7 +80,7 @@ class TileDealer
                 }
             }
             usort($spots, fn($a, $b) => $angle($a['q'], $a['r']) <=> $angle($b['q'], $b['r']));
-            $combos = count($set['combos']);
+            $combos = count($set['combos'][$portMode]);
             $bag = [];
 
             if ($n === 2) {
@@ -109,8 +110,8 @@ class TileDealer
                         $bag = range(0, $combos - 1);
                         self::shuffle($bag, $rand);
                     }
-                    $combo = $set['combos'][array_pop($bag)];
-                    $ports[] = ['q' => $spot['q'], 'r' => $spot['r'], 'side' => $side, 'good' => $combo[0], 'kind' => $combo[1]];
+                    $combo = $set['combos'][$portMode][array_pop($bag)];
+                    $ports[] = ['q' => $spot['q'], 'r' => $spot['r'], 'side' => $side, 'goods' => $combo];
                 }
             } else {
                 $count = 2 * $n;
@@ -129,14 +130,14 @@ class TileDealer
                         $bag = range(0, $combos - 1);
                         self::shuffle($bag, $rand);
                     }
-                    $combo = $set['combos'][array_pop($bag)];
-                    $ports[] = ['q' => $spot['q'], 'r' => $spot['r'], 'side' => $side, 'good' => $combo[0], 'kind' => $combo[1]];
+                    $combo = $set['combos'][$portMode][array_pop($bag)];
+                    $ports[] = ['q' => $spot['q'], 'r' => $spot['r'], 'side' => $side, 'goods' => $combo];
                 }
             }
         }
         $portTile = [];
         foreach ($set['port'] as $t) {
-            $portTile[$t['good'] . '|' . $t['port_kind'] . '|' . $t['side']] = $t;
+            $portTile[implode('_', $t['goods']) . '|' . $t['side']] = $t;
         }
         $landByLevel = [];
         foreach ($set['land'] as $t) {
@@ -169,8 +170,8 @@ class TileDealer
                 $hexes[] = ['q' => $pos['q'], 'r' => $pos['r'], 'ring' => $pos['ring'], 'tile' => $tile, 'owner' => $owner, 'port' => null];
             }
             foreach ($ports as $port) {
-                $tile = $portTile[$port['good'] . '|' . $port['kind'] . '|' . $port['side']];
-                $hexes[] = ['q' => $port['q'], 'r' => $port['r'], 'ring' => $radius + 1, 'tile' => $tile, 'owner' => null, 'port' => ['good' => $port['good'], 'kind' => $port['kind']]];
+                $tile = $portTile[implode('_', $port['goods']) . '|' . $port['side']];
+                $hexes[] = ['q' => $port['q'], 'r' => $port['r'], 'ring' => $radius + 1, 'tile' => $tile, 'owner' => null, 'port' => ['goods' => $port['goods']]];
             }
             $connected = self::isConnected($hexes);
             $best = ['hexes' => $hexes, 'homes' => $homes, 'attempts' => $attempt, 'connected' => $connected];

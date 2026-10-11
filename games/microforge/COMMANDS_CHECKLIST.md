@@ -63,3 +63,22 @@ Open: market price exploit, small building-socket tap targets on phones, colour-
 | 2 | Two settings only: Basic = no market/ports; Advanced = ports, market and the triangular cost | Done: option `Rules` Basic (default) / Advanced; flat 10 income back; Basic linear movement, Advanced triangular; no Port missions in Basic | `gameoptions.jsonc`, `Game.php coinsForSteps`, `Game.js` |
 | 3 | Tiles must not have numbers on them; letters/numbers on the outside are enough | Done: tile SVGs carry no text (codes stay in file names and the tile manifest); tooltip shows only the board coordinate | `design/build_design.py`, `bga/img/tiles/` |
 | 4 | Mats, rulebook, help text match the two settings | Done | `bga/img/boards/`, `rulebook/rulebook.pdf`, `bga/GAMEHELP.wiki` |
+
+
+## Round 5 (printable game, market, tiles, income)
+
+| # | Command | Status | Where |
+|---|---|---|---|
+| 1 | Whole game printable, black and white, A4, squares to cut, hexes edge to edge, 2 players | Done: 15 pages | `print/little_commanders_print_2p.pdf`, `design/print_sheets.py` |
+| 2 | Basic = fixed market (iron 3, bot 5, crystal 4, mech 10); Advanced = tracks iron 1-6 (3), crystal 2-8 (4), bot 2-10 (5), mech 3-12 (10) | Done (server, client, boards, market board, rulebook) | `Game.php`, `Game.js`, `design/boards.py` |
+| 3 | Every tile except the middle has exactly 1 blocked edge; homes block nothing | Done | `design/tileset.py` |
+| 4 | Income 3 + land tiles controlled | Done | `Game::playerIncome` |
+| 5 | Home tile only trades bots and iron | Done (Dock) | `Game::DOCK_GOODS` |
+| 6 | A move costs 1 Credit per step for the whole group | Done | `Game::movePieces` |
+| 7 | Player boards with the new info and commander art | Done | `design/boards.py`, `design/art/` |
+| 8 | Little Commanders.jpg as the commander art | Used for board portraits | `design/make_art_crops.py` |
+| 9 | Same rules in BGA client, BGA server and print | Done; there is no separate HTML game, the BGA client is the HTML | |
+| 10 | Ports two-sided: front all goods, back random 2 of 4 | Done: Basic = front, Advanced = back | `design/tileset.py`, `TileDealer.php` |
+| 11 | Unlimited trades, any amount at current price, price moves 1 per item | Done. Added: in Advanced a good cannot be bought and sold in the same turn (else buy-then-sell prints money) | `Game::buyGood/sellGood` |
+| 12 | Mission card art later | Waiting | |
+| 13 | Tile concept art as reference | Round sockets, compass centre, flag on homes, patterned ground (print) | `design/build_design.py` |

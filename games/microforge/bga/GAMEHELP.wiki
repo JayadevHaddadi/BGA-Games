@@ -3,31 +3,30 @@
 ''A game of toy armies on hexagon tiles for 2 to 6 players. Working title.''
 
 == Rules (game option) ==
-* '''Basic''': production, Mechs, combat and Missions. Moving costs 1 Credit per step. No Docks, Ports or market.
-* '''Advanced''': Basic plus Docks, Ports and the market with moving prices.
+* '''Basic''': the market has fixed prices (iron 3, crystal 4, bot 5, mech 10) and every Port opens all four goods.
+* '''Advanced''': prices start the same but move 1 per item bought or sold (iron 1-6, crystal 2-8, bot 2-10, mech 3-12), and a Port opens only two goods.
 
 == Goal ==
 Be the first commander to reach '''5 Victory Points'''. Victory Points come only from '''Mission cards'''.
 
 == Your turn ==
-At the start of your turn you gain '''10 Credits''' and your buildings can work again. Then, in any order, you may build, make pieces, move, buy a Mission and (Advanced) trade. Your attacks are decided when you end your turn.
+At the start of your turn you gain '''3 Credits plus 1 for every land tile you control''' and your buildings can work again. Then, in any order, you may build, make pieces, move, buy a Mission and (Advanced) trade. Your attacks are decided when you end your turn.
 
 == Tiles and control ==
-You '''control''' a tile while one of your pieces stands on it. Everything printed on the tile (resource, building sockets, roads) belongs to the tile. Roads only connect where both touching tiles show a road; a tiny broken stump means no road. The letters and numbers around the board name every tile; the log uses the same names.
+You '''control''' a tile while one of your pieces stands on it. Everything printed on the tile (resource, building sockets, roads) belongs to the tile. Every tile except the centre has exactly one blocked side (hazard stripes); roads only connect where both touching tiles are open. Home tiles and the centre are open on all sides. The centre can be crossed but not stopped on. The letters and numbers around the board name every tile; the log uses the same names.
 
 == Buildings ==
 * '''Extractor''' (1 iron): once per turn, pay 1 Credit to take 1 token of the tile's resource.
 * '''Factory''' (2 iron): once per turn, pay 1 Credit: 1 iron becomes 2 Bots, or 1 iron and 1 crystal become 1 Mech.
-* '''Guard Tower''' (2 iron): makes the tile harder to push and kill.
 
 == Moving ==
-Every step costs 1 Credit per piece. Pieces follow open roads and cannot pass through enemy pieces. Resources (iron and crystal) cannot move on their own: you must have a Bot at the starting hex and destination hex (or send a Bot escorting them).
+A move costs 1 Credit per step for the whole group, however many pieces travel together. Pieces follow open roads and cannot pass through enemy pieces. Resources (iron and crystal) cannot move on their own: you must have a Bot at the starting hex and destination hex (or send a Bot escorting them).
 
 == Missions ==
 Pay 5 Credits (plus 1 for each Mission you already bought) to buy a face-up Mission, one per turn. You score only if you meet its condition at that moment; otherwise the Credits are lost.
 
 == Combat ==
-A Bot has power 1, a Mech power 5. To push a defender you need twice its power, to kill it three times; each Guard Tower adds 1 to both multipliers. If the attack is too weak it fails and the attackers return.
+A Bot has power 1, a Mech power 5. To push a defender you need twice its power, to kill it three times. If the attack is too weak it fails and the attackers return.
 
-== Market (Advanced) ==
-Trade at your home Dock (iron and bots) or at a Port you control. Each post trades once per turn for 1 Credit: pick one good and buy or sell any number at the current price; afterwards the price moves one step per item traded.
+== Market ==
+Trade at your home Dock (iron and bots) or at a Port next to a tile you control, any amount and as often as you like, no fee. Everything is paid at the current price. In Advanced the price then moves 1 per item (up when you buy, down when you sell) and you cannot buy and sell the same good in one turn. A Port's front side (Basic) opens all goods; its back (Advanced) opens two.
