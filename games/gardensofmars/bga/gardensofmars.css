@@ -115,14 +115,14 @@
 .gom_status_reserve_bar {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
     margin-left: 10px;
     vertical-align: middle;
     flex-wrap: wrap;
 }
 
 .gom_status_reserve_label {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 700;
     text-transform: uppercase;
     color: #4a2414;
@@ -132,12 +132,12 @@
 .gom_status_reserve_item {
     display: inline-flex;
     align-items: center;
-    gap: 3px;
-    background: rgba(255, 255, 255, 0.85);
+    gap: 4px;
+    background: rgba(255, 255, 255, 0.9);
     border: 1px solid rgba(80, 40, 20, 0.25);
-    border-radius: 12px;
-    padding: 1px 6px 1px 3px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    border-radius: 14px;
+    padding: 2px 7px 2px 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
     vertical-align: middle;
 }
 
@@ -147,22 +147,22 @@
 }
 
 .gom_status_reserve_item img {
-    width: 18px;
-    height: 18px;
+    width: 23px;
+    height: 23px;
     object-fit: contain;
     display: block;
 }
 
 .gom_status_reserve_count {
-    font-size: 12px;
+    font-size: 15px;
     font-weight: 800;
     color: #2b1810;
     line-height: 1;
 }
 
 .gom_status_reserve_sym {
-    font-size: 9px;
-    color: #666666;
+    font-size: 11px;
+    color: #555555;
     margin-left: 1px;
 }
 
@@ -532,10 +532,10 @@
 }
 
 .gom_color_btn {
-    width: 48px;
-    height: 48px;
-    min-width: 48px;
-    min-height: 48px;
+    width: 54px;
+    height: 54px;
+    min-width: 54px;
+    min-height: 54px;
     border-radius: 50%;
     border: 2px solid #5a301e;
     background: #fafafa;
@@ -559,15 +559,15 @@
 }
 
 .gom_color_btn img {
-    width: 30px;
-    height: 30px;
+    width: 35px;
+    height: 35px;
     object-fit: contain;
 }
 
 .gom_color_btn b {
-    font-size: 11px;
-    font-weight: 800;
-    color: #222;
+    font-size: 14px;
+    font-weight: 900;
+    color: #111;
 }
 
 /* Player Panel Sidebars */
