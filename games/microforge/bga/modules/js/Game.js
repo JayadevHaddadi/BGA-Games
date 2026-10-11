@@ -280,22 +280,13 @@ export class Game {
             for (const [dq, dr] of DIRS) {
                 const nb = this.data.hexes.find(h => h.coord_q === cur.coord_q + dq && h.coord_r === cur.coord_r + dr);
                 if (!nb || dist[nb.hex_id] !== undefined || !this.connected(cur, nb)) continue;
-                // Ports and center tile (ring 0) cannot be landed on, but center tile can be traversed
-                if (!nb.is_port && nb.ring !== 0) {
+                // Ports cannot be landed on; all land tiles including center can be moved to
+                if (!nb.is_port) {
                     dist[nb.hex_id] = dist[cur.hex_id] + 1;
                 }
                 if (nb.owner_id !== null && nb.owner_id !== me) continue; // an enemy hex can be attacked but not passed
-                if (!dist[nb.hex_id] && nb.ring === 0) {
-                    // Record transit distance for path step counter through center
-                    dist[nb.hex_id] = dist[cur.hex_id] + 1;
-                }
                 queue.push(nb.hex_id);
             }
-        }
-        // Center tile cannot be a destination: remove it from dist map so player cannot select it to move to
-        const center = this.data.hexes.find(h => h.ring === 0);
-        if (center && center.hex_id !== fromId) {
-            delete dist[center.hex_id];
         }
         return dist;
     }

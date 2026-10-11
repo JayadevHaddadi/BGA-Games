@@ -174,12 +174,35 @@ class TileDealer
                 $hexes[] = ['q' => $port['q'], 'r' => $port['r'], 'ring' => $radius + 1, 'tile' => $tile, 'owner' => null, 'port' => ['goods' => $port['goods']]];
             }
             $connected = self::isConnected($hexes);
-            $best = ['hexes' => $hexes, 'homes' => $homes, 'attempts' => $attempt, 'connected' => $connected];
-            if ($connected) {
+            $portsOpen = self::portsFullyOpen($hexes);
+            $best = ['hexes' => $hexes, 'homes' => $homes, 'attempts' => $attempt, 'connected' => $connected && $portsOpen];
+            if ($connected && $portsOpen) {
                 break;
             }
         }
         return $best;
+    }
+
+    /** Ports should never face a blocked edge on an adjacent land tile. */
+    public static function portsFullyOpen(array $hexes): bool
+    {
+        $at = [];
+        foreach ($hexes as $i => $h) {
+            $at[$h['q'] . '_' . $h['r']] = $i;
+        }
+        foreach ($hexes as $h) {
+            if ($h['port'] !== null) {
+                foreach (self::DIRS as $d => [$dq, $dr]) {
+                    if ($h['tile']['mask'][$d] === '1') {
+                        $nid = $at[($h['q'] + $dq) . '_' . ($h['r'] + $dr)] ?? null;
+                        if ($nid === null || $hexes[$nid]['tile']['mask'][($d + 3) % 6] !== '1') {
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+        return true;
     }
 
     /** Every hex can be reached from the first one over roads that BOTH touching tiles show. */

@@ -28,9 +28,9 @@ def land_tiles(seed=7):
     rng = random.Random(seed)
     tiles = []
     
-    # Centre tile: level 1, 2 slots, all 6 roads open
+    # Centre tile: level 1, 2 slots, both iron and crystal, all 6 roads open
     tiles.append({'kind': 'land', 'code': 'L1-01', 'art': 'land_L1_01', 'level': 1,
-                  'res': None, 'slots': 2, 'mask': '111111'})
+                  'res': 'double', 'slots': 2, 'mask': '111111'})
 
     # Sub-distributions per level:
     # Level 2 (6 tiles): 3 empty, 2 iron, 1 crystal

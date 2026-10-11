@@ -514,8 +514,8 @@ class Game extends \Bga\GameFramework\Table
         if (!isset($hexes[$fromId]) || !isset($hexes[$toId])) {
             return null;
         }
-        // Ports cannot be moved into, and center tile (ring 0) cannot be landed on
-        if (!empty($hexes[$toId]['is_port']) || (int) $hexes[$toId]['ring'] === 0) {
+        // Ports cannot be moved into
+        if (!empty($hexes[$toId]['is_port'])) {
             return null;
         }
         $dist = [$fromId => 0];

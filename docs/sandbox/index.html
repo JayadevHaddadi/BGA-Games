@@ -236,10 +236,12 @@
       width: 28px;
       height: 28px;
     }
-    .piece.building {
-      width: 40px;
-      height: 40px;
-      border-radius: 6px;
+    .piece.building, .piece.extractor, .piece.factory, .piece.dock {
+      width: 36px;
+      height: 36px;
+      border-radius: 4px;
+      background: #7a6a58;
+      border: 2px solid #2b2233;
     }
 
     .piece img {
@@ -360,12 +362,12 @@
         <button class="btn btn-secondary" id="btn-copy" style="padding:3px 8px; font-size:0.75rem;">Copy Link</button>
       </div>
     </div>
-    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
       <button class="btn btn-secondary" id="btn-toggle-market">📊 Toggle Market</button>
       <button class="btn btn-secondary" id="btn-toggle-playerboard">🛡️ Player Mat</button>
       <button class="btn btn-secondary" id="btn-layout-2p">2P Map</button>
       <button class="btn btn-secondary" id="btn-layout-4p">4P Map</button>
       <button class="btn btn-secondary" id="btn-center">Center View</button>
+      <button class="btn btn-secondary" id="btn-reset-storage" title="Reset saved state to initial layout">🔄 Reset Saved State</button>
       <button class="btn btn-danger" id="btn-clear">Clear Pieces</button>
     </div>
   </header>
@@ -501,6 +503,48 @@
       setTimeout(() => toastEl.classList.remove('show'), 2500);
     }
 
+    const STORAGE_KEY = 'little_commanders_sandbox_state_v1';
+
+    function saveStateToStorage() {
+      try {
+        const payload = {
+          pieces,
+          marketState,
+          movableBoards,
+          currentMap,
+          savedAt: Date.now()
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      } catch (e) {
+        console.warn('Sandbox localStorage save failed:', e);
+      }
+    }
+
+    function loadStateFromStorage() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return false;
+        const data = JSON.parse(raw);
+        if (!data || typeof data !== 'object') return false;
+        if (data.currentMap && (data.currentMap === '2p' || data.currentMap === '4p')) {
+          currentMap = data.currentMap;
+        }
+        if (data.marketState && typeof data.marketState === 'object') {
+          marketState = Object.assign(marketState, data.marketState);
+        }
+        if (data.movableBoards && typeof data.movableBoards === 'object') {
+          movableBoards = data.movableBoards;
+        }
+        if (data.pieces && typeof data.pieces === 'object') {
+          pieces = data.pieces;
+        }
+        return true;
+      } catch (e) {
+        console.warn('Sandbox localStorage load failed:', e);
+        return false;
+      }
+    }
+
     // --- Color Picker ---
     document.querySelectorAll('.color-dot').forEach(dot => {
       dot.addEventListener('click', () => {
@@ -598,11 +642,13 @@
       currentMap = '2p';
       loadBoard('default_board_2p.json');
       broadcast({ type: 'map_change', map: '2p' });
+      saveStateToStorage();
     });
     document.getElementById('btn-layout-4p').addEventListener('click', () => {
       currentMap = '4p';
       loadBoard('default_board_4p.json');
       broadcast({ type: 'map_change', map: '4p' });
+      saveStateToStorage();
     });
 
     // ==================================================================
@@ -718,6 +764,8 @@
           marketState.x = newX;
           marketState.y = newY;
           broadcast({ type: 'market_move', x: newX, y: newY });
+        }, () => {
+          saveStateToStorage();
         });
       }
       el.style.left = `${marketState.x}px`;
@@ -734,6 +782,7 @@
         marketState.visible = false;
         renderMarketBoard();
         broadcast({ type: 'market_visibility', visible: false });
+        saveStateToStorage();
       };
 
       el.querySelectorAll('.market-peg').forEach(peg => {
@@ -745,6 +794,7 @@
           renderMarketBoard();
           broadcast({ type: 'market_price', good, val });
           showToast(`Market ${good.toUpperCase()} price set to ${val}`);
+          saveStateToStorage();
         };
       });
     }
@@ -753,6 +803,7 @@
       marketState.visible = !marketState.visible;
       renderMarketBoard();
       broadcast({ type: 'market_visibility', visible: marketState.visible });
+      saveStateToStorage();
     });
 
     // ==================================================================
@@ -775,6 +826,7 @@
       renderMovableBoard(boardObj);
       broadcast({ type: 'board_spawn', board: boardObj });
       showToast(`Spawned ${colorName.toUpperCase()} Commander Board`);
+      saveStateToStorage();
       return boardObj;
     }
 
@@ -789,6 +841,8 @@
           b.x = newX;
           b.y = newY;
           broadcast({ type: 'board_move', id: b.id, x: newX, y: newY });
+        }, () => {
+          saveStateToStorage();
         });
       }
       el.style.left = `${b.x}px`;
@@ -805,6 +859,7 @@
         delete movableBoards[b.id];
         el.remove();
         broadcast({ type: 'board_remove', id: b.id });
+        saveStateToStorage();
       };
     }
 
@@ -816,7 +871,7 @@
       spawnPlayerBoard(currentColorName, 'advanced');
     });
 
-    function initMovableBoardDrag(el, onMoveCallback) {
+    function initMovableBoardDrag(el, onMoveCallback, onEndCallback) {
       let startX = 0, startY = 0, initialLeft = 0, initialTop = 0;
       const handle = el.querySelector('.board-handle') || el;
 
@@ -840,6 +895,7 @@
         function onMouseUp() {
           window.removeEventListener('mousemove', onMouseMove);
           window.removeEventListener('mouseup', onMouseUp);
+          if (onEndCallback) onEndCallback();
         }
 
         window.addEventListener('mousemove', onMouseMove);
@@ -856,6 +912,7 @@
       pieces[pieceId] = piece;
       renderPieceEl(piece);
       broadcast({ type: 'piece_update', piece });
+      saveStateToStorage();
       return piece;
     }
 
@@ -882,6 +939,7 @@
         delete pieces[p.id];
         el.remove();
         broadcast({ type: 'piece_remove', id: p.id });
+        saveStateToStorage();
       };
     }
 
@@ -913,6 +971,7 @@
         function onMouseUp() {
           window.removeEventListener('mousemove', onMouseMove);
           window.removeEventListener('mouseup', onMouseUp);
+          saveStateToStorage();
         }
 
         window.addEventListener('mousemove', onMouseMove);
@@ -935,6 +994,7 @@
       piecesLayer.innerHTML = '';
       broadcast({ type: 'pieces_clear' });
       showToast('All pieces cleared');
+      saveStateToStorage();
     });
 
     // ==================================================================
@@ -1058,6 +1118,10 @@
         }
       }
 
+      if (msg.type !== 'cursor') {
+        saveStateToStorage();
+      }
+
       if (isHost && msg.type !== 'cursor') {
         // Forward to other peers
         connections.forEach(conn => {
@@ -1065,6 +1129,13 @@
         });
       }
     }
+
+    document.getElementById('btn-reset-storage').addEventListener('click', () => {
+      if (confirm('Reset sandbox state to default? All placed pieces, moved boards, and modified market prices will be reset.')) {
+        localStorage.removeItem(STORAGE_KEY);
+        location.reload();
+      }
+    });
 
     function initNetworking() {
       peer = new Peer(roomId, { debug: 1 });
@@ -1120,8 +1191,13 @@
 
     // --- Init ---
     window.addEventListener('DOMContentLoaded', () => {
-      loadBoard('default_board_2p.json');
+      const hasStored = loadStateFromStorage();
+      loadBoard(`default_board_${currentMap}.json`);
       renderMarketBoard();
+      if (hasStored) {
+        Object.values(movableBoards).forEach(renderMovableBoard);
+        Object.values(pieces).forEach(renderPieceEl);
+      }
       initNetworking();
       document.getElementById('btn-center').click();
     });

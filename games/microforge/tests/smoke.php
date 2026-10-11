@@ -125,9 +125,9 @@ foreach ([1, 2] as $level) { // 1 = Basic (fixed prices, ports open every good),
                 && (int) $g->one("SELECT `credits` FROM `player_state` WHERE `player_id` = $p") === 29);
             check('income is 3 + controlled tiles', $g->playerIncome($p) === 3 + (int) $g->one("SELECT COUNT(*) FROM `hex_tile` WHERE `owner_id` = $p AND `is_port` = 0"));
 
-            // Center tile (ring 0) transit test: cannot end move on ring 0, but can transit
+            // Center tile (ring 0) test: units can move directly to center tile
             $centerHex = (int) $g->one("SELECT `hex_id` FROM `hex_tile` WHERE `ring` = 0 LIMIT 1");
-            check('cannot move directly to center tile', $g->pathDistance($p, $home, $centerHex) === null);
+            check('can move to center tile', $g->pathDistance($p, $home, $centerHex) !== null);
 
             // test resource movement constraints
             $g->exec("INSERT INTO `item` (`owner_id`, `kind`, `hex_id`) VALUES ($p, 'iron', $home)");

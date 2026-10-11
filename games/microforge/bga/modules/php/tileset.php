@@ -8,7 +8,7 @@ return json_decode(<<<'JSON'
    "code": "L1-01",
    "art": "land_L1_01",
    "level": 1,
-   "res": null,
+   "res": "double",
    "slots": 2,
    "mask": "111111"
   },

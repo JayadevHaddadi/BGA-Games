@@ -187,7 +187,9 @@ def back_svg(level):
 U = 40
 EDGE_ANG = [0, -60, -120, 180, 120, 60]
 VB = f'{-U * 0.866:.2f} {-U} {2 * U * 0.866:.2f} {2 * U}'
-GROUND_FILL = {'iron': IRON_GREEN, 'crystal': CRYSTAL_BLUE, 'empty': EMPTY_GREY, 'port': SEA, 'double': IRON_GREEN, 'centre': '#e7d9b5'}
+MEADOW_GREEN = '#82b75a'
+EMPTY_MEADOW = '#8ec366'
+GROUND_FILL = {'iron': MEADOW_GREEN, 'crystal': MEADOW_GREEN, 'empty': EMPTY_MEADOW, 'port': SEA, 'double': MEADOW_GREEN, 'centre': '#a2c875'}
 # Black-and-white printing: every ground gets a pattern instead of a colour so the tile types stay distinguishable.
 MONO_PATTERN = {
     'iron': '<pattern id="pm_iron" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="3" cy="3" r="0.9" fill="#777"/></pattern>',
@@ -197,32 +199,47 @@ MONO_PATTERN = {
 
 
 def ground_group(kind, outline=True, mono=False):
-    """Ground + texture + corner emblem. Decorations stay 5 units inside the edge; centre stays free for slots and units."""
+    """Ground + texture + clear mining deposit patch. Decorations stay 5 units inside the edge; centre stays free for slots and units."""
     key = 'iron' if kind == 'double' else kind
     o = [f'<polygon points="{hexpts(0, 0, U, flat=False)}" fill="{"#ffffff" if mono else GROUND_FILL[kind]}"' + (f' stroke="{INK}" stroke-width="1.6"' if outline else '') + '/>']
     if mono and key in MONO_PATTERN:
         o.append(f'<defs>{MONO_PATTERN[key]}</defs><polygon points="{hexpts(0, 0, U - 1, flat=False)}" fill="url(#pm_{key})"/>')
     o += [f'<clipPath id="c_{kind}"><polygon points="{hexpts(0, 0, U - 5, flat=False)}"/></clipPath>', f'<g clip-path="url(#c_{kind})">']
     if kind == 'iron':
-        for x, y in [(-18, 22), (-6, 28), (10, 30), (24, 20), (20, -4), (-28, 6)]:
-            o.append(f'<path d="M{x} {y} l-2 -7 M{x} {y} l1 -8 M{x} {y} l3 -6" stroke="#6f9b45" stroke-width="1.6" fill="none" stroke-linecap="round"/>')
-        o.append(f'<g stroke="{INK}" stroke-width="1.3" stroke-linejoin="round"><polygon points="-27,-14 -21,-27 -12,-24 -11,-14 -18,-10" fill="#8d8d96"/><polygon points="-14,-16 -8,-24 -1,-18 -4,-10" fill="#a9a9b3"/></g>')
+        # Clear dedicated dark-rock iron quarry / deposit patch on left
+        o.append(f'<path d="M-30 6 Q-32 -18 -18 -26 Q-8 -28 2 -18 Q-2 4 -12 12 Q-24 16 -30 6 Z" fill="#6d7077" stroke="{INK}" stroke-width="1.4"/>')
+        o.append(f'<path d="M-26 4 Q-28 -14 -16 -22 Q-8 -24 0 -16" fill="none" stroke="#8d9099" stroke-width="1.2"/>')
+        # Iron ore nuggets
+        o.append(f'<g stroke="{INK}" stroke-width="1.3" stroke-linejoin="round"><polygon points="-24,-10 -18,-23 -9,-20 -8,-10 -15,-6" fill="#8d8d96"/><polygon points="-11,-12 -5,-20 2,-14 -1,-6" fill="#b4b4be"/></g>')
+        # Grass tufts
+        for x, y in [(-6, 28), (14, 26), (22, 16), (20, -6)]:
+            o.append(f'<path d="M{x} {y} l-2 -6 M{x} {y} l1 -7 M{x} {y} l3 -5" stroke="#5d8b35" stroke-width="1.5" fill="none" stroke-linecap="round"/>')
     elif kind == 'crystal':
-        for x, y in [(-16, 26), (14, 28), (24, 10)]:
-            o.append(f'<path d="M{x} {y - 4} l3 4 l-3 4 l-3 -4 z" fill="#d9eef8" stroke="{INK}" stroke-width="0.8"/>')
-        o.append(f'<g stroke="{INK}" stroke-width="1.3" stroke-linejoin="round"><polygon points="-22,-10 -17,-28 -12,-10 -17,-6" fill="#4f9fc9"/><polygon points="-14,-12 -9,-24 -4,-12 -9,-8" fill="#78b9dc"/><polygon points="-30,-8 -27,-20 -23,-8" fill="#78b9dc"/></g>')
-    elif kind == 'double':
-        for x, y in [(-18, 24), (-6, 28), (24, 20), (-28, 6)]:
-            o.append(f'<path d="M{x} {y} l-2 -7 M{x} {y} l1 -8 M{x} {y} l3 -6" stroke="#6f9b45" stroke-width="1.6" fill="none" stroke-linecap="round"/>')
-        o.append(f'<g stroke="{INK}" stroke-width="1.3" stroke-linejoin="round"><polygon points="-27,-14 -21,-27 -12,-24 -11,-14 -18,-10" fill="#8d8d96"/><polygon points="-14,-16 -8,-24 -1,-18 -4,-10" fill="#a9a9b3"/>'
-                 f'<polygon points="10,26 15,10 20,26 15,30" fill="#4f9fc9"/><polygon points="19,24 23,14 27,24 23,28" fill="#78b9dc"/><polygon points="3,26 6,16 9,26 6,28" fill="#78b9dc"/></g>')
-    elif kind == 'centre':
-        o.append(f'<circle cx="0" cy="12" r="16" fill="none" stroke="#b9a77c" stroke-width="1.6"/><circle cx="0" cy="12" r="11" fill="none" stroke="#b9a77c" stroke-width="1"/>'
-                 f'<polygon points="{star_at(0, 12, 14, 5, 4)}" fill="{PURPLE}" stroke="{INK}" stroke-width="1"/>')
+        # Clear luminous crystal cavern / geode pool patch on left
+        o.append(f'<path d="M-30 6 Q-32 -18 -18 -26 Q-8 -28 2 -18 Q-2 4 -12 12 Q-24 16 -30 6 Z" fill="#3a6b82" stroke="{INK}" stroke-width="1.4"/>')
+        o.append(f'<path d="M-26 4 Q-28 -14 -16 -22 Q-8 -24 0 -16" fill="none" stroke="#5fa0bf" stroke-width="1.2"/>')
+        # Shimmering crystal spires
+        o.append(f'<g stroke="{INK}" stroke-width="1.3" stroke-linejoin="round"><polygon points="-20,-8 -15,-26 -10,-8 -15,-4" fill="#58a8d1"/><polygon points="-12,-10 -7,-22 -2,-10 -7,-6" fill="#8ed0f2"/><polygon points="-27,-6 -24,-18 -20,-6" fill="#8ed0f2"/></g>')
+        # Grass tufts
+        for x, y in [(-6, 28), (14, 26), (22, 16), (20, -6)]:
+            o.append(f'<path d="M{x} {y} l-2 -6 M{x} {y} l1 -7 M{x} {y} l3 -5" stroke="#5d8b35" stroke-width="1.5" fill="none" stroke-linecap="round"/>')
+    elif kind == 'double' or kind == 'centre':
+        # Centre tile holds BOTH Iron and Crystal mining patches
+        # Left: Iron quarry
+        o.append(f'<path d="M-31 2 Q-32 -16 -18 -24 Q-10 -24 -6 -16 Q-12 2 -18 8 Q-27 10 -31 2 Z" fill="#6d7077" stroke="{INK}" stroke-width="1.4"/>')
+        o.append(f'<g stroke="{INK}" stroke-width="1.3" stroke-linejoin="round"><polygon points="-24,-8 -18,-20 -10,-17 -9,-8 -16,-5" fill="#8d8d96"/><polygon points="-13,-10 -7,-18 0,-12 -3,-5" fill="#b4b4be"/></g>')
+        # Right: Crystal geode
+        o.append(f'<path d="M31 2 Q32 -16 18 -24 Q10 -24 6 -16 Q12 2 18 8 Q27 10 31 2 Z" fill="#3a6b82" stroke="{INK}" stroke-width="1.4"/>')
+        o.append(f'<g stroke="{INK}" stroke-width="1.3" stroke-linejoin="round"><polygon points="20,-6 15,-22 10,-6 15,-3" fill="#58a8d1"/><polygon points="25,-5 22,-16 18,-5" fill="#8ed0f2"/></g>')
+        # Centre emblem
+        o.append(f'<circle cx="0" cy="14" r="13" fill="none" stroke="#d5c69d" stroke-width="1.8"/><circle cx="0" cy="14" r="9" fill="none" stroke="#d5c69d" stroke-width="1"/>'
+                 f'<polygon points="{star_at(0, 14, 11, 4.5, 4)}" fill="{PURPLE}" stroke="{INK}" stroke-width="1"/>')
     elif kind == 'empty':
-        for x, y in [(-18, 24), (-6, 30), (8, 28), (18, 24), (-24, 10), (24, 8), (-2, 18)]:
-            o.append(f'<ellipse cx="{x}" cy="{y}" rx="5" ry="3.4" fill="none" stroke="#8f929a" stroke-width="1.3"/>')
-        o.append(f'<g stroke="{INK}" stroke-width="1.2"><rect x="-24" y="-24" width="12" height="12" fill="#b3b6bd"/><path d="M-24 -18 h12 M-18 -24 v6 M-18 -12 v-6" fill="none"/></g>')
+        # Pure natural meadow with subtle field flowers and grass
+        for x, y in [(-18, 22), (-4, 28), (12, 26), (22, 14), (-22, -10), (18, -12), (0, 18)]:
+            o.append(f'<path d="M{x} {y} l-2 -6 M{x} {y} l1 -7 M{x} {y} l3 -5" stroke="#5d8b35" stroke-width="1.4" fill="none" stroke-linecap="round"/>')
+        for x, y in [(-14, 6), (14, 8), (4, -14)]:
+            o.append(f'<circle cx="{x}" cy="{y}" r="2" fill="#fff7b2" stroke="{INK}" stroke-width="0.7"/>')
     elif kind == 'port':
         for y in (-26, -18, 20, 28):
             o.append(f'<path d="M-24 {y} q6 -5 12 0 t12 0 t12 0 t12 0" stroke="#e8f1f7" stroke-opacity="0.75" stroke-width="2" fill="none" stroke-linecap="round"/>')
@@ -260,9 +277,9 @@ def road_group(d, open_=True):
 
 
 def sockets_group(slots):
-    """Round bronze-ringed sockets (as in the tile concept art) inside the 22x16 click areas Game.js uses."""
-    return ''.join(f'<ellipse cx="{-slots * 12 + i * 24 + 12}" cy="-8" rx="11" ry="8.4" fill="#ebe1cd" stroke="#7a5a3a" stroke-width="2.2"/>'
-                   f'<ellipse cx="{-slots * 12 + i * 24 + 12}" cy="-8" rx="11" ry="8.4" fill="none" stroke="{INK}" stroke-width="0.7"/>' for i in range(slots))
+    """Square building foundation spots with reinforced bronze/stone borders."""
+    return ''.join(f'<rect x="{-slots * 12 + i * 24 + 1}" y="-16" width="22" height="16" rx="2" fill="#ebe1cd" stroke="#7a5a3a" stroke-width="2.2"/>'
+                   f'<rect x="{-slots * 12 + i * 24 + 3}" y="-14" width="18" height="12" rx="1" fill="none" stroke="{INK}" stroke-width="0.7"/>' for i in range(slots))
 
 
 def wrap_svg(inner, scale=1.0, title='', pad=0):
