@@ -102,7 +102,15 @@ class Game extends \Bga\GameFramework\Table
                 if (empty($gidCols)) {
                     static::DbQuery("ALTER TABLE `gardener` ADD COLUMN `gardener_id` varchar(32) NOT NULL DEFAULT '' FIRST");
                     static::DbQuery("UPDATE `gardener` SET `gardener_id` = CAST(`player_id` AS CHAR)");
-                    static::DbQuery("ALTER TABLE `gardener` DROP PRIMARY KEY, ADD PRIMARY KEY (`gardener_id`), ADD INDEX (`player_id`)");
+                    try {
+                        static::DbQuery("ALTER TABLE `gardener` DROP PRIMARY KEY");
+                    } catch (\Throwable $e) {}
+                    try {
+                        static::DbQuery("ALTER TABLE `gardener` ADD PRIMARY KEY (`gardener_id`)");
+                    } catch (\Throwable $e) {}
+                    try {
+                        static::DbQuery("ALTER TABLE `gardener` ADD INDEX (`player_id`)");
+                    } catch (\Throwable $e) {}
                 }
             }
 
@@ -382,9 +390,18 @@ class Game extends \Bga\GameFramework\Table
         return static::getObjectListFromDb("SELECT `die_id`, `die_value` FROM `dice_pool` WHERE `is_used` = 0 ORDER BY `die_id` ASC");
     }
 
+    public function getGardenerIdSelect(): string
+    {
+        $this->ensureSchema();
+        $cols = static::getObjectListFromDb("SHOW COLUMNS FROM `gardener` LIKE 'gardener_id'");
+        return !empty($cols) ? "`gardener_id`" : "CAST(`player_id` AS CHAR) as `gardener_id`";
+    }
+
     public function rollDiceForPlayer(int $playerId): array
     {
-        $gardeners = static::getObjectListFromDb("SELECT `gardener_id`, `martian`, `coord_q` as `q`, `coord_r` as `r` FROM `gardener` WHERE `player_id` = $playerId AND `coord_q` IS NOT NULL");
+        $this->ensureSchema();
+        $idCol = $this->getGardenerIdSelect();
+        $gardeners = static::getObjectListFromDb("SELECT $idCol, `martian`, `coord_q` as `q`, `coord_r` as `r` FROM `gardener` WHERE `player_id` = $playerId AND `coord_q` IS NOT NULL");
         if (empty($gardeners)) {
             return [];
         }
@@ -425,12 +442,14 @@ class Game extends \Bga\GameFramework\Table
 
     public function getValidMovesForDie(int $playerId, int $dieValue): array
     {
-        $myGardeners = static::getObjectListFromDb("SELECT `gardener_id`, `martian`, `coord_q` as `q`, `coord_r` as `r` FROM `gardener` WHERE `player_id` = $playerId AND `coord_q` IS NOT NULL");
+        $this->ensureSchema();
+        $idCol = $this->getGardenerIdSelect();
+        $myGardeners = static::getObjectListFromDb("SELECT $idCol, `martian`, `coord_q` as `q`, `coord_r` as `r` FROM `gardener` WHERE `player_id` = $playerId AND `coord_q` IS NOT NULL");
         if (empty($myGardeners)) {
             return [];
         }
 
-        $allGardeners = static::getObjectListFromDb("SELECT `gardener_id`, `coord_q` as `q`, `coord_r` as `r` FROM `gardener` WHERE `coord_q` IS NOT NULL");
+        $allGardeners = static::getObjectListFromDb("SELECT $idCol, `coord_q` as `q`, `coord_r` as `r` FROM `gardener` WHERE `coord_q` IS NOT NULL");
         $allGardenerMap = [];
         foreach ($allGardeners as $g) {
             $allGardenerMap[$g['q'] . '_' . $g['r']] = $g['gardener_id'];
@@ -552,7 +571,12 @@ class Game extends \Bga\GameFramework\Table
             } elseif (isset($chosenMove['gardener_id'])) {
                 $targetGid = $chosenMove['gardener_id'];
             }
-            static::DbQuery(sprintf("UPDATE `gardener` SET `coord_q` = %d, `coord_r` = %d WHERE `gardener_id` = '%s'", $targetQ, $targetR, $targetGid));
+            $cols = static::getObjectListFromDb("SHOW COLUMNS FROM `gardener` LIKE 'gardener_id'");
+            if (!empty($cols)) {
+                static::DbQuery(sprintf("UPDATE `gardener` SET `coord_q` = %d, `coord_r` = %d WHERE `gardener_id` = '%s'", $targetQ, $targetR, $targetGid));
+            } else {
+                static::DbQuery(sprintf("UPDATE `gardener` SET `coord_q` = %d, `coord_r` = %d WHERE `player_id` = %d", $targetQ, $targetR, $playerId));
+            }
 
             if ($chosenMove['has_flower']) {
                 // Landed on existing flower: lose 1 point
@@ -811,8 +835,10 @@ class Game extends \Bga\GameFramework\Table
 
     public function getAllGardeners(): array
     {
+        $this->ensureSchema();
+        $idCol = $this->getGardenerIdSelect();
         $gardeners = static::getObjectListFromDb(
-            "SELECT `gardener_id`, `player_id`, `martian`, `coord_q` as `q`, `coord_r` as `r`, `track_pos` FROM `gardener`"
+            "SELECT $idCol, `player_id`, `martian`, `coord_q` as `q`, `coord_r` as `r`, `track_pos` FROM `gardener`"
         );
         foreach ($gardeners as &$g) {
             $pid = (int) $g['player_id'];
@@ -866,6 +892,7 @@ class Game extends \Bga\GameFramework\Table
 
     public function getAllDatas(): array
     {
+        $this->ensureSchema();
         $result = [];
         $result['players'] = $this->loadPlayersBasicInfos();
         $scores = [];

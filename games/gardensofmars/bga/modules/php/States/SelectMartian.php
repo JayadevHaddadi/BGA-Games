@@ -25,11 +25,12 @@ class SelectMartian extends GameState
     public function getArgs(): array
     {
         $playerId = (int) $this->game->getActivePlayerId();
+        $idCol = $this->game->getGardenerIdSelect();
         $unplaced = $this->game->getObjectFromDb(
-            "SELECT `gardener_id`, `martian` FROM `gardener` WHERE `player_id` = $playerId AND `coord_q` IS NULL ORDER BY `gardener_id` ASC LIMIT 1"
+            "SELECT $idCol, `martian` FROM `gardener` WHERE `player_id` = $playerId AND `coord_q` IS NULL LIMIT 1"
         );
         $myMartian = $unplaced ? (string) $unplaced['martian'] : '';
-        $gardenerId = $unplaced ? (string) $unplaced['gardener_id'] : '';
+        $gardenerId = $unplaced ? (string) $unplaced['gardener_id'] : (string) $playerId;
 
         // Cannot place in center (0,0), on another gardener, or on a peak
         $allGardeners = $this->game->getObjectListFromDb("SELECT `coord_q` as `q`, `coord_r` as `r` FROM `gardener` WHERE `coord_q` IS NOT NULL");
@@ -68,8 +69,9 @@ class SelectMartian extends GameState
     {
         $playerId = (int) $this->game->getActivePlayerId();
 
+        $idCol = $this->game->getGardenerIdSelect();
         $unplaced = $this->game->getObjectFromDb(
-            "SELECT `gardener_id`, `martian` FROM `gardener` WHERE `player_id` = $playerId AND `coord_q` IS NULL ORDER BY `gardener_id` ASC LIMIT 1"
+            "SELECT $idCol, `martian` FROM `gardener` WHERE `player_id` = $playerId AND `coord_q` IS NULL LIMIT 1"
         );
         if (!$unplaced) {
             throw new UserException(clienttranslate("All your gardeners are already placed."));
@@ -95,12 +97,22 @@ class SelectMartian extends GameState
             throw new UserException(clienttranslate("You must select an unoccupied spot in the garden."));
         }
 
-        $this->game->DbQuery(sprintf(
-            "UPDATE `gardener` SET `coord_q` = %d, `coord_r` = %d WHERE `gardener_id` = '%s'",
-            $q,
-            $r,
-            $gardenerId
-        ));
+        $cols = $this->game->getObjectListFromDb("SHOW COLUMNS FROM `gardener` LIKE 'gardener_id'");
+        if (!empty($cols)) {
+            $this->game->DbQuery(sprintf(
+                "UPDATE `gardener` SET `coord_q` = %d, `coord_r` = %d WHERE `gardener_id` = '%s'",
+                $q,
+                $r,
+                $gardenerId
+            ));
+        } else {
+            $this->game->DbQuery(sprintf(
+                "UPDATE `gardener` SET `coord_q` = %d, `coord_r` = %d WHERE `player_id` = %d",
+                $q,
+                $r,
+                $playerId
+            ));
+        }
 
         $this->game->giveExtraTime($playerId);
 
@@ -140,17 +152,28 @@ class SelectMartian extends GameState
         $args = $this->getArgs();
         $spot = $args['empty_spots'][0] ?? ['q' => 1, 'r' => 1];
 
+        $idCol = $this->game->getGardenerIdSelect();
         $unplaced = $this->game->getObjectFromDb(
-            "SELECT `gardener_id`, `martian` FROM `gardener` WHERE `player_id` = $playerId AND `coord_q` IS NULL ORDER BY `gardener_id` ASC LIMIT 1"
+            "SELECT $idCol, `martian` FROM `gardener` WHERE `player_id` = $playerId AND `coord_q` IS NULL LIMIT 1"
         );
         $gardenerId = $unplaced ? (string) $unplaced['gardener_id'] : (string) $playerId;
 
-        $this->game->DbQuery(sprintf(
-            "UPDATE `gardener` SET `coord_q` = %d, `coord_r` = %d WHERE `gardener_id` = '%s'",
-            $spot['q'],
-            $spot['r'],
-            $gardenerId
-        ));
+        $cols = $this->game->getObjectListFromDb("SHOW COLUMNS FROM `gardener` LIKE 'gardener_id'");
+        if (!empty($cols)) {
+            $this->game->DbQuery(sprintf(
+                "UPDATE `gardener` SET `coord_q` = %d, `coord_r` = %d WHERE `gardener_id` = '%s'",
+                $spot['q'],
+                $spot['r'],
+                $gardenerId
+            ));
+        } else {
+            $this->game->DbQuery(sprintf(
+                "UPDATE `gardener` SET `coord_q` = %d, `coord_r` = %d WHERE `player_id` = %d",
+                $spot['q'],
+                $spot['r'],
+                $playerId
+            ));
+        }
 
         $unplacedTotal = (int) $this->game->getUniqueValueFromDb("SELECT COUNT(*) FROM `gardener` WHERE `coord_q` IS NULL");
 
