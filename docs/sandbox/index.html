@@ -1286,6 +1286,85 @@
       };
     }
 
+    function initMovableBoardDrag(el, onMoveCallback, onEndCallback) {
+      let startX = 0, startY = 0, initialLeft = 0, initialTop = 0;
+      const handle = el.querySelector('.board-handle') || el;
+
+      handle.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+        startX = e.clientX;
+        startY = e.clientY;
+        initialLeft = parseFloat(el.style.left) || 0;
+        initialTop = parseFloat(el.style.top) || 0;
+
+        function onMouseMove(moveEv) {
+          const dx = (moveEv.clientX - startX) / scale;
+          const dy = (moveEv.clientY - startY) / scale;
+          const newX = initialLeft + dx;
+          const newY = initialTop + dy;
+          el.style.left = `${newX}px`;
+          el.style.top = `${newY}px`;
+          if (onMoveCallback) onMoveCallback(newX, newY);
+        }
+
+        function onMouseUp() {
+          window.removeEventListener('mousemove', onMouseMove);
+          window.removeEventListener('mouseup', onMouseUp);
+          if (onEndCallback) onEndCallback();
+        }
+
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+      });
+    }
+
+    // ==================================================================
+    // Piece Management
+    // ==================================================================
+    function spawnPiece(type, color = currentColor, x = 500, y = 500, id = null, cardId = null) {
+      const pieceId = id || 'p_' + Math.random().toString(36).substr(2, 9);
+      const piece = { id: pieceId, type, color, x, y, cardId };
+      pieces[pieceId] = piece;
+      renderPieceEl(piece);
+      broadcast({ type: 'piece_update', piece });
+      saveStateToStorage();
+      return piece;
+    }
+
+    function renderPieceEl(p) {
+      let el = document.getElementById(p.id);
+      if (!el) {
+        el = document.createElement('div');
+        el.id = p.id;
+        piecesLayer.appendChild(el);
+        initPieceDrag(el);
+      }
+      el.className = `piece ${p.type}`;
+      el.style.left = `${p.x}px`;
+      el.style.top = `${p.y}px`;
+
+      if (p.type === 'mission') {
+        el.style.background = '#f4ead7';
+        el.style.border = '2.5px solid #2b2233';
+        el.innerHTML = `<img src="img/missions/m_${p.cardId || '1_0'}.svg" alt="Mission">`;
+        el.title = `Mission Card ${p.cardId || ''} (Double-click to remove)`;
+      } else {
+        let icon = p.type;
+        if (p.type === 'bot' || p.type === 'mech') {
+          el.style.background = `#${p.color}`;
+          el.style.border = `2px solid #222`;
+        }
+        el.innerHTML = `<img src="img/icons/${icon}.svg" alt="${icon}">`;
+      }
+
+      el.ondblclick = () => {
+        delete pieces[p.id];
+        el.remove();
+        broadcast({ type: 'piece_remove', id: p.id });
+        saveStateToStorage();
+      };
+    }
+
     function initPieceDrag(el) {
       let startX = 0, startY = 0, initialLeft = 0, initialTop = 0;
       el.addEventListener('mousedown', (e) => {
