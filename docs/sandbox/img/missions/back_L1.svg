@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 690 940" width="69.0mm" height="94.0mm" font-family="DejaVu Sans, Arial, sans-serif">
+<title>Mission card back level 1</title>
+<rect width="690" height="940" fill="#2f7f79"/>
+<rect x="30" y="30" width="630" height="880" rx="26" fill="#f4ead7" stroke="#2b2233" stroke-width="4"/>
+<g id="art-slot"><rect x="70" y="70" width="550" height="800" rx="12" fill="#ebe1cd" stroke="#2b2233" stroke-width="3" stroke-dasharray="14 8"/>
+<text class="placeholder" x="345.0" y="450.0" text-anchor="middle" font-size="26" fill="#9a8f7c">BACK ART SLOT</text></g>
+<polygon points="425.0,590.0 385.0,659.3 305.0,659.3 265.0,590.0 305.0,520.7 385.0,520.7" fill="#2f7f79" stroke="#2b2233" stroke-width="4"/>
+<text x="345.0" y="612.0" text-anchor="middle" font-size="70" font-weight="bold" fill="#f4ead7">I</text>
+</svg>

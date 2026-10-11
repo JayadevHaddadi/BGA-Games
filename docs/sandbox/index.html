@@ -243,11 +243,141 @@
       background: #7a6a58;
       border: 2px solid #2b2233;
     }
+    .piece.mission {
+      width: 120px;
+      height: 164px;
+      border-radius: 8px;
+      background: #f4ead7;
+      border: 2.5px solid #2b2233;
+      overflow: hidden;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.55);
+      cursor: grab;
+    }
+    .piece.mission:hover {
+      box-shadow: 0 10px 24px rgba(0,0,0,0.75);
+      border-color: #f1c40f;
+    }
 
     .piece img {
       width: 100%;
       height: 100%;
       pointer-events: none;
+    }
+
+    /* Missions Board */
+    #missions-board {
+      width: 580px;
+      background: #201b15;
+      border: 2px solid #5a4833;
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+      color: #ede2cc;
+      font-family: 'Segoe UI', Arial, sans-serif;
+    }
+    .missions-rack-body {
+      padding: 10px 14px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: #2b241c;
+      border-radius: 0 0 8px 8px;
+    }
+    .mission-tier-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .mission-tier-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      font-weight: bold;
+      color: #f5d57f;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .mission-tier-controls {
+      display: flex;
+      gap: 6px;
+    }
+    .mission-btn-tiny {
+      background: #3c3226;
+      border: 1px solid #755e42;
+      color: #ede2cc;
+      font-size: 0.7rem;
+      padding: 2px 7px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .mission-btn-tiny:hover {
+      background: #524434;
+      border-color: #f1c40f;
+    }
+    .mission-cards-strip {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+    .mission-card-thumb {
+      flex: 0 0 96px;
+      height: 131px;
+      border-radius: 6px;
+      border: 1.5px solid #4a3d2c;
+      background: #f4ead7;
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    }
+    .mission-card-thumb:hover {
+      transform: translateY(-4px) scale(1.04);
+      box-shadow: 0 6px 14px rgba(0,0,0,0.6);
+      border-color: #f1c40f;
+      z-index: 10;
+    }
+    .mission-card-thumb img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      border-radius: 5px;
+      pointer-events: none;
+    }
+    .mission-card-thumb .btn-claim-card {
+      position: absolute;
+      bottom: 4px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(30, 30, 30, 0.9);
+      color: #f1c40f;
+      font-size: 0.65rem;
+      font-weight: bold;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid #f1c40f;
+      opacity: 0;
+      transition: opacity 0.15s;
+      pointer-events: auto;
+      white-space: nowrap;
+    }
+    .mission-card-thumb:hover .btn-claim-card {
+      opacity: 1;
+    }
+    .mission-card-thumb .btn-cycle-card {
+      position: absolute;
+      top: 3px;
+      right: 3px;
+      background: rgba(40, 20, 20, 0.85);
+      color: #ff6b6b;
+      font-size: 0.65rem;
+      padding: 1px 4px;
+      border-radius: 3px;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .mission-card-thumb:hover .btn-cycle-card {
+      opacity: 1;
     }
 
     /* Sidebar Palette */
@@ -363,6 +493,7 @@
       </div>
     </div>
       <button class="btn btn-secondary" id="btn-toggle-market">📊 Toggle Market</button>
+      <button class="btn btn-secondary" id="btn-toggle-missions">📜 Missions</button>
       <button class="btn btn-secondary" id="btn-toggle-playerboard">🛡️ Player Mat</button>
       <button class="btn btn-secondary" id="btn-layout-2p">2P Map</button>
       <button class="btn btn-secondary" id="btn-layout-4p">4P Map</button>
@@ -449,10 +580,31 @@
         </div>
       </div>
 
+      <div class="palette-group">
+        <div class="palette-title">Mission Cards (40 Total)</div>
+        <div style="display: flex; gap: 6px; margin-bottom: 6px;">
+          <button class="btn btn-secondary" id="btn-spawn-rand-l1" style="flex: 1; font-size: 0.72rem; justify-content: center; padding: 4px 6px;">
+            + Random L1 (1★)
+          </button>
+          <button class="btn btn-secondary" id="btn-spawn-rand-l2" style="flex: 1; font-size: 0.72rem; justify-content: center; padding: 4px 6px;">
+            + Random L2 (2★)
+          </button>
+        </div>
+        <div style="display: flex; gap: 4px; align-items: center;">
+          <select id="select-mission-card" style="flex: 1; background: #2c251d; color: #ede2cc; border: 1px solid #5a4833; border-radius: 4px; padding: 4px; font-size: 0.72rem;">
+            <!-- Populated dynamically via JS -->
+          </select>
+          <button class="btn btn-secondary" id="btn-spawn-selected-mission" style="font-size: 0.72rem; padding: 4px 8px;">
+            Spawn
+          </button>
+        </div>
+      </div>
+
       <div style="font-size:0.75rem; color:#888; line-height:1.4;">
         💡 <b>Sandbox Controls:</b><br>
-        • <b>Market Board:</b> Click any peg value on the market board to adjust prices manually! Drag the top handle to move it.<br>
-        • <b>Player Board:</b> Move pieces on/off player boards to track barracks &amp; supply.<br>
+        • <b>Missions Display:</b> Face-up mission cards rack on right! Click any card to spawn/claim it onto the board or mat.<br>
+        • <b>Market Board:</b> Click any peg value to slide prices. Drag top handle to move.<br>
+        • <b>Player Board:</b> Move pieces on/off player mats to track supply.<br>
         • Drag pieces anywhere on the board.<br>
         • Double-click a piece to remove it.<br>
         • Pan by dragging the background.<br>
@@ -477,6 +629,62 @@
       x: 180,
       y: 80,
       prices: { iron: 3, crystal: 6, bot: 5, mech: 9 }
+    };
+
+    // Mission state (Face-up cards in rack)
+    let missionState = {
+      visible: true,
+      x: 820,
+      y: 80,
+      faceupL1: ['1_0', '1_4', '1_7', '1_11', '1_15'],
+      faceupL2: ['2_0', '2_6', '2_8', '2_12', '2_17']
+    };
+
+    const ALL_MISSIONS = {
+      1: [
+        { id: '1_0', name: 'Mine Boss 2', cond: 'Control 2 Extractors', vp: 1 },
+        { id: '1_1', name: 'Mine Boss 3', cond: 'Control 3 Extractors', vp: 1 },
+        { id: '1_2', name: 'Toy Factory 1', cond: 'Control 1 Factory', vp: 1 },
+        { id: '1_3', name: 'Fort Builder 1', cond: 'Control 1 Guard Tower', vp: 1 },
+        { id: '1_4', name: 'Bot Pals 5', cond: 'Have 5 bots on the map', vp: 1 },
+        { id: '1_5', name: 'Bot Pals 7', cond: 'Have 7 bots on the map', vp: 1 },
+        { id: '1_6', name: 'Mech Fan 1', cond: 'Have 1 mech on the map', vp: 1 },
+        { id: '1_7', name: 'Big Army 6', cond: 'Have 6 pieces on the map', vp: 1 },
+        { id: '1_8', name: 'Iron Pile 3', cond: 'Hold 3 iron on hexes you control', vp: 1 },
+        { id: '1_9', name: 'Crystal Cave 3', cond: 'Hold 3 crystal on hexes you control', vp: 1 },
+        { id: '1_10', name: 'Treasure Pile 5', cond: 'Hold 5 resource tokens', vp: 1 },
+        { id: '1_11', name: 'Land Grab 3', cond: 'Control 3 hexes', vp: 1 },
+        { id: '1_12', name: 'Land Grab 4', cond: 'Control 4 hexes', vp: 1 },
+        { id: '1_13', name: 'Harbor Boss 1', cond: 'Control 1 different Port tile', vp: 1 },
+        { id: '1_14', name: 'Harbor Boss 2', cond: 'Control 2 different Port tiles', vp: 1 },
+        { id: '1_15', name: 'Rich Land 1', cond: 'Control 1 hex with 2 resources', vp: 1 },
+        { id: '1_16', name: 'Piggy Bank 15', cond: 'Have 15 Credits', vp: 1 },
+        { id: '1_17', name: 'Builder 3', cond: 'Control 3 buildings', vp: 1 },
+        { id: '1_18', name: 'Land Grab 5', cond: 'Control 5 hexes', vp: 1 },
+        { id: '1_19', name: 'Builder 4', cond: 'Control 4 buildings', vp: 1 }
+      ],
+      2: [
+        { id: '2_0', name: 'Mine Boss 4', cond: 'Control 4 Extractors', vp: 2 },
+        { id: '2_1', name: 'Mine Boss 5', cond: 'Control 5 Extractors', vp: 2 },
+        { id: '2_2', name: 'Toy Factory 2', cond: 'Control 2 Factories', vp: 2 },
+        { id: '2_3', name: 'Toy Factory 3', cond: 'Control 3 Factories', vp: 2 },
+        { id: '2_4', name: 'Fort Builder 2', cond: 'Control 2 Guard Towers', vp: 2 },
+        { id: '2_5', name: 'Fort Builder 3', cond: 'Control 3 Guard Towers', vp: 2 },
+        { id: '2_6', name: 'Bot Pals 10', cond: 'Have 10 bots on the map', vp: 2 },
+        { id: '2_7', name: 'Bot Pals 13', cond: 'Have 13 bots on the map', vp: 2 },
+        { id: '2_8', name: 'Mech Fan 2', cond: 'Have 2 mechs on the map', vp: 2 },
+        { id: '2_9', name: 'Mech Fan 3', cond: 'Have 3 mechs on the map', vp: 2 },
+        { id: '2_10', name: 'Big Army 12', cond: 'Have 12 pieces on the map', vp: 2 },
+        { id: '2_11', name: 'Iron Pile 6', cond: 'Hold 6 iron on hexes you control', vp: 2 },
+        { id: '2_12', name: 'Crystal Cave 5', cond: 'Hold 5 crystal on hexes you control', vp: 2 },
+        { id: '2_13', name: 'Treasure Pile 9', cond: 'Hold 9 resource tokens', vp: 2 },
+        { id: '2_14', name: 'Land Grab 7', cond: 'Control 7 hexes', vp: 2 },
+        { id: '2_15', name: 'Land Grab 9', cond: 'Control 9 hexes', vp: 2 },
+        { id: '2_16', name: 'Harbor Boss 3', cond: 'Control 3 different Port tiles', vp: 2 },
+        { id: '2_17', name: 'King of the Hill', cond: 'Control the central hex', vp: 2 },
+        { id: '2_18', name: 'Rich Land 2', cond: 'Control 2 hexes with 2 resources', vp: 2 },
+        { id: '2_19', name: 'Piggy Bank 30', cond: 'Have 30 Credits', vp: 2 }
+      ]
     };
 
     // Movable boards state (player boards, etc.)
@@ -510,6 +718,7 @@
         const payload = {
           pieces,
           marketState,
+          missionState,
           movableBoards,
           currentMap,
           savedAt: Date.now()
@@ -531,6 +740,9 @@
         }
         if (data.marketState && typeof data.marketState === 'object') {
           marketState = Object.assign(marketState, data.marketState);
+        }
+        if (data.missionState && typeof data.missionState === 'object') {
+          missionState = Object.assign(missionState, data.missionState);
         }
         if (data.movableBoards && typeof data.movableBoards === 'object') {
           movableBoards = data.movableBoards;
@@ -807,6 +1019,217 @@
     });
 
     // ==================================================================
+    // Missions Board & Card Management
+    // ==================================================================
+    function renderMissionsBoard() {
+      let el = document.getElementById('missions-board');
+      if (!missionState.visible) {
+        if (el) el.remove();
+        return;
+      }
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'missions-board';
+        el.className = 'movable-board';
+        boardsLayer.appendChild(el);
+        initMovableBoardDrag(el, (newX, newY) => {
+          missionState.x = newX;
+          missionState.y = newY;
+          broadcast({ type: 'missions_move', x: newX, y: newY });
+        }, () => {
+          saveStateToStorage();
+        });
+      }
+      el.style.left = `${missionState.x}px`;
+      el.style.top = `${missionState.y}px`;
+
+      const renderStrip = (level, cardIds) => {
+        return cardIds.map((cid, slotIdx) => {
+          return `
+            <div class="mission-card-thumb" data-card="${cid}" data-level="${level}" data-slot="${slotIdx}" title="Click to spawn card on table / player mat">
+              <img src="img/missions/m_${cid}.svg" alt="Mission ${cid}">
+              <div class="btn-claim-card">+ Claim / Spawn</div>
+              <div class="btn-cycle-card" title="Discard and deal new replacement card">✕</div>
+            </div>`;
+        }).join('');
+      };
+
+      el.innerHTML = `
+        <div class="board-handle">
+          <span>📜 Tactical Missions (Face-Up Market)</span>
+          <div style="display:flex; gap:6px; align-items:center;">
+            <button class="mission-btn-tiny" id="btn-missions-deal-all" title="Reshuffle and deal 5 new cards for both levels">🔀 Deal 5+5</button>
+            <span class="btn-close-board" title="Hide Missions Display">✕</span>
+          </div>
+        </div>
+        <div class="missions-rack-body">
+          <div class="mission-tier-row">
+            <div class="mission-tier-header">
+              <span>⭐ Level 1 Missions (1 VP) — Cost: 5 Credits</span>
+              <div class="mission-tier-controls">
+                <button class="mission-btn-tiny" id="btn-draw-l1">+ Draw L1</button>
+              </div>
+            </div>
+            <div class="mission-cards-strip">
+              ${renderStrip(1, missionState.faceupL1)}
+            </div>
+          </div>
+          <div class="mission-tier-row">
+            <div class="mission-tier-header">
+              <span>⭐⭐ Level 2 Missions (2 VP) — Cost: 5 Credits</span>
+              <div class="mission-tier-controls">
+                <button class="mission-btn-tiny" id="btn-draw-l2">+ Draw L2</button>
+              </div>
+            </div>
+            <div class="mission-cards-strip">
+              ${renderStrip(2, missionState.faceupL2)}
+            </div>
+          </div>
+        </div>`;
+
+      // Handle close
+      el.querySelector('.btn-close-board').onclick = (e) => {
+        e.stopPropagation();
+        missionState.visible = false;
+        renderMissionsBoard();
+        broadcast({ type: 'missions_visibility', visible: false });
+        saveStateToStorage();
+      };
+
+      // Handle Deal All
+      el.querySelector('#btn-missions-deal-all').onclick = (e) => {
+        e.stopPropagation();
+        dealMissionsRandomly();
+        renderMissionsBoard();
+        broadcast({ type: 'missions_deal', faceupL1: missionState.faceupL1, faceupL2: missionState.faceupL2 });
+        saveStateToStorage();
+        showToast('Dealt 5 new Level 1 and Level 2 mission cards');
+      };
+
+      // Handle Draw L1 / Draw L2
+      el.querySelector('#btn-draw-l1').onclick = (e) => {
+        e.stopPropagation();
+        const randId = getRandomMissionId(1, missionState.faceupL1);
+        missionState.faceupL1.push(randId);
+        renderMissionsBoard();
+        broadcast({ type: 'missions_deal', faceupL1: missionState.faceupL1, faceupL2: missionState.faceupL2 });
+        saveStateToStorage();
+      };
+      el.querySelector('#btn-draw-l2').onclick = (e) => {
+        e.stopPropagation();
+        const randId = getRandomMissionId(2, missionState.faceupL2);
+        missionState.faceupL2.push(randId);
+        renderMissionsBoard();
+        broadcast({ type: 'missions_deal', faceupL1: missionState.faceupL1, faceupL2: missionState.faceupL2 });
+        saveStateToStorage();
+      };
+
+      // Handle card clicks
+      el.querySelectorAll('.mission-card-thumb').forEach(thumb => {
+        const cardId = thumb.dataset.card;
+        const level = Number(thumb.dataset.level);
+        const slot = Number(thumb.dataset.slot);
+
+        thumb.onclick = (e) => {
+          if (e.target.classList.contains('btn-cycle-card')) return;
+          e.stopPropagation();
+          const rect = boardContainer.getBoundingClientRect();
+          const stageViewX = (rect.width / 2 - stageX) / scale;
+          const stageViewY = (rect.height / 2 - stageY) / scale;
+          spawnPiece('mission', 'f4ead7', stageViewX + (Math.random() * 40 - 20), stageViewY + (Math.random() * 40 - 20), null, cardId);
+          showToast(`Spawned Mission Card [${cardId}] on table`);
+        };
+
+        const cycleBtn = thumb.querySelector('.btn-cycle-card');
+        if (cycleBtn) {
+          cycleBtn.onclick = (e) => {
+            e.stopPropagation();
+            const list = level === 1 ? missionState.faceupL1 : missionState.faceupL2;
+            const newC = getRandomMissionId(level, list);
+            list[slot] = newC;
+            renderMissionsBoard();
+            broadcast({ type: 'missions_deal', faceupL1: missionState.faceupL1, faceupL2: missionState.faceupL2 });
+            saveStateToStorage();
+            showToast(`Replaced mission with [${newC}]`);
+          };
+        }
+      });
+    }
+
+    function getRandomMissionId(level, currentList = []) {
+      const all = ALL_MISSIONS[level].map(m => m.id);
+      const available = all.filter(id => !currentList.includes(id));
+      const pool = available.length > 0 ? available : all;
+      return pool[Math.floor(Math.random() * pool.length)];
+    }
+
+    function dealMissionsRandomly() {
+      const shuffle = arr => [...arr].sort(() => Math.random() - 0.5);
+      missionState.faceupL1 = shuffle(ALL_MISSIONS[1].map(m => m.id)).slice(0, 5);
+      missionState.faceupL2 = shuffle(ALL_MISSIONS[2].map(m => m.id)).slice(0, 5);
+    }
+
+    function initMissionSelector() {
+      const sel = document.getElementById('select-mission-card');
+      if (!sel) return;
+      sel.innerHTML = '';
+      [1, 2].forEach(lvl => {
+        const grp = document.createElement('optgroup');
+        grp.label = `Level ${lvl} (${lvl} VP)`;
+        ALL_MISSIONS[lvl].forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m.id;
+          opt.textContent = `${m.name} (${m.vp}★)`;
+          grp.appendChild(opt);
+        });
+        sel.appendChild(grp);
+      });
+
+      const btnSpawnSel = document.getElementById('btn-spawn-selected-mission');
+      if (btnSpawnSel) {
+        btnSpawnSel.onclick = () => {
+          const cardId = sel.value;
+          const rect = boardContainer.getBoundingClientRect();
+          const stageViewX = (rect.width / 2 - stageX) / scale;
+          const stageViewY = (rect.height / 2 - stageY) / scale;
+          spawnPiece('mission', 'f4ead7', stageViewX + (Math.random() * 40 - 20), stageViewY + (Math.random() * 40 - 20), null, cardId);
+          showToast(`Spawned Mission Card [${cardId}] on table`);
+        };
+      }
+
+      const btnSpawnRandL1 = document.getElementById('btn-spawn-rand-l1');
+      if (btnSpawnRandL1) {
+        btnSpawnRandL1.onclick = () => {
+          const cardId = getRandomMissionId(1);
+          const rect = boardContainer.getBoundingClientRect();
+          const stageViewX = (rect.width / 2 - stageX) / scale;
+          const stageViewY = (rect.height / 2 - stageY) / scale;
+          spawnPiece('mission', 'f4ead7', stageViewX + (Math.random() * 40 - 20), stageViewY + (Math.random() * 40 - 20), null, cardId);
+          showToast(`Spawned Level 1 Mission on table`);
+        };
+      }
+
+      const btnSpawnRandL2 = document.getElementById('btn-spawn-rand-l2');
+      if (btnSpawnRandL2) {
+        btnSpawnRandL2.onclick = () => {
+          const cardId = getRandomMissionId(2);
+          const rect = boardContainer.getBoundingClientRect();
+          const stageViewX = (rect.width / 2 - stageX) / scale;
+          const stageViewY = (rect.height / 2 - stageY) / scale;
+          spawnPiece('mission', 'f4ead7', stageViewX + (Math.random() * 40 - 20), stageViewY + (Math.random() * 40 - 20), null, cardId);
+          showToast(`Spawned Level 2 Mission on table`);
+        };
+      }
+    }
+
+    document.getElementById('btn-toggle-missions').addEventListener('click', () => {
+      missionState.visible = !missionState.visible;
+      renderMissionsBoard();
+      broadcast({ type: 'missions_visibility', visible: missionState.visible });
+      saveStateToStorage();
+    });
+
+    // ==================================================================
     // Movable Player Boards
     // ==================================================================
     function spawnPlayerBoard(colorName = currentColorName, side = 'advanced') {
@@ -859,86 +1282,6 @@
         delete movableBoards[b.id];
         el.remove();
         broadcast({ type: 'board_remove', id: b.id });
-        saveStateToStorage();
-      };
-    }
-
-    document.getElementById('btn-toggle-playerboard').addEventListener('click', () => {
-      spawnPlayerBoard(currentColorName, 'advanced');
-    });
-
-    document.getElementById('btn-spawn-playerboard').addEventListener('click', () => {
-      spawnPlayerBoard(currentColorName, 'advanced');
-    });
-
-    function initMovableBoardDrag(el, onMoveCallback, onEndCallback) {
-      let startX = 0, startY = 0, initialLeft = 0, initialTop = 0;
-      const handle = el.querySelector('.board-handle') || el;
-
-      handle.addEventListener('mousedown', (e) => {
-        e.stopPropagation();
-        startX = e.clientX;
-        startY = e.clientY;
-        initialLeft = parseFloat(el.style.left) || 0;
-        initialTop = parseFloat(el.style.top) || 0;
-
-        function onMouseMove(moveEv) {
-          const dx = (moveEv.clientX - startX) / scale;
-          const dy = (moveEv.clientY - startY) / scale;
-          const newX = initialLeft + dx;
-          const newY = initialTop + dy;
-          el.style.left = `${newX}px`;
-          el.style.top = `${newY}px`;
-          if (onMoveCallback) onMoveCallback(newX, newY);
-        }
-
-        function onMouseUp() {
-          window.removeEventListener('mousemove', onMouseMove);
-          window.removeEventListener('mouseup', onMouseUp);
-          if (onEndCallback) onEndCallback();
-        }
-
-        window.addEventListener('mousemove', onMouseMove);
-        window.addEventListener('mouseup', onMouseUp);
-      });
-    }
-
-    // ==================================================================
-    // Piece Management
-    // ==================================================================
-    function spawnPiece(type, color = currentColor, x = 500, y = 500, id = null) {
-      const pieceId = id || 'p_' + Math.random().toString(36).substr(2, 9);
-      const piece = { id: pieceId, type, color, x, y };
-      pieces[pieceId] = piece;
-      renderPieceEl(piece);
-      broadcast({ type: 'piece_update', piece });
-      saveStateToStorage();
-      return piece;
-    }
-
-    function renderPieceEl(p) {
-      let el = document.getElementById(p.id);
-      if (!el) {
-        el = document.createElement('div');
-        el.id = p.id;
-        el.className = `piece ${p.type}`;
-        piecesLayer.appendChild(el);
-        initPieceDrag(el);
-      }
-      el.style.left = `${p.x}px`;
-      el.style.top = `${p.y}px`;
-
-      let icon = p.type;
-      if (p.type === 'bot' || p.type === 'mech') {
-        el.style.background = `#${p.color}`;
-        el.style.border = `2px solid #222`;
-      }
-      el.innerHTML = `<img src="img/icons/${icon}.svg" alt="${icon}">`;
-
-      el.ondblclick = () => {
-        delete pieces[p.id];
-        el.remove();
-        broadcast({ type: 'piece_remove', id: p.id });
         saveStateToStorage();
       };
     }
@@ -1099,6 +1442,17 @@
       } else if (msg.type === 'map_change') {
         currentMap = msg.map;
         loadBoard(`default_board_${msg.map}.json`);
+      } else if (msg.type === 'missions_move') {
+        missionState.x = msg.x;
+        missionState.y = msg.y;
+        renderMissionsBoard();
+      } else if (msg.type === 'missions_visibility') {
+        missionState.visible = msg.visible;
+        renderMissionsBoard();
+      } else if (msg.type === 'missions_deal') {
+        missionState.faceupL1 = msg.faceupL1;
+        missionState.faceupL2 = msg.faceupL2;
+        renderMissionsBoard();
       } else if (msg.type === 'sync_state') {
         pieces = msg.pieces || {};
         piecesLayer.innerHTML = '';
@@ -1107,9 +1461,13 @@
         marketState = msg.market || marketState;
         renderMarketBoard();
 
+        missionState = msg.missions || missionState;
+        renderMissionsBoard();
+
         movableBoards = msg.movableBoards || {};
         boardsLayer.innerHTML = '';
         renderMarketBoard();
+        renderMissionsBoard();
         Object.values(movableBoards).forEach(renderMovableBoard);
 
         if (msg.map !== currentMap) {
@@ -1155,6 +1513,7 @@
             type: 'sync_state',
             pieces,
             market: marketState,
+            missions: missionState,
             movableBoards,
             map: currentMap
           });
@@ -1194,6 +1553,8 @@
       const hasStored = loadStateFromStorage();
       loadBoard(`default_board_${currentMap}.json`);
       renderMarketBoard();
+      renderMissionsBoard();
+      initMissionSelector();
       if (hasStored) {
         Object.values(movableBoards).forEach(renderMovableBoard);
         Object.values(pieces).forEach(renderPieceEl);
