@@ -115,8 +115,10 @@ export class Game {
             <div id="gio_saucer"></div>
             <div id="gio_selection"></div>
             <div id="gio_reserve" role="group" aria-label="${_('Your flowers in reserve')}"></div>
-            <p id="gio_hint" aria-live="polite"></p>`;
+            <p id="gio_hint" aria-live="polite"></p>
+            <div id="gio_final" hidden></div>`;
         this.bga.gameArea.getElement().appendChild(root);
+        document.body.classList.add('gardensofio_page_bg');
 
         this.renderBoard();
         this.renderSpecials();
@@ -727,5 +729,21 @@ export class Game {
         this.bga.statusBar.setTitle(args.is_coop
             ? _('The game is over. Group score: ${score}').replace('${score}', String(args.group_score))
             : _('The game is over'));
+        this.renderFinalScoring(args);
+    }
+
+    renderFinalScoring(args) {
+        const box = document.getElementById('gio_final');
+        if (!box) return;
+        const place = args.is_coop ? '' : `<th scope="col">${_('Place')}</th>`;
+        const rows = args.rows.map((row, i) => `<tr>${args.is_coop ? '' : `<td>${i + 1}</td>`}
+            <td>${this.playerName(row.player_id)}</td><td>${row.score}</td>
+            <td>${row.laps}</td><td>${row.flowers_planted}</td><td>${row.flowers_left}</td></tr>`).join('');
+        box.innerHTML = `<table class="gio_final_table">
+            <caption>${_('Final scoring')}</caption>
+            <thead><tr>${place}<th scope="col">${_('Player')}</th><th scope="col">${_('Points')}</th>
+            <th scope="col">${_('Laps')}</th><th scope="col">${_('Planted')}</th><th scope="col">${_('Left in reserve')}</th></tr></thead>
+            <tbody>${rows}</tbody></table>`;
+        box.hidden = false;
     }
 }

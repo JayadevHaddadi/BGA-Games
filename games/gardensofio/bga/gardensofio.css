@@ -282,6 +282,46 @@
     vertical-align: middle;
 }
 
+/* Final scoring breakdown */
+
+#gio_final[hidden] {
+    display: none;
+}
+
+.gio_final_table {
+    width: 100%;
+    margin: 10px 0;
+    border-collapse: collapse;
+    font-size: 14px;
+    color: #f4ead2;
+}
+
+.gio_final_table caption {
+    padding: 4px;
+    font-weight: 700;
+    text-align: left;
+}
+
+.gio_final_table th,
+.gio_final_table td {
+    padding: 6px 4px;
+    border-bottom: 1px solid #5b4a2b;
+    text-align: center;
+}
+
+/* Full-page table texture (Ian: the texture covers the whole screen, not only the game box) */
+
+body.gardensofio_page_bg {
+    background: #17130f;
+}
+
+body.gardensofio_page_bg #page-content,
+body.gardensofio_page_bg #ebd-body,
+body.gardensofio_page_bg #game_play_area,
+body.gardensofio_page_bg #game_play_area_background {
+    background: transparent;
+}
+
 /* Colour-blind symbols: on by default (cssPref gardensofio_cb_on); off hides the symbol */
 
 .gardensofio_cb_off .gio_sym {
