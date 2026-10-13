@@ -515,17 +515,7 @@ export class Game {
         spot.title = _('Peak (gray cone) — blocks movement, cannot be entered or planted on');
         spot.innerHTML = `
             <svg class="gom_peak_cone" viewBox="0 0 44 44" role="img" aria-label="${_('Peak')}">
-                <defs>
-                    <radialGradient id="peakGrad" cx="40%" cy="35%" r="60%">
-                        <stop offset="0%" stop-color="#cfd8dc" />
-                        <stop offset="60%" stop-color="#78909c" />
-                        <stop offset="100%" stop-color="#455a64" />
-                    </radialGradient>
-                    <filter id="peakShadow" x="-20%" y="-20%" width="140%" height="140%">
-                        <feDropShadow dx="1" dy="3" stdDeviation="2" flood-color="#000" flood-opacity="0.4" />
-                    </filter>
-                </defs>
-                <circle cx="22" cy="22" r="18" fill="url(#peakGrad)" stroke="#37474f" stroke-width="2" filter="url(#peakShadow)"/>
+                <circle cx="22" cy="22" r="18" fill="#78909c" stroke="#37474f" stroke-width="2"/>
                 <!-- 3D Cone facets -->
                 <path d="M22 6 L36 29 L22 34 Z" fill="#546e7a" opacity="0.6"/>
                 <path d="M22 6 L8 29 L22 34 Z" fill="#b0bec5" opacity="0.7"/>

@@ -33,9 +33,9 @@ const sounds = new SoundController();
 // Board art geometry (base units; the art files are drawn at 2x). Every board is a triangular lattice:
 // the spot (q, r) is at (ox, oy) + q * vq + r * vr.
 const BOARDS = {
-    1: { w: 560, h: 600, img: 'board_hex.jpg', ox: 280, oy: 300, vq: [58, 33.5], vr: [0, 67] },
-    2: { w: 443.5, h: 830, img: 'board_trapezoid.jpg', ox: 48.0, oy: 582.0, vq: [57.79, 33.36], vr: [0.0, 66.73] },
-    3: { w: 539.5, h: 855.5, img: 'board_rhombus.jpg', ox: 35.8, oy: 427.8, vq: [66.73, 0.0], vr: [33.36, 57.79] },
+    1: { w: 560, h: 600, img: 'board_hex.png', ox: 280, oy: 300, vq: [58, 33.5], vr: [0, 67] },
+    2: { w: 443.5, h: 830, img: 'board_trapezoid.png', ox: 48.0, oy: 582.0, vq: [57.79, 33.36], vr: [0.0, 66.73] },
+    3: { w: 539.5, h: 855.5, img: 'board_rhombus.png', ox: 35.8, oy: 427.8, vq: [66.73, 0.0], vr: [33.36, 57.79] },
 };
 
 export class DraftCard {

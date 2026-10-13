@@ -75,7 +75,6 @@
     border: 1px solid rgba(80, 40, 20, 0.2);
     border-radius: 14px;
     padding: 2px 7px 2px 4px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     transition: opacity 0.2s ease;
 }
 
@@ -137,7 +136,6 @@
     border: 1px solid rgba(80, 40, 20, 0.28);
     border-radius: 16px;
     padding: 2px 8px 2px 4px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
     vertical-align: middle;
 }
 
@@ -188,14 +186,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
     user-select: none;
 }
 
 .gom_die_token.display_only {
     cursor: default;
     pointer-events: none;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
 
 /* Mini die token inside destination spot and sidebar */
@@ -215,7 +211,6 @@
     align-items: center;
     justify-content: center;
     border: 2px solid #ffffff;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.65);
     z-index: 18;
     pointer-events: none;
 }
@@ -275,7 +270,6 @@
     background-position: center;
     border-radius: 4px;
     overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
     transition: width 0.2s ease, height 0.2s ease, background-image 0.2s ease;
 }
 
@@ -336,15 +330,8 @@
     border: 3.5px solid #00e676;
     border-radius: 50%;
     outline: 2.5px solid rgba(0, 0, 0, 0.85);
-    box-shadow: 0 0 14px #00e676, inset 0 0 10px rgba(0, 230, 118, 0.65);
     z-index: 15;
     pointer-events: none;
-    animation: gom_valid_pulse 1.6s infinite ease-in-out;
-}
-
-@keyframes gom_valid_pulse {
-    0%, 100% { transform: scale(0.97); opacity: 0.88; }
-    50% { transform: scale(1.05); opacity: 1; }
 }
 
 .garden_spot.staged_move::after {
@@ -354,7 +341,6 @@
     border: 4px dashed #2196f3;
     border-radius: 50%;
     outline: 2px solid rgba(0, 0, 0, 0.7);
-    box-shadow: 0 0 12px #2196f3;
     z-index: 16;
     pointer-events: none;
 }
@@ -402,7 +388,7 @@
     width: 58px;
     height: 58px;
     border-radius: 50%;
-    background: radial-gradient(circle at 35% 35%, #ffffff, #f0e6df);
+    background: #f3ece6;
     border: 3px solid #3e2723;
     transform: translate(-50%, -50%);
     z-index: 20;
@@ -411,28 +397,12 @@
     align-items: center;
     justify-content: center;
     transition: left 0.4s ease, top 0.4s ease, transform 0.25s cubic-bezier(0.18, 0.89, 0.32, 1.28);
-    box-shadow: 0 4px 10px rgba(0,0,0,0.45);
 }
 
 .gom_gardener_token.my_turn {
     z-index: 25;
     outline: 4px solid #ff9100;
     outline-offset: 3px;
-    box-shadow: 0 0 20px rgba(255, 145, 0, 0.95), 0 0 8px #ffffff, 0 4px 12px rgba(0,0,0,0.6);
-    animation: gom_active_martian_glow 1.8s infinite ease-in-out;
-}
-
-@keyframes gom_active_martian_glow {
-    0%, 100% {
-        outline-color: #ff9100;
-        outline-offset: 3px;
-        box-shadow: 0 0 16px rgba(255, 145, 0, 0.85), 0 0 6px #ffffff, 0 4px 12px rgba(0,0,0,0.5);
-    }
-    50% {
-        outline-color: #ffd54f;
-        outline-offset: 5px;
-        box-shadow: 0 0 26px rgba(255, 213, 79, 1), 0 0 10px #ffffff, 0 6px 16px rgba(0,0,0,0.65);
-    }
 }
 
 .gom_gardener_token img {
@@ -440,21 +410,18 @@
     height: 50px;
     object-fit: contain;
     pointer-events: none;
-    filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3));
 }
 
 /* Lift alien up on spot hover so color-blind players can inspect the flower underneath */
 .gom_gardener_token.lifted {
     transform: translate(-50%, calc(-50% - 52px));
     z-index: 40;
-    box-shadow: 0 12px 22px rgba(0,0,0,0.5);
 }
 
 .gom_gardener_token.selected_gardener {
     z-index: 30;
     outline: 4px solid #00e676;
     outline-offset: 4px;
-    box-shadow: 0 0 25px rgba(0, 230, 118, 1), 0 0 10px #ffffff;
 }
 
 .gom_gardener_token.lifted::after {
@@ -489,7 +456,6 @@
     align-items: center;
     justify-content: center;
     transition: left 0.4s ease, top 0.4s ease;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
 }
 
 .gom_track_token img {
@@ -510,7 +476,6 @@
     padding: 2px 4px;
     border-radius: 8px;
     border: 1.5px solid #ffffff;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.6);
     pointer-events: none;
     white-space: nowrap;
 }
@@ -529,7 +494,6 @@
     background: rgba(255, 255, 255, 0.95);
     border: 2px solid #5a301e;
     border-radius: 28px;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.3);
     z-index: 100;
     pointer-events: auto;
     align-items: center;
@@ -647,7 +611,6 @@
     border-radius: 14px;
     background: rgba(255, 255, 255, 0.9);
     border: 1.5px solid #5a301e;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
     z-index: 5;
     pointer-events: auto;
     cursor: help;
@@ -682,7 +645,6 @@
 .gom_track_indicator:hover,
 .gom_track_indicator:active {
     background: #ffffff;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
     transform: scale(1.03);
 }
 
@@ -697,9 +659,7 @@
     border-radius: 6px;
     background: #ffffff;
     color: #2b1810;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
     line-height: 1.4;
-    animation: gomFadeIn 0.15s ease-out;
 }
 
 .gom_info_title {
@@ -725,11 +685,6 @@
     margin-top: 6px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-}
-
-@keyframes gomFadeIn {
-    from { opacity: 0; transform: translateY(-4px); }
-    to { opacity: 1; transform: translateY(0); }
 }
 
 /* Martian Selection Box */
@@ -922,5 +877,4 @@ body.mobile_version #player_boards.gom_mobile_docked {
     position: sticky !important;
     top: 0 !important;
     z-index: 120 !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
 }
