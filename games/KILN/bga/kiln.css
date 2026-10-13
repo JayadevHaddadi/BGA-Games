@@ -31,12 +31,12 @@
 
 .kiln_main_layout {
     display: grid;
-    grid-template-columns: 220px auto;
+    grid-template-columns: 220px auto 220px;
     grid-template-rows: auto auto auto;
     grid-template-areas:
-        ".     top"
-        ".     center"
-        "track bottom";
+        ".     top    ."
+        ".     center ."
+        "track bottom .";
     align-items: center;
     justify-items: center;
     gap: 16px 20px;
@@ -87,15 +87,7 @@
     gap: 14px 20px;
 }
 
-/* In 3-Player mode: right column is omitted so table is centered without blank column */
-.kiln_main_layout.kiln_3player {
-    grid-template-columns: 220px auto;
-    grid-template-areas:
-        ".     top"
-        "west  center"
-        "track bottom";
-    gap: 14px 20px;
-}
+/* In 3-Player mode the east seat is empty: keep the same 220px side columns as 4-player so the kiln stays centred */
 
 .kiln_main_layout.kiln_3player #kiln_slot_right {
     display: none;
@@ -1051,13 +1043,27 @@
    Theme: brick kiln wall play area, matte clay panels
    ======================================================== */
 .kiln_play_area {
+    padding: 6px 0;
+}
+
+/* Table texture fills the whole browser screen, not only the game box (BGA guideline C.5: the
+   background is the table the game lives on). BGA wrappers are made transparent so it shows through. */
+html:has(body.kiln_page_bg),
+body.kiln_page_bg {
+    min-height: 100vh;
     background-color: #5b3a2e;
     background-image:
         linear-gradient(rgba(30, 18, 12, 0.55), rgba(30, 18, 12, 0.55)),
         repeating-linear-gradient(0deg, transparent 0, transparent 21px, rgba(20, 12, 8, 0.7) 21px, rgba(20, 12, 8, 0.7) 24px),
         repeating-linear-gradient(90deg, transparent 0, transparent 45px, rgba(20, 12, 8, 0.7) 45px, rgba(20, 12, 8, 0.7) 48px);
     background-size: auto, 96px 48px, 96px 48px;
-    padding: 6px 0;
+}
+body.kiln_page_bg #page-content,
+body.kiln_page_bg #ebd-body,
+body.kiln_page_bg #game_play_area_background,
+body.kiln_page_bg #game_play_area,
+body.kiln_page_bg .bga-game-area {
+    background: transparent !important;
 }
 .kiln_board_grid {
     background: #3a2a22;
@@ -1148,7 +1154,7 @@
     gap: 6px 8px;
     padding: 4px;
 }
-.kiln_main_layout.kiln_narrow.kiln_3player { grid-template-columns: auto auto; }
+.kiln_main_layout.kiln_narrow.kiln_3player { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
 .kiln_main_layout.kiln_narrow:not(.kiln_multiplayer) { grid-template-columns: auto auto; }
 .kiln_narrow #kiln_track_panel,
 .kiln_narrow.kiln_multiplayer #kiln_track_panel { width: 132px; padding: 6px; }

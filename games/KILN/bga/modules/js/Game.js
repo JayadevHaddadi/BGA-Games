@@ -653,6 +653,7 @@ export class Game {
         const area = this.bga.gameArea.getElement();
         area.innerHTML = '';
         area.classList.add('kiln_play_area');
+        document.body.classList.add('kiln_page_bg');
 
         const myId = this.bga?.players?.getCurrentPlayerId?.() || Object.keys(this.gamedatas.players)[0];
         const playerSeats = this.gamedatas.player_seats || {};
