@@ -9,9 +9,8 @@ Print at 100% ("actual size"). Pages:
 | Page | Content |
 |---|---|
 | 1 | How to print, setup, turn summary |
-| 2 | **Ready-made 4 player board** (A4 landscape): 33 land tiles, 4 homes, 8 ports, balanced and connected, coordinates outside. Cut out the hexagons, lay them back as printed |
-| 3 | 2-3 players: same board, hatched hexagons set aside, home and port spots marked |
-| 4 | 6 spare ports (only needed for 2-3 players) |
+| 2-3 | **Ready-made 4 player board**, left half on page 2 and right half on page 3 (A4 portrait, 34 mm hexagons): 33 land tiles, 4 homes, 8 ports, balanced and connected, coordinates outside. Cut out the hexagons, lay them back as printed. Tiles marked `2P 3P` (and `home 1/2/3`) are the ones a 2-3 player game uses |
+| 4 | 6 spare ports (only needed for 2-3 players), with the coordinate they go to printed under each |
 | 5 | Bots and Mechs of 4 players, Docks, price markers |
 | 6 | Shared Extractors and Factories, Credit coins, iron, crystal, VP |
 | 7 | Market, A5 x 2: Basic side (top) and Advanced side (bottom) |

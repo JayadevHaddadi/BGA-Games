@@ -93,3 +93,10 @@ Open: market price exploit, small building-socket tap targets on phones, colour-
 | 3 | Market A5, Basic and Advanced on one A4 | Done | `market_page` |
 | 4 | Extractors and Factories are not personal | Done: one shared pool, 3 of each per player, in the server, on the boards and in print | `Game::playerSupply`, `BUILDINGS_PER_PLAYER` |
 | 5 | Minimum cutting: ready-made balanced 4 player board on A4 (2 A4 if needed); also usable for 2-3 players | Done: fits one A4 landscape; page 3 shows the 2-3 player set-up (outer ring aside, homes and ports marked) | `design/print_board.py` |
+
+## Round 7 (board too small, tile colours)
+
+| # | Command | Status | Where |
+|---|---|---|---|
+| 1 | Board in two halves on two A4 pages (bigger tiles), one board only, "2P" marks in tile corners for 2-3 players | Done: 34 mm hexagons, left/right half, marks `2P 3P`, `home n`; spare ports show their coordinate | `design/print_board.py` |
+| 2 | Iron and crystal mines more distinct in colour and shape | Done: iron = rust-brown earth + dark boulder pile (lower left); crystal = blue-violet ground + tall cyan spikes (upper left) | `design/build_design.py` `ground_group` |

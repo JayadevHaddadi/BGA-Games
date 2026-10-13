@@ -189,7 +189,9 @@ EDGE_ANG = [0, -60, -120, 180, 120, 60]
 VB = f'{-U * 0.866:.2f} {-U} {2 * U * 0.866:.2f} {2 * U}'
 MEADOW_GREEN = '#82b75a'
 EMPTY_MEADOW = '#8ec366'
-GROUND_FILL = {'iron': MEADOW_GREEN, 'crystal': MEADOW_GREEN, 'empty': EMPTY_MEADOW, 'port': SEA, 'double': MEADOW_GREEN, 'centre': '#a2c875'}
+IRON_EARTH = '#c9a06a'      # iron mine: rust-brown earth
+CRYSTAL_GROUND = '#7686c8'  # crystal mine: blue-violet ground
+GROUND_FILL = {'iron': IRON_EARTH, 'crystal': CRYSTAL_GROUND, 'empty': EMPTY_MEADOW, 'port': SEA, 'double': IRON_EARTH, 'centre': '#a2c875'}
 # Black-and-white printing: every ground gets a pattern instead of a colour so the tile types stay distinguishable.
 MONO_PATTERN = {
     'iron': '<pattern id="pm_iron" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="3" cy="3" r="0.9" fill="#777"/></pattern>',
@@ -206,23 +208,21 @@ def ground_group(kind, outline=True, mono=False):
         o.append(f'<defs>{MONO_PATTERN[key]}</defs><polygon points="{hexpts(0, 0, U - 1, flat=False)}" fill="url(#pm_{key})"/>')
     o += [f'<clipPath id="c_{kind}"><polygon points="{hexpts(0, 0, U - 5, flat=False)}"/></clipPath>', f'<g clip-path="url(#c_{kind})">']
     if kind == 'iron':
-        # Clear dedicated dark-rock iron quarry / deposit patch on left
-        o.append(f'<path d="M-30 6 Q-32 -18 -18 -26 Q-8 -28 2 -18 Q-2 4 -12 12 Q-24 16 -30 6 Z" fill="#6d7077" stroke="{INK}" stroke-width="1.4"/>')
-        o.append(f'<path d="M-26 4 Q-28 -14 -16 -22 Q-8 -24 0 -16" fill="none" stroke="#8d9099" stroke-width="1.2"/>')
-        # Iron ore nuggets
-        o.append(f'<g stroke="{INK}" stroke-width="1.3" stroke-linejoin="round"><polygon points="-24,-10 -18,-23 -9,-20 -8,-10 -15,-6" fill="#8d8d96"/><polygon points="-11,-12 -5,-20 2,-14 -1,-6" fill="#b4b4be"/></g>')
-        # Grass tufts
-        for x, y in [(-6, 28), (14, 26), (22, 16), (20, -6)]:
-            o.append(f'<path d="M{x} {y} l-2 -6 M{x} {y} l1 -7 M{x} {y} l3 -5" stroke="#5d8b35" stroke-width="1.5" fill="none" stroke-linecap="round"/>')
+        # IRON = rust-brown earth with a low, wide pile of dark chunky boulders (round, heavy, rust specks)
+        for x, y in [(8, 24), (20, 18), (22, 4), (-2, 28), (14, -8)]:
+            o.append(f'<ellipse cx="{x}" cy="{y}" rx="3" ry="2" fill="#a67a47" stroke="#7d5a31" stroke-width="0.8"/>')
+        o.append(f'<g transform="translate(4,-3)"><ellipse cx="-16.5" cy="18.5" rx="6.2" ry="4.8" fill="#6a574f" stroke="{INK}" stroke-width="1.4"/>'
+                 f'<ellipse cx="-24" cy="13.5" rx="10" ry="8" fill="#4b3b37" stroke="{INK}" stroke-width="1.5"/>'
+                 f'<ellipse cx="-27" cy="10" rx="4.6" ry="2.7" fill="#8d746a"/><ellipse cx="-17.5" cy="17" rx="2.8" ry="1.7" fill="#8d746a"/>'
+                 f'<circle cx="-22" cy="15" r="1.9" fill="#c0602d"/><circle cx="-28" cy="16" r="1.4" fill="#c0602d"/><circle cx="-15" cy="19.5" r="1.4" fill="#c0602d"/><circle cx="-20" cy="9" r="1.2" fill="#c0602d"/></g>')
     elif kind == 'crystal':
-        # Clear luminous crystal cavern / geode pool patch on left
-        o.append(f'<path d="M-30 6 Q-32 -18 -18 -26 Q-8 -28 2 -18 Q-2 4 -12 12 Q-24 16 -30 6 Z" fill="#3a6b82" stroke="{INK}" stroke-width="1.4"/>')
-        o.append(f'<path d="M-26 4 Q-28 -14 -16 -22 Q-8 -24 0 -16" fill="none" stroke="#5fa0bf" stroke-width="1.2"/>')
-        # Shimmering crystal spires
-        o.append(f'<g stroke="{INK}" stroke-width="1.3" stroke-linejoin="round"><polygon points="-20,-8 -15,-26 -10,-8 -15,-4" fill="#58a8d1"/><polygon points="-12,-10 -7,-22 -2,-10 -7,-6" fill="#8ed0f2"/><polygon points="-27,-6 -24,-18 -20,-6" fill="#8ed0f2"/></g>')
-        # Grass tufts
-        for x, y in [(-6, 28), (14, 26), (22, 16), (20, -6)]:
-            o.append(f'<path d="M{x} {y} l-2 -6 M{x} {y} l1 -7 M{x} {y} l3 -5" stroke="#5d8b35" stroke-width="1.5" fill="none" stroke-linecap="round"/>')
+        # CRYSTAL = blue-violet ground with a cluster of tall, thin, pointed cyan spikes and sparkles
+        o.append(f'<polygon points="-26,-6 -27.5,-13 -22,-22.5 -17,-13 -18.5,-6" fill="#52d6e6" stroke="{INK}" stroke-width="1.5" stroke-linejoin="round"/>'
+                 f'<polygon points="-22,-22.5 -17,-13 -18.5,-6 -22,-6" fill="#c8f6fb"/>'
+                 f'<polygon points="-30,-6 -30.5,-10 -28,-16 -25.5,-10 -26,-6" fill="#2fb8d4" stroke="{INK}" stroke-width="1.5" stroke-linejoin="round"/>'
+                 f'<polygon points="-19,-6 -18.5,-11 -15.5,-17 -12.5,-11 -13.5,-6" fill="#7fe6f0" stroke="{INK}" stroke-width="1.5" stroke-linejoin="round"/>')
+        for x, y in [(-10, -27), (8, -27), (-4, -21)]:
+            o.append(f'<path d="M{x} {y - 3.5} L{x + 1} {y - 1} L{x + 3.5} {y} L{x + 1} {y + 1} L{x} {y + 3.5} L{x - 1} {y + 1} L{x - 3.5} {y} L{x - 1} {y - 1} Z" fill="#ffffff" stroke="{INK}" stroke-width="0.6"/>')
     elif kind == 'double' or kind == 'centre':
         # Centre tile holds BOTH Iron and Crystal mining patches
         # Left: Iron quarry

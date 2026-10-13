@@ -243,21 +243,21 @@ def howto_page():
         ('LITTLE COMMANDERS  -  print and play (4 players; 2-3 players use the same sheets)', 6, 'bold'),
         ('', 3, 'normal'),
         ('PRINT: A4, 100% / "actual size", black and white. Do not scale to fit.', 3.6, 'bold'),
-        ('CUT: the hexagons on the board pages (they touch, one cut serves two), the squares and cards along the printed grid lines, and each A4 board / market page along its dashed middle line (two A5 sheets per page).', 3.4, 'normal'),
+        ('CUT: the hexagons on the two board pages (they touch, one cut serves two), the squares and cards along the printed grid lines, and each A4 board / market page along its dashed middle line (two A5 sheets per page).', 3.4, 'normal'),
         ('', 3, 'normal'),
         ('WHAT IS WHERE', 4.4, 'bold'),
-        ('Page 2: the READY-MADE 4 player board. 33 land tiles, 4 homes, 8 ports, balanced and connected. Cut out the hexagons, put them back where they are printed (coordinates are outside the board). Page 3: 2-3 players, same board with the outer ring set aside; page 4: six spare ports (only for 2-3 players).', 3.4, 'normal'),
-        ('Pages 5-6: Bots and Mechs of 4 players, shared buildings, Credit coins, iron, crystal, VP. Page 7: market (Basic side and Advanced side, A5 each). Pages 8-9: 4 commander boards (A5, Advanced side). Pages 10-13: 36 mission cards.', 3.4, 'normal'),
+        ('Pages 2-3: the READY-MADE 4 player board, left half on page 2 and right half on page 3 (33 land tiles, 4 homes, 8 ports, balanced and connected). Cut out the hexagons and put them back where they are printed (letters and numbers outside the board name every tile). Tiles marked 2P 3P are the ones a 2 or 3 player game uses. Page 4: six spare ports (only for 2-3 players).', 3.4, 'normal'),
+        ('Page 5: Bots and Mechs of 4 players, docks, price markers. Page 6: shared buildings, Credit coins, iron, crystal, VP. Page 7: market (Basic side and Advanced side, A5 each). Pages 8-9: 4 commander boards (A5, Advanced side). Pages 10-13: 36 mission cards.', 3.4, 'normal'),
         ('', 3, 'normal'),
         ('TWO SETTINGS', 4.4, 'bold'),
         ('BASIC: market prices are fixed (iron 3, crystal 4, bot 5, mech 10). A Port opens all four goods (ignore the two goods printed on its tile). The 4 price markers are not used.', 3.4, 'normal'),
         ('ADVANCED: prices start the same but move 1 per item bought or sold (iron 1-6, crystal 2-8, bot 2-10, mech 3-12). A Port opens only the two goods printed on it. You cannot buy and sell the same good in one turn.', 3.4, 'normal'),
         ('', 3, 'normal'),
         ('SETUP', 4.4, 'bold'),
-        ('1. Cut out the board (page 2) and lay it out. Each player takes a commander board, the Bots (20) and Mechs (5) with their mark, and a Dock; their home tile is the one with their mark.', 3.4, 'normal'),
+        ('1. Cut out the board (pages 2-3) and lay the two halves side by side. Each player takes a commander board, the Bots (20) and Mechs (5) with their mark, and a Dock; their home tile is the one with their mark.', 3.4, 'normal'),
         ('2. On your home tile: 3 Bots, 2 iron, your Dock. Keep your other Bots and Mechs on your commander board. Extractors and Factories are shared: put them in the middle of the table.', 3.4, 'normal'),
         ('3. Market: Basic side up, or Advanced side with the 4 markers on START. Shuffle the mission cards by level (1 VP / 2 VP): draw 10 of each, level 2 under level 1, turn 5 face up. Youngest player starts.', 3.4, 'normal'),
-        ('4. 2-3 players: use page 3 instead (outer ring and ports set aside, homes and ports moved as shown).', 3.4, 'normal'),
+        ('4. 2-3 players: use only the tiles marked 2P 3P. Where a tile says "home 1" (2, 3), put that player\'s home tile there instead. Ports: place the spare ports of page 4 at the coordinates printed under them.', 3.4, 'normal'),
         ('', 3, 'normal'),
         ('A TURN (in any order, as often as you can pay)', 4.4, 'bold'),
         ('Start: gain 3 Credits + 1 for each land tile you control; take the coins off the buildings.', 3.4, 'normal'),
@@ -283,18 +283,17 @@ def howto_page():
 def extras_page():
     """Spare ports for the 2-3 player setups, plus a reminder of which home goes where."""
     svg, n = pb.spare_ports_svg()
-    inner = txt(12, 20, 'SPARE PORTS (for 2 or 3 players)', 3.4, 'bold') + svg
-    inner += txt(12, 120, 'Letters match the dashed spots on page 3 (2P: ... / 3P: ...). Cut the ports out along their outline.', 2.9)
-    inner += txt(12, 126, 'In a 4 player game the spare ports are not used.', 2.9)
+    inner = txt(12, 20, 'SPARE PORTS (only for 2 or 3 players)', 3.4, 'bold') + svg
+    inner += txt(12, 165, 'Under each port: the game (2P / 3P) and the board coordinate where it goes. In a 2 or 3 player game the 8 ports', 2.9)
+    inner += txt(12, 170, 'of the big board are not used; the outer ring of land tiles is not used either (no 2P 3P mark).', 2.9)
+    inner += txt(12, 175, 'In a 4 player game the spare ports are not used.', 2.9)
     return page(inner, title='LITTLE COMMANDERS - print and play - spare ports')
 
 
 def build():
-    board_svg, _ = pb.board_4p_svg()
-    pages = [howto_page(),
-             {'svg': f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 297 210" width="297mm" height="210mm" font-family="{FONT}">{board_svg}</svg>', 'land': True},
-             {'svg': f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 297 210" width="297mm" height="210mm" font-family="{FONT}">{pb.board_small_svg()}</svg>', 'land': True},
-             extras_page(), pieces_page(), economy_page(), market_page()]
+    def half(side):
+        return {'svg': f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 297" width="210mm" height="297mm" font-family="{FONT}">{pb.board_half_svg(side)}</svg>', 'land': False}
+    pages = [howto_page(), half('left'), half('right'), extras_page(), pieces_page(), economy_page(), market_page()]
     pages += board_pages()
     pages += card_pages()
     css = ('@page{size:A4;margin:0}@page land{size:A4 landscape;margin:0}html,body{margin:0;background:#fff}'

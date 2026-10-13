@@ -1,10 +1,11 @@
 """Ready-made boards for the print-and-play set.
 
-* 4 players: the whole board (33 land tiles, 4 homes, 8 ports = 45 hexagons) is laid out on ONE A4 landscape page, tiles
-  edge to edge, coordinates outside. The layout is searched once (fixed seed): connected over open roads, one blocked edge per
-  tile, resources balanced around the four homes. Home and port spots are exactly where the BGA server puts them.
-* 2-3 players: the same sheet is used. A second page shows the same board with the outer ring set aside, the homes moved to
-  the ring-2 spots the server uses, and the ports placed from a small sheet of spare ports.
+* 4 players: the whole board (33 land tiles, 4 homes, 8 ports = 45 hexagons) is printed on TWO A4 portrait pages, the left
+  half on one and the right half on the other (whole hexagons only, tiles edge to edge, coordinates outside). The layout is
+  searched once (fixed seed): connected over open roads, one blocked edge per tile, resources balanced around the four homes.
+  Home and port spots are exactly where the BGA server puts them.
+* 2-3 players: the same tiles. A small mark in the top corner of each tile says which tiles a 2 / 3 player game uses
+  ("2P 3P"), where a home tile goes ("home 1" ...), and the spare ports carry the coordinate they go to.
 
 All geometry here mirrors TileDealer.php (home and port spots, port side rule), so paper and BGA play the same board shape.
 """
@@ -16,7 +17,7 @@ import tileset
 from mono import to_gray
 
 DIRS = tileset.DIRS
-RAD = 13.4                         # hexagon centre-to-corner in mm (flat-to-flat 23.2 mm); the largest that fits an A4 landscape
+RAD = 19.5                         # hexagon centre-to-corner in mm (flat-to-flat 33.8 mm): half the board per A4 portrait page
 HEX_W = RAD * math.sqrt(3)
 SCALE = RAD / bd.U                 # tile units -> mm
 PORT_PAIRS = [('iron', 'crystal'), ('bot', 'mech'), ('iron', 'bot'), ('crystal', 'mech'), ('iron', 'mech'), ('crystal', 'bot'), ('iron', 'crystal'), ('bot', 'mech')]
@@ -246,101 +247,99 @@ def coordinate_labels(all_pos, ox, oy):
     return ''.join(out)
 
 
-HATCH = '<defs><pattern id="hatch" width="2.2" height="2.2" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="2.2" stroke="#000" stroke-width="0.35"/></pattern></defs>'
+def coord_name(p, allp):
+    minr = min(q[1] for q in allp)
+    minq = min(q[0] for q in allp)
+    return chr(65 + p[1] - minr) + str(p[0] - minq + 1)
 
 
-def board_4p_svg(width=297, height=210):
-    """The ready-made 4 player board on one A4 landscape page."""
-    L = layout_4p()
-    out = []
-    ox, oy = width / 2 - 8, height / 2
-    for p, t in L['land'].items():
-        x, y = xy(p)
-        out.append(tile_group(ox + x, oy + y, land_inner(t)))
-    for p, player in L['homes'].items():
-        x, y = xy(p)
-        out.append(tile_group(ox + x, oy + y, home_inner(player)))
-    for p, t in L['ports'].items():
-        x, y = xy(p)
-        out.append(tile_group(ox + x, oy + y, port_inner(t)))
-    allp = list(L['land']) + list(L['homes']) + list(L['ports'])
-    out.append(coordinate_labels(allp, ox, oy))
-    # legend (right margin)
-    lx = ox + 4.2 * RAD * math.sqrt(3) + 12
-    out.append(f'<text x="{lx}" y="22" font-size="3.4" font-weight="bold">4 PLAYERS</text>')
-    out.append(f'<text x="{lx}" y="27" font-size="2.6">board is ready: cut out</text>')
-    out.append(f'<text x="{lx}" y="31" font-size="2.6">the hexagons, put them back</text>')
-    out.append(f'<text x="{lx}" y="35" font-size="2.6">where they are printed.</text>')
-    for k, pl in enumerate((1, 2, 3, 4)):
-        out.append(mark_shape(pl, lx + 2, 46 + k * 8, 5))
-        out.append(f'<text x="{lx + 7}" y="{47.2 + k * 8}" font-size="2.6">home of player {pl}</text>')
-    out.append(f'<text x="{lx}" y="86" font-size="2.6">Ports show the 2 goods</text>')
-    out.append(f'<text x="{lx}" y="90" font-size="2.6">they open (Advanced).</text>')
-    out.append(f'<text x="{lx}" y="94" font-size="2.6">Basic: a port opens all.</text>')
-    out.append(f'<text x="{lx}" y="104" font-size="2.6">A road runs to every edge</text>')
-    out.append(f'<text x="{lx}" y="108" font-size="2.6">except the hazard-striped one.</text>')
-    out.append(f'<text x="{lx}" y="118" font-size="2.6">2-3 players: next page.</text>')
-    return ''.join(out), L
-
-
-def board_small_svg(width=297, height=210):
-    """Same board with the outer ring set aside and the 2-3 player homes / ports marked."""
-    L = layout_4p()
-    pool, plans = spare_ports()
-    homes2, homes3 = homes_for(2), homes_for(3)
-    out = [HATCH]
-    ox, oy = width / 2 - 8, height / 2
-    for p, t in L['land'].items():
-        x, y = xy(p)
-        out.append(tile_group(ox + x, oy + y, land_inner(t)))
-        if ring(p) == 3:
-            out.append(f'<polygon points="{hex_points(ox + x, oy + y, RAD)}" fill="url(#hatch)" stroke="#000" stroke-width="0.3"/>')
-        elif p in homes2 or p in homes3:
-            out.append(f'<polygon points="{hex_points(ox + x, oy + y, RAD * 0.97)}" fill="none" stroke="#000" stroke-width="0.7" stroke-dasharray="1.2 1"/>')
-    for p, player in L['homes'].items():
-        x, y = xy(p)
-        out.append(tile_group(ox + x, oy + y, home_inner(player)))
-        out.append(f'<polygon points="{hex_points(ox + x, oy + y, RAD)}" fill="url(#hatch)" stroke="#000" stroke-width="0.3"/>')
-    for p, t in L['ports'].items():
-        x, y = xy(p)
-        out.append(tile_group(ox + x, oy + y, port_inner(t)))
-        out.append(f'<polygon points="{hex_points(ox + x, oy + y, RAD)}" fill="url(#hatch)" stroke="#000" stroke-width="0.3"/>')
-    # where the homes go (ring 2) and the ports (ring 3 spots, now empty)
-    for n, homes in ((2, homes2), (3, homes3)):
+def corner_marks(L):
+    """{pos: [line, ...]} printed in the top corner of tiles a 2 / 3 player game uses."""
+    h2, h3 = homes_for(2), homes_for(3)
+    marks = {}
+    inner = [p for p in L['land'] if ring(p) <= 2]
+    for p in inner:
+        marks[p] = ['2P 3P']
+    for n, homes in ((2, h2), (3, h3)):
         for i, h in enumerate(homes):
-            x, y = xy(h)
-            out.append(f'<text x="{ox + x:.2f}" y="{oy + y - 1:.2f}" font-size="3" font-weight="bold" text-anchor="middle" fill="#000" stroke="#fff" stroke-width="0.8" paint-order="stroke">{n}P</text>')
-    spots = {}
-    for n, items in plans.items():
-        for sp, label in items:
-            spots.setdefault((sp, label), []).append(n)
-    for (sp, label), ns in spots.items():
-        x, y = xy(sp)
-        out.append(f'<polygon points="{hex_points(ox + x, oy + y, RAD * 0.9)}" fill="#fff" stroke="#000" stroke-width="0.6" stroke-dasharray="1.5 1"/>')
-        out.append(f'<text x="{ox + x:.2f}" y="{oy + y - 1.2:.2f}" font-size="2.6" text-anchor="middle">{" / ".join(str(n) + "P" for n in sorted(ns))}</text>')
-        out.append(f'<text x="{ox + x:.2f}" y="{oy + y + 3.6:.2f}" font-size="5" font-weight="bold" text-anchor="middle">{label}</text>')
-    allp = list(L['land']) + list(L['homes']) + list(L['ports'])
-    out.append(coordinate_labels(allp, ox, oy))
-    lx = ox + 4.2 * RAD * math.sqrt(3) + 12
-    notes = ['2 OR 3 PLAYERS', '', 'Set aside the hatched hexagons:', 'outer ring, the 4 homes, the 8 ports.', '',
-             'Play on the 19 hexagons inside.', '', '2P / 3P (dashed, with a bold', 'outline): put a home tile on that', 'spot, take its land tile away.',
-             'Homes: triangle = player 1,', 'circle = 2, square = 3.', '', 'A letter on an empty spot = the spare', 'port with that letter goes there',
-             '(spare ports: next sheet).', 'Some spots take the same port in', 'the 2 and the 3 player game.']
+            counts = [f'{m}P' for m, hs in ((2, h2), (3, h3)) if h in hs and hs.index(h) == i]
+            marks[h] = [' '.join(counts), f'home {i + 1}']
+    for p, player in L['homes'].items():
+        marks[p] = ['2P 3P'] if player <= 2 else (['3P'] if player == 3 else [])
+    return marks
+
+
+def board_half_svg(side):
+    """One A4 portrait page (210 x 297 mm) with the left or the right half of the 4 player board."""
+    L = layout_4p()
+    hexes = []  # (pos, inner svg)
+    hexes += [(p, land_inner(t)) for p, t in L['land'].items()]
+    hexes += [(p, home_inner(pl)) for p, pl in L['homes'].items()]
+    hexes += [(p, port_inner(t)) for p, t in L['ports'].items()]
+    allp = [p for p, _ in hexes]
+    is_left = lambda p: xy(p)[0] < -0.01 or (abs(xy(p)[0]) < 0.01 and p[1] <= 0)
+    mine = [p for p in allp if is_left(p) == (side == 'left')]
+    ox, oy = (186.0 if side == 'left' else 36.0), 148.5
+    out = []
+    for p, inner in hexes:
+        if p in mine:
+            x, y = xy(p)
+            out.append(tile_group(ox + x, oy + y, inner))
+    marks = corner_marks(L)
+    for p in mine:
+        x, y = xy(p)
+        for k, line in enumerate(marks.get(p, [])):
+            out.append(f'<text x="{ox + x:.2f}" y="{oy + y - 0.66 * RAD + k * 3.6:.2f}" font-size="3.3" font-weight="bold" text-anchor="middle" '
+                       f'fill="#000" stroke="#fff" stroke-width="0.9" paint-order="stroke">{line}</text>')
+    # coordinates outside (only the ones whose anchor hex is on this page)
+    minr = min(p[1] for p in allp)
+    minq = min(p[0] for p in allp)
+    rows, diags = {}, {}
+    for p in allp:
+        if p[1] not in rows or p[0] < rows[p[1]][0]:
+            rows[p[1]] = p
+        if p[0] not in diags or p[1] < diags[p[0]][1]:
+            diags[p[0]] = p
+    st = 'font-size="4.4" fill="#222" text-anchor="middle" dominant-baseline="middle" font-weight="bold"'
+    for p in rows.values():
+        if p in mine:
+            x, y = xy(p)
+            out.append(f'<text x="{ox + x - 1.25 * RAD:.2f}" y="{oy + y:.2f}" {st}>{chr(65 + p[1] - minr)}</text>')
+    for p in diags.values():
+        if p in mine:
+            x, y = xy(p)
+            out.append(f'<text x="{ox + x - 0.75 * RAD:.2f}" y="{oy + y - 1.3 * RAD:.2f}" {st}>{p[0] - minq + 1}</text>')
+    if side == 'left':
+        notes = ['4 PLAYERS: LEFT HALF', '', 'Cut out the hexagons and lay them', 'out with the right half (next page):', 'letters A-I = rows, numbers = diagonals.']
+        nx, ny = 6, 12
+    else:
+        notes = ['4 PLAYERS: RIGHT HALF', '', 'Use every tile.', '', '2 OR 3 PLAYERS: use only tiles', 'marked 2P 3P (both games use', 'the same ones). "home 1/2/3" =', 'put the home tile of that player on', 'this tile instead (take the land tile', 'away). Port spots: see the spare', 'ports page.']
+        nx, ny = 118, 12
     for k, n in enumerate(notes):
-        out.append(f'<text x="{lx}" y="{22 + k * 4.4}" font-size="{3.4 if k == 0 else 2.5}" font-weight="{"bold" if k == 0 else "normal"}">{n}</text>')
+        out.append(f'<text x="{nx}" y="{ny + k * 4.6}" font-size="{3.6 if k == 0 else 2.9}" font-weight="{"bold" if k == 0 else "normal"}">{n}</text>')
     return ''.join(out)
 
 
 def spare_ports_svg():
-    pool, _plans = spare_ports()
+    pool, plans = spare_ports()
+    L = layout_4p()
+    allp = list(L['land']) + list(L['homes']) + list(L['ports'])
+    spots = {}
+    for n in (2, 3):
+        for sp, label in plans[n]:
+            spots.setdefault(label, []).append((n, sp))
     out = []
-    cols = 5
+    cols = 3
     for i, (label, t) in enumerate(pool):
         r, c = divmod(i, cols)
-        x = 30 + c * (HEX_W * 1.3) + 10
-        y = 45 + r * RAD * 2.5
+        x = 50 + c * (HEX_W * 1.6)
+        y = 50 + r * (RAD * 2 + 22)
         out.append(tile_group(x, y, port_inner(t)))
-        out.append(f'<text x="{x:.2f}" y="{y + RAD + 4.5:.2f}" font-size="4" font-weight="bold" text-anchor="middle">{label}</text>')
+        by_spot = {}
+        for n, sp in spots.get(label, []):
+            by_spot.setdefault(sp, []).append(f'{n}P')
+        for k, (sp, ns) in enumerate(by_spot.items()):
+            out.append(f'<text x="{x:.2f}" y="{y + RAD + 5.5 + k * 4.6:.2f}" font-size="3.4" font-weight="bold" text-anchor="middle">{" ".join(ns)}: {coord_name(sp, allp)}</text>')
     return ''.join(out), len(pool)
 
 
