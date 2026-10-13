@@ -350,26 +350,27 @@ export class Game {
         const rows = args.rows || [];
         this.gamedatas.final_scoring = rows;
 
-        // Collect all scored cards from all players
-        const items = [];
+        // Each client reveals at its own pace (Next / Skip), so nobody waits for other players.
+        // The viewer's own mission cards come first, then the other players' cards.
+        const myId = String(this.bga?.players?.getCurrentPlayerId?.() || this.player_id || '');
         const players = this.gamedatas.players || {};
+        const own = [];
+        const others = [];
         rows.forEach(r => {
             const pInfo = players[r.player_id] || {};
-            const pName = pInfo.name || `Player ${r.player_id}`;
-            (r.cards || []).forEach(card => {
-                items.push({
-                    playerId: r.player_id,
-                    playerName: pName,
-                    playerColor: pInfo.color || '000',
-                    card: card,
-                });
-            });
+            const target = String(r.player_id) === myId ? own : others;
+            (r.cards || []).forEach(card => target.push({
+                playerId: r.player_id,
+                playerName: pInfo.name || `Player ${r.player_id}`,
+                playerColor: pInfo.color || '000',
+                card: card,
+            }));
         });
-
+        const items = own.concat(others);
         const showcase = document.getElementById('gou_scoring_showcase');
-        let skipped = false;
 
-        const cleanupShowcase = () => {
+        const finish = () => {
+            this.clearActionButtons();
             if (showcase) showcase.style.display = 'none';
             this.clearScoringHighlights();
             this.gamedatas.scores = this.gamedatas.scores || {};
@@ -379,61 +380,66 @@ export class Game {
             this.bga?.statusBar?.setTitle?.(_('Game Over! Final scores calculated.'));
         };
 
-        if (items.length > 0 && showcase) {
-            this.bga?.statusBar?.setTitle?.(_('Revealing and scoring remaining mission cards...'));
-            showcase.style.display = 'flex';
-
-            const skipBtn = document.createElement('button');
-            skipBtn.className = 'gou_showcase_skip';
-            skipBtn.textContent = _('Skip Animation');
-            skipBtn.onclick = () => {
-                skipped = true;
-                cleanupShowcase();
-            };
-
-            for (const item of items) {
-                if (skipped) break;
-                const card = item.card;
-                const thumbSrc = this.imgUrl(`cards/card_${card.card_id}.jpg`);
-
-                showcase.innerHTML = `
-                    <div class="gou_showcase_left">
-                        <img class="gou_showcase_thumb" src="${thumbSrc}" alt="">
-                        <div class="gou_showcase_text">
-                            <span class="gou_showcase_title" style="color:#${item.playerColor}">${item.playerName}: ${card.card_name}</span>
-                            <span class="gou_showcase_desc">${card.explanation || ''}</span>
-                        </div>
-                    </div>
-                    <div class="gou_showcase_right">
-                        <span class="gou_showcase_points">+${card.score} VP</span>
-                    </div>
-                `;
-                showcase.querySelector('.gou_showcase_right')?.appendChild(skipBtn);
-
-                this.highlightScoringSpots(card.scoring_spots || []);
-                sounds.playScore();
-
-                // Increment score counter on player panel dynamically
-                const curScore = Number(this.gamedatas.scores?.[item.playerId] || 0) + Number(card.score || 0);
-                if (!this.gamedatas.scores) this.gamedatas.scores = {};
-                this.gamedatas.scores[item.playerId] = curScore;
-                const counter = this.bga?.playerPanels?.getScoreCounter?.(parseInt(item.playerId));
-                if (counter && typeof counter.toValue === 'function') counter.toValue(curScore);
-
-                // Wait 2.8 seconds per card unless skipped
-                await new Promise(resolve => {
-                    const timer = setTimeout(resolve, 2800);
-                    const originalSkip = skipBtn.onclick;
-                    skipBtn.onclick = () => {
-                        clearTimeout(timer);
-                        originalSkip();
-                        resolve();
-                    };
-                });
-            }
+        if (items.length === 0 || !showcase) {
+            finish();
+            return;
         }
 
-        cleanupShowcase();
+        let index = 0;
+        let othersSkipped = false;
+
+        const advance = () => {
+            index++;
+            if (index >= items.length || (othersSkipped && index >= own.length)) {
+                finish();
+            } else {
+                showStep();
+            }
+        };
+
+        const showStep = () => {
+            const item = items[index];
+            const card = item.card;
+            const thumbSrc = this.imgUrl(`cards/card_${card.card_id}.jpg`);
+            const remainingOthers = others.length > 0 && !othersSkipped && index < own.length;
+
+            showcase.style.display = 'flex';
+            showcase.innerHTML = `
+                <div class="gou_showcase_left">
+                    <img class="gou_showcase_thumb" src="${thumbSrc}" alt="">
+                    <div class="gou_showcase_text">
+                        <span class="gou_showcase_title" style="color:#${item.playerColor}">${item.playerName}: ${card.card_name}</span>
+                        <span class="gou_showcase_desc">${card.explanation || ''}</span>
+                    </div>
+                </div>
+                <div class="gou_showcase_right">
+                    <span class="gou_showcase_points">+${card.score} VP</span>
+                </div>
+            `;
+
+            this.highlightScoringSpots(card.scoring_spots || []);
+            sounds.playScore();
+
+            // Move the player's score counter as each card is revealed
+            const curScore = Number(this.gamedatas.scores?.[item.playerId] || 0) + Number(card.score || 0);
+            if (!this.gamedatas.scores) this.gamedatas.scores = {};
+            this.gamedatas.scores[item.playerId] = curScore;
+            const counter = this.bga?.playerPanels?.getScoreCounter?.(parseInt(item.playerId));
+            if (counter && typeof counter.toValue === 'function') counter.toValue(curScore);
+
+            this.bga?.statusBar?.setTitle?.(_('Scoring mission cards. Press Next to continue.'));
+            this.clearActionButtons();
+            this.bga?.statusBar?.addActionButton?.(_('Next'), advance, { color: 'primary' });
+            if (remainingOthers) {
+                this.bga?.statusBar?.addActionButton?.(_('Skip other players'), () => {
+                    othersSkipped = true;
+                    advance();
+                }, { color: 'secondary' });
+            }
+            this.bga?.statusBar?.addActionButton?.(_('Skip all'), finish, { color: 'alert' });
+        };
+
+        showStep();
     }
 
     showMartianPicker(available, args) {
@@ -636,9 +642,6 @@ export class Game {
             }
 
             spot.addEventListener('click', () => this.onSpotClicked(cell.q, cell.r));
-            // Lift the gardener standing here while the pointer is over this (fixed) spot
-            spot.addEventListener('mouseenter', () => { if (window.matchMedia('(hover: hover)').matches) this.liftGardenerAt(cell.q, cell.r, true); });
-            spot.addEventListener('mouseleave', () => this.dropGardeners());
             layer.appendChild(spot);
         });
     }
@@ -712,6 +715,12 @@ export class Game {
             img.alt = '';
             img.draggable = false;
             token.appendChild(img);
+            // Tokens are the only hover target that lifts an alien; they never move under the pointer
+            token.addEventListener('click', () => this.onSpotClicked(Number(g.q), Number(g.r)));
+            if (window.matchMedia('(hover: hover)').matches) {
+                token.addEventListener('mouseenter', () => this.liftGardenerAt(Number(g.q), Number(g.r), true));
+                token.addEventListener('mouseleave', () => this.dropGardeners());
+            }
             layer.appendChild(token);
         });
         if (this.myTurnPulse) this.setMyTurnPulse(true);
