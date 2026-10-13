@@ -28,6 +28,8 @@ Reviewer link he told us to follow: https://en.doc.boardgamearena.com/BGA_Studio
 
 **Layout and mobile**
 - Play area centered on every device; margins around board for mobile scrolling/deselection.
+- Board centred on the **screen**, not just inside the game box: side columns must balance (see the section below). Measure the offset, don't eyeball it.
+- The table texture covers the **whole browser page** (behind BGA's header and page wrappers), not only the game box.
 - Fluid layout, no fixed widths; fully usable at 100% zoom; do not rely on zoom buttons.
 - Test portrait AND landscape at 320-390px wide; 4-player panels use at most 1/4 of a phone screen.
 - Never hide game components behind popups; no automatic popups mid-game (tutorials only).
@@ -61,6 +63,18 @@ Reviewer link he told us to follow: https://en.doc.boardgamearena.com/BGA_Studio
 - Replays flow without blocking popups; end game shows a scoring breakdown, not an instant final score.
 - Errors never crash the game or expose stack traces.
 - PHP: `act*` / `arg*` / `st*` prefixes, PSR-4 namespaces, validate all action input, no `@` suppression, no `.action.php`.
+
+## Layout centring and full-screen table (Ian's Kiln feedback, Oct 2026)
+
+Ian's words: "Can you center the board please?" and "Can you extend the background to all the screen?". Guideline A.1 (layout) asks for the whole game centred for large screens with a "no action" margin around it. Guideline C.5 (background) describes the background as the table the game lives on, so it covers the whole screen.
+
+Rules for every game:
+1. **Balance the side columns.** If a game has a side panel on one side only (score track, player mat, seat), reserve the same width on the other side with an empty spacer column. Otherwise the board drifts sideways. Use fixed equal side columns, not `auto`, when the content widths differ.
+2. **Measure, don't eyeball.** The centre offset must be 0 px (± 2 px) at 1280 px wide and 375 px wide, for every player count the game supports. Check the bounding box of the central board against the centre of the game area (`#game_play_area`).
+3. **Full-page texture.** Apply the themed background to `body` (add a class such as `<game>_page_bg` to `document.body` in setup) and make the BGA wrappers transparent (`#page-content`, `#ebd-body`, `#game_play_area`, `#game_play_area_background`). Do not put the texture only on the game box. Keep it subtle and low-contrast (C.5).
+4. **Verify on screenshots.** Take a full-page screenshot at 1280 px and 375 px and confirm the background reaches the edges of the screen and the board is centred. Check that the wrapper selectors exist on the live BGA page before relying on them, since the harness is only a mock.
+
+Reference implementation: Kiln (`games/KILN/bga/kiln.css`, `.kiln_page_bg`, balanced grid areas).
 
 ## Making it feel designed, not generated (our interpretation)
 
