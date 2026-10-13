@@ -82,3 +82,14 @@ Open: market price exploit, small building-socket tap targets on phones, colour-
 | 11 | Unlimited trades, any amount at current price, price moves 1 per item | Done. Added: in Advanced a good cannot be bought and sold in the same turn (else buy-then-sell prints money) | `Game::buyGood/sellGood` |
 | 12 | Mission card art later | Waiting | |
 | 13 | Tile concept art as reference | Round sockets, compass centre, flag on homes, patterned ground (print) | `design/build_design.py` |
+
+
+## Round 6 (4 players, A5 sheets, shared buildings, ready-made board)
+
+| # | Command | Status | Where |
+|---|---|---|---|
+| 1 | Print set for 4 players | Done: bots, mechs, docks, marks for 4 | `design/print_sheets.py` |
+| 2 | Player board A5, Advanced side only, 2 per A4 | Done: 4 boards on 2 pages | `design/print_sheets.py` `board_pages` |
+| 3 | Market A5, Basic and Advanced on one A4 | Done | `market_page` |
+| 4 | Extractors and Factories are not personal | Done: one shared pool, 3 of each per player, in the server, on the boards and in print | `Game::playerSupply`, `BUILDINGS_PER_PLAYER` |
+| 5 | Minimum cutting: ready-made balanced 4 player board on A4 (2 A4 if needed); also usable for 2-3 players | Done: fits one A4 landscape; page 3 shows the 2-3 player set-up (outer ring aside, homes and ports marked) | `design/print_board.py` |

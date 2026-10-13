@@ -101,6 +101,7 @@ foreach ([1, 2] as $level) { // 1 = Basic (fixed prices, ports open every good),
         check('3 bots each', (int) $g->one("SELECT COUNT(*) FROM `unit`") === 3 * $n);
         check('homes owned', (int) $g->one("SELECT COUNT(*) FROM `hex_tile` WHERE `owner_id` IS NOT NULL") === $n);
         check('every tile has art', (int) $g->one("SELECT COUNT(*) FROM `hex_tile` WHERE `tile_art` = ''") === 0);
+        check('Extractors and Factories are one shared pool (3 per player)', $g->getPublicState()['player_state'][$ids[0]]['supply']['factory'] === 3 * $n && $g->getPublicState()['player_state'][$ids[1]]['supply']['extractor'] === 3 * $n);
         check('every player starts with a Dock', (int) $g->one("SELECT COUNT(*) FROM `building` WHERE `building_type` = 'dock'") === $n);
         check('only the centre tile is fully open; others have one blocked edge', (int) $g->one("SELECT COUNT(*) FROM `hex_tile` WHERE `is_port` = 0 AND `ring` > 0 AND `owner_id` IS NULL AND `edges` NOT LIKE '%0%'") === 0 && (int) $g->one("SELECT COUNT(*) FROM `hex_tile` WHERE `is_port` = 0 AND `ring` > 0 AND `owner_id` IS NULL AND LENGTH(REPLACE(`edges`, '1', '')) <> 1") === 0);
         check('homes block no way', (int) $g->one("SELECT COUNT(*) FROM `hex_tile` WHERE `owner_id` IS NOT NULL AND `edges` <> '111111'") === 0);

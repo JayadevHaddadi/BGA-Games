@@ -49,7 +49,9 @@ class Game extends \Bga\GameFramework\Table
     public const PORT_DISCOUNT = 0; // standard market price
 
     // Player board: supply of pieces each player starts with (bots/mechs/buildings not yet on the map)
-    public const SUPPLY = ['bot' => 20, 'mech' => 5, 'factory' => 5, 'extractor' => 5];
+    public const SUPPLY = ['bot' => 20, 'mech' => 5];
+    // Extractors and Factories are NOT personal: one shared pool, 3 of each per player, and they belong to whoever controls the tile.
+    public const BUILDINGS_PER_PLAYER = 3;
     // Construction cost: iron tokens that must be standing on the tile being built on
     public const BUILD_IRON = ['extractor' => 1, 'factory' => 2];
     public const BUILDINGS = ['extractor', 'factory'];
@@ -332,7 +334,7 @@ class Game extends \Bga\GameFramework\Table
         $result['base_income'] = self::BASE_INCOME;
         $result['mech_power'] = self::MECH_POWER;
         $result['bots_per_iron'] = self::BOTS_PER_IRON;
-        $result['supply_total'] = self::SUPPLY;
+        $result['supply_total'] = self::SUPPLY + ['factory' => self::BUILDINGS_PER_PLAYER * count($result['players']), 'extractor' => self::BUILDINGS_PER_PLAYER * count($result['players'])];
         $result['dock_goods'] = self::DOCK_GOODS;
         $result['price_min'] = self::PRICE_MIN;
         $result['price_max'] = self::PRICE_MAX;
@@ -641,7 +643,8 @@ class Game extends \Bga\GameFramework\Table
             $supply[$t] = self::SUPPLY[$t] - (int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `unit` WHERE `owner_id` = {$playerId} AND `unit_type` = '{$t}'");
         }
         foreach (['factory', 'extractor'] as $t) {
-            $supply[$t] = self::SUPPLY[$t] - (int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `building` WHERE `owner_id` = {$playerId} AND `building_type` = '{$t}'");
+            $pool = self::BUILDINGS_PER_PLAYER * count($this->loadPlayersBasicInfos());
+            $supply[$t] = $pool - (int) static::getUniqueValueFromDb("SELECT COUNT(*) FROM `building` WHERE `building_type` = '{$t}'");
         }
         return $supply;
     }

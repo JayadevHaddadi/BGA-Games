@@ -24,7 +24,8 @@ ADV = {'income': 3, 'extract': 1, 'factory': 1, 'step': 1, 'mission': 5, 'win_vp
 # (fixed price / start price, lowest, highest) per good: Basic uses the first number only
 PRICES = {'iron': (3, 1, 6), 'crystal': (4, 2, 8), 'bot': (5, 2, 10), 'mech': (10, 3, 12)}
 # Size of the paper tokens in mm: the supply areas below are drawn as a grid of exactly this size.
-BOT_MM, MECH_MM = 14, 16
+BOT_MM, MECH_MM = 10, 11
+UPM = 1485 / 210  # board units per mm when the board is printed on A5 (210 x 148.5 mm)
 
 
 def t(x, y, s, size=28, weight='normal', anchor='start', fill=INK):
@@ -51,10 +52,15 @@ def art_uri(colour, mono):
 
 
 def player_mark(x, y, player, size=64, fill=PAPER):
-    """Print only: player 1 = triangle, player 2 = circle (same marks as on the pieces)."""
+    """Print only: player 1 = triangle, 2 = circle, 3 = square, 4 = diamond (same marks as on the pieces)."""
+    h = size / 2
     if player == 1:
-        return f'<polygon points="{x},{y - size / 2} {x + size / 2},{y + size / 2} {x - size / 2},{y + size / 2}" fill="{fill}"/>'
-    return f'<circle cx="{x}" cy="{y}" r="{size / 2}" fill="{fill}"/>'
+        return f'<polygon points="{x},{y - h} {x + h},{y + h} {x - h},{y + h}" fill="{fill}"/>'
+    if player == 3:
+        return f'<rect x="{x - h * 0.85}" y="{y - h * 0.85}" width="{h * 1.7}" height="{h * 1.7}" fill="{fill}"/>'
+    if player == 4:
+        return f'<polygon points="{x},{y - h} {x + h},{y} {x},{y + h} {x - h},{y}" fill="{fill}"/>'
+    return f'<circle cx="{x}" cy="{y}" r="{h}" fill="{fill}"/>'
 
 
 def frame(col, side, title, colour, mono, player):
@@ -80,7 +86,7 @@ def frame(col, side, title, colour, mono, player):
 
 def token_grid(x, y, cols, rows, mm, icon):
     """Dashed squares of the exact token size: the supply areas double as a placement guide for the paper tokens."""
-    k = mm * 5
+    k = mm * UPM
     s = ''
     for j in range(rows):
         for i in range(cols):
@@ -92,7 +98,7 @@ def token_grid(x, y, cols, rows, mm, icon):
 
 def _board(col, name, adv, mono=False, player=1):
     A = ADV
-    colour = name.lower() if not mono else ('red' if player == 1 else 'blue')
+    colour = name.lower() if not mono else ['red', 'blue', 'green', 'yellow'][(player - 1) % 4]
     side = ('ADVANCED SIDE  -  moving prices, Ports open two goods' if adv else 'BASIC SIDE  -  fixed prices, Ports open every good')
     s = frame(col, (name + '  -  ' if not mono else '') + side, f'Player board {name} ' + ('advanced' if adv else 'basic'), colour, mono, player)
     # supplies
@@ -101,10 +107,11 @@ def _board(col, name, adv, mono=False, player=1):
     s.append(token_grid(65, 302, 5, 4, BOT_MM, 'bot'))
     s.append(icon_group('mech', 80, 655, 44) + t(120, 663, 'Mechs (5 in reserve)', 26, 'bold', fill=col))
     s.append(token_grid(55, 695, 5, 1, MECH_MM, 'mech'))
-    s.append(t(255, 830, 'Buildings in reserve', 26, 'bold', 'middle', col))
-    s.append(icon_group('extractor', 90, 890, 56) + t(130, 900, 'x5', 30, 'bold') + icon_group('factory', 290, 890, 56) + t(330, 900, 'x5', 30, 'bold'))
-    s.append(t(255, 960, 'Your home tile has a Dock:', 21, fill='#5b5166', anchor='middle'))
-    s.append(t(255, 990, 'you can trade iron and bots there.', 21, fill='#5b5166', anchor='middle'))
+    s.append(t(255, 830, 'Buildings are shared', 26, 'bold', 'middle', col))
+    s.append(icon_group('extractor', 110, 885, 56) + icon_group('factory', 255, 885, 56) + icon_group('dock', 400, 885, 56))
+    s.append(t(255, 940, 'Extractors and Factories are not yours:', 21, fill='#5b5166', anchor='middle'))
+    s.append(t(255, 966, 'they work for whoever holds the tile.', 21, fill='#5b5166', anchor='middle'))
+    s.append(t(255, 996, 'Your home Dock trades iron and bots.', 21, fill='#5b5166', anchor='middle'))
     # turn flow
     s.append(panel(510, 190, 945, 150, 'Start of your turn', col))
     s.append(icon_group('income', 600, 285, 64))

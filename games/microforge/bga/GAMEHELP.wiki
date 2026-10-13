@@ -16,8 +16,8 @@ At the start of your turn you gain '''3 Credits plus 1 for every land tile you c
 You '''control''' a tile while one of your pieces stands on it. Everything printed on the tile (resource, building sockets, roads) belongs to the tile. Every tile except the centre has exactly one blocked side (hazard stripes); roads only connect where both touching tiles are open. Home tiles and the centre are open on all sides. The centre can be crossed but not stopped on. The letters and numbers around the board name every tile; the log uses the same names.
 
 == Buildings ==
-* '''Extractor''' (1 iron): once per turn, pay 1 Credit to take 1 token of the tile's resource.
-* '''Factory''' (2 iron): once per turn, pay 1 Credit: 1 iron becomes 2 Bots, or 1 iron and 1 crystal become 1 Mech.
+* '''Extractor''' (1 iron; shared pool, not personal): once per turn, pay 1 Credit to take 1 token of the tile's resource.
+* '''Factory''' (2 iron; shared pool, not personal): once per turn, pay 1 Credit: 1 iron becomes 2 Bots, or 1 iron and 1 crystal become 1 Mech.
 
 == Moving ==
 A move costs 1 Credit per step for the whole group, however many pieces travel together. Pieces follow open roads and cannot pass through enemy pieces. Resources (iron and crystal) cannot move on their own: you must have a Bot at the starting hex and destination hex (or send a Bot escorting them).
