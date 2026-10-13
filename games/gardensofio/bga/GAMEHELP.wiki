@@ -5,7 +5,7 @@
 ==Components==
 
 * A garden of 81 circles (9 x 9) and a 40-space score track around it. One lap is 40 points.
-* 60 flowers in 6 colours (10 each).
+* 60 flowers in 6 colours (10 each): blue, yellow, orange, purple, red and green.
 * 3 trees (black cones) that block seeds.
 * 5 special action counters.
 * Martians: Bot, Ali, Marty, Bob and Robby. Each player takes one type.
@@ -13,7 +13,7 @@
 ==Setup==
 
 * Each player draws flowers from the bag at random: 2 players 27, 3 players 18, 4 players 14, 5 players 11. Unused flowers stay in the bag.
-* Players take Martian types in turn order. Each Martian starts on the flying saucer, next to space 0.
+* Each player gets a Martian (assigned at random, it does not matter). Each Martian starts on the flying saucer, next to space 0.
 * The first three players place a tree each, on any empty circle (2 players: first, second, first again).
 
 ==Your turn==
@@ -46,6 +46,6 @@ Your Martian enters the track at space 0 on your first turn.
 * It also ends immediately if the leading Martian is a full lap (40 points) ahead of the last one.
 * The Martian furthest along the track wins. In the cooperative mode, the group score is the score of the lowest Martian.
 
-==Colour-blind symbols==
+==Colour-blind help==
 
-Each colour has its own shape on the flower. The symbols can be switched off in the game preferences.
+Every flower colour has its own pattern and centre symbol.

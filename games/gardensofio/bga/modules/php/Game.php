@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Bga\Games\gardensofio;
 
-use Bga\Games\gardensofio\States\ChooseMartian;
 use Bga\Games\gardensofio\States\PlaceTree;
 use Bga\Games\gardensofio\States\PlayerTurn;
 use Bga\Games\gardensofio\States\LapBonus;
@@ -74,7 +73,6 @@ class Game extends \Bga\GameFramework\Table
         $this->globals->set('lap_pending', 0);
         $this->globals->set('lap_resume', 'end');
         $this->globals->set('trees_placed', 0);
-        $this->globals->set('setup_order', '');
 
         // Garden: 81 empty circles
         $cells = [];
@@ -85,10 +83,13 @@ class Game extends \Bga\GameFramework\Table
         }
         static::DbQuery("INSERT INTO `cell` (`r`, `c`, `kind`, `color`, `owner`) VALUES " . implode(',', $cells));
 
-        // Martians: all on the flying saucer (dist -1) until their first turn
+        // Martians: the type does not matter, so they are assigned at random. All start on the flying
+        // saucer (dist -1) until their first turn.
+        $types = Rules::MARTIANS;
+        shuffle($types);
         $mRows = [];
-        foreach ($playerIds as $pid) {
-            $mRows[] = "($pid, '', -1, 0)";
+        foreach ($playerIds as $i => $pid) {
+            $mRows[] = "($pid, '{$types[$i]}', -1, 0)";
         }
         static::DbQuery("INSERT INTO `martian` (`player_id`, `martian_type`, `dist`, `specials_used`) VALUES " . implode(',', $mRows));
 
@@ -122,10 +123,15 @@ class Game extends \Bga\GameFramework\Table
         }
         static::DbQuery("INSERT INTO `special_slot` (`slot`, `used`) VALUES " . implode(',', $sRows));
 
-        // Martian choice in turn order, starting with the first player; then the trees; then play.
+        // Trees are placed by players 1, 2 and 3 in turn order (2 players: 1, 2, 1), then play starts.
+        $treeOrder = [];
+        for ($i = 0; $i < Rules::TREES; $i++) {
+            $treeOrder[] = $playerIds[$i % $count];
+        }
+        $this->globals->set('setup_order', json_encode($treeOrder));
         $this->globals->set('first_player', $playerIds[0]);
         $this->gamestate->changeActivePlayer($playerIds[0]);
-        return ChooseMartian::class;
+        return PlaceTree::class;
     }
 
     /* ---------------------------------------------------------------------------------------------- */
@@ -301,18 +307,6 @@ class Game extends \Bga\GameFramework\Table
         return $out;
     }
 
-    /** Player ids in turn order, starting with the first player. */
-    public function playerOrder(): array
-    {
-        $first = (int) $this->globals->get('first_player', 0);
-        $order = [$first];
-        $count = count($this->getMartians());
-        while (count($order) < $count) {
-            $order[] = $this->getPlayerAfter(end($order));
-        }
-        return $order;
-    }
-
     public function specialName(int $slot): string
     {
         return match ($slot) {
@@ -350,8 +344,8 @@ class Game extends \Bga\GameFramework\Table
         return match ($colour) {
             'blue' => clienttranslate('blue'),
             'yellow' => clienttranslate('yellow'),
-            'white' => clienttranslate('white'),
-            'grey' => clienttranslate('grey'),
+            'orange' => clienttranslate('orange'),
+            'purple' => clienttranslate('purple'),
             'red' => clienttranslate('red'),
             'green' => clienttranslate('green'),
             default => $colour,

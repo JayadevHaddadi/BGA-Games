@@ -5,37 +5,17 @@
  *
  * Game.js - Client interface for Gardens of Io.
  * The server (Rules.php) is the source of truth. The client only stages choices and sends one action per Confirm.
+ * The board is the original board art (img/board.jpg, 11 x 11 squares: track ring + 9 x 9 garden circles).
  *------
  */
 
-const GIO_S = 36; // one circle or track square in SVG units; the board scales to the screen width
-const GIO_COLOURS = {
-    blue: { fill: '#2d6cdf', sym: '#0b2466', shape: 'tri' },
-    yellow: { fill: '#f0c419', sym: '#5c4700', shape: 'sq' },
-    white: { fill: '#efeee9', sym: '#2c2c2c', shape: 'plus' },
-    grey: { fill: '#8d949c', sym: '#20242a', shape: 'dia' },
-    red: { fill: '#d7382b', sym: '#4d0d09', shape: 'star' },
-    green: { fill: '#2f9e4f', sym: '#0b4a21', shape: 'hex' },
-};
-const GIO_SYMBOLS = {
-    tri: 'M0,-5 L5,4 L-5,4 Z',
-    sq: 'M-4,-4 H4 V4 H-4 Z',
-    plus: 'M-1.6,-5 H1.6 V-1.6 H5 V1.6 H1.6 V5 H-1.6 V1.6 H-5 V-1.6 H-1.6 Z',
-    dia: 'M0,-5.5 L5.5,0 L0,5.5 L-5.5,0 Z',
-    star: 'M0,-5.5 L1.5,-1.8 L5.5,-1.8 L2.3,0.6 L3.5,4.5 L0,2.2 L-3.5,4.5 L-2.3,0.6 L-5.5,-1.8 L-1.5,-1.8 Z',
-    hex: 'M-5,0 L-2.5,-4.3 L2.5,-4.3 L5,0 L2.5,4.3 L-2.5,4.3 Z',
-};
+const GIO_S = 36; // one square in SVG units; the board scales to the available width
+const GIO_COLOURS = ['blue', 'yellow', 'orange', 'purple', 'red', 'green'];
 const GIO_PLAYER_COLOURS = ['#4caf50', '#e91e63', '#2196f3', '#ff9800', '#9c27b0'];
 const GIO_TREE = 'M0,-12 L11,10 L-11,10 Z';
 
-// Which kind of cell each special action needs for its picks: 'f' flower, 't' tree, 'e' empty circle
-const GIO_SPECIAL_PICKS = {
-    1: ['t', 'f'],
-    2: ['f', 'f'],
-    3: ['f', 'e'],
-    4: ['t', 'e'],
-    5: [],
-};
+// Which kind of circle each pick of a special action needs: 'f' flower, 't' tree, 'e' empty circle
+const GIO_SPECIAL_PICKS = { 1: ['t', 'f'], 2: ['f', 'f'], 3: ['f', 'e'], 4: ['t', 'e'], 5: [] };
 
 const gioKey = (r, c) => `${r},${c}`;
 const gioCoord = (r, c) => `${String.fromCharCode(65 + c)}${r + 1}`;
@@ -44,13 +24,6 @@ const gioImg = (name) => `${typeof g_gamethemeurl !== 'undefined' ? g_gamethemeu
 /* ---------------------------------------------------------------------------------------------- */
 /* State classes (names match the PHP state classes)                                               */
 /* ---------------------------------------------------------------------------------------------- */
-
-class ChooseMartianState {
-    constructor(game) { this.game = game; }
-    onEnteringState(args, isActive) { this.game.enterChoice(args, isActive); }
-    onUpdateActionButtons(args, isActive) { this.game.updateButtons(args, isActive); }
-    onLeavingState() { this.game.leaveState(); }
-}
 
 class PlaceTreeState {
     constructor(game) { this.game = game; }
@@ -80,13 +53,11 @@ class LapBonusState {
 export class Game {
     constructor(bga) {
         this.bga = bga;
-        this.stage = null; // staged choice, see stageFor* methods
-        this.colour = null; // colour picked for the next flower
+        this.stage = null; // staged choice of the active player
         this.args = null;
         this.isActive = false;
         this.stateName = null;
 
-        this.bga.states.register('ChooseMartian', new ChooseMartianState(this));
         this.bga.states.register('PlaceTree', new PlaceTreeState(this));
         this.bga.states.register('PlayerTurn', new PlayerTurnState(this));
         this.bga.states.register('LapBonus', new LapBonusState(this));
@@ -106,17 +77,21 @@ export class Game {
         const root = document.createElement('div');
         root.id = 'gio_root';
         root.innerHTML = `
-            <div id="gio_specials" role="group" aria-label="${_('Special actions')}"></div>
-            <div id="gio_board_wrap">
-                <svg id="gio_board" viewBox="0 0 ${11 * GIO_S} ${11 * GIO_S}" role="img"
-                    aria-label="${_('Garden of Io: 9 by 9 circles, with the score track around it')}"></svg>
-                <div id="gio_tokens" aria-hidden="true"></div>
-            </div>
-            <div id="gio_saucer"></div>
-            <div id="gio_selection"></div>
-            <div id="gio_reserve" role="group" aria-label="${_('Your flowers in reserve')}"></div>
-            <p id="gio_hint" aria-live="polite"></p>
-            <div id="gio_final" hidden></div>`;
+            <div id="gio_layout">
+                <div id="gio_table">
+                    <div id="gio_board_wrap">
+                        <svg id="gio_board" viewBox="0 0 ${11 * GIO_S} ${11 * GIO_S}" role="img"
+                            aria-label="${_('Garden of Io: 9 by 9 circles, with the score track around it')}"></svg>
+                        <div id="gio_tokens" aria-hidden="true"></div>
+                    </div>
+                </div>
+                <div id="gio_side">
+                    <div id="gio_specials" role="group" aria-label="${_('Special actions')}"></div>
+                    <div id="gio_saucer"></div>
+                    <p id="gio_hint" aria-live="polite"></p>
+                    <div id="gio_final" hidden></div>
+                </div>
+            </div>`;
         this.bga.gameArea.getElement().appendChild(root);
         document.body.classList.add('gardensofio_page_bg');
 
@@ -126,25 +101,20 @@ export class Game {
         this.renderTokens();
         this.renderSaucer();
         this.renderPanels();
+
+        // Without this call the interface only updates after a page refresh.
+        this.setupNotifications();
+    }
+
+    setupNotifications() {
+        this.bga.notifications.setupPromiseNotifications({});
     }
 
     /* ------------------------------------------------------------------------ board drawing */
 
     renderBoard() {
         const svg = document.getElementById('gio_board');
-        const parts = [`<rect x="0" y="0" width="${11 * GIO_S}" height="${11 * GIO_S}" fill="#17130f"/>`];
-        for (let p = 0; p < 40; p++) {
-            const [rr, rc] = this.ring[p];
-            const corner = p % 10 === 0;
-            parts.push(`<g class="gio_track" data-p="${p}">
-                <rect x="${rc * GIO_S + 1}" y="${rr * GIO_S + 1}" width="${GIO_S - 2}" height="${GIO_S - 2}" rx="2"
-                    fill="${corner ? '#7a5a21' : '#3d3125'}" stroke="#1b1510" stroke-width="1"/>
-                <text x="${rc * GIO_S + GIO_S / 2}" y="${rr * GIO_S + GIO_S / 2 + 4}" text-anchor="middle"
-                    font-size="12" fill="#f4ead2" font-weight="600">${p}</text>
-            </g>`);
-        }
-        // Start line between space 0 and space 1 (top-left corner)
-        parts.push(`<line x1="${GIO_S}" y1="2" x2="${GIO_S}" y2="${GIO_S - 2}" stroke="#ffd54f" stroke-width="3"/>`);
+        const parts = [`<image href="${gioImg('board.jpg')}" x="0" y="0" width="${11 * GIO_S}" height="${11 * GIO_S}"/>`];
         for (let r = 0; r < 9; r++) {
             for (let c = 0; c < 9; c++) {
                 const cx = (c + 1) * GIO_S + GIO_S / 2;
@@ -152,9 +122,8 @@ export class Game {
                 parts.push(`<g class="gio_cell_g" id="gio_cell_${r}_${c}" data-r="${r}" data-c="${c}" tabindex="0"
                         role="button" aria-label="${gioCoord(r, c)}">
                     <rect class="gio_hit" x="${(c + 1) * GIO_S}" y="${(r + 1) * GIO_S}" width="${GIO_S}" height="${GIO_S}" fill="transparent"/>
-                    <circle class="gio_slot" cx="${cx}" cy="${cy}" r="${GIO_S * 0.38}" fill="#2b241d" stroke="#544a40" stroke-width="1.2"/>
                     <g class="gio_content" transform="translate(${cx} ${cy})"></g>
-                    <circle class="gio_ring" cx="${cx}" cy="${cy}" r="${GIO_S * 0.47}" fill="none" stroke-width="3"/>
+                    <circle class="gio_ring" cx="${cx}" cy="${cy}" r="${GIO_S * 0.44}" fill="none" stroke-width="3"/>
                 </g>`);
             }
         }
@@ -178,6 +147,12 @@ export class Game {
         }
     }
 
+    flowerImage(colour, opacity = 1) {
+        const w = GIO_S * 0.74;
+        const h = w * 1.1; // flower art is 160 x 176
+        return `<image href="${gioImg(`flower_${colour}.png`)}" x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" opacity="${opacity}"/>`;
+    }
+
     renderCell(r, c) {
         const g = document.getElementById(`gio_cell_${r}_${c}`);
         if (!g) return;
@@ -188,22 +163,19 @@ export class Game {
             content = `<path d="${GIO_TREE}" fill="#050505" stroke="#d7c9a8" stroke-width="1.5"/>`;
             label += ` ${_('tree')}`;
         } else if (cell && cell.kind === 'f') {
-            content = this.flowerSvg(cell.color);
+            content = this.flowerImage(cell.color);
             label += ` ${this.colourLabel(cell.color)} ${_('flower')}`;
+        } else if (this.stage && this.stage.type === 'plant' && this.stage.colour && this.stage.r === r && this.stage.c === c) {
+            content = this.flowerImage(this.stage.colour, 0.75);
         }
         g.querySelector('.gio_content').innerHTML = content;
         g.setAttribute('aria-label', label);
     }
 
-    flowerSvg(colour) {
-        const info = GIO_COLOURS[colour];
-        if (!info) return '';
-        return `<circle r="${GIO_S * 0.34}" fill="${info.fill}" stroke="#111" stroke-width="1.2"/>
-            <path class="gio_sym" d="${GIO_SYMBOLS[info.shape]}" fill="${info.sym}" transform="scale(1.1)"/>`;
-    }
-
     colourLabel(colour) {
-        return ({ blue: _('blue'), yellow: _('yellow'), white: _('white'), grey: _('grey'), red: _('red'), green: _('green') })[colour] || colour;
+        return ({
+            blue: _('blue'), yellow: _('yellow'), orange: _('orange'), purple: _('purple'), red: _('red'), green: _('green'),
+        })[colour] || colour;
     }
 
     martianLabel(type) {
@@ -256,49 +228,97 @@ export class Game {
             </span>`).join('');
     }
 
-    /* ------------------------------------------------------------------------ special actions header */
+    /* ------------------------------------------------------------------------ special actions (part of the board art) */
+
+    specialInfo() {
+        return {
+            1: {
+                name: _('Swap a tree with a planted flower'),
+                steps: [_('Choose a tree'), _('Now choose a planted flower'), _('Confirm to swap the tree and the flower')],
+            },
+            2: {
+                name: _('Swap two planted flowers'),
+                steps: [_('Choose a planted flower'), _('Now choose a second planted flower'), _('Confirm to swap the two flowers')],
+            },
+            3: {
+                name: _('Move a planted flower to an empty circle'),
+                steps: [_('Choose a planted flower'), _('Now choose an empty circle'), _('Confirm to move the flower')],
+            },
+            4: {
+                name: _('Move a tree to an empty circle'),
+                steps: [_('Choose a tree'), _('Now choose an empty circle'), _('Confirm to move the tree')],
+            },
+            5: {
+                name: _('Move your Martian 5 spaces forward'),
+                steps: [_('Confirm to move your Martian 5 spaces forward (you score 5 points)')],
+            },
+        };
+    }
 
     renderSpecials() {
         const box = document.getElementById('gio_specials');
-        box.innerHTML = Object.entries(this.specialNames()).map(([slot, name]) => {
-            const used = this.specials[slot] === 1;
-            const label = name + (used ? ` (${_('used')})` : '');
-            return `<button type="button" class="gio_slot_btn" data-slot="${slot}" ${used ? 'disabled' : ''}
-                aria-label="${label}" title="${label}">${this.specialIcon(Number(slot))}</button>`;
-        }).join('');
+        const info = this.specialInfo();
+        // The strip of five counter spaces is a crop of the original board art (1700 x 700 source pixels);
+        // each space is a 319 / 1700 wide column starting at 32 / 1700.
+        box.innerHTML = `<div class="gio_specials_inner">
+            <img src="${gioImg('specials.jpg')}" alt="" draggable="false">
+            ${[1, 2, 3, 4, 5].map((slot) => {
+                const used = this.specials[slot] === 1;
+                const label = info[slot].name + (used ? ` (${_('used')})` : '');
+                return `<button type="button" class="gio_slot_btn${used ? ' is_used' : ''}" data-slot="${slot}"
+                    style="left:${((32 + 319 * (slot - 1)) / 1700) * 100}%;width:${(319 / 1700) * 100}%"
+                    aria-label="${label}" title="${label}"></button>`;
+            }).join('')}
+        </div>`;
         box.querySelectorAll('.gio_slot_btn').forEach((btn) => {
             btn.addEventListener('click', () => this.onSpecialClick(Number(btn.dataset.slot)));
         });
+        this.updateSpecialButtons();
     }
 
-    specialNames() {
-        return {
-            1: _('Swap a tree with a planted flower'),
-            2: _('Swap two planted flowers'),
-            3: _('Move a planted flower to an empty circle'),
-            4: _('Move a tree to an empty circle'),
-            5: _('Move your Martian 5 spaces forward'),
-        };
+    updateSpecialButtons() {
+        const canUse = this.canUseSpecial();
+        document.querySelectorAll('.gio_slot_btn').forEach((btn) => {
+            const slot = Number(btn.dataset.slot);
+            const free = this.specials[slot] !== 1;
+            btn.classList.toggle('is_used', !free);
+            btn.classList.toggle('is_available', canUse && free);
+            btn.classList.toggle('is_selected', !!this.stage && this.stage.type === 'special' && this.stage.slot === slot);
+        });
     }
 
-    playSound(id) {
-        try {
-            this.bga.sounds.play(id);
-        } catch (e) {
-            // sound is optional
+    canUseSpecial() {
+        return !!(this.isActive && this.stateName === 'PlayerTurn' && this.args && this.args.specials_available
+            && this.args.specials_left_for_player > 0 && !this.args.special_taken_this_turn);
+    }
+
+    onSpecialClick(slot) {
+        const info = this.specialInfo()[slot];
+        // Tapping a counter always tells the player what it does (status bar, which also works on phones).
+        if (this.specials[slot] === 1) {
+            this.setStatus(`${info.name}: ${_('this special action has already been used in this game')}`);
+            return;
         }
+        if (!this.isActive || this.stateName !== 'PlayerTurn') {
+            this.setStatus(`${info.name}: ${_('you can use it on your turn, before planting')}`);
+            return;
+        }
+        if (!this.canUseSpecial()) {
+            const why = this.args && this.args.special_taken_this_turn
+                ? _('only one special action per turn')
+                : _('you have already used your special action');
+            this.setStatus(`${info.name}: ${why}`);
+            return;
+        }
+        this.closePicker();
+        this.stage = { type: 'special', slot, picks: [] };
+        this.afterStageChange();
     }
 
-    specialIcon(slot) {
-        const ink = '#d9d2c4';
-        const icons = {
-            1: `<circle cx="7" cy="13" r="4" fill="${ink}"/><path d="M15,6 L21,18 L9,18 Z" fill="#050505" stroke="${ink}"/>`,
-            2: `<circle cx="7" cy="12" r="4" fill="${ink}"/><circle cx="17" cy="12" r="4" fill="${ink}"/>`,
-            3: `<circle cx="7" cy="16" r="4" fill="${ink}"/><path d="M11,12 L19,4 M14,4 H19 V9" stroke="${ink}" stroke-width="2" fill="none"/>`,
-            4: `<path d="M5,19 L9,9 L13,19 Z" fill="#050505" stroke="${ink}"/><path d="M14,16 L20,10 M17,10 H20 V13" stroke="${ink}" stroke-width="2" fill="none"/>`,
-            5: `<text x="6" y="17" font-size="13" font-weight="700" fill="${ink}">5</text><path d="M12,12 H22 M19,9 L22,12 L19,15" stroke="${ink}" stroke-width="2" fill="none"/>`,
-        };
-        return `<svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">${icons[slot] || ''}</svg>`;
+    specialStatus(st) {
+        const info = this.specialInfo()[st.slot];
+        const step = info.steps[Math.min(st.picks.length, info.steps.length - 1)];
+        return `${info.name}: ${step}`;
     }
 
     /* ------------------------------------------------------------------------ player panels */
@@ -317,31 +337,18 @@ export class Game {
             const m = this.martians[pid] || { dist: -1 };
             const laps = m.dist >= 0 ? Math.floor(m.dist / 40) : 0;
             line.title = `${_('Score')}: ${Math.max(0, m.dist)}, ${_('laps')}: ${laps}`;
-            line.innerHTML = Object.keys(GIO_COLOURS).map((col) => `
-                <span class="gio_pcount" title="${this.colourLabel(col)}">${this.colourGlyph(col, 14)}<b>${res[col] || 0}</b></span>`).join('');
+            line.innerHTML = GIO_COLOURS.map((col) => `
+                <span class="gio_pcount" title="${this.colourLabel(col)}">
+                    <img src="${gioImg(`flower_${col}.png`)}" alt="${this.colourLabel(col)}" width="16" height="18"><b>${res[col] || 0}</b>
+                </span>`).join('');
         });
-    }
-
-    colourGlyph(colour, size) {
-        const info = GIO_COLOURS[colour];
-        return `<svg class="gio_glyph" width="${size}" height="${size}" viewBox="-7 -7 14 14" aria-hidden="true">
-            <circle r="6.2" fill="${info.fill}" stroke="#111" stroke-width="0.8"/>
-            <path class="gio_sym" d="${GIO_SYMBOLS[info.shape]}" fill="${info.sym}" transform="scale(0.85)"/></svg>`;
     }
 
     /* ------------------------------------------------------------------------ states */
 
-    enterChoice(args, isActive) {
-        this.beginState('ChooseMartian', args, isActive);
-        this.bga.statusBar.setTitle(isActive
-            ? _('${you} choose your Martian type: pick one, then Confirm')
-            : _('${actplayer} is choosing a Martian type'));
-        this.renderSelection();
-    }
-
     enterTree(args, isActive) {
         this.beginState('PlaceTree', args, isActive);
-        this.bga.statusBar.setTitle(isActive
+        this.setStatus(isActive
             ? _('${you} place a tree on an empty circle of the garden')
             : _('${actplayer} places a tree'));
         this.highlightTargets();
@@ -349,7 +356,7 @@ export class Game {
 
     enterLap(args, isActive) {
         this.beginState('LapBonus', args, isActive);
-        this.bga.statusBar.setTitle(isActive
+        this.setStatus(isActive
             ? _('${you} crossed the start line: take one flower from the board into your reserve')
             : _('${actplayer} takes a flower from the board'));
         this.highlightTargets();
@@ -357,15 +364,20 @@ export class Game {
 
     enterTurn(args, isActive) {
         this.beginState('PlayerTurn', args, isActive);
-        this.bga.statusBar.setTitle(isActive
-            ? _('${you} may use one special action, then plant one flower')
-            : _('${actplayer} is taking a turn'));
-        this.renderReserve();
+        this.setStatus(isActive ? this.turnPrompt() : _('${actplayer} is taking a turn'));
         this.highlightTargets();
         this.updateSpecialButtons();
     }
 
+    turnPrompt() {
+        if (this.args && this.args.candidates && this.args.candidates.length === 0) {
+            return _('${you} have no circle to plant on: you may use a special action first, then your Martian moves 1 space');
+        }
+        return _('${you} may tap a special action counter, or tap a highlighted circle to plant a flower');
+    }
+
     beginState(name, args, isActive) {
+        this.closePicker();
         this.stateName = name;
         this.args = args;
         this.isActive = isActive;
@@ -374,79 +386,75 @@ export class Game {
     }
 
     leaveState() {
+        this.closePicker();
         this.stage = null;
         this.clearHighlights();
-        const sel = document.getElementById('gio_selection');
-        if (sel) sel.innerHTML = '';
-        const res = document.getElementById('gio_reserve');
-        if (res) res.innerHTML = '';
+        this.updateSpecialButtons();
         const hint = document.getElementById('gio_hint');
         if (hint) hint.textContent = '';
+    }
+
+    setStatus(text) {
+        this.bga.statusBar.setTitle(text);
+        const hint = document.getElementById('gio_hint');
+        if (hint) hint.textContent = text.indexOf('${') >= 0 ? '' : text;
     }
 
     updateButtons(args, isActive) {
         this.bga.statusBar.removeActionButtons();
         if (!isActive) return;
-        const clear = () => this.clearStage();
+        const clear = () => this.cancelStage();
         const confirm = (fn, enabled) => this.bga.statusBar.addActionButton(_('Confirm'), fn, { color: 'primary', disabled: !enabled });
 
-        switch (this.stateName) {
-            case 'ChooseMartian':
-                confirm(() => this.confirmMartian(), !!(this.stage && this.stage.type === 'martian'));
-                break;
-            case 'PlaceTree':
-                confirm(() => this.confirmTree(), !!(this.stage && this.stage.type === 'tree'));
-                this.bga.statusBar.addActionButton(_('Clear'), clear, { color: 'alert' });
+        if (this.stateName === 'PlaceTree') {
+            confirm(() => this.confirmTree(), !!(this.stage && this.stage.type === 'tree'));
+            this.bga.statusBar.addActionButton(_('Undo'), clear, { color: 'alert' });
+        } else if (this.stateName === 'LapBonus') {
+            confirm(() => this.confirmLap(), !!(this.stage && this.stage.type === 'lap'));
+            this.bga.statusBar.addActionButton(_('Undo'), clear, { color: 'alert' });
+        } else if (this.stateName === 'PlayerTurn') {
+            const hasCandidates = !!(args && args.candidates && args.candidates.length > 0);
+            if (!hasCandidates && !this.stage) {
+                this.bga.statusBar.addActionButton(_('Move 1 space'), () => this.confirmNoPlant(), { color: 'primary' });
                 return;
-            case 'LapBonus':
-                confirm(() => this.confirmLap(), !!(this.stage && this.stage.type === 'lap'));
-                this.bga.statusBar.addActionButton(_('Clear'), clear, { color: 'alert' });
-                return;
-            case 'PlayerTurn':
-                if (args && args.candidates && args.candidates.length === 0 && !this.stage) {
-                    this.bga.statusBar.addActionButton(_('Move 1 space (no circle to plant on)'), () => this.confirmNoPlant(), { color: 'primary' });
-                    return;
-                }
+            }
+            if (this.stage) {
                 confirm(() => this.confirmTurn(), this.readyToConfirm());
-                this.bga.statusBar.addActionButton(_('Clear'), clear, { color: 'alert' });
-                return;
-            default:
-                return;
-        }
-        if (this.stateName === 'ChooseMartian') {
-            this.bga.statusBar.addActionButton(_('Clear'), clear, { color: 'alert' });
+                this.bga.statusBar.addActionButton(_('Undo'), clear, { color: 'alert' });
+            }
         }
     }
 
     /* ------------------------------------------------------------------------ staging */
 
-    clearStage() {
+    afterStageChange() {
+        this.highlightTargets();
+        this.updateSpecialButtons();
+        this.updateButtons(this.args, this.isActive);
+        this.renderAllCells();
+        if (this.stateName === 'PlayerTurn') {
+            if (!this.stage) {
+                this.setStatus(this.turnPrompt());
+            } else if (this.stage.type === 'special') {
+                this.setStatus(this.specialStatus(this.stage));
+            } else if (this.stage.type === 'plant') {
+                this.setStatus(this.stage.colour
+                    ? _('Plant a ${colour} flower on ${coord}?').replace('${colour}', this.colourLabel(this.stage.colour)).replace('${coord}', gioCoord(this.stage.r, this.stage.c))
+                    : _('Choose the flower to plant on ${coord}').replace('${coord}', gioCoord(this.stage.r, this.stage.c)));
+            }
+        } else if (this.stateName === 'PlaceTree' && this.stage) {
+            this.setStatus(_('Place the tree on ${coord}?').replace('${coord}', gioCoord(this.stage.r, this.stage.c)));
+        } else if (this.stateName === 'LapBonus' && this.stage) {
+            this.setStatus(_('Take the flower on ${coord} into your reserve?').replace('${coord}', gioCoord(this.stage.r, this.stage.c)));
+        }
+    }
+
+    cancelStage() {
+        this.closePicker();
         this.stage = null;
-        this.highlightTargets();
-        this.updateSpecialButtons();
-        this.updateButtons(this.args, this.isActive);
-        this.renderSelection();
-        this.renderHint();
-    }
-
-    updateSpecialButtons() {
-        if (!this.args || !this.args.specials_available) return;
-        const canUse = this.isActive && this.args.specials_left_for_player > 0 && !this.args.special_taken_this_turn;
-        document.querySelectorAll('.gio_slot_btn').forEach((btn) => {
-            const slot = Number(btn.dataset.slot);
-            const available = canUse && this.args.specials_available[slot];
-            btn.disabled = !available;
-            btn.classList.toggle('is_selected', !!this.stage && this.stage.type === 'special' && this.stage.slot === slot);
-        });
-    }
-
-    onSpecialClick(slot) {
-        if (!this.isActive || this.stateName !== 'PlayerTurn') return;
-        this.stage = { type: 'special', slot, picks: [] };
-        this.highlightTargets();
-        this.updateSpecialButtons();
-        this.updateButtons(this.args, this.isActive);
-        this.renderHint();
+        this.afterStageChange();
+        if (this.stateName === 'PlaceTree') this.setStatus(_('${you} place a tree on an empty circle of the garden'));
+        if (this.stateName === 'LapBonus') this.setStatus(_('${you} crossed the start line: take one flower from the board into your reserve'));
     }
 
     onCellClick(r, c) {
@@ -458,21 +466,22 @@ export class Game {
             this.stage = { type: 'tree', r, c };
         } else if (this.stateName === 'LapBonus') {
             if (!cell || cell.kind !== 'f') return;
+            if (!this.args.eligible.some(([er, ec]) => er === r && ec === c)) return;
             this.stage = { type: 'lap', r, c };
         } else if (this.stateName === 'PlayerTurn') {
             if (this.stage && this.stage.type === 'special') {
                 this.pickForSpecial(r, c, cell);
             } else {
                 if (!this.isCandidate(r, c)) return;
-                this.stage = { type: 'plant', r, c };
+                this.stage = { type: 'plant', r, c, colour: null };
+                this.afterStageChange();
+                this.openPicker(r, c);
+                return;
             }
         } else {
             return;
         }
-        this.highlightTargets();
-        this.updateSpecialButtons();
-        this.updateButtons(this.args, this.isActive);
-        this.renderHint();
+        this.afterStageChange();
     }
 
     /** The kind of circle the next pick of a special action needs: 'f', 't', 'e' or null when complete. */
@@ -486,8 +495,7 @@ export class Game {
         const want = this.nextPickKind(st);
         if (!want) return;
         const kind = cell ? cell.kind : 'e';
-        const matches = want === 'e' ? kind === 'e' : kind === want;
-        if (!matches) return;
+        if (kind !== want) return;
         if (st.picks.some((p) => p.r === r && p.c === c)) return;
         st.picks.push({ r, c });
     }
@@ -499,12 +507,63 @@ export class Game {
     readyToConfirm() {
         const st = this.stage;
         if (!st) return false;
-        if (st.type === 'plant') return !!this.colour && (this.args.reserve[this.colour] || 0) > 0;
+        if (st.type === 'plant') return !!st.colour;
         if (st.type === 'special') return this.nextPickKind(st) === null;
         return false;
     }
 
-    /* ------------------------------------------------------------------------ highlights and hints */
+    /* ------------------------------------------------------------------------ flower picker (like the other garden games) */
+
+    openPicker(r, c) {
+        this.closePicker();
+        const wrap = document.getElementById('gio_board_wrap');
+        if (!wrap || !this.args || !this.args.reserve) return;
+        const picker = document.createElement('div');
+        picker.id = 'gio_picker';
+        picker.setAttribute('role', 'group');
+        picker.setAttribute('aria-label', _('Choose the flower to plant'));
+        picker.innerHTML = GIO_COLOURS.map((col) => {
+            const n = this.args.reserve[col] || 0;
+            return `<button type="button" class="gio_color_btn" data-colour="${col}" ${n === 0 ? 'disabled' : ''}
+                title="${this.colourLabel(col)} (${n})" aria-label="${this.colourLabel(col)}: ${n}">
+                <img src="${gioImg(`flower_${col}.png`)}" alt=""><b>${n}</b></button>`;
+        }).join('');
+        wrap.appendChild(picker);
+        picker.querySelectorAll('.gio_color_btn').forEach((btn) => btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!this.stage || this.stage.type !== 'plant') return;
+            this.stage.colour = btn.dataset.colour;
+            this.closePicker();
+            this.afterStageChange();
+        }));
+        this.pickerSpot = { r, c };
+        this.layoutPicker();
+    }
+
+    /** Keep the picker inside the board, above the circle (below it when the circle is near the top). */
+    layoutPicker() {
+        const picker = document.getElementById('gio_picker');
+        const wrap = document.getElementById('gio_board_wrap');
+        if (!picker || !wrap || !this.pickerSpot) return;
+        const { r, c } = this.pickerSpot;
+        const width = wrap.clientWidth;
+        const cell = width / 11;
+        const half = picker.offsetWidth / 2;
+        const centre = (c + 1.5) * cell;
+        const left = Math.min(Math.max(centre, half + 2), width - half - 2);
+        const below = r < 3;
+        picker.style.left = `${left}px`;
+        picker.style.top = `${below ? (r + 2.1) * cell : (r + 0.9) * cell}px`;
+        picker.style.transform = below ? 'translate(-50%, 0)' : 'translate(-50%, -100%)';
+    }
+
+    closePicker() {
+        this.pickerSpot = null;
+        const picker = document.getElementById('gio_picker');
+        if (picker) picker.remove();
+    }
+
+    /* ------------------------------------------------------------------------ highlights */
 
     clearHighlights() {
         document.querySelectorAll('.gio_cell_g').forEach((g) => {
@@ -526,8 +585,9 @@ export class Game {
                 if (want) {
                     for (let r = 0; r < 9; r++) {
                         for (let c = 0; c < 9; c++) {
-                            const kind = this.cells[gioKey(r, c)] ? this.cells[gioKey(r, c)].kind : 'e';
-                            if (want === 'e' ? kind === 'e' : kind === want) this.markCell(r, c, 'is_target');
+                            const cell = this.cells[gioKey(r, c)];
+                            const kind = cell ? cell.kind : 'e';
+                            if (kind === want) this.markCell(r, c, 'is_target');
                         }
                     }
                 }
@@ -543,120 +603,48 @@ export class Game {
             this.args.eligible.forEach(([r, c]) => this.markCell(r, c, 'is_target'));
             if (this.stage && this.stage.type === 'lap') this.markCell(this.stage.r, this.stage.c, 'is_staged');
         }
-        this.renderHint();
-    }
-
-    renderHint() {
-        const hint = document.getElementById('gio_hint');
-        if (!hint) return;
-        let text = '';
-        if (this.stateName === 'PlayerTurn' && this.isActive) {
-            if (this.stage && this.stage.type === 'plant') {
-                text = this.colour ? _('Confirm to plant this flower') : _('Choose the colour of the flower to plant');
-            } else if (this.stage && this.stage.type === 'special') {
-                text = this.specialHint(this.stage);
-            }
-        }
-        hint.textContent = text;
-    }
-
-    specialHint(st) {
-        const hints = {
-            't,f': [_('Choose a tree'), _('Now choose a planted flower')],
-            'f,f': [_('Choose a planted flower'), _('Choose a second planted flower')],
-            'f,e': [_('Choose a planted flower'), _('Now choose an empty circle')],
-            't,e': [_('Choose a tree'), _('Now choose an empty circle')],
-        };
-        const key = GIO_SPECIAL_PICKS[st.slot].map((k) => k).join(',');
-        if (!key) return _('Confirm to move your Martian 5 spaces forward');
-        const list = hints[key] || [];
-        return list[Math.min(st.picks.length, list.length - 1)] || '';
-    }
-
-    /* ------------------------------------------------------------------------ selection and reserve UI */
-
-    renderSelection() {
-        const sel = document.getElementById('gio_selection');
-        if (!sel) return;
-        if (this.stateName === 'ChooseMartian' && this.isActive) {
-            sel.innerHTML = `<div class="gio_choice_row">${(this.args.available_martians || []).map((t) => `
-                <button type="button" class="gio_choice${this.stage && this.stage.martian === t ? ' is_selected' : ''}"
-                    data-martian="${t}" aria-label="${this.martianLabel(t)}" aria-pressed="${this.stage && this.stage.martian === t}">
-                    <img src="${gioImg(`${t}.png`)}" alt="">
-                    <span>${this.martianLabel(t)}</span>
-                </button>`).join('')}</div>`;
-            sel.querySelectorAll('.gio_choice').forEach((b) => b.addEventListener('click', () => {
-                this.stage = { type: 'martian', martian: b.dataset.martian };
-                this.renderSelection();
-                this.updateButtons(this.args, this.isActive);
-            }));
-        } else {
-            sel.innerHTML = '';
-        }
-    }
-
-    renderReserve() {
-        const box = document.getElementById('gio_reserve');
-        if (!box) return;
-        if (!this.isActive || !this.args || !this.args.reserve) {
-            box.innerHTML = '';
-            return;
-        }
-        box.innerHTML = Object.keys(GIO_COLOURS).map((col) => {
-            const n = this.args.reserve[col] || 0;
-            return `<button type="button" class="gio_colour_btn${this.colour === col ? ' is_selected' : ''}" data-colour="${col}"
-                ${n === 0 ? 'disabled' : ''} aria-label="${this.colourLabel(col)}: ${n}" aria-pressed="${this.colour === col}">
-                ${this.colourGlyph(col, 30)}<b>${n}</b></button>`;
-        }).join('');
-        box.querySelectorAll('.gio_colour_btn').forEach((btn) => btn.addEventListener('click', () => {
-            this.colour = btn.dataset.colour;
-            this.renderReserve();
-            this.updateButtons(this.args, this.isActive);
-            this.renderHint();
-        }));
     }
 
     /* ------------------------------------------------------------------------ confirm actions */
 
-    confirmMartian() {
-        if (!this.stage || this.stage.type !== 'martian') return;
-        this.bga.actions.performAction('actChooseMartian', { martianType: this.stage.martian }).catch(() => {});
-    }
-
     confirmTree() {
         if (!this.stage || this.stage.type !== 'tree') return;
-        this.bga.actions.performAction('actPlaceTree', { row: this.stage.r, col: this.stage.c }).catch(() => {});
+        this.bga.actions.performAction('actPlaceTree', { row: this.stage.r, col: this.stage.c });
     }
 
     confirmLap() {
         if (!this.stage || this.stage.type !== 'lap') return;
-        this.bga.actions.performAction('actTakeLapFlower', { row: this.stage.r, col: this.stage.c }).catch(() => {});
+        this.bga.actions.performAction('actTakeLapFlower', { row: this.stage.r, col: this.stage.c });
     }
 
     confirmNoPlant() {
-        this.bga.actions.performAction('actNoPlant', {}).catch(() => {});
+        this.bga.actions.performAction('actNoPlant', {});
     }
 
     confirmTurn() {
         const st = this.stage;
         if (!st) return;
         if (st.type === 'plant') {
-            if (!this.colour) return;
-            this.bga.actions.performAction('actPlant', { row: st.r, col: st.c, colour: this.colour }).catch(() => {});
+            if (!st.colour) return;
+            this.bga.actions.performAction('actPlant', { row: st.r, col: st.c, colour: st.colour });
             return;
         }
         if (st.type === 'special' && this.nextPickKind(st) === null) {
             const [from = { r: -1, c: -1 }, to = { r: -1, c: -1 }] = st.picks;
             this.bga.actions.performAction('actSpecial', {
                 slot: st.slot, fromR: from.r, fromC: from.c, toR: to.r, toC: to.c,
-            }).catch(() => {});
+            });
         }
     }
 
     /* ------------------------------------------------------------------------ notifications */
 
-    setupNotifications() {
-        this.bga.notifications.setupPromiseNotifications({});
+    playSound(id) {
+        try {
+            this.bga.sounds.play(id);
+        } catch (e) {
+            // sound is optional
+        }
     }
 
     applyChanges(changes) {
@@ -670,11 +658,6 @@ export class Game {
             this.renderCell(ch.row, ch.col);
         });
         this.highlightTargets();
-    }
-
-    async notif_martianChosen(args) {
-        this.martians[args.player_id].type = args.martian_type;
-        this.renderSaucer();
     }
 
     async notif_treePlaced(args) {
@@ -717,16 +700,12 @@ export class Game {
 
     async notif_reserveChanged(args) {
         this.reserves[args.player_id] = args.reserve;
-        if (this.args && String(args.player_id) === String(this.bga.players.getCurrentPlayerId())) {
-            this.args.reserve = args.reserve;
-            this.renderReserve();
-        }
         this.renderPanels();
     }
 
     async notif_finalScoring(args) {
         this.playSound('gio_score');
-        this.bga.statusBar.setTitle(args.is_coop
+        this.setStatus(args.is_coop
             ? _('The game is over. Group score: ${score}').replace('${score}', String(args.group_score))
             : _('The game is over'));
         this.renderFinalScoring(args);

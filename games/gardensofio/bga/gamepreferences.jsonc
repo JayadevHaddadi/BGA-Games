@@ -1,12 +1,4 @@
 {
   // user preference ids should be between 100 and 199
-  "100": {
-    "name": "Colour-blind symbols on flowers",
-    "needReload": false,
-    "values": {
-      "1": { "name": "On", "cssPref": "gardensofio_cb_on" },
-      "2": { "name": "Off", "cssPref": "gardensofio_cb_off" }
-    },
-    "default": 1
-  }
+  // No colour-blind preference: every flower image already carries its own pattern and centre symbol.
 }

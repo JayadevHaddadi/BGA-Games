@@ -8,9 +8,10 @@ Please check the items marked **CHECK** against your physical rulebook during te
 
 - Garden: 81 circles (9 x 9). Score track: 40 spaces around it, clockwise. One lap = 40 points.
 - Track numbering: space 0 is the top-left corner, 1 to 9 run along the top row, 10 is the top-right corner, 11 to 19 down the right column, 20 the bottom-right corner, 21 to 29 along the bottom row, 30 the bottom-left corner, 31 to 39 up the left column.
-- 60 flowers in 6 colours (10 each). **CHECK**: the rulebook does not name the colours. We use blue, yellow, white, grey, red and green, with colour-blind symbols (triangle, square, plus, diamond, star, hexagon).
+- 60 flowers in 6 colours (10 each). **CHECK**: the rulebook does not name the colours. We use the flower art of the other garden games: blue, yellow, orange, purple, red and green. Each flower image has its own pattern and centre symbol, which is the colour-blind aid.
 - Each player draws flowers at random from the bag: 2 players 27, 3 players 18, 4 players 14, 5 players 11. Unused flowers stay in the bag and are never planted.
-- Each player takes one Martian type (Bot, Ali, Marty, Bob or Robby). Their scoring Martian starts on the flying saucer next to space 0.
+- Each player gets a Martian type (Bot, Ali, Marty, Bob or Robby). The type does not matter for play, so it is assigned at random. The scoring Martian starts on the flying saucer next to space 0.
+- Board art: the original board (`img/board.jpg`) and the special action counters (`img/specials.jpg`) are crops of `GOIO_BIG.jpg`. The publisher logo, title, designer name and flying saucer art are cropped out, because BGA guideline A.1 forbids in-game logos and branding and our own guidelines forbid credits in the play area. Credits belong in the game metadata.
 - Trees: placed on empty circles by players 1, 2 and 3 in turn order (2 players: 1, 2, 1). Four and five player games still use 3 trees.
 - Starting player: the first player in table order. **CHECK**: the rulebook says "any peaceful means".
 
@@ -31,7 +32,7 @@ Each turn, in this order:
 3. **Score.** Count the flowers of the same colour connected orthogonally to the one you planted, including it (diagonals do not connect). This is your score for the turn.
 4. **Move.** Move your Martian forward by your score. Spaces with other Martians are passed over without being counted, and the Martian cannot end on an occupied space.
    - Crossing the start line between 0 and 1 completes a lap. We count this as stepping from space 40 onto space 41.
-   - With the optional lap flower bonus enabled (game option), the player takes one flower from the board into their reserve. The flower can be of any colour that is not exhausted. **CHECK**: we treat this as mandatory when an eligible flower exists.
+   - With the optional lap flower bonus enabled (game option), the player takes one flower from the board into their reserve. The flower can be of any colour that is not exhausted. This is the rulebook's optional rule in step 4 ("Optional (players must agree on the addition of this rule before the game starts): If your Martian just completed a lap, by crossing the start line between 0 and 1 ... take any one of the flowers already placed on the board except for those of a type that has already been exhausted ... and add it to your reserve"). **CHECK**: we treat the take as mandatory when an eligible flower exists.
 5. **Extra turn.** If you planted the last flower of a colour, you take an extra turn.
    - **CHECK (important)**: "last" means all 10 flowers of that colour are on the board. Flowers still in the bag can never be planted, so some colours may never trigger this in a 2, 3, 4 or 5 player game.
    - If that planting empties your reserve, the game ends at the end of the turn and the extra turn is not taken.

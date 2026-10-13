@@ -18,7 +18,7 @@ final class Rules
     public const TRACK = 40;
     public const TREES = 3;
     public const FLOWERS_PER_COLOUR = 10;
-    public const COLOURS = ['blue', 'yellow', 'white', 'grey', 'red', 'green'];
+    public const COLOURS = ['blue', 'yellow', 'orange', 'purple', 'red', 'green'];
 
     /** Flowers each player draws from the bag, by player count (rulebook). */
     public const RESERVE_BY_PLAYERS = [2 => 27, 3 => 18, 4 => 14, 5 => 11];
