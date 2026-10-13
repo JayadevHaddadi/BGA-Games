@@ -21,7 +21,7 @@
 On your turn, in this order:
 
 # '''Special action (optional):''' tap one of the five special action counters. You may use one per turn, and each player may use one per game (two in a 2-player game, each different). Each counter can be used only once in the whole game.
-# '''Plant:''' from your Martian, a straight line runs diagonally or orthogonally into the garden. Plant one of your flowers on any empty circle on those lines, before the first tree. Flowers do not block lines. If there is no such circle, skip to step 4 as if you scored 1 point.
+# '''Plant:''' from your Martian, straight lines run into the garden: one straight ahead and two diagonals that start next to the Martian's square (a corner has only the diagonal). Plant one of your flowers on any empty circle on those lines, before the first tree. Flowers do not block lines. If there is no such circle, skip to step 4 as if you scored 1 point.
 # '''Score:''' the number of same-colour flowers connected orthogonally to the one you planted (including it). Diagonal connections do not count.
 # '''Move:''' move your Martian forward that many spaces on the score track. Spaces with other Martians are skipped without counting.
 

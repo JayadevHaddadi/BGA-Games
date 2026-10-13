@@ -27,7 +27,7 @@ Each turn, in this order:
    - Move your Martian 5 spaces forward. This is the only special action that scores (5 points). It also counts for the lap bonus.
 2. **Plant.** From your Martian, a straight line runs diagonally or orthogonally into the garden. Plant one of your flowers on any empty circle on those lines, before the first tree. Flowers do not block lines.
    - Corner spaces have only the diagonal, because orthogonal lines from a corner run along the track (rulebook tip 6).
-   - Side spaces have three lines: orthogonal and both diagonals.
+   - Side spaces have three lines: the orthogonal line starts on the circle straight in front of the Martian, and the two diagonals start on the circles diagonally next to the Martian's square, so they leave the Martian directly (a Martian above column 4 can plant on (0,3), (1,2), (2,1)... and (0,5), (1,6)...).
    - If there is no empty circle on any line, skip to step 4 as if you had scored 1 point.
 3. **Score.** Count the flowers of the same colour connected orthogonally to the one you planted, including it (diagonals do not connect). This is your score for the turn.
 4. **Move.** Move your Martian forward by your score. Spaces with other Martians are passed over without being counted, and the Martian cannot end on an occupied space.

@@ -112,16 +112,27 @@ final class Rules
     }
 
     /**
-     * Garden lines radiating from a track space, each as a list of keys "r,c" starting at the entry circle.
+     * Garden lines radiating from a track space, each as a list of keys "r,c" in order from the Martian.
+     * The orthogonal line starts on the circle straight in front of the Martian's square. A diagonal line
+     * starts on the circle diagonally next to the Martian's square (so it leaves the Martian directly, not
+     * one circle further in). A corner has a single diagonal that starts on the corner circle.
      * A line runs until the edge of the garden.
      *
      * @return array<int,array<int,string>>
      */
     public static function lines(int $p): array
     {
-        [$r0, $c0, $dirs] = self::launcher($p);
+        [$er, $ec, $dirs] = self::launcher($p);
+        $normal = $dirs[0];
         $lines = [];
         foreach ($dirs as [$dr, $dc]) {
+            $r0 = $er;
+            $c0 = $ec;
+            if (count($dirs) > 1 && ($dr !== $normal[0] || $dc !== $normal[1])) {
+                // diagonal: step sideways from the entry circle by the tangent component
+                $r0 = $er + ($dr - $normal[0]);
+                $c0 = $ec + ($dc - $normal[1]);
+            }
             $line = [];
             $r = $r0;
             $c = $c0;

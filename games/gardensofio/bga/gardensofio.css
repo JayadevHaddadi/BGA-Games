@@ -213,12 +213,13 @@
     position: absolute;
     z-index: 30;
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: center;
-    gap: 6px;
-    width: min(100%, 244px);
+    gap: 4px;
+    width: max-content;
+    max-width: 100%;
     box-sizing: border-box;
-    padding: 8px;
+    padding: 6px;
     border: 2px solid #5b4a2b;
     border-radius: 3px;
     background: #1b1714;
@@ -229,9 +230,10 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-width: 66px;
+    flex: 1 1 0;
+    min-width: 0;
     min-height: 84px;
-    padding: 4px 6px;
+    padding: 4px 3px;
     font-size: 21px;
     border: 2px solid #5b4a2b;
     border-radius: 3px;
@@ -243,7 +245,9 @@
 .gio_color_btn img {
     display: block;
     width: 45px;
-    height: 50px;
+    max-width: 100%;
+    height: auto;
+    aspect-ratio: 160 / 176;
 }
 
 .gio_color_btn:disabled {
