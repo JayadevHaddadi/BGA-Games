@@ -1,0 +1,299 @@
+/**
+ * Gardens of Io - BGA stylesheet
+ * Flat, matte look taken from the board: dark volcanic garden, sulphur-yellow track corners, flat flower discs.
+ * No box shadows, glows, gradients on pieces, or looping animations (BGA reviewer guidelines).
+ */
+
+#gio_root {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 6px 0 12px;
+    color: #2b2118;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* Special action counters: five buttons, one per black counter on the board */
+
+#gio_specials {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.gio_slot_btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 6px;
+    border: 2px solid #5b4a2b;
+    border-radius: 3px;
+    background: #2b241d;
+    cursor: pointer;
+}
+
+.gio_slot_btn svg {
+    display: block;
+    margin: 0 auto;
+}
+
+.gio_slot_btn.is_selected {
+    border-color: #ffd54f;
+    background: #4a3b1f;
+}
+
+.gio_slot_btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+@media (hover: hover) {
+    .gio_slot_btn:not(:disabled):hover {
+        border-color: #ffd54f;
+    }
+}
+
+/* Board */
+
+#gio_board_wrap {
+    position: relative;
+    width: 100%;
+    margin: 0 auto;
+}
+
+#gio_board {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.gio_cell_g {
+    cursor: default;
+}
+
+.gio_cell_g.is_target {
+    cursor: pointer;
+}
+
+.gio_cell_g.is_target .gio_slot {
+    stroke: #ffd54f;
+    stroke-width: 2.5;
+}
+
+.gio_cell_g.is_target .gio_ring {
+    stroke: #ffd54f;
+    stroke-dasharray: 4 3;
+}
+
+.gio_cell_g.is_staged .gio_ring {
+    stroke: #ffffff;
+    stroke-dasharray: none;
+    stroke-width: 4;
+}
+
+.gio_cell_g.is_pick .gio_ring {
+    stroke: #6ec6ff;
+    stroke-dasharray: none;
+    stroke-width: 4;
+}
+
+.gio_cell_g:focus-visible {
+    outline: 2px solid #ffd54f;
+    outline-offset: 2px;
+}
+
+@media (hover: hover) {
+    .gio_cell_g.is_target:hover .gio_slot {
+        stroke: #ffffff;
+    }
+}
+
+/* Martian tokens sit on the track; they never take clicks */
+
+#gio_tokens {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.gio_token {
+    position: absolute;
+    width: 8.4%;
+    aspect-ratio: 1 / 1;
+    transform: translate(-50%, -50%);
+    border: 3px solid var(--tc, #ffffff);
+    border-radius: 50%;
+    background: #1b1714;
+    overflow: hidden;
+    transition: left 0.4s ease, top 0.4s ease;
+}
+
+.gio_token img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .gio_token {
+        transition: none;
+    }
+}
+
+/* Flying saucer and Martians still waiting to enter */
+
+#gio_saucer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 8px 0;
+    padding: 6px 8px;
+    border: 1px solid #5b4a2b;
+    border-radius: 3px;
+    background: #2b241d;
+    color: #f4ead2;
+    font-size: 13px;
+}
+
+#gio_saucer[hidden] {
+    display: none;
+}
+
+.gio_waiting {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.gio_waiting img {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 2px solid var(--tc, #ffffff);
+    background: #1b1714;
+}
+
+/* Choosing a Martian type */
+
+.gio_choice_row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin: 8px 0;
+}
+
+.gio_choice {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 84px;
+    min-height: 44px;
+    padding: 6px;
+    border: 2px solid #8a7850;
+    border-radius: 3px;
+    background: #f4ead2;
+    color: #2b2118;
+    cursor: pointer;
+}
+
+.gio_choice img {
+    width: 56px;
+    height: 56px;
+    object-fit: contain;
+}
+
+.gio_choice.is_selected {
+    border-color: #2d6cdf;
+    outline: 3px solid #2d6cdf;
+    outline-offset: 1px;
+}
+
+/* Reserve colour picker */
+
+#gio_reserve {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    margin: 8px 0;
+}
+
+#gio_reserve:empty {
+    display: none;
+}
+
+.gio_colour_btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 56px;
+    min-height: 44px;
+    padding: 4px 8px;
+    border: 2px solid #5b4a2b;
+    border-radius: 3px;
+    background: #2b241d;
+    color: #f4ead2;
+    cursor: pointer;
+}
+
+.gio_colour_btn.is_selected {
+    border-color: #ffd54f;
+    outline: 2px solid #ffd54f;
+    outline-offset: 1px;
+}
+
+.gio_colour_btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+#gio_hint {
+    min-height: 1.4em;
+    margin: 6px 0;
+    text-align: center;
+    font-size: 14px;
+}
+
+/* Player panels: one line of flower counts per player */
+
+.gio_panel {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    margin-top: 4px;
+    font-size: 12px;
+}
+
+.gio_pcount {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.gio_glyph {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/* Colour-blind symbols: on by default (cssPref gardensofio_cb_on); off hides the symbol */
+
+.gardensofio_cb_off .gio_sym {
+    display: none;
+}
+
+@media (max-width: 480px) {
+    #gio_root {
+        padding: 2px 0 8px;
+    }
+
+    .gio_choice {
+        min-width: 72px;
+    }
+}

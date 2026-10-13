@@ -1,0 +1,51 @@
+==Overview==
+
+'''Gardens of Io''' is an abstract strategy game for 2–5 players designed by Néstor Romeral Andrés and published by nestorgames. Martian gardeners toss rapid-growth seeds from the outside of the garden. Planting next to your own flowers scores more, and the Martian furthest along the score track wins.
+
+==Components==
+
+* A garden of 81 circles (9 x 9) and a 40-space score track around it. One lap is 40 points.
+* 60 flowers in 6 colours (10 each).
+* 3 trees (black cones) that block seeds.
+* 5 special action counters.
+* Martians: Bot, Ali, Marty, Bob and Robby. Each player takes one type.
+
+==Setup==
+
+* Each player draws flowers from the bag at random: 2 players 27, 3 players 18, 4 players 14, 5 players 11. Unused flowers stay in the bag.
+* Players take Martian types in turn order. Each Martian starts on the flying saucer, next to space 0.
+* The first three players place a tree each, on any empty circle (2 players: first, second, first again).
+
+==Your turn==
+
+On your turn, in this order:
+
+# '''Special action (optional):''' tap one of the five special action counters. You may use one per turn, and each player may use one per game (two in a 2-player game, each different). Each counter can be used only once in the whole game.
+# '''Plant:''' from your Martian, a straight line runs diagonally or orthogonally into the garden. Plant one of your flowers on any empty circle on those lines, before the first tree. Flowers do not block lines. If there is no such circle, skip to step 4 as if you scored 1 point.
+# '''Score:''' the number of same-colour flowers connected orthogonally to the one you planted (including it). Diagonal connections do not count.
+# '''Move:''' move your Martian forward that many spaces on the score track. Spaces with other Martians are skipped without counting.
+
+Your Martian enters the track at space 0 on your first turn.
+
+==Special actions==
+
+* Swap a tree with a planted flower.
+* Swap two planted flowers.
+* Move a planted flower to another empty circle.
+* Move a tree to another empty circle.
+* Move your Martian 5 spaces forward (this is the only special action that scores).
+
+==Extra turns and laps==
+
+* If you plant the last flower of a colour (all 10 are on the board), you take an extra turn.
+* Crossing the start line between 0 and 1 completes a lap. With the optional lap flower bonus, take one flower from the board that is not of a finished colour into your reserve.
+
+==End of the game==
+
+* The game ends when a player has no flowers left in reserve at the end of their turn.
+* It also ends immediately if the leading Martian is a full lap (40 points) ahead of the last one.
+* The Martian furthest along the track wins. In the cooperative mode, the group score is the score of the lowest Martian.
+
+==Colour-blind symbols==
+
+Each colour has its own shape on the flower. The symbols can be switched off in the game preferences.

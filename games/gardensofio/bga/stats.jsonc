@@ -1,0 +1,19 @@
+{
+    // Statistics for the table
+    "table": {
+        "turns_number": { "id": 10, "name": "Number of turns", "type": "int" },
+        "flowers_planted": { "id": 11, "name": "Total flowers planted", "type": "int" },
+        "laps_completed": { "id": 12, "name": "Total laps completed", "type": "int" },
+        "specials_used": { "id": 13, "name": "Special actions used", "type": "int" }
+    },
+
+    // Statistics for each player
+    "player": {
+        "turns_number": { "id": 10, "name": "Number of turns", "type": "int" },
+        "flowers_planted": { "id": 11, "name": "Flowers planted", "type": "int" },
+        "laps_completed": { "id": 12, "name": "Laps completed", "type": "int" },
+        "specials_used": { "id": 13, "name": "Special actions used", "type": "int" },
+        "largest_group": { "id": 14, "name": "Largest group planted", "type": "int" },
+        "flowers_taken_from_board": { "id": 15, "name": "Flowers taken from the board (lap bonus)", "type": "int" }
+    }
+}

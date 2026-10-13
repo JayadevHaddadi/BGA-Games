@@ -1,0 +1,30 @@
+{
+  // option ids should be between 100 and 199
+  "100": {
+    "name": "Lap flower bonus (optional rule)",
+    "values": {
+      "1": {
+        "name": "Disabled (Standard)"
+      },
+      "2": {
+        "name": "Enabled",
+        "description": "When your Martian crosses the start line between 0 and 1, take one flower from the board (not of an exhausted colour) into your reserve."
+      }
+    },
+    "default": 1
+  },
+  "101": {
+    "name": "Game mode",
+    "values": {
+      "1": {
+        "name": "Competitive (Standard)",
+        "description": "The Martian furthest along the track wins."
+      },
+      "2": {
+        "name": "Cooperative",
+        "description": "The group score is the score of the lowest scoring Martian. Players work together to get the highest possible group score."
+      }
+    },
+    "default": 1
+  }
+}

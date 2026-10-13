@@ -43,6 +43,7 @@ TARGET_MAP = {
     "microforgetest": ("games/microforge/bga", "microforgetest"),
     "gardensofmars": ("games/gardensofmars/bga", "gardensofmars"),
     "gardensofmarstest": ("games/gardensofmars/bga", "gardensofmars"),
+    "gardensofio": ("games/gardensofio/bga", "gardensofio"),
 }
 
 def load_credentials():
