@@ -87,21 +87,30 @@
     background: rgba(255, 255, 255, 0.12);
 }
 
-/* A used counter has been taken: the counter space is covered with a flat dark disc, the icon stays readable */
+/* A used counter was taken by a player: a disc in their colour with their Martian covers the X, the icon stays readable */
 .gio_slot_btn.is_used {
     cursor: default;
 }
 
-.gio_slot_btn.is_used::before {
-    content: '';
+.gio_slot_cover {
     position: absolute;
-    left: 6%;
-    right: 6%;
-    top: 4%;
-    height: 44%;
-    border: 2px solid #5b4a2b;
+    left: 7.7%;
+    top: 7%;
+    width: 84.6%;
+    aspect-ratio: 1 / 1;
+    box-sizing: border-box;
+    border: 3px solid #ffffff;
     border-radius: 50%;
-    background: #0c0a09;
+    background: var(--tc, #ffffff);
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.gio_slot_cover img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
 }
 
 @media (hover: hover) {
@@ -204,9 +213,12 @@
     position: absolute;
     z-index: 30;
     display: flex;
-    flex-wrap: nowrap;
-    gap: 4px;
-    padding: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    width: min(100%, 244px);
+    box-sizing: border-box;
+    padding: 8px;
     border: 2px solid #5b4a2b;
     border-radius: 3px;
     background: #1b1714;
@@ -217,9 +229,10 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-width: 44px;
-    min-height: 56px;
-    padding: 2px 4px;
+    min-width: 66px;
+    min-height: 84px;
+    padding: 4px 6px;
+    font-size: 21px;
     border: 2px solid #5b4a2b;
     border-radius: 3px;
     background: #2b241d;
@@ -229,8 +242,8 @@
 
 .gio_color_btn img {
     display: block;
-    width: 30px;
-    height: 33px;
+    width: 45px;
+    height: 50px;
 }
 
 .gio_color_btn:disabled {
@@ -290,15 +303,34 @@
 .gio_panel {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px 8px;
-    margin-top: 4px;
-    font-size: 12px;
+    align-items: center;
+    gap: 6px 10px;
+    margin-top: 6px;
+    font-size: 20px;
+}
+
+.gio_pmartian {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    box-sizing: border-box;
+    border: 3px solid var(--tc, #ffffff);
+    border-radius: 50%;
+    background: #f4ead2;
+    overflow: hidden;
+}
+
+.gio_pmartian img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
 }
 
 .gio_pcount {
     display: inline-flex;
     align-items: center;
-    gap: 2px;
+    gap: 3px;
 }
 
 .gio_pcount img {

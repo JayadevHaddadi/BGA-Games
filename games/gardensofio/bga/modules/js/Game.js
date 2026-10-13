@@ -72,6 +72,7 @@ export class Game {
         this.martians = gamedatas.martians;
         this.reserves = gamedatas.reserves;
         this.specials = gamedatas.specials;
+        this.specialUsers = gamedatas.special_users || {};
         this.ring = gamedatas.ring;
 
         const root = document.createElement('div');
@@ -187,6 +188,11 @@ export class Game {
         return GIO_PLAYER_COLOURS[(idx < 0 ? 0 : idx) % GIO_PLAYER_COLOURS.length];
     }
 
+    martianImg(pid) {
+        const m = this.martians[pid];
+        return m && m.type ? `<img src="${gioImg(`${m.type}.png`)}" alt="${this.martianLabel(m.type)}">` : '';
+    }
+
     playerName(pid) {
         const p = this.gamedatas.players[pid];
         return p ? (p.name || p.player_name || '') : '';
@@ -264,10 +270,14 @@ export class Game {
             <img src="${gioImg('specials.jpg')}" alt="" draggable="false">
             ${[1, 2, 3, 4, 5].map((slot) => {
                 const used = this.specials[slot] === 1;
-                const label = info[slot].name + (used ? ` (${_('used')})` : '');
+                const user = this.specialUsers[slot];
+                const label = info[slot].name + (used ? ` (${_('used by')} ${this.playerName(user)})` : '');
+                // A used counter is covered by a disc in the player's colour with their Martian, which hides the X.
+                const cover = used ? `<span class="gio_slot_cover" style="--tc:${this.playerColour(user)}">
+                    ${this.martianImg(user)}</span>` : '';
                 return `<button type="button" class="gio_slot_btn${used ? ' is_used' : ''}" data-slot="${slot}"
                     style="left:${((32 + 319 * (slot - 1)) / 1700) * 100}%;width:${(319 / 1700) * 100}%"
-                    aria-label="${label}" title="${label}"></button>`;
+                    aria-label="${label}" title="${label}">${cover}</button>`;
             }).join('')}
         </div>`;
         box.querySelectorAll('.gio_slot_btn').forEach((btn) => {
@@ -296,7 +306,7 @@ export class Game {
         const info = this.specialInfo()[slot];
         // Tapping a counter always tells the player what it does (status bar, which also works on phones).
         if (this.specials[slot] === 1) {
-            this.setStatus(`${info.name}: ${_('this special action has already been used in this game')}`);
+            this.setStatus(`${info.name}: ${_('already used by')} ${this.playerName(this.specialUsers[slot])}`);
             return;
         }
         if (!this.isActive || this.stateName !== 'PlayerTurn') {
@@ -337,9 +347,10 @@ export class Game {
             const m = this.martians[pid] || { dist: -1 };
             const laps = m.dist >= 0 ? Math.floor(m.dist / 40) : 0;
             line.title = `${_('Score')}: ${Math.max(0, m.dist)}, ${_('laps')}: ${laps}`;
-            line.innerHTML = GIO_COLOURS.map((col) => `
+            const alien = `<span class="gio_pmartian" style="--tc:${this.playerColour(pid)}">${this.martianImg(pid)}</span>`;
+            line.innerHTML = alien + GIO_COLOURS.map((col) => `
                 <span class="gio_pcount" title="${this.colourLabel(col)}">
-                    <img src="${gioImg(`flower_${col}.png`)}" alt="${this.colourLabel(col)}" width="16" height="18"><b>${res[col] || 0}</b>
+                    <img src="${gioImg(`flower_${col}.png`)}" alt="${this.colourLabel(col)}" width="32" height="35"><b>${res[col] || 0}</b>
                 </span>`).join('');
         });
     }
@@ -551,9 +562,10 @@ export class Game {
         const half = picker.offsetWidth / 2;
         const centre = (c + 1.5) * cell;
         const left = Math.min(Math.max(centre, half + 2), width - half - 2);
-        const below = r < 3;
+        const aboveTop = (r + 0.9) * cell;
+        const below = aboveTop - picker.offsetHeight < 0;
         picker.style.left = `${left}px`;
-        picker.style.top = `${below ? (r + 2.1) * cell : (r + 0.9) * cell}px`;
+        picker.style.top = `${below ? (r + 2.1) * cell : aboveTop}px`;
         picker.style.transform = below ? 'translate(-50%, 0)' : 'translate(-50%, -100%)';
     }
 
@@ -690,6 +702,7 @@ export class Game {
     async notif_specialUsed(args) {
         this.playSound('gio_special');
         this.specials[args.slot] = 1;
+        this.specialUsers[args.slot] = args.player_id;
         this.renderSpecials();
         this.applyChanges(args.changes);
     }

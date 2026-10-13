@@ -34,5 +34,6 @@ DROP TABLE IF EXISTS `special_slot`;
 CREATE TABLE IF NOT EXISTS `special_slot` (
     `slot` tinyint(3) unsigned NOT NULL,
     `used` tinyint(3) unsigned NOT NULL DEFAULT 0,
+    `used_by` int(10) unsigned NOT NULL DEFAULT 0,
     PRIMARY KEY (`slot`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

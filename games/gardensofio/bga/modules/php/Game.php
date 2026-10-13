@@ -119,9 +119,9 @@ class Game extends \Bga\GameFramework\Table
 
         $sRows = [];
         foreach (array_keys(Rules::SPECIALS) as $slot) {
-            $sRows[] = "($slot, 0)";
+            $sRows[] = "($slot, 0, 0)";
         }
-        static::DbQuery("INSERT INTO `special_slot` (`slot`, `used`) VALUES " . implode(',', $sRows));
+        static::DbQuery("INSERT INTO `special_slot` (`slot`, `used`, `used_by`) VALUES " . implode(',', $sRows));
 
         // Trees are placed by players 1, 2 and 3 in turn order (2 players: 1, 2, 1), then play starts.
         $treeOrder = [];
@@ -211,6 +211,27 @@ class Game extends \Bga\GameFramework\Table
         return (int) $this->getUniqueValueFromDb("SELECT `dist` FROM `martian` WHERE `player_id` = $pid");
     }
 
+    /**
+     * A Martian enters the track on space 0 (the next free space) at the start of its first turn. This is
+     * idempotent and is called wherever the turn is read, because the framework may compute the turn
+     * arguments or receive an action before the state's entering hook has run.
+     */
+    public function ensureEntered(int $pid): void
+    {
+        if ($this->getDist($pid) >= 0) {
+            return;
+        }
+        $dist = Rules::enterDist($this->occupiedFor($pid));
+        $this->setDist($pid, $dist);
+        $this->notifyAllPlayers('martianEntered', clienttranslate('${player_name} enters Io with the ${martian_type} Martian.'), [
+            'player_id' => $pid,
+            'player_name' => $this->getPlayerNameById($pid),
+            'dist' => $dist,
+            'martian_type' => $this->getMartians()[$pid]['type'],
+            'i18n' => ['martian_type'],
+        ]);
+    }
+
     public function setDist(int $pid, int $dist): void
     {
         static::DbQuery("UPDATE `martian` SET `dist` = $dist WHERE `player_id` = $pid");
@@ -286,9 +307,19 @@ class Game extends \Bga\GameFramework\Table
         return $out;
     }
 
+    /** @return array<int,int> slot => id of the player who used it (0 if unused) */
+    public function getSpecialUsers(): array
+    {
+        $out = [];
+        foreach ($this->getObjectListFromDb("SELECT `slot`, `used_by` FROM `special_slot`") as $row) {
+            $out[(int) $row['slot']] = (int) $row['used_by'];
+        }
+        return $out;
+    }
+
     public function markSpecialUsed(int $slot, int $pid): void
     {
-        static::DbQuery("UPDATE `special_slot` SET `used` = 1 WHERE `slot` = $slot");
+        static::DbQuery("UPDATE `special_slot` SET `used` = 1, `used_by` = $pid WHERE `slot` = $slot");
         static::DbQuery("UPDATE `martian` SET `specials_used` = `specials_used` + 1 WHERE `player_id` = $pid");
     }
 
@@ -440,6 +471,7 @@ class Game extends \Bga\GameFramework\Table
         $result['reserves'] = $this->getAllReserves();
         $result['board_counts'] = $this->boardColourCounts();
         $result['specials'] = $this->getSpecialSlots();
+        $result['special_users'] = $this->getSpecialUsers();
         $result['special_limit'] = $this->specialLimit();
         $result['special_names'] = Rules::SPECIALS;
         $result['colors'] = Rules::COLOURS;

@@ -31,23 +31,13 @@ class PlayerTurn extends GameState
     /** The first turn of a Martian places it on space 0 (the flying saucer is next to it). */
     public function onEnteringState(): void
     {
-        $pid = (int) $this->game->getActivePlayerId();
-        if ($this->game->getDist($pid) < 0) {
-            $dist = Rules::enterDist($this->game->occupiedFor($pid));
-            $this->game->setDist($pid, $dist);
-            $this->game->notifyAllPlayers('martianEntered', clienttranslate('${player_name} enters Io with the ${martian_type} Martian.'), [
-                'player_id' => $pid,
-                'player_name' => $this->game->getPlayerNameById($pid),
-                'dist' => $dist,
-                'martian_type' => $this->game->getMartians()[$pid]['type'],
-                'i18n' => ['martian_type'],
-            ]);
-        }
+        $this->game->ensureEntered((int) $this->game->getActivePlayerId());
     }
 
     public function getArgs(): array
     {
         $pid = (int) $this->game->getActivePlayerId();
+        $this->game->ensureEntered($pid);
         $m = $this->game->getMartians()[$pid];
         $grid = $this->game->getGrid();
         $track = Rules::norm($m['dist']);
@@ -74,6 +64,7 @@ class PlayerTurn extends GameState
     public function actSpecial(int $slot, int $fromR, int $fromC, int $toR, int $toC): string
     {
         $pid = (int) $this->game->getActivePlayerId();
+        $this->game->ensureEntered($pid);
         $m = $this->game->getMartians()[$pid];
 
         if ($this->game->flag('turn_special') === 1) {
@@ -169,6 +160,7 @@ class PlayerTurn extends GameState
     public function actNoPlant(): string
     {
         $pid = (int) $this->game->getActivePlayerId();
+        $this->game->ensureEntered($pid);
         $m = $this->game->getMartians()[$pid];
         $track = Rules::norm($m['dist']);
         if (Rules::candidates($track, $this->game->getGrid()) !== []) {
@@ -179,6 +171,7 @@ class PlayerTurn extends GameState
 
     public function zombie(int $playerId): string
     {
+        $this->game->ensureEntered($playerId);
         $m = $this->game->getMartians()[$playerId];
         $cands = Rules::candidates(Rules::norm($m['dist']), $this->game->getGrid());
         if ($cands === []) {
@@ -192,6 +185,7 @@ class PlayerTurn extends GameState
 
     private function plantAt(int $pid, int $row, int $col, string $colour): string
     {
+        $this->game->ensureEntered($pid);
         $m = $this->game->getMartians()[$pid];
         $track = Rules::norm($m['dist']);
         $reserve = $this->game->getReserve($pid);
