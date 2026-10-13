@@ -88,7 +88,6 @@ export class Game {
                 </div>
                 <div id="gio_side">
                     <div id="gio_specials" role="group" aria-label="${_('Special actions')}"></div>
-                    <div id="gio_saucer"></div>
                     <p id="gio_hint" aria-live="polite"></p>
                     <div id="gio_final" hidden></div>
                 </div>
@@ -100,7 +99,6 @@ export class Game {
         this.renderSpecials();
         this.renderAllCells();
         this.renderTokens();
-        this.renderSaucer();
         this.renderPanels();
 
         // Without this call the interface only updates after a page refresh.
@@ -223,17 +221,6 @@ export class Game {
         el.style.top = `${((rr + 0.5) / 11) * 100}%`;
     }
 
-    renderSaucer() {
-        const el = document.getElementById('gio_saucer');
-        const waiting = Object.entries(this.martians).filter(([, m]) => m.dist < 0);
-        el.hidden = waiting.length === 0;
-        el.innerHTML = waiting.length === 0 ? '' : `<span class="gio_saucer_label">${_('Flying saucer')}</span>` + waiting.map(([pid, m]) => `
-            <span class="gio_waiting" style="--tc:${this.playerColour(pid)}">
-                ${m.type ? `<img src="${gioImg(`${m.type}.png`)}" alt="">` : ''}
-                <span>${this.playerName(pid)}</span>
-            </span>`).join('');
-    }
-
     /* ------------------------------------------------------------------------ special actions (part of the board art) */
 
     specialInfo() {
@@ -348,10 +335,12 @@ export class Game {
             const laps = m.dist >= 0 ? Math.floor(m.dist / 40) : 0;
             line.title = `${_('Score')}: ${Math.max(0, m.dist)}, ${_('laps')}: ${laps}`;
             const alien = `<span class="gio_pmartian" style="--tc:${this.playerColour(pid)}">${this.martianImg(pid)}</span>`;
+            const limit = this.gamedatas.special_limit || 1;
+            const left = Math.max(0, limit - (m.specials_used || 0));
             line.innerHTML = alien + GIO_COLOURS.map((col) => `
                 <span class="gio_pcount" title="${this.colourLabel(col)}">
                     <img src="${gioImg(`flower_${col}.png`)}" alt="${this.colourLabel(col)}" width="32" height="35"><b>${res[col] || 0}</b>
-                </span>`).join('');
+                </span>`).join('') + `<span class="gio_pspecial">${left}/${limit} ${_('Special actions left')}</span>`;
         });
     }
 
@@ -679,7 +668,6 @@ export class Game {
     async notif_martianEntered(args) {
         this.martians[args.player_id].dist = args.dist;
         this.renderTokens();
-        this.renderSaucer();
         this.renderPanels();
     }
 
@@ -703,6 +691,10 @@ export class Game {
         this.playSound('gio_special');
         this.specials[args.slot] = 1;
         this.specialUsers[args.slot] = args.player_id;
+        if (this.martians[args.player_id]) {
+            this.martians[args.player_id].specials_used = (this.martians[args.player_id].specials_used || 0) + 1;
+        }
+        this.renderPanels();
         this.renderSpecials();
         this.applyChanges(args.changes);
     }

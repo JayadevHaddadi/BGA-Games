@@ -261,40 +261,6 @@
     }
 }
 
-/* Flying saucer and Martians still waiting to enter */
-
-#gio_saucer {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    margin: 8px 0;
-    padding: 6px 8px;
-    border: 1px solid #5b4a2b;
-    border-radius: 3px;
-    background: #2b241d;
-    font-size: 13px;
-}
-
-#gio_saucer[hidden] {
-    display: none;
-}
-
-.gio_waiting {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.gio_waiting img {
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    border: 2px solid var(--tc, #ffffff);
-    background: #f4ead2;
-}
-
 #gio_hint {
     min-height: 1.4em;
     margin: 6px 0;
@@ -335,6 +301,11 @@
     display: inline-flex;
     align-items: center;
     gap: 3px;
+}
+
+.gio_pspecial {
+    flex: 1 0 100%;
+    font-size: 14px;
 }
 
 .gio_pcount img {
