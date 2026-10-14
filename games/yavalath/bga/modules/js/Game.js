@@ -138,6 +138,7 @@ export class Game {
             }
         }
 
+        document.body.classList.add('yavalath_page_bg');
         this.initDom();
         this.applySymbolPreference();
         this.renderBoard();
@@ -149,10 +150,6 @@ export class Game {
         const main = document.getElementById('game_play_area') || document.body;
         main.innerHTML = `
             <div id="yavalath_container">
-                <div id="yavalath_rules_line">
-                    ${_('Connect ${win} to win.').replace('${win}', this.winLength)}
-                    ${_('Connect ${lose} and you lose.').replace('${lose}', this.loseLength)}
-                </div>
                 <div id="yavalath_board_scaler">
                     <div id="yavalath_board_wrapper">
                         <svg id="yavalath_board_svg"></svg>
@@ -577,9 +574,9 @@ export class Game {
             this.playerColors = args.player_colors;
             const hexMap = { white: '#ffffff', black: '#222222', red: '#d32f2f' };
             for (const [pId, col] of Object.entries(args.player_colors)) {
-                const panel = document.getElementById(`player_board_${pId}`) || this.bga?.playerPanels?.getElement?.(pId);
+                const panel = this.bga?.playerPanels?.getElement?.(Number(pId));
                 if (panel) {
-                    const dot = panel.querySelector('.player-color, .player_color, [style*="background-color"]');
+                    const dot = panel.querySelector?.('.player-color, .player_color, [style*="background-color"]');
                     if (dot && hexMap[col]) {
                         dot.style.backgroundColor = hexMap[col];
                     }
