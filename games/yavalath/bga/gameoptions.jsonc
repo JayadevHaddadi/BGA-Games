@@ -29,6 +29,6 @@
                 "description": "In 2-player games, Player 2 can choose to swap colors after Player 1's opening move."
             }
         },
-        "default": 1
+        "default": 2
     }
 }

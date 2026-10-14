@@ -100,7 +100,7 @@ class Game extends \Bga\GameFramework\Table
 
         // Read game options
         $gameMode = (int) ($options[100] ?? ($this->tableOptions ? $this->tableOptions->get(100) : 1) ?? 1);
-        $pieRuleOption = (int) ($options[101] ?? ($this->tableOptions ? $this->tableOptions->get(101) : 1) ?? 1);
+        $pieRuleOption = (int) ($options[101] ?? ($this->tableOptions ? $this->tableOptions->get(101) : 2) ?? 2);
 
         // Configure board radius and line lengths
         // Mode 1: Standard (Radius 4, side 5, 61 cells, win 4, lose 3)
