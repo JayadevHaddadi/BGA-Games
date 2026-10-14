@@ -341,8 +341,21 @@ export class Game {
             line.innerHTML = alien + GIO_COLOURS.map((col) => `
                 <span class="gio_pcount" title="${this.colourLabel(col)}">
                     <img src="${gioImg(`flower_${col}.png`)}" alt="${this.colourLabel(col)}" width="32" height="35"><b>${res[col] || 0}</b>
-                </span>`).join('') + `<span class="gio_pspecial">${left}/${limit} ${_('Special actions left')}</span>`;
+                </span>`).join('') + this.tokensHtml(pid, left);
+            const tokens = line.querySelector('.gio_ptokens');
+            if (tokens) tokens.addEventListener('click', () => this.setStatus(_('Special action tokens')));
         });
+    }
+
+    /**
+     * The player's unused special action tokens: one disc (player colour with their Martian) per special action
+     * still available to them. Using a special action puts the disc on that counter of the board.
+     */
+    tokensHtml(pid, left) {
+        if (left <= 0) return '';
+        const label = _('Special action tokens');
+        const disc = `<span class="gio_ptoken" style="--tc:${this.playerColour(pid)}">${this.martianImg(pid)}</span>`;
+        return `<button type="button" class="gio_ptokens" title="${label}" aria-label="${label}">${disc.repeat(left)}</button>`;
     }
 
     /* ------------------------------------------------------------------------ states */
