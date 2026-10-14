@@ -830,15 +830,49 @@ export class Game {
     renderFinalScoring(args) {
         const box = document.getElementById('gio_final');
         if (!box) return;
+        this.finalArgs = args;
+        this.finalMinimized = false;
+        this.drawFinal();
+        if (!this.finalWired) {
+            this.finalWired = true;
+            box.addEventListener('click', (e) => {
+                // minimize button, outside the card, or the corner button that brings the results back
+                if (e.target.id === 'gio_final' || e.target.closest('.gio_final_min')) {
+                    this.finalMinimized = true;
+                    this.drawFinal();
+                } else if (e.target.closest('.gio_final_restore')) {
+                    this.finalMinimized = false;
+                    this.drawFinal();
+                }
+            });
+        }
+    }
+
+    drawFinal() {
+        const box = document.getElementById('gio_final');
+        const args = this.finalArgs;
+        if (!box || !args) return;
+        box.hidden = false;
+        box.classList.toggle('is_minimized', !!this.finalMinimized);
+        if (this.finalMinimized) {
+            box.innerHTML = `<button type="button" class="gio_final_restore" aria-label="${_('Show final scoring')}"
+                title="${_('Show final scoring')}">${_('Results')}</button>`;
+            return;
+        }
         const place = args.is_coop ? '' : `<th scope="col">${_('Place')}</th>`;
         const rows = args.rows.map((row, i) => `<tr>${args.is_coop ? '' : `<td>${i + 1}</td>`}
             <td>${this.playerName(row.player_id)}</td><td>${row.score}</td>
             <td>${row.laps}</td><td>${row.flowers_planted}</td><td>${row.flowers_left}</td></tr>`).join('');
-        box.innerHTML = `<table class="gio_final_table">
+        const title = args.is_coop
+            ? _('The game is over. Group score: ${score}').replace('${score}', String(args.group_score))
+            : _('The game is over');
+        box.innerHTML = `<div class="gio_final_card" role="dialog" aria-label="${_('Final scoring')}">
+            <button type="button" class="gio_final_min" aria-label="${_('Minimize')}" title="${_('Minimize')}">_</button>
+            <h3>${title}</h3>
+            <table class="gio_final_table">
             <caption>${_('Final scoring')}</caption>
             <thead><tr>${place}<th scope="col">${_('Player')}</th><th scope="col">${_('Points')}</th>
             <th scope="col">${_('Laps')}</th><th scope="col">${_('Planted')}</th><th scope="col">${_('Left in reserve')}</th></tr></thead>
-            <tbody>${rows}</tbody></table>`;
-        box.hidden = false;
+            <tbody>${rows}</tbody></table></div>`;
     }
 }
