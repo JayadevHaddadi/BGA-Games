@@ -102,6 +102,14 @@ export class Game {
         this.renderBoard();
         this.renderSpecials();
         document.getElementById('gio_help_btn').addEventListener('click', () => this.toggleHelp());
+        document.getElementById('gio_help').addEventListener('click', (e) => {
+            // outside the card or on the close button
+            if (e.target.id === 'gio_help' || e.target.closest('.gio_help_close')) this.toggleHelp(false);
+        });
+        document.addEventListener('keydown', (e) => {
+            const panel = document.getElementById('gio_help');
+            if (e.key === 'Escape' && panel && !panel.hidden) this.toggleHelp(false);
+        });
         this.renderAllCells();
         this.renderTokens();
         this.renderPanels();
@@ -257,10 +265,10 @@ export class Game {
 
     /* ------------------------------------------------------------------------ rules reminder ("?") */
 
-    toggleHelp() {
+    toggleHelp(force) {
         const panel = document.getElementById('gio_help');
         const btn = document.getElementById('gio_help_btn');
-        const open = panel.hidden;
+        const open = typeof force === 'boolean' ? force : panel.hidden;
         panel.hidden = !open;
         btn.setAttribute('aria-expanded', open ? 'true' : 'false');
         btn.classList.toggle('is_open', open);
@@ -280,7 +288,10 @@ export class Game {
         const counts = GIO_COLOURS.map((col) => `<span class="gio_help_count">${flower(col)}<b>${onBoard[col]}/${totals[col]}</b></span>`).join('');
         const specials = [1, 2, 3, 4, 5].map((slot) => `<li><img class="gio_help_icon" src="${gioImg(`special_${slot}.png`)}" alt="">
             <span>${info[slot].name}</span></li>`).join('');
-        panel.innerHTML = `
+        const arrow = `<svg class="gio_help_icon" viewBox="0 0 40 40" role="img" aria-label="${_('Move')}">
+            <path d="M4 20h28M23 10l11 10-11 10" fill="none" stroke="#f4ead2" stroke-width="4" stroke-linecap="square"/></svg>`;
+        panel.innerHTML = `<div class="gio_help_card" role="dialog" aria-modal="true" aria-label="${_('Rules reminder')}">
+            <button type="button" class="gio_help_close" aria-label="${_('Close')}" title="${_('Close')}">X</button>
             <h3>${_('Your turn')}</h3>
             <ol>
                 <li><span class="gio_help_icons"><img class="gio_help_icon" src="${gioImg('special_3.png')}" alt=""></span>
@@ -289,7 +300,7 @@ export class Game {
                     <span><b>${_('Plant.')}</b> ${_('Plant a flower on an empty circle on a straight or diagonal line from your Martian. Trees block the line, flowers do not.')}</span></li>
                 <li><span class="gio_help_icons">${flower('blue')}${flower('blue')}</span>
                     <span><b>${_('Score.')}</b> ${_('Count the connected flowers of the same colour (up, down, left, right) including the new one.')}</span></li>
-                <li><span class="gio_help_icons"><img class="gio_help_icon" src="${gioImg('special_5.png')}" alt=""></span>
+                <li><span class="gio_help_icons">${arrow}</span>
                     <span><b>${_('Move.')}</b> ${_('Move your Martian that many spaces. Spaces with other Martians are skipped.')}</span></li>
                 <li><span class="gio_help_icons">${flower('red')}${flower('green')}</span>
                     <span><b>${_('Extra turn.')}</b> ${_('If you plant the last flower of a colour (none of that colour is left in any reserve, so all of them are on the board), you take an extra turn.')}</span></li>
@@ -300,7 +311,8 @@ export class Game {
             <ul>${specials}</ul>
             <h3>${_('End of the game')}</h3>
             <p>${_('The game ends when a player has no flowers left, or when the leading Martian is a full lap (40 points) ahead of the last one. The Martian furthest along the track wins.')}</p>
-            ${this.gamedatas.lap_option ? `<p>${_('Lap bonus: when your Martian crosses the start line, take one flower from the board into your reserve (not of an exhausted colour).')}</p>` : ''}`;
+            ${this.gamedatas.lap_option ? `<p>${_('Lap bonus: when your Martian crosses the start line, take one flower from the board into your reserve (not of an exhausted colour).')}</p>` : ''}
+            </div>`;
     }
 
     renderSpecials() {
