@@ -394,7 +394,18 @@ export class Game {
         if (hint) hint.textContent = '';
     }
 
+    /** "3 blue, 2 yellow, ..." for the flowers in the active player's reserve (zero counts are left out). */
+    flowerSummary() {
+        const res = (this.args && this.args.reserve) || {};
+        const parts = GIO_COLOURS.filter((col) => (res[col] || 0) > 0).map((col) => `${res[col]} ${this.colourLabel(col)}`);
+        return `${_('Your flowers')}: ${parts.length ? parts.join(', ') : _('none')}`;
+    }
+
     setStatus(text) {
+        // On your own turn the status bar always shows the flowers you have in reserve.
+        if (this.stateName === 'PlayerTurn' && this.isActive && this.args && this.args.reserve) {
+            text = `${text} — ${this.flowerSummary()}`;
+        }
         this.bga.statusBar.setTitle(text);
         const hint = document.getElementById('gio_hint');
         if (hint) hint.textContent = text.indexOf('${') >= 0 ? '' : text;
