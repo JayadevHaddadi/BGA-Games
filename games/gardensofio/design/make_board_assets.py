@@ -1,7 +1,7 @@
 """
 Builds the board art used by the BGA game from the original poster (GOIO_BIG.jpg):
 
-  bga/img/board.jpg     the 11 x 11 board (track ring + 9 x 9 circles), repainted flat
+  bga/img/board.jpg     the 11 x 11 board. NOTE: now the supplied games/gardensofio/board_clean.png (resized to 1100, flattened on black); this script no longer generates it
   bga/img/specials.jpg  the strip of five special action counters, flat, without the X marks
 
 The poster header (publisher logo, title, designer name, flying saucer art) is NOT used.
