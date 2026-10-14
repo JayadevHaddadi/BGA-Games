@@ -77,6 +77,11 @@ export class Game {
         const root = document.createElement('div');
         root.id = 'gio_root';
         root.innerHTML = `
+            <div id="gio_helpbar">
+                <button type="button" id="gio_help_btn" aria-expanded="false" aria-controls="gio_help"
+                    aria-label="${_('Rules reminder')}" title="${_('Rules reminder')}">?</button>
+            </div>
+            <div id="gio_help" hidden></div>
             <div id="gio_layout">
                 <div id="gio_table">
                     <div id="gio_board_wrap">
@@ -96,6 +101,7 @@ export class Game {
 
         this.renderBoard();
         this.renderSpecials();
+        document.getElementById('gio_help_btn').addEventListener('click', () => this.toggleHelp());
         this.renderAllCells();
         this.renderTokens();
         this.renderPanels();
@@ -140,6 +146,7 @@ export class Game {
     }
 
     renderAllCells() {
+        this.renderHelp();
         for (let r = 0; r < 9; r++) {
             for (let c = 0; c < 9; c++) this.renderCell(r, c);
         }
@@ -246,6 +253,52 @@ export class Game {
                 steps: [_('Confirm to move your Martian 5 spaces forward (you score 5 points)')],
             },
         };
+    }
+
+    /* ------------------------------------------------------------------------ rules reminder ("?") */
+
+    toggleHelp() {
+        const panel = document.getElementById('gio_help');
+        const btn = document.getElementById('gio_help_btn');
+        const open = panel.hidden;
+        panel.hidden = !open;
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        btn.classList.toggle('is_open', open);
+        if (open) this.renderHelp();
+    }
+
+    renderHelp() {
+        const panel = document.getElementById('gio_help');
+        if (!panel || panel.hidden) return;
+        const info = this.specialInfo();
+        const onBoard = {};
+        GIO_COLOURS.forEach((col) => { onBoard[col] = 0; });
+        Object.values(this.cells).forEach((cell) => { if (cell.kind === 'f') onBoard[cell.color] = (onBoard[cell.color] || 0) + 1; });
+        const flower = (col) => `<img class="gio_help_icon" src="${gioImg(`flower_${col}.png`)}" alt="${this.colourLabel(col)}">`;
+        const counts = GIO_COLOURS.map((col) => `<span class="gio_help_count">${flower(col)}<b>${onBoard[col]}/10</b></span>`).join('');
+        const specials = [1, 2, 3, 4, 5].map((slot) => `<li><img class="gio_help_icon" src="${gioImg(`special_${slot}.png`)}" alt="">
+            <span>${info[slot].name}</span></li>`).join('');
+        panel.innerHTML = `
+            <h3>${_('Your turn')}</h3>
+            <ol>
+                <li><span class="gio_help_icons"><img class="gio_help_icon" src="${gioImg('special_3.png')}" alt=""></span>
+                    <span><b>${_('Special action (optional).')}</b> ${_('Tap a counter. Each counter works once in the game; you may use one per game (two in a 2-player game), at most one per turn.')}</span></li>
+                <li><span class="gio_help_icons"><img class="gio_help_icon" src="${gioImg('tree.png')}" alt=""></span>
+                    <span><b>${_('Plant.')}</b> ${_('Plant a flower on an empty circle on a straight or diagonal line from your Martian. Trees block the line, flowers do not.')}</span></li>
+                <li><span class="gio_help_icons">${flower('blue')}${flower('blue')}</span>
+                    <span><b>${_('Score.')}</b> ${_('Count the connected flowers of the same colour (up, down, left, right) including the new one.')}</span></li>
+                <li><span class="gio_help_icons"><img class="gio_help_icon" src="${gioImg('special_5.png')}" alt=""></span>
+                    <span><b>${_('Move.')}</b> ${_('Move your Martian that many spaces. Spaces with other Martians are skipped.')}</span></li>
+                <li><span class="gio_help_icons">${flower('red')}${flower('green')}</span>
+                    <span><b>${_('Extra turn.')}</b> ${_('If you plant the last flower of a colour (all 10 of that colour are now on the board), you take an extra turn.')}</span></li>
+            </ol>
+            <p class="gio_help_label">${_('Flowers on the board')}</p>
+            <div class="gio_help_counts">${counts}</div>
+            <h3>${_('Special actions')}</h3>
+            <ul>${specials}</ul>
+            <h3>${_('End of the game')}</h3>
+            <p>${_('The game ends when a player has no flowers left, or when the leading Martian is a full lap (40 points) ahead of the last one. The Martian furthest along the track wins.')}</p>
+            ${this.gamedatas.lap_option ? `<p>${_('Lap bonus: when your Martian crosses the start line, take one flower from the board into your reserve (not of an exhausted colour).')}</p>` : ''}`;
     }
 
     renderSpecials() {
@@ -364,6 +417,7 @@ export class Game {
             ? _('${you} place a tree on an empty circle of the garden')
             : _('${actplayer} places a tree'));
         this.highlightTargets();
+        this.renderHelp();
     }
 
     enterLap(args, isActive) {
@@ -715,6 +769,10 @@ export class Game {
         this.martians[args.player_id].dist = args.dist;
         this.placeToken(args.player_id, args.dist);
         this.renderPanels();
+    }
+
+    async notif_extraTurn() {
+        this.renderHelp();
     }
 
     async notif_noPlant() {
