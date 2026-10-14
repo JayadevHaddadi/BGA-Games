@@ -312,8 +312,9 @@
     position: absolute;
     left: 50%;
     top: 50%;
-    width: 52px;
+    width: 31px;
     height: 52px;
+    object-fit: contain;
     transform: translate(-50%, -50%);
     pointer-events: none;
     z-index: 2;

@@ -12,7 +12,6 @@
 const GIO_S = 36; // one square in SVG units; the board scales to the available width
 const GIO_COLOURS = ['blue', 'yellow', 'orange', 'purple', 'red', 'green'];
 const GIO_PLAYER_COLOURS = ['#4caf50', '#e91e63', '#2196f3', '#ff9800', '#9c27b0'];
-const GIO_TREE = 'M0,-12 L11,10 L-11,10 Z';
 
 // Which kind of circle each pick of a special action needs: 'f' flower, 't' tree, 'e' empty circle
 const GIO_SPECIAL_PICKS = { 1: ['t', 'f'], 2: ['f', 'f'], 3: ['f', 'e'], 4: ['t', 'e'], 5: [] };
@@ -159,7 +158,8 @@ export class Game {
         let content = '';
         let label = gioCoord(r, c);
         if (cell && cell.kind === 't') {
-            content = `<path d="${GIO_TREE}" fill="#050505" stroke="#d7c9a8" stroke-width="1.5"/>`;
+            const th = GIO_S * 0.72; // tree art is 63 x 105
+            content = `<image href="${gioImg('tree.png')}" x="${-th * 0.3}" y="${-th / 2}" width="${th * 0.6}" height="${th}"/>`;
             label += ` ${_('tree')}`;
         } else if (cell && cell.kind === 'f') {
             content = this.flowerImage(cell.color);

@@ -635,7 +635,7 @@ export class Game {
 
             if (parseInt(cell.has_tree) === 1) {
                 spot.classList.add('has_tree');
-                spot.innerHTML = '<svg class="gou_tree" viewBox="0 0 40 40" role="img" aria-label="' + _('Tree') + '"><circle cx="20" cy="20" r="17" fill="#8e9aa0" stroke="#4b565c" stroke-width="2"/><path d="M10 27 L20 11 L30 27 Z" fill="#4b565c"/></svg>';
+                spot.innerHTML = '<img class="gou_tree" src="' + (typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : '') + 'img/tree.png" alt="' + _('Tree') + '" draggable="false">';
                 spot.title = _('Tree: blocks movement');
             } else if (cell.flower_color) {
                 spot.appendChild(this.createFlowerToken(cell.flower_color));

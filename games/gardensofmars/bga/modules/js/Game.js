@@ -513,15 +513,7 @@ export class Game {
         if (!spot) return;
         spot.classList.add('has_peak');
         spot.title = _('Peak (gray cone) — blocks movement, cannot be entered or planted on');
-        spot.innerHTML = `
-            <svg class="gom_peak_cone" viewBox="0 0 44 44" role="img" aria-label="${_('Peak')}">
-                <circle cx="22" cy="22" r="18" fill="#78909c" stroke="#37474f" stroke-width="2"/>
-                <!-- 3D Cone facets -->
-                <path d="M22 6 L36 29 L22 34 Z" fill="#546e7a" opacity="0.6"/>
-                <path d="M22 6 L8 29 L22 34 Z" fill="#b0bec5" opacity="0.7"/>
-                <circle cx="22" cy="6" r="3.5" fill="#eceff1" stroke="#37474f" stroke-width="1"/>
-            </svg>
-        `;
+        spot.innerHTML = `<img class="gom_peak_cone" src="${this.imgUrl('tree.png')}" alt="${_('Peak')}" draggable="false">`;
     }
 
     addFlowerToSpot(q, r, color) {
