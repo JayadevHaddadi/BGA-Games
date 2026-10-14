@@ -676,7 +676,7 @@ export class Game {
 
     /* ------------------------------------------------------------------------ notifications */
 
-    playSound(id) {
+    sfx(id) {
         try {
             this.bga.sounds.play(id);
         } catch (e) {
@@ -708,23 +708,23 @@ export class Game {
     }
 
     async notif_flowerPlanted(args) {
-        this.playSound('gio_plant');
+        this.sfx('gio_plant');
         this.applyChanges(args.changes);
     }
 
     async notif_martianMoved(args) {
-        this.playSound('gio_move');
+        this.sfx('gio_move');
         this.martians[args.player_id].dist = args.dist;
         this.placeToken(args.player_id, args.dist);
         this.renderPanels();
     }
 
     async notif_noPlant() {
-        this.playSound('gio_move');
+        this.sfx('gio_move');
     }
 
     async notif_specialUsed(args) {
-        this.playSound('gio_special');
+        this.sfx('gio_special');
         this.specials[args.slot] = 1;
         this.specialUsers[args.slot] = args.player_id;
         if (this.martians[args.player_id]) {
@@ -745,7 +745,7 @@ export class Game {
     }
 
     async notif_finalScoring(args) {
-        this.playSound('gio_score');
+        this.sfx('gio_score');
         this.setStatus(args.is_coop
             ? _('The game is over. Group score: ${score}').replace('${score}', String(args.group_score))
             : _('The game is over'));
