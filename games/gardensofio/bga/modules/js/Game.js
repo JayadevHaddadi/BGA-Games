@@ -88,10 +88,10 @@ export class Game {
                 </div>
                 <div id="gio_side">
                     <div id="gio_specials" role="group" aria-label="${_('Special actions')}"></div>
-                    <p id="gio_hint" aria-live="polite"></p>
-                    <div id="gio_final" hidden></div>
                 </div>
-            </div>`;
+            </div>
+            <p id="gio_hint" aria-live="polite"></p>
+            <div id="gio_final" hidden></div>`;
         this.bga.gameArea.getElement().appendChild(root);
         document.body.classList.add('gardensofio_page_bg');
 
@@ -251,20 +251,18 @@ export class Game {
     renderSpecials() {
         const box = document.getElementById('gio_specials');
         const info = this.specialInfo();
-        // The strip of five counter spaces is a crop of the original board art (1700 x 700 source pixels);
-        // each space is a 319 / 1700 wide column starting at 32 / 1700.
+        // Five counters, one per special action, drawn with the icons of the printed board.
         box.innerHTML = `<div class="gio_specials_inner">
-            <img src="${gioImg('specials.jpg')}" alt="" draggable="false">
             ${[1, 2, 3, 4, 5].map((slot) => {
                 const used = this.specials[slot] === 1;
                 const user = this.specialUsers[slot];
                 const label = info[slot].name + (used ? ` (${_('used by')} ${this.playerName(user)})` : '');
-                // A used counter is covered by a disc in the player's colour with their Martian, which hides the X.
+                // A used counter is covered by a disc in the player's colour with their Martian.
                 const cover = used ? `<span class="gio_slot_cover" style="--tc:${this.playerColour(user)}">
                     ${this.martianImg(user)}</span>` : '';
                 return `<button type="button" class="gio_slot_btn${used ? ' is_used' : ''}" data-slot="${slot}"
-                    style="left:${((32 + 319 * (slot - 1)) / 1700) * 100}%;width:${(319 / 1700) * 100}%"
-                    aria-label="${label}" title="${label}">${cover}</button>`;
+                    aria-label="${label}" title="${label}">
+                    <img src="${gioImg(`special_${slot}.png`)}" alt="" draggable="false">${cover}</button>`;
             }).join('')}
         </div>`;
         box.querySelectorAll('.gio_slot_btn').forEach((btn) => {

@@ -42,38 +42,52 @@
 
 @container (min-width: 900px) {
     #gio_layout {
-        grid-template-columns: minmax(0, 760px) minmax(260px, 340px);
+        grid-template-columns: minmax(0, 760px) 76px;
         grid-template-areas: "table side";
         justify-content: center;
         align-items: start;
         gap: 16px;
     }
+
+    .gio_specials_inner {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .gio_slot_btn {
+        flex: 0 0 auto;
+        width: 64px;
+    }
 }
 
-/* Special action counters (crop of the original board) */
+/* Special action counters: five icon tiles, a row on phones, a column beside the board on wide screens */
 
 .gio_specials_inner {
-    position: relative;
+    display: flex;
+    justify-content: center;
+    gap: 6px;
     width: 100%;
-}
-
-.gio_specials_inner img {
-    display: block;
-    width: 100%;
-    height: auto;
 }
 
 .gio_slot_btn {
-    position: absolute;
-    top: 0;
-    bottom: 0;
+    position: relative;
+    flex: 0 1 56px;
     min-width: 44px;
+    aspect-ratio: 1 / 1;
     margin: 0;
-    padding: 0;
+    padding: 4px;
+    box-sizing: border-box;
     border: 2px solid transparent;
     border-radius: 3px;
-    background: transparent;
+    background: #3a3f58;
     cursor: pointer;
+}
+
+.gio_slot_btn > img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
 }
 
 .gio_slot_btn.is_available {
@@ -94,10 +108,10 @@
 
 .gio_slot_cover {
     position: absolute;
-    left: 7.7%;
-    top: 7%;
-    width: 84.6%;
-    aspect-ratio: 1 / 1;
+    right: -4px;
+    bottom: -4px;
+    width: 58%;
+    height: 58%;
     box-sizing: border-box;
     border: 3px solid #ffffff;
     border-radius: 50%;
