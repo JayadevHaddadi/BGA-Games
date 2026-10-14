@@ -15,7 +15,7 @@
     "publisher_website": "https://www.nestorgames.com",
 
     // Board Game Geek ID of the publisher
-    "publisher_bgg_id": null,
+    "publisher_bgg_id": 9976,
 
     // Board game geek ID of the game
     "bgg_id": 202177,

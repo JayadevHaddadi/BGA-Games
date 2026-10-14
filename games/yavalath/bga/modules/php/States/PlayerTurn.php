@@ -22,7 +22,7 @@ class PlayerTurn extends GameState
         );
     }
 
-    public function isPieRuleAvailable(int $activePlayerId): bool
+    public function isPieRuleAvailable(?int $activePlayerId = null): bool
     {
         $enabled = (bool) $this->globals->get('pie_rule_enabled', false);
         $used = (bool) $this->globals->get('pie_rule_used', false);
@@ -60,8 +60,9 @@ class PlayerTurn extends GameState
     }
 
     #[PossibleAction]
-    public function actSwapColors(int $activePlayerId): string
+    public function actSwapColors(?int $activePlayerId = null): string
     {
+        $activePlayerId = $activePlayerId ?? (int) $this->game->getActivePlayerId();
         if (!$this->isPieRuleAvailable($activePlayerId)) {
             throw new UserException(clienttranslate("The Pie Rule (swap) cannot be used now."));
         }
@@ -73,10 +74,15 @@ class PlayerTurn extends GameState
     }
 
     #[PossibleAction]
-    public function actPlaceStone(int $q, int $r, int $activePlayerId): string
+    public function actPlaceStone(int $q, int $r, ?int $activePlayerId = null): string
     {
-        // Stone placed; pie rule window closes
-        $this->globals->set('pie_rule_used', true);
+        $activePlayerId = $activePlayerId ?? (int) $this->game->getActivePlayerId();
+
+        // Stone placed on turn 2 or later; pie rule window closes
+        $turnCount = (int) $this->globals->get('turn_count', 1);
+        if ($turnCount >= 2) {
+            $this->globals->set('pie_rule_used', true);
+        }
 
         $color = $this->game->placeStone($q, $r, $activePlayerId);
         $result = $this->game->evaluateMove($q, $r, $color);

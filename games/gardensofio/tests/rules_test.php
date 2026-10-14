@@ -54,14 +54,22 @@ check(Rules::lines(0)[0] === ['0,0', '1,1', '2,2', '3,3', '4,4', '5,5', '6,6', '
 $empty = [];
 $cand = Rules::candidates(5, $empty); // top row, column 4
 check(in_array('0,4', $cand, true) && in_array('8,4', $cand, true), 'orthogonal line from top side reaches bottom');
-check(in_array('1,3', $cand, true) && in_array('1,5', $cand, true), 'diagonals from top side');
-check(!in_array('0,3', $cand, true), 'no line along the track row');
+// Diagonals leave the Martian directly: they start on the circles diagonally next to its square.
+check(in_array('0,3', $cand, true) && in_array('1,2', $cand, true) && in_array('3,0', $cand, true), 'down-left diagonal from top side');
+check(in_array('0,5', $cand, true) && in_array('1,6', $cand, true) && in_array('3,8', $cand, true), 'down-right diagonal from top side');
+check(!in_array('1,3', $cand, true) && !in_array('1,5', $cand, true), 'no circle one row in on the diagonal lines');
+// The leftmost top space has no down-left diagonal, only the orthogonal and the down-right diagonal.
+$left = Rules::candidates(1, []);
+check(in_array('0,0', $left, true) && in_array('0,1', $left, true) && in_array('1,2', $left, true) && !in_array('1,1', $left, true), 'top-left side space: orthogonal plus one diagonal');
+// A right side space: diagonals start above and below the entry circle.
+$right = Rules::candidates(15, []); // right column, row 4
+check(in_array('4,8', $right, true) && in_array('3,8', $right, true) && in_array('5,8', $right, true) && in_array('2,7', $right, true) && in_array('6,7', $right, true), 'right side space lines');
 
 // Trees block: a tree at 3,4 blocks the orthogonal line beyond it.
 $g = ['3,4' => ['k' => 't']];
 $cand = Rules::candidates(5, $g);
 check(in_array('2,4', $cand, true) && !in_array('3,4', $cand, true) && !in_array('4,4', $cand, true), 'tree blocks its line');
-check(in_array('1,3', $cand, true) && in_array('2,2', $cand, true), 'diagonals unaffected by a tree on the orthogonal');
+check(in_array('0,3', $cand, true) && in_array('2,1', $cand, true), 'diagonals unaffected by a tree on the orthogonal');
 
 // Flowers do not block, but occupied circles are not candidates.
 $g = ['2,4' => ['k' => 'f', 'c' => 'red', 'o' => 1]];
@@ -230,6 +238,13 @@ for ($game = 0; $game < $games; $game++) {
                 }
             }
 
+            $inReserves = function (string $col) use (&$res): int {
+                $n = 0;
+                foreach ($res as $r) {
+                    $n += $r[$col];
+                }
+                return $n;
+            };
             // Planting.
             $cands = Rules::candidates($martian[$pid] % Rules::TRACK, $grid);
             $laps = 0;
@@ -253,7 +268,7 @@ for ($game = 0; $game < $games; $game++) {
             if ($laps > 0 && $lapOption) {
                 $elig = [];
                 foreach ($grid as $key => $cell) {
-                    if ($cell['k'] === 'f' && Rules::colourCountOnBoard($grid, $cell['c']) < Rules::FLOWERS_PER_COLOUR) {
+                    if ($cell['k'] === 'f' && $inReserves($cell['c']) > 0) {
                         $elig[] = $key;
                     }
                 }
@@ -274,7 +289,7 @@ for ($game = 0; $game < $games; $game++) {
                 break;
             }
             // Extra turn if the colour just planted is complete on the board.
-            if ($cands && isset($colour) && Rules::colourCountOnBoard($grid, $colour) === Rules::FLOWERS_PER_COLOUR) {
+            if ($cands && isset($colour) && $inReserves($colour) === 0) {
                 $extra = true;
             }
         }

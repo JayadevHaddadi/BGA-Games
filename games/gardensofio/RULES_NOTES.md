@@ -27,14 +27,15 @@ Each turn, in this order:
    - Move your Martian 5 spaces forward. This is the only special action that scores (5 points). It also counts for the lap bonus.
 2. **Plant.** From your Martian, a straight line runs diagonally or orthogonally into the garden. Plant one of your flowers on any empty circle on those lines, before the first tree. Flowers do not block lines.
    - Corner spaces have only the diagonal, because orthogonal lines from a corner run along the track (rulebook tip 6).
-   - Side spaces have three lines: orthogonal and both diagonals.
+   - Side spaces have three lines: the orthogonal line starts on the circle straight in front of the Martian, and the two diagonals start on the circles diagonally next to the Martian's square, so they leave the Martian directly (a Martian above column 4 can plant on (0,3), (1,2), (2,1)... and (0,5), (1,6)...).
    - If there is no empty circle on any line, skip to step 4 as if you had scored 1 point.
 3. **Score.** Count the flowers of the same colour connected orthogonally to the one you planted, including it (diagonals do not connect). This is your score for the turn.
 4. **Move.** Move your Martian forward by your score. Spaces with other Martians are passed over without being counted, and the Martian cannot end on an occupied space.
    - Crossing the start line between 0 and 1 completes a lap. We count this as stepping from space 40 onto space 41.
    - With the optional lap flower bonus enabled (game option), the player takes one flower from the board into their reserve. The flower can be of any colour that is not exhausted. This is the rulebook's optional rule in step 4 ("Optional (players must agree on the addition of this rule before the game starts): If your Martian just completed a lap, by crossing the start line between 0 and 1 ... take any one of the flowers already placed on the board except for those of a type that has already been exhausted ... and add it to your reserve"). **CHECK**: we treat the take as mandatory when an eligible flower exists.
-5. **Extra turn.** If you planted the last flower of a colour, you take an extra turn.
-   - **CHECK (important)**: "last" means all 10 flowers of that colour are on the board. Flowers still in the bag can never be planted, so some colours may never trigger this in a 2, 3, 4 or 5 player game.
+5. **Extra turn.** If you planted the last flower of a colour that is in play, you take an extra turn.
+   - "In play" means the flowers drawn into player reserves at setup plus the flowers on the board. Flowers left in the bag are not in play. Example: 8 flowers of a colour were drawn in total, and you plant the 8th: extra turn. The "?" panel shows planted/in-play per colour (for example 5/8).
+   - The same definition of "exhausted" is used for the lap flower bonus.
    - If that planting empties your reserve, the game ends at the end of the turn and the extra turn is not taken.
 
 Your Martian enters the track on space 0 on your first turn. **CHECK**: if space 0 is occupied, we place it on the next free space.

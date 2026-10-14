@@ -48,9 +48,9 @@ class PlayerTurn {
 
         // Pie Rule swap lives in the action bar only (no duplicate button in the play area)
         if (args.can_swap && active) {
-            this.game.addActionButton('yavalath_bga_swap_btn', _('Swap Colors (Pie Rule)'), () => {
+            this.game.addActionButton('btnSwapColor', _('Swap Color'), () => {
                 this.game.onPieRuleSwap();
-            }, 'secondary');
+            }, 'alert');
         }
     }
 
@@ -138,6 +138,7 @@ export class Game {
             }
         }
 
+        document.body.classList.add('yavalath_page_bg');
         this.initDom();
         this.applySymbolPreference();
         this.renderBoard();
@@ -149,10 +150,6 @@ export class Game {
         const main = document.getElementById('game_play_area') || document.body;
         main.innerHTML = `
             <div id="yavalath_container">
-                <div id="yavalath_rules_line">
-                    ${_('Connect ${win} to win.').replace('${win}', this.winLength)}
-                    ${_('Connect ${lose} and you lose.').replace('${lose}', this.loseLength)}
-                </div>
                 <div id="yavalath_board_scaler">
                     <div id="yavalath_board_wrapper">
                         <svg id="yavalath_board_svg"></svg>
@@ -185,7 +182,12 @@ export class Game {
 
     onPieRuleSwap() {
         if (!this.isCurrentPlayerActive()) return;
-        this.bgaPerformAction('actSwapColors');
+        this.clearPendingMove();
+        if (this.bga?.actions?.performAction) {
+            this.bga.actions.performAction('actSwapColors', {});
+        } else if (typeof gameui !== 'undefined' && typeof gameui.bgaPerformAction === 'function') {
+            gameui.bgaPerformAction('actSwapColors', {});
+        }
     }
 
     updateTurnStatus(active, args) {
@@ -194,12 +196,16 @@ export class Game {
         const lose = this.loseLength || 3;
         if (active) {
             if (args && args.can_swap) {
-                this.bga.statusBar.setTitle(_('${you} may place a stone OR invoke the Pie Rule to swap colors!'));
+                this.bga.statusBar.setTitle(_('${you}: Place stone or swap Color'));
             } else {
                 this.bga.statusBar.setTitle(_('${you} must place a stone (Connect ${win} to WIN, avoid ${lose}!)').replace('${win}', win).replace('${lose}', lose));
             }
         } else {
-            this.bga.statusBar.setTitle(_('${actplayer} is choosing a placement...'));
+            if (args && args.can_swap) {
+                this.bga.statusBar.setTitle(_('${actplayer}: Place stone or swap Color'));
+            } else {
+                this.bga.statusBar.setTitle(_('${actplayer} is choosing a placement...'));
+            }
         }
     }
 
@@ -471,7 +477,12 @@ export class Game {
         this.pendingMove = null;
 
         this.clearActionButtons();
-        this.updateTurnStatus(true);
+        this.updateTurnStatus(true, this.currentArgs);
+        if (this.currentArgs && this.currentArgs.can_swap) {
+            this.addActionButton('btnSwapColor', _('Swap Color'), () => {
+                this.onPieRuleSwap();
+            }, 'alert');
+        }
     }
 
     confirmPendingMove() {
@@ -561,6 +572,24 @@ export class Game {
         const args = this._getNotifArgs(notif);
         if (args.player_colors) {
             this.playerColors = args.player_colors;
+            const hexMap = { white: '#ffffff', black: '#222222', red: '#d32f2f' };
+            for (const [pId, col] of Object.entries(args.player_colors)) {
+                const panel = this.bga?.playerPanels?.getElement?.(Number(pId));
+                if (panel) {
+                    const dot = panel.querySelector?.('.player-color, .player_color, [style*="background-color"]');
+                    if (dot && hexMap[col]) {
+                        dot.style.backgroundColor = hexMap[col];
+                    }
+                }
+            }
+        }
+
+        if (args.swapping_player_id) {
+            for (const key in this.boardData) {
+                if (this.boardData[key] && this.boardData[key].color === 'white') {
+                    this.boardData[key].player_id = args.swapping_player_id;
+                }
+            }
         }
 
         this.updateBoardInteractions(this.isCurrentPlayerActive());

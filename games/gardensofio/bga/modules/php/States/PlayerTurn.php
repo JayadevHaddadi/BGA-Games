@@ -32,6 +32,10 @@ class PlayerTurn extends GameState
     public function onEnteringState(): void
     {
         $this->game->ensureEntered((int) $this->game->getActivePlayerId());
+        // Undo point at the start of the turn; entering again after a special action keeps the earlier one.
+        if ($this->game->flag('turn_special') === 0) {
+            $this->game->undoSavepoint();
+        }
     }
 
     public function getArgs(): array
@@ -149,6 +153,17 @@ class PlayerTurn extends GameState
         return PlayerTurn::class;
     }
 
+    /** Take back the special action of this turn (restores the situation at the start of the turn). */
+    #[PossibleAction]
+    public function actUndoSpecial(): string
+    {
+        if ($this->game->flag('turn_special') !== 1) {
+            throw new UserException(clienttranslate('There is nothing to undo.'));
+        }
+        $this->game->undoRestorePoint();
+        return PlayerTurn::class;
+    }
+
     #[PossibleAction]
     public function actPlant(int $row, int $col, string $colour): string
     {
@@ -219,8 +234,8 @@ class PlayerTurn extends GameState
             'changes' => $changes,
         ]);
 
-        // Planting the last flower of a colour (all ten on the board) grants an extra turn.
-        if ($this->game->boardColourCounts()[$colour] === Rules::FLOWERS_PER_COLOUR) {
+        // Planting the last flower of a colour that is in play (none left in any reserve) grants an extra turn.
+        if ($this->game->boardColourCounts()[$colour] >= $this->game->colourTotals()[$colour]) {
             $this->game->setFlag('extra_turn', 1);
         }
 

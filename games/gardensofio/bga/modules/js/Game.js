@@ -12,7 +12,6 @@
 const GIO_S = 36; // one square in SVG units; the board scales to the available width
 const GIO_COLOURS = ['blue', 'yellow', 'orange', 'purple', 'red', 'green'];
 const GIO_PLAYER_COLOURS = ['#4caf50', '#e91e63', '#2196f3', '#ff9800', '#9c27b0'];
-const GIO_TREE = 'M0,-12 L11,10 L-11,10 Z';
 
 // Which kind of circle each pick of a special action needs: 'f' flower, 't' tree, 'e' empty circle
 const GIO_SPECIAL_PICKS = { 1: ['t', 'f'], 2: ['f', 'f'], 3: ['f', 'e'], 4: ['t', 'e'], 5: [] };
@@ -88,19 +87,31 @@ export class Game {
                 </div>
                 <div id="gio_side">
                     <div id="gio_specials" role="group" aria-label="${_('Special actions')}"></div>
-                    <div id="gio_saucer"></div>
-                    <p id="gio_hint" aria-live="polite"></p>
-                    <div id="gio_final" hidden></div>
                 </div>
-            </div>`;
+            </div>
+            <div id="gio_helpbar">
+                <button type="button" id="gio_help_btn" aria-expanded="false" aria-controls="gio_help"
+                    aria-label="${_('Rules reminder')}" title="${_('Rules reminder')}">?</button>
+            </div>
+            <div id="gio_help" hidden></div>
+            <p id="gio_hint" aria-live="polite"></p>
+            <div id="gio_final" hidden></div>`;
         this.bga.gameArea.getElement().appendChild(root);
         document.body.classList.add('gardensofio_page_bg');
 
         this.renderBoard();
         this.renderSpecials();
+        document.getElementById('gio_help_btn').addEventListener('click', () => this.toggleHelp());
+        document.getElementById('gio_help').addEventListener('click', (e) => {
+            // outside the card or on the close button
+            if (e.target.id === 'gio_help' || e.target.closest('.gio_help_close')) this.toggleHelp(false);
+        });
+        document.addEventListener('keydown', (e) => {
+            const panel = document.getElementById('gio_help');
+            if (e.key === 'Escape' && panel && !panel.hidden) this.toggleHelp(false);
+        });
         this.renderAllCells();
         this.renderTokens();
-        this.renderSaucer();
         this.renderPanels();
 
         // Without this call the interface only updates after a page refresh.
@@ -143,6 +154,7 @@ export class Game {
     }
 
     renderAllCells() {
+        this.renderHelp();
         for (let r = 0; r < 9; r++) {
             for (let c = 0; c < 9; c++) this.renderCell(r, c);
         }
@@ -161,7 +173,8 @@ export class Game {
         let content = '';
         let label = gioCoord(r, c);
         if (cell && cell.kind === 't') {
-            content = `<path d="${GIO_TREE}" fill="#050505" stroke="#d7c9a8" stroke-width="1.5"/>`;
+            const th = GIO_S * 0.72; // tree art is 63 x 105
+            content = `<image href="${gioImg('tree.png')}" x="${-th * 0.3}" y="${-th / 2}" width="${th * 0.6}" height="${th}"/>`;
             label += ` ${_('tree')}`;
         } else if (cell && cell.kind === 'f') {
             content = this.flowerImage(cell.color);
@@ -223,17 +236,6 @@ export class Game {
         el.style.top = `${((rr + 0.5) / 11) * 100}%`;
     }
 
-    renderSaucer() {
-        const el = document.getElementById('gio_saucer');
-        const waiting = Object.entries(this.martians).filter(([, m]) => m.dist < 0);
-        el.hidden = waiting.length === 0;
-        el.innerHTML = waiting.length === 0 ? '' : `<span class="gio_saucer_label">${_('Flying saucer')}</span>` + waiting.map(([pid, m]) => `
-            <span class="gio_waiting" style="--tc:${this.playerColour(pid)}">
-                ${m.type ? `<img src="${gioImg(`${m.type}.png`)}" alt="">` : ''}
-                <span>${this.playerName(pid)}</span>
-            </span>`).join('');
-    }
-
     /* ------------------------------------------------------------------------ special actions (part of the board art) */
 
     specialInfo() {
@@ -261,23 +263,73 @@ export class Game {
         };
     }
 
+    /* ------------------------------------------------------------------------ rules reminder ("?") */
+
+    toggleHelp(force) {
+        const panel = document.getElementById('gio_help');
+        const btn = document.getElementById('gio_help_btn');
+        const open = typeof force === 'boolean' ? force : panel.hidden;
+        panel.hidden = !open;
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        btn.classList.toggle('is_open', open);
+        if (open) this.renderHelp();
+    }
+
+    renderHelp() {
+        const panel = document.getElementById('gio_help');
+        if (!panel || panel.hidden) return;
+        const info = this.specialInfo();
+        const onBoard = {};
+        GIO_COLOURS.forEach((col) => { onBoard[col] = 0; });
+        Object.values(this.cells).forEach((cell) => { if (cell.kind === 'f') onBoard[cell.color] = (onBoard[cell.color] || 0) + 1; });
+        const totals = this.gamedatas.colour_totals || {};
+        GIO_COLOURS.forEach((col) => { if (totals[col] === undefined) totals[col] = 10; });
+        const flower = (col) => `<img class="gio_help_icon" src="${gioImg(`flower_${col}.png`)}" alt="${this.colourLabel(col)}">`;
+        const counts = GIO_COLOURS.map((col) => `<span class="gio_help_count">${flower(col)}<b>${onBoard[col]}/${totals[col]}</b></span>`).join('');
+        const specials = [1, 2, 3, 4, 5].map((slot) => `<li><img class="gio_help_icon" src="${gioImg(`special_${slot}.png`)}" alt="">
+            <span>${info[slot].name}</span></li>`).join('');
+        const arrow = `<svg class="gio_help_icon" viewBox="0 0 40 40" role="img" aria-label="${_('Move')}">
+            <path d="M4 20h28M23 10l11 10-11 10" fill="none" stroke="#f4ead2" stroke-width="4" stroke-linecap="square"/></svg>`;
+        panel.innerHTML = `<div class="gio_help_card" role="dialog" aria-modal="true" aria-label="${_('Rules reminder')}">
+            <button type="button" class="gio_help_close" aria-label="${_('Close')}" title="${_('Close')}">X</button>
+            <h3>${_('Your turn')}</h3>
+            <ol>
+                <li><span class="gio_help_icons"><img class="gio_help_icon" src="${gioImg('special_3.png')}" alt=""></span>
+                    <span><b>${_('Special action (optional).')}</b> ${_('Tap a counter. Each counter works once in the game; you may use one per game (two in a 2-player game), at most one per turn.')}</span></li>
+                <li><span class="gio_help_icons"><img class="gio_help_icon" src="${gioImg('tree.png')}" alt=""></span>
+                    <span><b>${_('Plant.')}</b> ${_('Plant a flower on an empty circle on a straight or diagonal line from your Martian. Trees block the line, flowers do not.')}</span></li>
+                <li><span class="gio_help_icons">${flower('blue')}${flower('blue')}</span>
+                    <span><b>${_('Score.')}</b> ${_('Count the connected flowers of the same colour (up, down, left, right) including the new one.')}</span></li>
+                <li><span class="gio_help_icons">${arrow}</span>
+                    <span><b>${_('Move.')}</b> ${_('Move your Martian that many spaces. Spaces with other Martians are skipped.')}</span></li>
+                <li><span class="gio_help_icons">${flower('red')}${flower('green')}</span>
+                    <span><b>${_('Extra turn.')}</b> ${_('If you plant the last flower of a colour (none of that colour is left in any reserve, so all of them are on the board), you take an extra turn.')}</span></li>
+            </ol>
+            <p class="gio_help_label">${_('Flowers on the board')}</p>
+            <div class="gio_help_counts">${counts}</div>
+            <h3>${_('Special actions')}</h3>
+            <ul>${specials}</ul>
+            <h3>${_('End of the game')}</h3>
+            <p>${_('The game ends when a player has no flowers left, or when the leading Martian is a full lap (40 points) ahead of the last one. The Martian furthest along the track wins.')}</p>
+            ${this.gamedatas.lap_option ? `<p>${_('Lap bonus: when your Martian crosses the start line, take one flower from the board into your reserve (not of an exhausted colour).')}</p>` : ''}
+            </div>`;
+    }
+
     renderSpecials() {
         const box = document.getElementById('gio_specials');
         const info = this.specialInfo();
-        // The strip of five counter spaces is a crop of the original board art (1700 x 700 source pixels);
-        // each space is a 319 / 1700 wide column starting at 32 / 1700.
+        // Five counters, one per special action, drawn with the icons of the printed board.
         box.innerHTML = `<div class="gio_specials_inner">
-            <img src="${gioImg('specials.jpg')}" alt="" draggable="false">
             ${[1, 2, 3, 4, 5].map((slot) => {
                 const used = this.specials[slot] === 1;
                 const user = this.specialUsers[slot];
                 const label = info[slot].name + (used ? ` (${_('used by')} ${this.playerName(user)})` : '');
-                // A used counter is covered by a disc in the player's colour with their Martian, which hides the X.
+                // A used counter is covered by a disc in the player's colour with their Martian.
                 const cover = used ? `<span class="gio_slot_cover" style="--tc:${this.playerColour(user)}">
                     ${this.martianImg(user)}</span>` : '';
                 return `<button type="button" class="gio_slot_btn${used ? ' is_used' : ''}" data-slot="${slot}"
-                    style="left:${((32 + 319 * (slot - 1)) / 1700) * 100}%;width:${(319 / 1700) * 100}%"
-                    aria-label="${label}" title="${label}">${cover}</button>`;
+                    aria-label="${label}" title="${label}">
+                    <img src="${gioImg(`special_${slot}.png`)}" alt="" draggable="false">${cover}</button>`;
             }).join('')}
         </div>`;
         box.querySelectorAll('.gio_slot_btn').forEach((btn) => {
@@ -299,7 +351,8 @@ export class Game {
 
     canUseSpecial() {
         return !!(this.isActive && this.stateName === 'PlayerTurn' && this.args && this.args.specials_available
-            && this.args.specials_left_for_player > 0 && !this.args.special_taken_this_turn);
+            && this.args.specials_left_for_player > 0 && !this.args.special_taken_this_turn
+            && Object.values(this.args.specials_available).some(Boolean));
     }
 
     onSpecialClick(slot) {
@@ -348,11 +401,26 @@ export class Game {
             const laps = m.dist >= 0 ? Math.floor(m.dist / 40) : 0;
             line.title = `${_('Score')}: ${Math.max(0, m.dist)}, ${_('laps')}: ${laps}`;
             const alien = `<span class="gio_pmartian" style="--tc:${this.playerColour(pid)}">${this.martianImg(pid)}</span>`;
+            const limit = this.gamedatas.special_limit || 1;
+            const left = Math.max(0, limit - (m.specials_used || 0));
             line.innerHTML = alien + GIO_COLOURS.map((col) => `
                 <span class="gio_pcount" title="${this.colourLabel(col)}">
                     <img src="${gioImg(`flower_${col}.png`)}" alt="${this.colourLabel(col)}" width="32" height="35"><b>${res[col] || 0}</b>
-                </span>`).join('');
+                </span>`).join('') + this.tokensHtml(pid, left);
+            const tokens = line.querySelector('.gio_ptokens');
+            if (tokens) tokens.addEventListener('click', () => this.setStatus(_('Special action tokens')));
         });
+    }
+
+    /**
+     * The player's unused special action tokens: one disc (player colour with their Martian) per special action
+     * still available to them. Using a special action puts the disc on that counter of the board.
+     */
+    tokensHtml(pid, left) {
+        if (left <= 0) return '';
+        const label = _('Special action tokens');
+        const disc = `<span class="gio_ptoken" style="--tc:${this.playerColour(pid)}">${this.martianImg(pid)}</span>`;
+        return `<button type="button" class="gio_ptokens" title="${label}" aria-label="${label}">${disc.repeat(left)}</button>`;
     }
 
     /* ------------------------------------------------------------------------ states */
@@ -363,6 +431,7 @@ export class Game {
             ? _('${you} place a tree on an empty circle of the garden')
             : _('${actplayer} places a tree'));
         this.highlightTargets();
+        this.renderHelp();
     }
 
     enterLap(args, isActive) {
@@ -375,16 +444,30 @@ export class Game {
 
     enterTurn(args, isActive) {
         this.beginState('PlayerTurn', args, isActive);
-        this.setStatus(isActive ? this.turnPrompt() : _('${actplayer} is taking a turn'));
+        if (isActive) {
+            this.setStatus(this.turnPrompt(), this.turnArgs());
+        } else {
+            this.setStatus(_('${actplayer} is taking a turn'));
+        }
         this.highlightTargets();
         this.updateSpecialButtons();
     }
 
+    /** Title of the turn when nothing is staged: what can be done, and the flowers available. */
     turnPrompt() {
-        if (this.args && this.args.candidates && this.args.candidates.length === 0) {
-            return _('${you} have no circle to plant on: you may use a special action first, then your Martian moves 1 space');
+        const special = this.canUseSpecial();
+        const noCircle = !!(this.args && this.args.candidates && this.args.candidates.length === 0);
+        let action;
+        if (noCircle) {
+            action = special ? _('No circle to plant on: perform special action or move 1 space') : _('No circle to plant on: move 1 space');
+        } else {
+            action = special ? _('Tap a highlighted circle or perform special action') : _('Tap a highlighted circle');
         }
-        return _('${you} may tap a special action counter, or tap a highlighted circle to plant a flower');
+        return `${action}. ${_('Available flowers')}: \${flowers}`;
+    }
+
+    turnArgs() {
+        return { flowers: this.flowersHtml() };
     }
 
     beginState(name, args, isActive) {
@@ -405,8 +488,16 @@ export class Game {
         if (hint) hint.textContent = '';
     }
 
-    setStatus(text) {
-        this.bga.statusBar.setTitle(text);
+    /** The flowers in the active player's reserve as icons with counts (colours with none left are left out). */
+    flowersHtml() {
+        const res = (this.args && this.args.reserve) || {};
+        const items = GIO_COLOURS.filter((col) => (res[col] || 0) > 0).map((col) => `<span class="gio_title_flower"><img
+            src="${gioImg(`flower_${col}.png`)}" alt="${this.colourLabel(col)}" title="${this.colourLabel(col)}"><b>${res[col]}</b></span>`);
+        return items.length ? items.join('') : _('none');
+    }
+
+    setStatus(text, args) {
+        this.bga.statusBar.setTitle(text, args);
         const hint = document.getElementById('gio_hint');
         if (hint) hint.textContent = text.indexOf('${') >= 0 ? '' : text;
     }
@@ -425,10 +516,15 @@ export class Game {
             this.bga.statusBar.addActionButton(_('Undo'), clear, { color: 'alert' });
         } else if (this.stateName === 'PlayerTurn') {
             const hasCandidates = !!(args && args.candidates && args.candidates.length > 0);
+            const canUndoSpecial = !!(args && args.special_taken_this_turn);
+            const undoSpecial = () => this.bga.statusBar.addActionButton(_('Undo special action'),
+                () => this.bga.actions.performAction('actUndoSpecial', {}), { color: 'alert' });
             if (!hasCandidates && !this.stage) {
                 this.bga.statusBar.addActionButton(_('Move 1 space'), () => this.confirmNoPlant(), { color: 'primary' });
+                if (canUndoSpecial) undoSpecial();
                 return;
             }
+            if (!this.stage && canUndoSpecial) undoSpecial();
             if (this.stage) {
                 confirm(() => this.confirmTurn(), this.readyToConfirm());
                 this.bga.statusBar.addActionButton(_('Undo'), clear, { color: 'alert' });
@@ -445,7 +541,7 @@ export class Game {
         this.renderAllCells();
         if (this.stateName === 'PlayerTurn') {
             if (!this.stage) {
-                this.setStatus(this.turnPrompt());
+                this.setStatus(this.turnPrompt(), this.turnArgs());
             } else if (this.stage.type === 'special') {
                 this.setStatus(this.specialStatus(this.stage));
             } else if (this.stage.type === 'plant') {
@@ -651,7 +747,7 @@ export class Game {
 
     /* ------------------------------------------------------------------------ notifications */
 
-    playSound(id) {
+    sfx(id) {
         try {
             this.bga.sounds.play(id);
         } catch (e) {
@@ -679,30 +775,37 @@ export class Game {
     async notif_martianEntered(args) {
         this.martians[args.player_id].dist = args.dist;
         this.renderTokens();
-        this.renderSaucer();
         this.renderPanels();
     }
 
     async notif_flowerPlanted(args) {
-        this.playSound('gio_plant');
+        this.sfx('gio_plant');
         this.applyChanges(args.changes);
     }
 
     async notif_martianMoved(args) {
-        this.playSound('gio_move');
+        this.sfx('gio_move');
         this.martians[args.player_id].dist = args.dist;
         this.placeToken(args.player_id, args.dist);
         this.renderPanels();
     }
 
+    async notif_extraTurn() {
+        this.renderHelp();
+    }
+
     async notif_noPlant() {
-        this.playSound('gio_move');
+        this.sfx('gio_move');
     }
 
     async notif_specialUsed(args) {
-        this.playSound('gio_special');
+        this.sfx('gio_special');
         this.specials[args.slot] = 1;
         this.specialUsers[args.slot] = args.player_id;
+        if (this.martians[args.player_id]) {
+            this.martians[args.player_id].specials_used = (this.martians[args.player_id].specials_used || 0) + 1;
+        }
+        this.renderPanels();
         this.renderSpecials();
         this.applyChanges(args.changes);
     }
@@ -717,7 +820,7 @@ export class Game {
     }
 
     async notif_finalScoring(args) {
-        this.playSound('gio_score');
+        this.sfx('gio_score');
         this.setStatus(args.is_coop
             ? _('The game is over. Group score: ${score}').replace('${score}', String(args.group_score))
             : _('The game is over'));
@@ -727,15 +830,49 @@ export class Game {
     renderFinalScoring(args) {
         const box = document.getElementById('gio_final');
         if (!box) return;
+        this.finalArgs = args;
+        this.finalMinimized = false;
+        this.drawFinal();
+        if (!this.finalWired) {
+            this.finalWired = true;
+            box.addEventListener('click', (e) => {
+                // minimize button, outside the card, or the corner button that brings the results back
+                if (e.target.id === 'gio_final' || e.target.closest('.gio_final_min')) {
+                    this.finalMinimized = true;
+                    this.drawFinal();
+                } else if (e.target.closest('.gio_final_restore')) {
+                    this.finalMinimized = false;
+                    this.drawFinal();
+                }
+            });
+        }
+    }
+
+    drawFinal() {
+        const box = document.getElementById('gio_final');
+        const args = this.finalArgs;
+        if (!box || !args) return;
+        box.hidden = false;
+        box.classList.toggle('is_minimized', !!this.finalMinimized);
+        if (this.finalMinimized) {
+            box.innerHTML = `<button type="button" class="gio_final_restore" aria-label="${_('Show final scoring')}"
+                title="${_('Show final scoring')}">${_('Results')}</button>`;
+            return;
+        }
         const place = args.is_coop ? '' : `<th scope="col">${_('Place')}</th>`;
         const rows = args.rows.map((row, i) => `<tr>${args.is_coop ? '' : `<td>${i + 1}</td>`}
             <td>${this.playerName(row.player_id)}</td><td>${row.score}</td>
             <td>${row.laps}</td><td>${row.flowers_planted}</td><td>${row.flowers_left}</td></tr>`).join('');
-        box.innerHTML = `<table class="gio_final_table">
+        const title = args.is_coop
+            ? _('The game is over. Group score: ${score}').replace('${score}', String(args.group_score))
+            : _('The game is over');
+        box.innerHTML = `<div class="gio_final_card" role="dialog" aria-label="${_('Final scoring')}">
+            <button type="button" class="gio_final_min" aria-label="${_('Minimize')}" title="${_('Minimize')}">_</button>
+            <h3>${title}</h3>
+            <table class="gio_final_table">
             <caption>${_('Final scoring')}</caption>
             <thead><tr>${place}<th scope="col">${_('Player')}</th><th scope="col">${_('Points')}</th>
             <th scope="col">${_('Laps')}</th><th scope="col">${_('Planted')}</th><th scope="col">${_('Left in reserve')}</th></tr></thead>
-            <tbody>${rows}</tbody></table>`;
-        box.hidden = false;
+            <tbody>${rows}</tbody></table></div>`;
     }
 }

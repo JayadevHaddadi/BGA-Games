@@ -167,6 +167,29 @@ BGA Studio projects are plain folders on an SFTP server. There is no browser ste
   2. If passing `'turn_args' => $turnArgs`, ensure `$turnArgs = $this->getArgs();` is called immediately before.
   3. Never rely on basic `php -l` alone to catch scoping errors: `php -l` only checks syntax (tokens/semicolons), NOT variable initialization.
 
+### ❌ Mistake 11: Any identifier called `playSound` (build warning, Gardens of Io alpha build)
+* **What happens**: The BGA build warns *"Global function playSound is deprecated, please use this.bga.sounds.play instead"* on **every line that contains `playSound`**, including your own method `playSound(id) {` and its callers `this.playSound('x')`. The linter matches the name, not the global function.
+* **The Rule**:
+  1. Never name a method, function or variable `playSound`. Call `this.bga.sounds.play('<file-without-ext>')` directly, or wrap it in a helper with another name such as `sfx(id)`.
+  2. Sound files stay in the top-level `sounds/` folder (`.ogg` and `.mp3`) so BGA preloads them; the id is the file name without extension.
+  3. Before every push: `grep -rn "playSound" games/<game>/bga/modules` must print nothing.
+
+### ❌ Mistake 12: Notifications never registered (UI only updates after F5)
+* **What happens**: Moves are accepted by the server, but the board does not change until the page is refreshed.
+* **The Rule**: The client must call `this.bga.notifications.setupPromiseNotifications({})` from `setup()` (template pattern) and every notification must have a `notif_<name>(args)` handler that reads `args` directly. When rewriting `Game.js`, check that the call is still there; the local harness should assert it.
+
+### ❌ Mistake 13: Reading the turn before the state's setup has run
+* **What happens**: `getArgs()` (and an action sent right after) can run before `onEnteringState()`. Anything that onEnteringState prepares (placing a pawn, rolling dice) is then missing: wrong options, "no move possible", an action that fails until F5.
+* **The Rule**: Make such setup idempotent in a Game method (e.g. `ensureEntered($pid)`) and call it from `onEnteringState`, `getArgs` and at the top of every action and `zombie()`.
+
+### ❌ Mistake 14: Deploy depends on a GitHub secret that may be missing
+* **What happens**: The GitHub deployer fails with `Secret BGA_SFTP_PASSWORD is not set` and nothing reaches Studio, even though the push succeeded. The deployer also only diffs `HEAD~1..HEAD` and has one block per game.
+* **The Rule**: A new game needs (a) an entry in `TARGET_MAP` in `tools/sync.py`, (b) a block and a choice option in `.github/workflows/bga-deploy.yml`. If the secret is missing, use the local fast-lane (`python tools/sync.py <target>`). The sync is upload-only: delete removed files on the server by hand over SFTP.
+
+### ❌ Mistake 15: Geometry guessed instead of read from the board
+* **What happens**: Rules that depend on the board layout (lines of sight, track direction, corner spaces) are implemented from an assumption and look wrong in the first playtest (Gardens of Io: diagonals started one circle too far in).
+* **The Rule**: Before coding a rule that depends on geometry, draw the board and the rule with a few concrete squares in a test (`games/<game>/tests/`), and check them against the board image. Write the board art crops as a reproducible script (`games/<game>/design/`).
+
 ---
 
 ## 📱 4. User Experience & Adaptive Design Standards (Official BGA UX Guidelines: https://bga.li/mRdx)
@@ -201,7 +224,7 @@ BGA Studio projects are plain folders on an SFTP server. There is no browser ste
 
 ### C. Audio & Feedback
 1. **Audio**:
-   * Ship real sound files in `<game>/bga/sounds/` (both `.ogg` and `.mp3`, short, quiet) and play them with `this.bga.sounds.play('<filename-without-ext>')`. This respects the player's BGA volume/mute settings. **Do not** build custom Web Audio synths or in-game mute buttons. **Never** call the deprecated `gameui.playSound` (build warning) — only `this.bga.sounds.play`. Sound files must sit in the top-level `sounds/` folder so BGA preloads them.
+   * Ship real sound files in `<game>/bga/sounds/` (both `.ogg` and `.mp3`, short, quiet) and play them with `this.bga.sounds.play('<filename-without-ext>')`. This respects the player's BGA volume/mute settings. **Do not** build custom Web Audio synths or in-game mute buttons. **Never** call the deprecated `gameui.playSound` (build warning) — only `this.bga.sounds.play`. **Do not name your own helper `playSound` either**: the build linter flags the name on every line (see Mistake 11); use `sfx(id)` or call `this.bga.sounds.play` directly. Sound files must sit in the top-level `sounds/` folder so BGA preloads them.
    * Sounds fire only for **confirmed game events** (stone placed, result). **Never** on hover, `mouseenter`, or tap-to-stage (Ian/BGA: *"Remove hover-triggered sounds"*, guideline D.4).
 2. **Status Bar Guidance**:
    * Always provide dynamic, informative titles in `this.bga.statusBar.setTitle(...)` guiding the active player.
