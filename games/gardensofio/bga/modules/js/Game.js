@@ -516,10 +516,15 @@ export class Game {
             this.bga.statusBar.addActionButton(_('Undo'), clear, { color: 'alert' });
         } else if (this.stateName === 'PlayerTurn') {
             const hasCandidates = !!(args && args.candidates && args.candidates.length > 0);
+            const canUndoSpecial = !!(args && args.special_taken_this_turn);
+            const undoSpecial = () => this.bga.statusBar.addActionButton(_('Undo special action'),
+                () => this.bga.actions.performAction('actUndoSpecial', {}), { color: 'alert' });
             if (!hasCandidates && !this.stage) {
                 this.bga.statusBar.addActionButton(_('Move 1 space'), () => this.confirmNoPlant(), { color: 'primary' });
+                if (canUndoSpecial) undoSpecial();
                 return;
             }
+            if (!this.stage && canUndoSpecial) undoSpecial();
             if (this.stage) {
                 confirm(() => this.confirmTurn(), this.readyToConfirm());
                 this.bga.statusBar.addActionButton(_('Undo'), clear, { color: 'alert' });
