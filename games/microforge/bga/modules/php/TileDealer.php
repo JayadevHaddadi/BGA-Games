@@ -105,7 +105,12 @@ class TileDealer
                             $dirs[] = $d;
                         }
                     }
-                    $side = (count($dirs) === 2 && $dirs[1] - $dirs[0] === 1) ? $dirs[0] : (count($dirs) > 0 ? $dirs[0] : 5);
+                    $side = 0;
+                    if (count($dirs) === 2) {
+                        $side = ($dirs === [0, 5]) ? 5 : (($dirs[1] - $dirs[0] === 1) ? $dirs[0] : $dirs[0]);
+                    } elseif (count($dirs) > 0) {
+                        $side = $dirs[0];
+                    }
                     if (empty($bag)) {
                         $bag = range(0, $combos - 1);
                         self::shuffle($bag, $rand);
@@ -125,7 +130,12 @@ class TileDealer
                             $dirs[] = $d;
                         }
                     }
-                    $side = (count($dirs) === 2 && $dirs[1] - $dirs[0] === 1) ? $dirs[0] : 5;
+                    $side = 5;
+                    if (count($dirs) === 2) {
+                        $side = ($dirs === [0, 5]) ? 5 : (($dirs[1] - $dirs[0] === 1) ? $dirs[0] : 5);
+                    } elseif (count($dirs) > 0) {
+                        $side = $dirs[0];
+                    }
                     if (empty($bag)) {
                         $bag = range(0, $combos - 1);
                         self::shuffle($bag, $rand);

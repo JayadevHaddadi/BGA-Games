@@ -394,6 +394,13 @@ figure{{margin:0;text-align:center}}img{{width:72px;height:72px}}figcaption{{fon
         write(os.path.join(tiles_dir, f"{t['art']}.svg"), tile_svg(t['code'], 'port', 0, [c == '1' for c in t['mask']], extra=port_extra(t['goods']), code=t['code']))
         if t['side'] == 0:
             groups['Port tiles (side 0 of 6 shown)'].append((f"{t['art']}.svg", 'front: all four goods' if t['goods'][0] == 'all' else 'back: ' + ' + '.join(t['goods'])))
+    # Legacy port tiles for backward compatibility with active BGA Studio tables
+    for g in ('iron', 'crystal', 'bot', 'mech'):
+        for k in ('cheaper', 'pays_more'):
+            for s in range(6):
+                paths = [d in (s, (s + 1) % 6) for d in range(6)]
+                icons = icon_group(g, -9, 0, 17) + icon_group('down' if k == 'cheaper' else 'income', 10, 0, 17)
+                write(os.path.join(tiles_dir, f'port_{g}_{k}_s{s}.svg'), tile_svg(f'P_{g}', 'port', 0, paths, extra=icons, code='P'))
     tileset.write_manifest(os.path.join(HERE, '..', 'bga', 'modules', 'php', 'tileset.php'))
 
     body = ''

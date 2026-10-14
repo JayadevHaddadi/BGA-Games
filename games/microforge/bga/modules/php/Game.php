@@ -182,6 +182,7 @@ class Game extends \Bga\GameFramework\Table
             if (empty($cols)) {
                 static::DbQuery("ALTER TABLE `hex_tile` ADD COLUMN `resource_type_2` varchar(16) DEFAULT NULL");
             }
+            static::DbQuery("UPDATE `hex_tile` SET `tile_art` = 'port_all_s0' WHERE `is_port` = 1 AND (`tile_art` IS NULL OR `tile_art` = '')");
         } catch (\Exception $e) {}
     }
 
