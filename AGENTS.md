@@ -190,6 +190,10 @@ BGA Studio projects are plain folders on an SFTP server. There is no browser ste
 * **What happens**: Rules that depend on the board layout (lines of sight, track direction, corner spaces) are implemented from an assumption and look wrong in the first playtest (Gardens of Io: diagonals started one circle too far in).
 * **The Rule**: Before coding a rule that depends on geometry, draw the board and the rule with a few concrete squares in a test (`games/<game>/tests/`), and check them against the board image. Write the board art crops as a reproducible script (`games/<game>/design/`).
 
+### ❌ Mistake 16: Rules / how-to-play written in Markdown
+* **What happens**: A `RULES.md` is useless for BGA; the game help and BGA wiki use MediaWiki markup.
+* **The Rule**: Write how-to-play text as **MediaWiki markup** (`==Heading==`, `'''bold'''`, `* bullet`, `{| class="wikitable"`) in `games/<game>/bga/GAMEHELP.wiki`. No separate Markdown rules file.
+
 ---
 
 ## 📱 4. User Experience & Adaptive Design Standards (Official BGA UX Guidelines: https://bga.li/mRdx)
