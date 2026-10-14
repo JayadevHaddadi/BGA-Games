@@ -238,6 +238,13 @@ for ($game = 0; $game < $games; $game++) {
                 }
             }
 
+            $inReserves = function (string $col) use (&$res): int {
+                $n = 0;
+                foreach ($res as $r) {
+                    $n += $r[$col];
+                }
+                return $n;
+            };
             // Planting.
             $cands = Rules::candidates($martian[$pid] % Rules::TRACK, $grid);
             $laps = 0;
@@ -261,7 +268,7 @@ for ($game = 0; $game < $games; $game++) {
             if ($laps > 0 && $lapOption) {
                 $elig = [];
                 foreach ($grid as $key => $cell) {
-                    if ($cell['k'] === 'f' && Rules::colourCountOnBoard($grid, $cell['c']) < Rules::FLOWERS_PER_COLOUR) {
+                    if ($cell['k'] === 'f' && $inReserves($cell['c']) > 0) {
                         $elig[] = $key;
                     }
                 }
@@ -282,7 +289,7 @@ for ($game = 0; $game < $games; $game++) {
                 break;
             }
             // Extra turn if the colour just planted is complete on the board.
-            if ($cands && isset($colour) && Rules::colourCountOnBoard($grid, $colour) === Rules::FLOWERS_PER_COLOUR) {
+            if ($cands && isset($colour) && $inReserves($colour) === 0) {
                 $extra = true;
             }
         }

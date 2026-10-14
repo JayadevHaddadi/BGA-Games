@@ -77,11 +77,6 @@ export class Game {
         const root = document.createElement('div');
         root.id = 'gio_root';
         root.innerHTML = `
-            <div id="gio_helpbar">
-                <button type="button" id="gio_help_btn" aria-expanded="false" aria-controls="gio_help"
-                    aria-label="${_('Rules reminder')}" title="${_('Rules reminder')}">?</button>
-            </div>
-            <div id="gio_help" hidden></div>
             <div id="gio_layout">
                 <div id="gio_table">
                     <div id="gio_board_wrap">
@@ -94,6 +89,11 @@ export class Game {
                     <div id="gio_specials" role="group" aria-label="${_('Special actions')}"></div>
                 </div>
             </div>
+            <div id="gio_helpbar">
+                <button type="button" id="gio_help_btn" aria-expanded="false" aria-controls="gio_help"
+                    aria-label="${_('Rules reminder')}" title="${_('Rules reminder')}">?</button>
+            </div>
+            <div id="gio_help" hidden></div>
             <p id="gio_hint" aria-live="polite"></p>
             <div id="gio_final" hidden></div>`;
         this.bga.gameArea.getElement().appendChild(root);
@@ -274,8 +274,10 @@ export class Game {
         const onBoard = {};
         GIO_COLOURS.forEach((col) => { onBoard[col] = 0; });
         Object.values(this.cells).forEach((cell) => { if (cell.kind === 'f') onBoard[cell.color] = (onBoard[cell.color] || 0) + 1; });
+        const totals = this.gamedatas.colour_totals || {};
+        GIO_COLOURS.forEach((col) => { if (totals[col] === undefined) totals[col] = 10; });
         const flower = (col) => `<img class="gio_help_icon" src="${gioImg(`flower_${col}.png`)}" alt="${this.colourLabel(col)}">`;
-        const counts = GIO_COLOURS.map((col) => `<span class="gio_help_count">${flower(col)}<b>${onBoard[col]}/10</b></span>`).join('');
+        const counts = GIO_COLOURS.map((col) => `<span class="gio_help_count">${flower(col)}<b>${onBoard[col]}/${totals[col]}</b></span>`).join('');
         const specials = [1, 2, 3, 4, 5].map((slot) => `<li><img class="gio_help_icon" src="${gioImg(`special_${slot}.png`)}" alt="">
             <span>${info[slot].name}</span></li>`).join('');
         panel.innerHTML = `
@@ -290,7 +292,7 @@ export class Game {
                 <li><span class="gio_help_icons"><img class="gio_help_icon" src="${gioImg('special_5.png')}" alt=""></span>
                     <span><b>${_('Move.')}</b> ${_('Move your Martian that many spaces. Spaces with other Martians are skipped.')}</span></li>
                 <li><span class="gio_help_icons">${flower('red')}${flower('green')}</span>
-                    <span><b>${_('Extra turn.')}</b> ${_('If you plant the last flower of a colour (all 10 of that colour are now on the board), you take an extra turn.')}</span></li>
+                    <span><b>${_('Extra turn.')}</b> ${_('If you plant the last flower of a colour (none of that colour is left in any reserve, so all of them are on the board), you take an extra turn.')}</span></li>
             </ol>
             <p class="gio_help_label">${_('Flowers on the board')}</p>
             <div class="gio_help_counts">${counts}</div>

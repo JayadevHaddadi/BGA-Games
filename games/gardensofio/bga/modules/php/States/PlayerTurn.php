@@ -219,8 +219,8 @@ class PlayerTurn extends GameState
             'changes' => $changes,
         ]);
 
-        // Planting the last flower of a colour (all ten on the board) grants an extra turn.
-        if ($this->game->boardColourCounts()[$colour] === Rules::FLOWERS_PER_COLOUR) {
+        // Planting the last flower of a colour that is in play (none left in any reserve) grants an extra turn.
+        if ($this->game->boardColourCounts()[$colour] >= $this->game->colourTotals()[$colour]) {
             $this->game->setFlag('extra_turn', 1);
         }
 

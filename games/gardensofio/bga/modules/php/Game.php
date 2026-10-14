@@ -338,6 +338,21 @@ class Game extends \Bga\GameFramework\Table
         return $out;
     }
 
+    /**
+     * Flowers of each colour that are in play: on the board plus in all reserves. This never changes during a game
+     * (flowers left in the bag are not in play), so a colour is "used up" when all of these are on the board.
+     *
+     * @return array<string,int>
+     */
+    public function colourTotals(): array
+    {
+        $out = $this->boardColourCounts();
+        foreach ($this->getObjectListFromDb("SELECT `color`, SUM(`count`) AS n FROM `player_flower` GROUP BY `color`") as $row) {
+            $out[$row['color']] = ($out[$row['color']] ?? 0) + (int) $row['n'];
+        }
+        return $out;
+    }
+
     public function specialName(int $slot): string
     {
         return match ($slot) {
@@ -443,9 +458,10 @@ class Game extends \Bga\GameFramework\Table
     public function eligibleLapFlowers(): array
     {
         $counts = $this->boardColourCounts();
+        $totals = $this->colourTotals();
         $out = [];
         foreach ($this->getGrid() as $key => $cell) {
-            if ($cell['k'] === 'f' && $counts[$cell['c']] < Rules::FLOWERS_PER_COLOUR) {
+            if ($cell['k'] === 'f' && $counts[$cell['c']] < $totals[$cell['c']]) {
                 $out[] = $key;
             }
         }
@@ -470,6 +486,7 @@ class Game extends \Bga\GameFramework\Table
         }
         $result['reserves'] = $this->getAllReserves();
         $result['board_counts'] = $this->boardColourCounts();
+        $result['colour_totals'] = $this->colourTotals();
         $result['specials'] = $this->getSpecialSlots();
         $result['special_users'] = $this->getSpecialUsers();
         $result['special_limit'] = $this->specialLimit();

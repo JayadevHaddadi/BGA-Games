@@ -33,8 +33,9 @@ Each turn, in this order:
 4. **Move.** Move your Martian forward by your score. Spaces with other Martians are passed over without being counted, and the Martian cannot end on an occupied space.
    - Crossing the start line between 0 and 1 completes a lap. We count this as stepping from space 40 onto space 41.
    - With the optional lap flower bonus enabled (game option), the player takes one flower from the board into their reserve. The flower can be of any colour that is not exhausted. This is the rulebook's optional rule in step 4 ("Optional (players must agree on the addition of this rule before the game starts): If your Martian just completed a lap, by crossing the start line between 0 and 1 ... take any one of the flowers already placed on the board except for those of a type that has already been exhausted ... and add it to your reserve"). **CHECK**: we treat the take as mandatory when an eligible flower exists.
-5. **Extra turn.** If you planted the last flower of a colour, you take an extra turn.
-   - **CHECK (important)**: "last" means all 10 flowers of that colour are on the board. Flowers still in the bag can never be planted, so some colours may never trigger this in a 2, 3, 4 or 5 player game.
+5. **Extra turn.** If you planted the last flower of a colour that is in play, you take an extra turn.
+   - "In play" means the flowers drawn into player reserves at setup plus the flowers on the board. Flowers left in the bag are not in play. Example: 8 flowers of a colour were drawn in total, and you plant the 8th: extra turn. The "?" panel shows planted/in-play per colour (for example 5/8).
+   - The same definition of "exhausted" is used for the lap flower bonus.
    - If that planting empties your reserve, the game ends at the end of the turn and the extra turn is not taken.
 
 Your Martian enters the track on space 0 on your first turn. **CHECK**: if space 0 is occupied, we place it on the next free space.
