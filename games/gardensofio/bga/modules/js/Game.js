@@ -286,7 +286,8 @@ export class Game {
 
     canUseSpecial() {
         return !!(this.isActive && this.stateName === 'PlayerTurn' && this.args && this.args.specials_available
-            && this.args.specials_left_for_player > 0 && !this.args.special_taken_this_turn);
+            && this.args.specials_left_for_player > 0 && !this.args.special_taken_this_turn
+            && Object.values(this.args.specials_available).some(Boolean));
     }
 
     onSpecialClick(slot) {
@@ -364,16 +365,30 @@ export class Game {
 
     enterTurn(args, isActive) {
         this.beginState('PlayerTurn', args, isActive);
-        this.setStatus(isActive ? this.turnPrompt() : _('${actplayer} is taking a turn'));
+        if (isActive) {
+            this.setStatus(this.turnPrompt(), this.turnArgs());
+        } else {
+            this.setStatus(_('${actplayer} is taking a turn'));
+        }
         this.highlightTargets();
         this.updateSpecialButtons();
     }
 
+    /** Title of the turn when nothing is staged: what can be done, and the flowers available. */
     turnPrompt() {
-        if (this.args && this.args.candidates && this.args.candidates.length === 0) {
-            return _('${you} have no circle to plant on: you may use a special action first, then your Martian moves 1 space');
+        const special = this.canUseSpecial();
+        const noCircle = !!(this.args && this.args.candidates && this.args.candidates.length === 0);
+        let action;
+        if (noCircle) {
+            action = special ? _('No circle to plant on: perform special action or move 1 space') : _('No circle to plant on: move 1 space');
+        } else {
+            action = special ? _('Tap a highlighted circle or perform special action') : _('Tap a highlighted circle');
         }
-        return _('${you} may tap a special action counter, or tap a highlighted circle to plant a flower');
+        return `${action}. ${_('Available flowers')}: \${flowers}`;
+    }
+
+    turnArgs() {
+        return { flowers: this.flowersHtml() };
     }
 
     beginState(name, args, isActive) {
@@ -394,19 +409,16 @@ export class Game {
         if (hint) hint.textContent = '';
     }
 
-    /** "3 blue, 2 yellow, ..." for the flowers in the active player's reserve (zero counts are left out). */
-    flowerSummary() {
+    /** The flowers in the active player's reserve as icons with counts (colours with none left are left out). */
+    flowersHtml() {
         const res = (this.args && this.args.reserve) || {};
-        const parts = GIO_COLOURS.filter((col) => (res[col] || 0) > 0).map((col) => `${res[col]} ${this.colourLabel(col)}`);
-        return `${_('Your flowers')}: ${parts.length ? parts.join(', ') : _('none')}`;
+        const items = GIO_COLOURS.filter((col) => (res[col] || 0) > 0).map((col) => `<span class="gio_title_flower"><img
+            src="${gioImg(`flower_${col}.png`)}" alt="${this.colourLabel(col)}" title="${this.colourLabel(col)}"><b>${res[col]}</b></span>`);
+        return items.length ? items.join('') : _('none');
     }
 
-    setStatus(text) {
-        // On your own turn the status bar always shows the flowers you have in reserve.
-        if (this.stateName === 'PlayerTurn' && this.isActive && this.args && this.args.reserve) {
-            text = `${text} — ${this.flowerSummary()}`;
-        }
-        this.bga.statusBar.setTitle(text);
+    setStatus(text, args) {
+        this.bga.statusBar.setTitle(text, args);
         const hint = document.getElementById('gio_hint');
         if (hint) hint.textContent = text.indexOf('${') >= 0 ? '' : text;
     }
@@ -445,7 +457,7 @@ export class Game {
         this.renderAllCells();
         if (this.stateName === 'PlayerTurn') {
             if (!this.stage) {
-                this.setStatus(this.turnPrompt());
+                this.setStatus(this.turnPrompt(), this.turnArgs());
             } else if (this.stage.type === 'special') {
                 this.setStatus(this.specialStatus(this.stage));
             } else if (this.stage.type === 'plant') {

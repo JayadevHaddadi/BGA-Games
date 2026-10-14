@@ -261,6 +261,20 @@
     }
 }
 
+.gio_title_flower {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    margin: 0 5px;
+    vertical-align: middle;
+}
+
+.gio_title_flower img {
+    display: inline-block;
+    width: 22px;
+    height: 24px;
+}
+
 #gio_hint {
     min-height: 1.4em;
     margin: 6px 0;
