@@ -131,22 +131,28 @@ class StatePlayerTurnPlaceShape {
 
             if (cannotFit) {
                 const size = args.shape_size || shape.length || 0;
-                this.bga.statusBar.setTitle(
-                    _('${you}: largest group (${size} tiles) does not fit into your warehouse!').replace('${size}', size)
-                );
+                // The status bar is the only message: no in-board popup (duplicate of the action bar)
+                const title = args.can_fix_mess
+                    ? _('${you}: largest group (${size} tiles) does not fit. Fix the Mess (erase 1 painted cell) or skip placement').replace('${size}', size)
+                    : (args.fix_mess_enabled
+                        ? _('${you}: largest group (${size} tiles) does not fit. Skip placement').replace('${size}', size)
+                        : _('${you}: largest group (${size} tiles) does not fit. Skip placement (Fixing the Mess is off in this table\'s options)').replace('${size}', size));
+                this.bga.statusBar.setTitle(title);
 
-                // Show prominent inline banner above warehouse
-                this.game.showCannotFitBanner(
-                    size,
-                    () => this.onSkipPlacement(),
-                    () => this.game.onUndo()
-                );
+                if (args.can_fix_mess) {
+                    this.game.addActionButton(
+                        'btn_fix_mess',
+                        _('Fix the Mess'),
+                        () => this.onFixMess(),
+                        'primary'
+                    );
+                }
 
                 this.game.addActionButton(
                     'btn_skip_placement',
                     _('Skip Placement'),
                     () => this.onSkipPlacement(),
-                    'primary'
+                    args.can_fix_mess ? 'secondary' : 'primary'
                 );
 
                 this.game.addActionButton(
@@ -172,21 +178,22 @@ class StatePlayerTurnPlaceShape {
             } else {
                 this.bga.statusBar.setTitle(_('${actplayer} is copying their shape into their warehouse'));
             }
-            this.game.hideCannotFitBanner();
             this.game.clearWarehousePlacement();
             this.game.clearKilnHighlights();
         }
     }
 
+    onFixMess() {
+        // Keep the buttons until the server accepts the move (see AGENTS.md Mistake 11)
+        this.bga.actions.performAction('actFixMess', {});
+    }
+
     onSkipPlacement() {
-        this.game.hideCannotFitBanner();
-        this.game.clearActionButtons();
-        this.game.clearKilnHighlights();
+        // Keep the buttons until the server accepts the move (see AGENTS.md Mistake 11)
         this.bga.actions.performAction('actSkipPlacement', {});
     }
 
     onLeavingState(args, isCurrentPlayerActive) {
-        this.game.hideCannotFitBanner();
         this.game.clearWarehousePlacement();
         this.game.clearKilnHighlights();
         this.game.clearActionButtons();
@@ -206,12 +213,12 @@ class StatePlayerTurnFixMess {
         this.game.currentArgs = args || {};
 
         if (isCurrentPlayerActive) {
-            this.bga.statusBar.setTitle(_('${you} cannot fit your shape. "Fixing the Mess" is active: click 1 painted cell in your warehouse to erase it, or skip'));
+            this.bga.statusBar.setTitle(_('${you}: click 1 painted cell in your warehouse to erase it (Fixing the Mess), or skip placement'));
             this.game.setupFixMessMode();
 
             this.game.addActionButton(
                 'btn_skip_fix',
-                _('Skip Erasing'),
+                _('Skip Placement'),
                 () => this.onSkip(),
                 'secondary'
             );
@@ -552,48 +559,6 @@ export class Game {
             gameui.removeActionButtons();
         }
         document.querySelectorAll('.kiln_fallback_btn').forEach(btn => btn.remove());
-        this.hideCannotFitBanner();
-    }
-
-    showCannotFitBanner(size, onSkip, onUndo) {
-        this.hideCannotFitBanner();
-        const myId = this.bga?.players?.getCurrentPlayerId?.() || Object.keys(this.gamedatas?.players || {})[0];
-        const card = document.getElementById(`kiln_warehouse_card_${myId}`);
-        if (!card) return;
-
-        const banner = document.createElement('div');
-        banner.id = 'kiln_cannot_fit_banner';
-        banner.className = 'kiln_cannot_fit_banner';
-        banner.innerHTML = `
-            <div class="kiln_cf_msg">
-                ${_('Largest group (%s tiles) does not fit into your warehouse!').replace('%s', size)}
-            </div>
-            <div class="kiln_cf_actions">
-                <button type="button" class="kiln_btn_action kiln_btn_primary" id="kiln_cf_skip">
-                    ${_('Skip Placement')}
-                </button>
-                <button type="button" class="kiln_btn_action kiln_btn_alert" id="kiln_cf_undo">
-                    ${_('Undo Push')}
-                </button>
-            </div>
-        `;
-
-        const body = card.querySelector('.kiln_wh_body');
-        if (body) {
-            card.insertBefore(banner, body);
-        } else {
-            card.prepend(banner);
-        }
-
-        const skipBtn = banner.querySelector('#kiln_cf_skip');
-        if (skipBtn) skipBtn.onclick = onSkip;
-        const undoBtn = banner.querySelector('#kiln_cf_undo');
-        if (undoBtn) undoBtn.onclick = onUndo;
-    }
-
-    hideCannotFitBanner() {
-        const b = document.getElementById('kiln_cannot_fit_banner');
-        if (b) b.remove();
     }
 
     setup(gamedatas) {
@@ -1317,7 +1282,6 @@ export class Game {
      * Undo interaction
      */
     onUndo() {
-        this.hideCannotFitBanner();
         this.clearWarehousePlacement();
         this.clearKilnHighlights();
         this.clearActionButtons();

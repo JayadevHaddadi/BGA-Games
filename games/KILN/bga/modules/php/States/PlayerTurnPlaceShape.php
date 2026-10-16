@@ -35,6 +35,8 @@ class PlayerTurnPlaceShape extends GameState
             'valid_anchors' => $validAnchors,
             'cannot_fit' => empty($validAnchors),
             'shape_size' => count($shape),
+            'can_fix_mess' => $this->game->canOfferFixMess($activePlayerId),
+            'fix_mess_enabled' => (int) $this->game->globals->get('variant_fixing_mess', 0) === 1,
         ];
     }
 
@@ -61,6 +63,19 @@ class PlayerTurnPlaceShape extends GameState
     }
 
     #[PossibleAction]
+    public function actFixMess(int $activePlayerId): string
+    {
+        $shape = $this->game->globals->get('selected_group', []);
+        if (!empty($this->game->getValidPlacementAnchors($activePlayerId, $shape))) {
+            throw new UserException(clienttranslate("This shape can fit into your warehouse and must be placed."));
+        }
+        if (!$this->game->canOfferFixMess($activePlayerId)) {
+            throw new UserException(clienttranslate("Fixing the Mess is not available right now."));
+        }
+        return PlayerTurnFixMess::class;
+    }
+
+    #[PossibleAction]
     public function actSkipPlacement(int $activePlayerId): string
     {
         $shape = $this->game->globals->get('selected_group', []);
@@ -75,23 +90,6 @@ class PlayerTurnPlaceShape extends GameState
             'player_name' => $this->game->getPlayerNameById($activePlayerId),
             'size' => $groupSize,
         ]);
-
-        $variantFixMess = (int) $this->game->globals->get('variant_fixing_mess', 0);
-        if ($variantFixMess === 1) {
-            $warehouse = $this->game->getPlayerWarehouse($activePlayerId);
-            $hasFilled = false;
-            for ($wy = 0; $wy < Game::WAREHOUSE_SIZE; $wy++) {
-                for ($wx = 0; $wx < Game::WAREHOUSE_SIZE; $wx++) {
-                    if ($warehouse[$wy][$wx] === 1) {
-                        $hasFilled = true;
-                        break 2;
-                    }
-                }
-            }
-            if ($hasFilled) {
-                return PlayerTurnFixMess::class;
-            }
-        }
 
         $lines = $this->game->getCompletedLines($activePlayerId);
         if (!empty($lines['rows']) || !empty($lines['cols'])) {

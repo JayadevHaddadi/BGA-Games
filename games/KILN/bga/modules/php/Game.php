@@ -413,6 +413,20 @@ class Game extends \Bga\GameFramework\Table
         return $grid;
     }
 
+    /**
+     * Fixing the Mess: allowed when the table option is on, the player has painted cells,
+     * and no cell has been erased yet this turn (1 erase per push).
+     */
+    public function canOfferFixMess(int $playerId): bool
+    {
+        if ((int) $this->globals->get('variant_fixing_mess', 0) !== 1) return false;
+        if ((bool) $this->globals->get('fix_mess_used', false)) return false;
+        foreach ($this->getPlayerWarehouse($playerId) as $row) {
+            if (in_array(1, $row, true)) return true;
+        }
+        return false;
+    }
+
     public function saveTurnSnapshot(int $playerId): void
     {
         $snapshot = [

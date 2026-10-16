@@ -860,66 +860,10 @@
 }
 
 /* Cannot fit banner above warehouse */
-.kiln_cannot_fit_banner {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    background: #fffbeb;
-    border: 1.5px solid #f59e0b;
-    border-radius: 3px;
-    padding: 8px 14px;
-    margin-bottom: 8px;
-    box-sizing: border-box;
-    width: 100%;
-}
-
-.kiln_cf_msg {
-    font-size: 13px;
-    font-weight: 700;
-    color: #92400e;
-    text-align: center;
-}
-
-.kiln_cf_actions {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    justify-content: center;
-}
-
-.kiln_btn_action {
-    padding: 6px 14px;
-    font-size: 13px;
-    font-weight: 700;
-    border-radius: 3px;
-    border: none;
-    cursor: pointer;
-    transition: all 0.15s ease;
-}
-
-.kiln_btn_primary {
-    background: #0284c7;
-    color: #ffffff;
+@media (hover: hover) {
 }
 
 @media (hover: hover) {
-.kiln_btn_primary:hover {
-    background: #0369a1;
-    transform: translateY(-1px);
-}
-}
-
-.kiln_btn_alert {
-    background: #dc2626;
-    color: #ffffff;
-}
-
-@media (hover: hover) {
-.kiln_btn_alert:hover {
-    background: #b91c1c;
-    transform: translateY(-1px);
-}
 }
 
 /* Warehouse Sell Line Selector Arrows (Rule 2) */
@@ -1092,7 +1036,6 @@ body.kiln_page_bg .bga-game-area {
 .kiln_col_arrow_btn { width: 44px; height: 44px; }
 .kiln_row_arrows { gap: 4px; }
 .kiln_col_arrows_track { gap: 4px; padding-left: 5px; }
-.kiln_btn_action { min-height: 44px; min-width: 44px; padding: 8px 16px; }
 .kiln_arrow_spacer { width: 44px; }
 
 @media (prefers-reduced-motion: reduce) {

@@ -43,6 +43,7 @@ class PlayerTurnFixMess extends GameState
         }
 
         $updatedWarehouse = $this->game->eraseWarehouseCell($activePlayerId, $wx, $wy);
+        $this->game->globals->set('fix_mess_used', true);
 
         $this->notify->all('cellErased', clienttranslate('${player_name} erases 1 cell from their warehouse ("Fixing the Mess")'), [
             'player_id' => $activePlayerId,
@@ -51,6 +52,12 @@ class PlayerTurnFixMess extends GameState
             'wy' => $wy,
             'warehouse' => $updatedWarehouse,
         ]);
+
+        // Erasing a cell is meant to make room: if the shape fits now, the player places it.
+        $shape = $this->game->globals->get('selected_group', []);
+        if (!empty($this->game->getValidPlacementAnchors($activePlayerId, $shape))) {
+            return PlayerTurnPlaceShape::class;
+        }
 
         return $this->resolveAfterFixMess($activePlayerId);
     }
