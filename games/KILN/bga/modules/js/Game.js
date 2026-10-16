@@ -544,7 +544,6 @@ export class Game {
 
     /** Tooltip per action-bar button id (BGA shows it on hover; the button text stays short). */
     buttonTip(id) {
-        if (!this.tipsOn()) return '';
         const tips = {
             btn_undo_push: _('Take back this push. The kiln and your warehouse go back to how they were this turn.'),
             btn_undo_move: _('Take back this turn\'s move and placement.'),
@@ -564,10 +563,14 @@ export class Game {
 
     addActionButton(id, text, callback, color = 'secondary') {
         const tooltip = this.buttonTip(id);
+        if (tooltip) {
+            this.tipTexts = this.tipTexts || {};
+            this.tipTexts[id] = tooltip;
+        }
         // 1. Modern BGA statusBar API: addActionButton(text, callback, { color, id, tooltip })
         if (this.bga?.statusBar && typeof this.bga.statusBar.addActionButton === 'function') {
             try {
-                this.bga.statusBar.addActionButton(text, callback, { color: color, id: id, tooltip: tooltip || undefined });
+                this.bga.statusBar.addActionButton(text, callback, { color: color, id: id, tooltip: (tooltip && this.tipsOn()) ? tooltip : undefined });
                 return;
             } catch (e) {
                 console.warn('[Kiln] bga.statusBar.addActionButton failed, trying fallback', e);
@@ -662,14 +665,19 @@ export class Game {
      */
     applyTooltipPreference() {
         const area = this.bga?.gameArea?.getElement?.();
-        if (!area) return;
-        const strip = () => area.querySelectorAll('[title]').forEach(e => e.removeAttribute('title'));
+        const strip = () => area?.querySelectorAll('[title]').forEach(e => e.removeAttribute('title'));
+        const texts = this.tipTexts || {};
         if (this.tipsOn()) {
             if (this.tipObserver) { this.tipObserver.disconnect(); this.tipObserver = null; }
+            Object.entries(texts).forEach(([id, text]) => this.showTip(id, text));
             return;
         }
+        // Remove BGA's own tooltips (the white boxes) and any native titles
+        Object.keys(texts).forEach(id => {
+            try { this.bga?.gameui?.removeTooltip?.(id); } catch (e) { /* node not on the page */ }
+        });
         strip();
-        if (!this.tipObserver) {
+        if (area && !this.tipObserver) {
             this.tipObserver = new MutationObserver(strip);
             this.tipObserver.observe(area, { subtree: true, childList: true, attributes: true, attributeFilter: ['title'] });
         }
@@ -679,7 +687,13 @@ export class Game {
      * BGA tooltip on a node id (falls back to a plain title attribute).
      */
     tip(nodeId, text) {
-        if (!this.tipsOn()) return;
+        if (!nodeId || !text) return;
+        this.tipTexts = this.tipTexts || {};
+        this.tipTexts[nodeId] = text;
+        if (this.tipsOn()) this.showTip(nodeId, text);
+    }
+
+    showTip(nodeId, text) {
         const el = document.getElementById(nodeId);
         if (!el) return;
         if (typeof this.bga?.gameui?.addTooltip === 'function') {
