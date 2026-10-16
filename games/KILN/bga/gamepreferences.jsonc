@@ -14,5 +14,19 @@
       }
     },
     "default": 1
+  },
+  "101": {
+    "name": "Sound effects",
+    "values": {
+      "1": {
+        "name": "On",
+        "cssPref": "kiln_sound_on"
+      },
+      "0": {
+        "name": "Off",
+        "cssPref": "kiln_sound_off"
+      }
+    },
+    "default": 1
   }
 }

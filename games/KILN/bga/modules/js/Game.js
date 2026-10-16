@@ -23,9 +23,14 @@ class KilnSoundController {
         return !!(g?.isReplayMode?.() || g?.instantaneousMode);
     }
 
+    /** Player preference 101 "Sound effects": 0 = off, 1 = on (default). */
+    isMuted() {
+        return Number(this.bga?.userPreferences?.get?.(101) ?? 1) === 0;
+    }
+
     play(id) {
         try {
-            if (this.isFastForward()) return;
+            if (this.isMuted() || this.isFastForward()) return;
             const now = Date.now();
             if (this.lastPlayed[id] && now - this.lastPlayed[id] < 300) return;
             this.lastPlayed[id] = now;
@@ -526,11 +531,31 @@ export class Game {
         return null;
     }
 
+    /** Tooltip per action-bar button id (BGA shows it on hover; the button text stays short). */
+    buttonTip(id) {
+        const tips = {
+            btn_undo_push: _('Take back this push. The kiln and your warehouse go back to how they were this turn.'),
+            btn_undo_move: _('Take back this turn\'s move and placement.'),
+            btn_fix_mess: _('Erase 1 painted cell from your warehouse to make room, then place the shape.'),
+            btn_skip_placement: _('Skip copying the shape this turn. Nothing is erased.'),
+            btn_skip_fix: _('Skip erasing: no shape is copied this turn.'),
+            btn_confirm_place: _('Place the shape in the highlighted cell.'),
+            btn_confirm_sell: _('Sell the selected lines for points.'),
+            btn_toggle_type: _('Switch the selection between rows and columns.'),
+            btn_select_all: _('Select every completed line of this type.'),
+            btn_select_one: _('Select only the first completed line.'),
+            btn_pass: _('Finish this turn without selling. Completed lines stay in your warehouse.'),
+        };
+        if (id && id.startsWith('btn_group_')) return _('Copy this tied group\'s shape into your warehouse.');
+        return tips[id] || '';
+    }
+
     addActionButton(id, text, callback, color = 'secondary') {
-        // 1. Modern BGA statusBar API: addActionButton(text, callback, { color: color })
+        const tooltip = this.buttonTip(id);
+        // 1. Modern BGA statusBar API: addActionButton(text, callback, { color, id, tooltip })
         if (this.bga?.statusBar && typeof this.bga.statusBar.addActionButton === 'function') {
             try {
-                this.bga.statusBar.addActionButton(text, callback, { color: color });
+                this.bga.statusBar.addActionButton(text, callback, { color: color, id: id, tooltip: tooltip || undefined });
                 return;
             } catch (e) {
                 console.warn('[Kiln] bga.statusBar.addActionButton failed, trying fallback', e);
@@ -629,10 +654,22 @@ export class Game {
         for (let slot = 0; slot < 24; slot++) {
             this.tip(`kiln_arrow_${slot}`, _('Push this line into the kiln. The tile on the far side is pushed out of the kiln.'));
         }
-        for (let i = 0; i < 5; i++) {
-            this.tip(`kiln_row_arrow_${i}`, _('Select this completed row to sell it for points'));
-            this.tip(`kiln_col_arrow_${i}`, _('Select this completed column to sell it for points'));
-        }
+        this.tip('kiln_board_grid', _('The kiln: 6×6 tiles shared by everyone. Push a line to move them.'));
+        this.tip('kiln_track_legend', _('Grey striped spaces (5, 8, 14, 17, 19, 23, 26) give an extra turn in the Heating up the Kiln variant.'));
+        this.tip('kiln_black_rule_badge', _('Pushing the neutral black tile out of the kiln gives 1 extra turn.'));
+        Object.keys(this.gamedatas.players || {}).forEach(pId => {
+            const isMe = String(pId) === String(this.bga?.players?.getCurrentPlayerId?.());
+            this.tip(`kiln_price_table_${pId}`, _('Selling prices: 1 line = 1 pt, 2 = 3, 3 = 6, 4 = 10, 5 = 15.'));
+            this.tip(`kiln_wh_grid_${pId}`, isMe
+                ? _('Your warehouse: copied shapes land here. Fill a whole row or column to sell it.')
+                : _('This player\'s warehouse (view only).'));
+            const pColor = this.playerColors[pId] || 'red';
+            const pLetter = ({ red: 'N', blue: 'K', green: 'I', yellow: 'L' })[pColor] || '?';
+            this.tip(`kiln_glyph_${pId}`, _('${name} plays ${colour}: look for the letter ${letter} on the tiles.')
+                .replace('${name}', this.gamedatas.players[pId]?.name || '')
+                .replace('${colour}', pColor)
+                .replace('${letter}', pLetter));
+        });
     }
 
     /**
@@ -646,9 +683,10 @@ export class Game {
             const color = this.playerColors[pId] || 'red';
             const glyph = document.createElement('span');
             glyph.className = `kiln_panel_glyph kiln_tile_${color}`;
+            glyph.id = `kiln_glyph_${pId}`;
             glyph.setAttribute('aria-label', color);
             const letters = { red: 'N', blue: 'K', green: 'I', yellow: 'L' };
-            glyph.title = `${this.gamedatas.players[pId]?.name || ''}: ${color} = ${letters[color] || '?'}`;
+            glyph.setAttribute('title', `${this.gamedatas.players[pId]?.name || ''}: ${color} = ${letters[color] || '?'}`);
             const nameEl = panel.querySelector('.player-name, .player_name');
             if (nameEl) nameEl.prepend(glyph); else panel.prepend(glyph);
         });
@@ -680,7 +718,7 @@ export class Game {
                     </div>
                     <div id="kiln_score_track" class="kiln_score_track"></div>
                     ${Number(this.variantBonusSpaces) === 1 ? `
-                        <div class="kiln_track_legend" title="${_('Spaces 5, 8, 14, 17, 19, 23, 26 award an extra turn in the Heating up the Kiln variant')}">
+                        <div class="kiln_track_legend" id="kiln_track_legend" title="${_('Spaces 5, 8, 14, 17, 19, 23, 26 award an extra turn in the Heating up the Kiln variant')}">
                             <span class="kiln_legend_stripe"></span>
                             <span>${_('Extra Turn')}</span>
                         </div>
@@ -790,7 +828,6 @@ export class Game {
             if (isBonus) {
                 tooltip += ` - ${_('Grey Striped Bonus Space: Landing here awards an EXTRA TURN (Heating up the Kiln variant).')}`;
             }
-            cell.setAttribute('title', tooltip);
 
             let label = `${i}`;
             if (i === 0) label = 'START';
@@ -800,6 +837,7 @@ export class Game {
                 <div class="kiln_track_tokens" id="kiln_tokens_${i}"></div>
             `;
             track.appendChild(cell);
+            this.tip(cell.id, tooltip);
         }
     }
 
@@ -857,6 +895,7 @@ export class Game {
                 const color = (this.boardData[y] && this.boardData[y][x]) ? this.boardData[y][x] : 'red';
                 const tile = document.createElement('div');
                 tile.className = `kiln_board_tile kiln_tile_${color}`;
+                tile.setAttribute('title', `${color} (${({ red: 'N', blue: 'K', green: 'I', yellow: 'L', black: 'X' })[color] || '?'})`);
                 tile.id = `kiln_tile_${x}_${y}`;
                 tile.setAttribute('data-x', x);
                 tile.setAttribute('data-y', y);
