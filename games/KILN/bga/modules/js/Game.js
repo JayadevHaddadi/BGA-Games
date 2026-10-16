@@ -14,10 +14,21 @@
 class KilnSoundController {
     constructor() {
         this.bga = null;
+        this.lastPlayed = {};
+    }
+
+    /** Replays and catch-up run many notifications back to back; skip those repeats. */
+    isFastForward() {
+        const g = this.bga?.gameui;
+        return !!(g?.isReplayMode?.() || g?.instantaneousMode);
     }
 
     play(id) {
         try {
+            if (this.isFastForward()) return;
+            const now = Date.now();
+            if (this.lastPlayed[id] && now - this.lastPlayed[id] < 300) return;
+            this.lastPlayed[id] = now;
             if (this.bga?.sounds?.play) {
                 this.bga.sounds.play(id);
             }
@@ -588,12 +599,40 @@ export class Game {
         this.buildMainLayout();
         this.setupBoardScaler();
         this.setupPanelGlyphs();
+        this.setupTooltips();
         this.setupNotifications();
         this.updateScores(this.scores);
 
         // Ensure sidebar player panel score counters are synced even if playerPanels mount asynchronously
         setTimeout(() => this.updateScores(), 100);
         setTimeout(() => this.updateScores(), 500);
+    }
+
+    /**
+     * BGA tooltip on a node id (falls back to a plain title attribute).
+     */
+    tip(nodeId, text) {
+        const el = document.getElementById(nodeId);
+        if (!el) return;
+        if (typeof this.bga?.gameui?.addTooltip === 'function') {
+            this.bga.gameui.addTooltip(nodeId, text, '');
+            el.removeAttribute('title');
+        } else {
+            el.setAttribute('title', text);
+        }
+    }
+
+    /**
+     * Explain every control on the board (reviewer criterion: tooltips on all icons and UI elements).
+     */
+    setupTooltips() {
+        for (let slot = 0; slot < 24; slot++) {
+            this.tip(`kiln_arrow_${slot}`, _('Push this line into the kiln. The tile on the far side is pushed out of the kiln.'));
+        }
+        for (let i = 0; i < 5; i++) {
+            this.tip(`kiln_row_arrow_${i}`, _('Select this completed row to sell it for points'));
+            this.tip(`kiln_col_arrow_${i}`, _('Select this completed column to sell it for points'));
+        }
     }
 
     /**
@@ -608,7 +647,8 @@ export class Game {
             const glyph = document.createElement('span');
             glyph.className = `kiln_panel_glyph kiln_tile_${color}`;
             glyph.setAttribute('aria-label', color);
-            glyph.title = this.gamedatas.players[pId]?.name || '';
+            const letters = { red: 'N', blue: 'K', green: 'I', yellow: 'L' };
+            glyph.title = `${this.gamedatas.players[pId]?.name || ''}: ${color} = ${letters[color] || '?'}`;
             const nameEl = panel.querySelector('.player-name, .player_name');
             if (nameEl) nameEl.prepend(glyph); else panel.prepend(glyph);
         });
@@ -1106,6 +1146,7 @@ export class Game {
                 if (tile) {
                     tile.classList.add('kiln_tile_candidate');
                     tile.setAttribute('data-group-idx', gIdx);
+                    tile.setAttribute('title', _('One of the tied largest groups: click to copy this one'));
                     tile.onclick = () => this.playerTurnSelectGroup.onSelectGroup(gIdx);
 
                     const badge = document.getElementById(`kiln_badge_${c.x}_${c.y}`);

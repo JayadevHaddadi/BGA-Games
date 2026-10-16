@@ -263,6 +263,8 @@ Extra rules learned with this review:
 * **Full-width on phones**: BGA wraps `#game_play_area` in padded containers. Widen the game container to the widest ancestor (`fitContainerToScreen()` pattern in Yavalath `Game.js`) and scale the board from that width; verify with a harness that wraps the play area in padded divs.
 * `:hover` styles must be wrapped in `@media (hover: hover)` so they don't stick on touch screens; mouse-only ghost previews are attached only when `matchMedia('(hover: hover)')` matches.
 * **Centred board + full-screen table (every game, Ian's Kiln feedback)**: balance side columns with equal spacers (no drift), keep the centre offset at 0 px at 1280 and 375 px for every player count, and put the table texture on `body` (with BGA wrappers transparent), not only the game box. Full rules in `BGA_REVIEWER_FEEDBACK.md` ("Layout centring and full-screen table").
+* **Replay / catch-up sound**: replays fire many notifications back to back. Sound controllers must throttle repeats of the same sound (Kiln: 300 ms) and stay silent while `bga.gameui` reports replay or instantaneous mode, otherwise replays sound loud and stacked.
+* **Tooltips use BGA's API**: `bga.gameui.addTooltip(nodeId, text, '')` after the DOM exists (fallback `title`). Kiln's `setupTooltips()` covers the push arrows and sell arrows; extend it when adding controls.
 * Respect `prefers-reduced-motion`; avoid infinite CSS animations on board elements.
 * Test the UI in the browser pane at 375px and desktop width with a small local harness before pushing (mock `bga`, `_`, `gamedatas`).
 
