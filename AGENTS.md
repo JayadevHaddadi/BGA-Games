@@ -194,6 +194,14 @@ BGA Studio projects are plain folders on an SFTP server. There is no browser ste
 * **What happens**: A `RULES.md` is useless for BGA; the game help and BGA wiki use MediaWiki markup.
 * **The Rule**: Write how-to-play text as **MediaWiki markup** (`==Heading==`, `'''bold'''`, `* bullet`, `{| class="wikitable"`) in `games/<game>/bga/GAMEHELP.wiki`. No separate Markdown rules file.
 
+### ❌ Mistake 11: JS action name does not match a PHP `act*` method ("This move is not authorized now")
+* **What happens**: the client calls `performAction('actSkipFix')` but the state only has `actSkipFixMess`. BGA rejects the move, and if the UI already cleared its buttons the player is stuck.
+* **The Rule**: every `performAction('actX', …)` in `Game.js` must match a `#[PossibleAction] public function actX(...)` in the state that is active when it is called. Check before every push (Kiln: `actSkipFixMess` was the bug):
+  ```bash
+  cd games/<game>/bga/modules && python3 -c "import re,os,glob;js=open('js/Game.js').read();php=''.join(open(f).read() for f in glob.glob('php/**/*.php',recursive=True));print([n for n in set(re.findall(r\"performAction\('(act\w+)'\",js)) if not re.search(r'function '+n+r'\(',php)])"
+  ```
+  An empty list means no mismatch. Never clear action buttons or highlights before the server accepts the action; clear them only when the state changes.
+
 ---
 
 ## 📱 4. User Experience & Adaptive Design Standards (Official BGA UX Guidelines: https://bga.li/mRdx)

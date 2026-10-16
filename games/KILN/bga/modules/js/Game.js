@@ -229,9 +229,9 @@ class StatePlayerTurnFixMess {
     }
 
     onSkip() {
-        this.game.clearActionButtons();
-        this.game.clearFixMessMode();
-        this.bga.actions.performAction('actSkipFix', {});
+        // Keep the buttons and erasable cells until the server accepts the skip,
+        // so a rejected action never leaves the player with an empty action bar.
+        this.bga.actions.performAction('actSkipFixMess', {});
     }
 
     onLeavingState(args, isCurrentPlayerActive) {
