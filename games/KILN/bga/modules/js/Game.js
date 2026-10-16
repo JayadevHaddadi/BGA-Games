@@ -1312,14 +1312,21 @@ export class Game {
         const isValid = this.currentPlacementAnchors.some(a => a.ox === wx && a.oy === wy);
         if (!isValid) return;
 
+        // Touch: a first tap stages the shape (preview) and needs Confirm, unless the player
+        // turned off "Confirm placement" in preferences. Mouse: hover previews, click places.
         const hasHover = window.matchMedia && window.matchMedia('(hover: hover)').matches;
-        if (!hasHover) {
+        if (!hasHover && this.askConfirmPlacement()) {
             this.stagePlacement(wx, wy);
             return;
         }
 
         this.stagedAnchor = { wx, wy };
         this.confirmPlacement();
+    }
+
+    /** Player preference 102 "Confirm placement": 1 = ask first (default), 0 = place on tap. */
+    askConfirmPlacement() {
+        return Number(this.bga?.userPreferences?.get?.(102) ?? 1) !== 0;
     }
 
     /**

@@ -28,5 +28,19 @@
       }
     },
     "default": 1
+  },
+  "102": {
+    "name": "Confirm placement (touch screens)",
+    "values": {
+      "1": {
+        "name": "Ask me first (tap, then Confirm)",
+        "cssPref": "kiln_confirm_on"
+      },
+      "0": {
+        "name": "Place on tap",
+        "cssPref": "kiln_confirm_off"
+      }
+    },
+    "default": 1
   }
 }
