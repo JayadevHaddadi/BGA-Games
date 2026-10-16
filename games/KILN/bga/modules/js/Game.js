@@ -286,6 +286,12 @@ class StatePlayerTurnSell {
         });
 
         if (isCurrentPlayerActive) {
+            if (this.completedRows.length === 0 && this.completedCols.length === 0 && !this.askEndTurn()) {
+                // Nothing to sell and the player chose to skip the final confirmation
+                this.game.clearActionButtons();
+                this.bga.actions.performAction('actPassSell', {});
+                return;
+            }
             // Default selection: whichever has more points (rows by default, or cols if more cols)
             if (this.completedCols.length > this.completedRows.length && this.completedRows.length === 0) {
                 this.selectedType = 'cols';
@@ -303,6 +309,11 @@ class StatePlayerTurnSell {
             this.bga.statusBar.setTitle(_('${actplayer} may sell completed rows or columns'));
             this.game.clearSellHighlights();
         }
+    }
+
+    /** Player preference 104 "Confirm end of turn": 1 = ask (default), 0 = end the turn automatically. */
+    askEndTurn() {
+        return Number(this.bga?.userPreferences?.get?.(104) ?? 1) !== 0;
     }
 
     onRowArrowClick(wy) {
@@ -533,6 +544,7 @@ export class Game {
 
     /** Tooltip per action-bar button id (BGA shows it on hover; the button text stays short). */
     buttonTip(id) {
+        if (!this.tipsOn()) return '';
         const tips = {
             btn_undo_push: _('Take back this push. The kiln and your warehouse go back to how they were this turn.'),
             btn_undo_move: _('Take back this turn\'s move and placement.'),
@@ -625,6 +637,12 @@ export class Game {
         this.setupBoardScaler();
         this.setupPanelGlyphs();
         this.setupTooltips();
+        this.applyTooltipPreference();
+        if (this.bga?.userPreferences) {
+            this.bga.userPreferences.onChange = (prefId) => {
+                if (Number(prefId) === 103) this.applyTooltipPreference();
+            };
+        }
         this.setupNotifications();
         this.updateScores(this.scores);
 
@@ -633,10 +651,35 @@ export class Game {
         setTimeout(() => this.updateScores(), 500);
     }
 
+    /** Player preference 103 "Tooltips": 1 = on (default), 0 = off. */
+    tipsOn() {
+        return Number(this.bga?.userPreferences?.get?.(103) ?? 1) !== 0;
+    }
+
+    /**
+     * Hide every tooltip inside the game area when the player turned tooltips off.
+     * Titles that are set later (e.g. on re-render) are removed again as they appear.
+     */
+    applyTooltipPreference() {
+        const area = this.bga?.gameArea?.getElement?.();
+        if (!area) return;
+        const strip = () => area.querySelectorAll('[title]').forEach(e => e.removeAttribute('title'));
+        if (this.tipsOn()) {
+            if (this.tipObserver) { this.tipObserver.disconnect(); this.tipObserver = null; }
+            return;
+        }
+        strip();
+        if (!this.tipObserver) {
+            this.tipObserver = new MutationObserver(strip);
+            this.tipObserver.observe(area, { subtree: true, childList: true, attributes: true, attributeFilter: ['title'] });
+        }
+    }
+
     /**
      * BGA tooltip on a node id (falls back to a plain title attribute).
      */
     tip(nodeId, text) {
+        if (!this.tipsOn()) return;
         const el = document.getElementById(nodeId);
         if (!el) return;
         if (typeof this.bga?.gameui?.addTooltip === 'function') {
@@ -686,7 +729,7 @@ export class Game {
             glyph.id = `kiln_glyph_${pId}`;
             glyph.setAttribute('aria-label', color);
             const letters = { red: 'N', blue: 'K', green: 'I', yellow: 'L' };
-            glyph.setAttribute('title', `${this.gamedatas.players[pId]?.name || ''}: ${color} = ${letters[color] || '?'}`);
+            if (this.tipsOn()) glyph.setAttribute('title', `${this.gamedatas.players[pId]?.name || ''}: ${color} = ${letters[color] || '?'}`);
             const nameEl = panel.querySelector('.player-name, .player_name');
             if (nameEl) nameEl.prepend(glyph); else panel.prepend(glyph);
         });

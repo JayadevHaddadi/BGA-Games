@@ -42,5 +42,21 @@
       }
     },
     "default": 1
+  },
+  "103": {
+    "name": "Tooltips",
+    "values": {
+      "1": { "name": "On", "cssPref": "kiln_tips_on" },
+      "0": { "name": "Off", "cssPref": "kiln_tips_off" }
+    },
+    "default": 1
+  },
+  "104": {
+    "name": "Confirm end of turn",
+    "values": {
+      "1": { "name": "Ask me first (press Confirm end of turn)", "cssPref": "kiln_endturn_ask" },
+      "0": { "name": "End the turn automatically when nothing can be sold", "cssPref": "kiln_endturn_auto" }
+    },
+    "default": 1
   }
 }
