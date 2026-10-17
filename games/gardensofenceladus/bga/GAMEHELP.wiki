@@ -1,0 +1,77 @@
+==Goal==
+
+Help your little Martian gardener harvest flowers from the icy garden of Enceladus. Collect a good mix of colours: the player with the best '''hand''' wins. A hand is the number of flowers of each of the five colours, sorted from lowest to highest. A hand with no flowers of some colour is terribly low.
+
+==Setup==
+
+* The 10 x 10 garden is filled: '''95 flowers''' (19 of each of the five colours) and '''5 peaks''' (huge ice structures that block the Martians). The peaks never fence off a section of the garden.
+* Each player chooses a '''Martian type''' (Bot, Ali, Marty, Bob or Robby; the type does not change how the game plays) and places the Martian on a '''start square''' outside the garden: on the left, right or bottom side. Players choose in turn order.
+* The carrying tube starts empty. Flowers paid for special actions go into the tube.
+* The starting player goes first, then play continues in turn order.
+
+==Your turn==
+
+{| class="wikitable"
+! # !! Step !! What you do
+|-
+| 1 || '''Special actions''' (optional) || Pay 3 flowers of one colour from your reserve to use a special action. You can do this as many times as you like, each time with a different colour if you wish. Each special action can be used only once in the whole game.
+|-
+| 2 || '''Move your Martian''' (mandatory) || Move your Martian in a straight line (up, down, left or right) to any flower in that line. It can pass over flowers and other Martians, but never over a peak. Pick up the flower you land on, then pick up one flower '''next to''' it (up, down, left or right) if there is one.
+|-
+| 3 || '''Soliflowers''' (mandatory) || Pick up every '''soliflower''' on the board: a flower with no flower directly next to it (up, down, left or right). Diagonal flowers do not count.
+|}
+
+==Special actions==
+
+Pay 3 flowers of one colour. The paid flowers go into the carrying tube. The icons read left to right on the strip above the garden.
+
+{| class="wikitable"
+! Icon !! Action
+|-
+| 1 || '''Tube''': pick 3 random flowers from the tube (you do not look). It needs at least 3 flowers in the tube.
+|-
+| 2 || '''Jump''': jump over a peak directly next to your Martian. Land on the square straight beyond the peak. You cannot land on a peak or another Martian. A flower there goes to your reserve.
+|-
+| 3 || '''Diagonal''': move your Martian diagonally, as far as you like, but not over a peak. You cannot land on a peak or another Martian. A flower on the square goes to your reserve.
+|-
+| 4 || '''Pick''': pick any flower from the garden.
+|-
+| 5 || '''Swap Martian''': swap your Martian with any one peak or flower.
+|-
+| 6 || '''Swap peak and flower''': swap any one peak with any one flower.
+|-
+| 7 || '''Swap flowers''': swap any two flowers.
+|-
+| 8 || '''Move flower''': move any one flower to any empty square.
+|-
+| 9 || '''Move peak''': move any one peak to any empty square.
+|-
+| 10 || '''Wildflower''': take the grey wildflower into your reserve. It is not covered with a counter: once it is taken, this action is no longer available.
+|}
+
+After a special action is used, it is covered with a grey counter. A Martian still standing outside the garden cannot use the actions that move a Martian (jump, diagonal and swap Martian). It enters the garden with its first move.
+
+==Scoring your hand==
+
+* Count the flowers of each colour in your reserve, including zeros, and sort the five numbers from lowest to highest.
+* The grey wildflower counts as any one colour. It is declared automatically as the colour that gives the best hand.
+* Example: 0, 4, 5, 5, 6 is written '''04556''' and is a low hand. 3, 4, 5, 5, 6 is a better hand because its lowest colour is higher.
+* The highest hand wins. Two equal hands share the win.
+
+==Game end==
+
+* If, on your turn, your Martian cannot reach any flower, the game ends immediately. You can still use special actions first to make a move. If you cannot move and have nothing else to do, the game ends with the scoring.
+* The scoring shows each player's sorted hand at the end of the game.
+
+==Variants (game options)==
+
+* '''Game mode''': Competitive (standard), or Cooperative. In the cooperative game the team score is the lowest hand, and everyone works to make it as high as possible.
+* '''Martians per player''': One (standard), or Two for the 2-player variant. Each player places two Martians and can move either one on the turn. All the special actions in a turn must use the Martian you move that turn.
+* '''Tube action''': Available (standard), or not available (purely combinatorial game). With the combinatorial variant, the tube action is covered at the start.
+* Hidden score (reserves behind a screen) is not in this version: reserves are always visible, as the standard rules require.
+
+==Notes on the rules==
+
+* Flowers that are not in a Martian's line cannot be reached: a Martian only moves along its row or column.
+* A flower can end up under a Martian only through a swap. It is picked up later by the Pick action or by the soliflower step.
+* A payment is always 3 flowers of one colour. The grey wildflower cannot be used to pay, because it has no colour until scoring.

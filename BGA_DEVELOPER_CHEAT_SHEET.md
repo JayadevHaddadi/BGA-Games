@@ -265,3 +265,50 @@ Full checklist: see **AGENTS.md §4b**. Summary of what gets flagged on submissi
 5. **No credits in the play area**: put them in `gameinfos.jsonc` and the GMM.
 6. **No duplicate action buttons** inside the play area; use the action bar only.
 
+
+---
+
+## 13. New game in one pass: `tools/bga.py` (use this for every game)
+
+```bash
+python3 tools/bga.py new <slug> --name "Gardens of X" --bgg <id> --publisher nestorgames --publisher-bgg 9976 --players 2 5
+python3 tools/bga.py assets <slug>     # games/<slug>/design/make_assets.py (art + metadata images)
+python3 tools/bga.py check <slug>      # the pre-push and pre-review gate: no FAIL lines
+python3 tools/bga.py gmm <slug>        # games/<slug>/GMM_FILLIN.md from metadata.json
+python3 tools/bga.py sync <slug>       # fast-lane upload to the Studio project (needs tools/sftp.config.json)
+python3 tools/bga.py register <slug>   # re-add the sync target and deploy block if they went missing (idempotent)
+```
+
+`new` writes the BGA files, `metadata.json`, a `design/make_assets.py` and the wiring in `tools/sync.py` and `.github/workflows/bga-deploy.yml` (both have `<bga:targets>` / `<bga:options>` / `<bga:deploy>` markers; `register` inserts above them).
+
+### Checklist for a new game (what `check` enforces, and what you still do by hand)
+
+1. **Read** the rulebook and the other games' READMEs. Write the rules decisions in `games/<slug>/PLAN.md` (rule, decision, confidence). Every "CHECK" in the rulebook is a decision to note.
+2. **Rules as pure PHP** in `modules/php/Rules.php` (no framework calls). Test it from the command line: `tests/<slug>_test.php` (the `check` step runs every `tests/*_test.php`).
+3. **Server**: `Game.php` (setup, `getAllDatas`, helpers), one state class per phase, `zombie()` in every active state, `dbmodel.sql` with `DROP TABLE IF EXISTS` before each table. `gameoptions.jsonc` / `gamepreferences.jsonc` ids 100 to 199.
+4. **Client**: `modules/js/Game.js` with `setupPromiseNotifications`, one `notif_<name>` per server notification, tap-to-stage with Confirm and Undo. Sounds only from confirmed events (`sfx(id)` = `this.bga.sounds.play`), with `.ogg` and `.mp3` in `sounds/`.
+5. **Layout** (see section 14): full-width root on phones, cell size from the width, 32 px tap targets at 375 px, no horizontal scroll.
+6. **Art**: `design/make_assets.py` crops the board and sprites into `bga/img/` (small, BGA preloads it) and calls `tools/bga_assets.build_metadata(...)` for box, icon, banners, title, publisher and displays.
+7. **Browser harness**: copy `games/gardensofenceladus/tests/harness/` (mock `bga`, `frame.html` for phone widths). Check centring (0 px offset), tap sizes and the main flows.
+8. **Wiki**: `bga/GAMEHELP.wiki` in MediaWiki markup. Interpretations go in the wiki's notes section.
+9. **Metadata**: fill `metadata.json` (description, designers, tags, licence). Mark proposals as PROPOSAL. Then `gmm` for the Control Panel sheet. Add a row to `LICENSING_TRACKER.md` and mark the licence status honestly.
+10. `python3 tools/bga.py check <slug>` until it has 0 FAIL. Then commit and push to `main` (AGENTS.md section 1).
+
+---
+
+## 14. Gotchas found while building Gardens of Enceladus
+
+| Topic | What happened | Rule |
+| :--- | :--- | :--- |
+| **Framework `final` methods** | A game-level `activeNextPlayer()` clashed with the framework's `final` method (fatal at load). | Look up names in the game's `_ide_helper.php` before adding a method. It lists the server API with signatures. `bga-framework.d.ts` is the **client** API only. |
+| **Board as strings** | Joining colour names into one string (`'blue' . 'red'`) makes the client read it back wrong. | Send 2-D arrays of codes to the client. |
+| **Scores with counts of 10 or more** | A 5-digit "sorted counts" score is ambiguous once a count reaches 10. | Compare the sorted tuple. Store the BGA score as the tuple read in base N (N above the largest count), so the ranking is exact. |
+| **By-reference PHP calls** | Passing a literal array to a function with `array &$x` is a fatal error in tests. | Assign to a variable first. |
+| **Turn-lock with two Martians** | The lock must be checked for every action that uses a Martian, not only for moves. | Check the lock in the action and in `usableMartianIndexes()`. |
+| **Phone width** | A 375 px phone has about 320 px of game width after BGA's padding. A 10 x 10 board plus side squares then gives 28 px cells, below the 32 px target. | Widen the root to the viewport (see `fitContainerToScreen` in Yavalath) and size cells as `width / (10 + 2 x side)`. Side squares of 0.7 cell give 32 px at 375 px. Measure, don't guess. |
+| **Headless screenshots** | Headless Chrome will not go narrower than about 500 px, so a 375 px test is not a 375 px test. | Load the page in a 375 px `<iframe>` (`tests/harness/frame.html`) and read the result from the parent. |
+| **Stat names** | `tableStats`/`playerStats` calls with names missing from `stats.jsonc` only fail at runtime. | `check` compares the names used in PHP with `stats.jsonc`. |
+| **Option ids** | Values inside an option (`"1"`, `"2"`) look like ids to a naive grep. | Read the top-level keys of the JSONC (`check` does this). |
+| **Metadata image sizes conflict** | `AGENTS.md` 5.D asks for banner 1386x400; `BGA_METADATA_ASSETS_SPEC.md` asks for 1920x556. | Produce both (`tools/bga_assets.py` does). Keep the Control Panel upload consistent with whichever BGA shows. |
+| **Publisher logos** | The nestorgames logo file is a white emblem on black. Used as-is it became a black square. | `tools/bga_assets.publisher_logo` turns brightness into alpha and recolours it. Look at every logo before using it. |
+| **Scanned sources** | The board scan has a logo, title and icon strip. Only the clean grid (`image.png`) and the icon strip are usable as art. | Crop from the clean source. Keep the scan's text out of `img/` and out of banners (BGA overlays the title). |

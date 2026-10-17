@@ -42,6 +42,16 @@ Every change should be committed and pushed to `main`. The GitHub Actions deploy
 
 ---
 
+## 🧰 1b. One tool per game (use it for every new game)
+
+* New game: `python3 tools/bga.py new <slug> --name "..." --bgg <id>` scaffolds the folder, the sync target and the deploy block.
+* Art: `python3 tools/bga.py assets <slug>` (runs `games/<slug>/design/make_assets.py`; metadata images come from `tools/bga_assets.py`).
+* Before every push and before every review request: `python3 tools/bga.py check <slug>` (no FAIL lines).
+* Control Panel text: fill `games/<slug>/metadata.json`, then `python3 tools/bga.py gmm <slug>` writes `GMM_FILLIN.md`.
+* Details and the new-game checklist: `BGA_DEVELOPER_CHEAT_SHEET.md` section 13.
+
+---
+
 ## 🎮 2. Game Target Mapping Reference
 
 | Game | Local Directory | Remote BGA Studio Slot | Fast-Lane Sync Command |
@@ -55,6 +65,8 @@ Every change should be committed and pushed to `main`. The GitHub Actions deploy
 | **Sugar Gliders** | `games/sugargliders/bga/` | `sugargliders` | `python tools/sync.py sugargliders` |
 | **Gardens of Uranus** | `games/gardensofuranus/bga/` | `gardensofuranustest` / `gardensofuranus` | `python tools/sync.py gardensofuranus` |
 | **Gardens of Mars** | `games/gardensofmars/bga/` | `gardensofmarstest` / `gardensofmars` | `python tools/sync.py gardensofmars` |
+| **Gardens of Io** | `games/gardensofio/bga/` | `gardensofio` | `python tools/sync.py gardensofio` |
+| **Gardens of Enceladus** | `games/gardensofenceladus/bga/` | `gardensofenceladus` | `python tools/sync.py gardensofenceladus` |
 | **nestorgames GP** | `games/nestorgamesgp/bga/` | `nestorgamesgptest` / `nestorgamesgp` | `python tools/sync.py nestorgamesgp` |
 | **MicroForge** | `games/microforge/bga/` | `microforgetest` / `microforge` | `python tools/sync.py microforge` |
 | **GoCaine** | not pulled locally yet | `gocaine` (exists on Studio, has code) | add to `TARGET_MAP` in `tools/sync.py` first |

@@ -28,6 +28,8 @@ on:
           - gardensofio
           - nestorgamesgp
           - microforge
+          - gardensofenceladus
+          # <bga:options>  (tools/bga.py register inserts new games above this line)
 
 jobs:
   deploy:
@@ -150,6 +152,13 @@ jobs:
               DEPLOYED=1
             fi
 
+            if echo "$CHANGED" | grep -qi "games/gardensofenceladus"; then
+              echo "Deploying Gardens of Enceladus..."
+              python tools/sync.py gardensofenceladus
+              DEPLOYED=1
+            fi
+
+            # <bga:deploy>  (tools/bga.py register inserts new game blocks above this line)
             if [ "$DEPLOYED" -eq 0 ]; then
               echo "No specific game folder modified. Deploying active test games..."
               python tools/sync.py omega

@@ -1,0 +1,43 @@
+{
+  // option ids should be between 100 and 199
+  "100": {
+    "name": "Game mode",
+    "values": {
+      "1": {
+        "name": "Competitive (Standard)",
+        "description": "Each player builds a hand of flowers. The highest hand wins. Equal hands share the win."
+      },
+      "2": {
+        "name": "Cooperative",
+        "description": "The team score is the lowest hand. Work together to get the highest possible team score."
+      }
+    },
+    "default": 1
+  },
+  "101": {
+    "name": "Martians per player (2 players only)",
+    "values": {
+      "1": {
+        "name": "One Martian (Standard)"
+      },
+      "2": {
+        "name": "Two Martians (2-player variant)",
+        "description": "Each player places two Martians. Move either one on your turn, but all special actions in a turn must use the Martian you move that turn. With more than 2 players this option is ignored."
+      }
+    },
+    "default": 1
+  },
+  "102": {
+    "name": "Tube action (random flowers)",
+    "values": {
+      "1": {
+        "name": "Available (Standard)"
+      },
+      "2": {
+        "name": "Not available (purely combinatorial variant)",
+        "description": "Pick 3 flowers from the tube is covered at the start. The game has no random element after setup."
+      }
+    },
+    "default": 1
+  }
+}

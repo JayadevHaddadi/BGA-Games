@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gardens of Enceladus harness</title>
+<link rel="stylesheet" href="/bga/gardensofenceladus.css">
+<style>
+  /* Mimics BGA's padded wrappers so the centring and full-width checks mean something */
+  body { margin: 0; background: #ffffff; font-family: Arial, sans-serif; }
+  #page-content { padding: 0 12px; }
+  #ebd-body { padding: 0 6px; }
+  #game_play_area { padding: 8px; }
+  #statusbar { font-weight: bold; padding: 6px; }
+  #out { font: 12px monospace; white-space: pre-wrap; background: #fff; color: #000; padding: 8px; }
+</style>
+</head>
+<body>
+<div id="page-content"><div id="ebd-body"><div id="statusbar"></div>
+<div id="game_play_area"></div></div></div>
+<div id="player_panels"></div>
+<pre id="out">running</pre>
+<script>
+// Globals that BGA provides to the game
+window._ = (s) => s;
+window.g_gamethemeurl = '/bga/';
+window.errors = [];
+window.addEventListener('error', (e) => window.errors.push(String(e.message)));
+window.addEventListener('unhandledrejection', (e) => window.errors.push(String(e.reason)));
+</script>
+<script type="module">
+import { Game } from '/bga/modules/js/Game.js';
+
+const log = { actions: [], sounds: [] };
+const statusBar = {
+    buttons: [],
+    title: '',
+    setTitle(t) { this.title = t; },
+    addActionButton(label, fn, opts) { this.buttons.push({ label, fn, disabled: !!(opts && opts.disabled), color: opts && opts.color }); },
+    removeActionButtons() { this.buttons = []; },
+};
+const bga = {
+    gameArea: { getElement: () => document.getElementById('game_play_area') },
+    statusBar,
+    sounds: { play: (id) => log.sounds.push(id) },
+    actions: { performAction: (name, args) => log.actions.push({ name, args }) },
+    states: { register() {} },
+    notifications: { setupPromiseNotifications() {} },
+    players: {
+        getCurrentPlayerId: () => 1,
+        isCurrentPlayerActive: () => true,
+        getActivePlayerId: () => 1,
+    },
+    playerPanels: {
+        getElement: (pid) => {
+            const el = document.createElement('div');
+            el.id = 'panel_' + pid;
+            document.getElementById('player_panels').appendChild(el);
+            return el;
+        },
+    },
+};
+
+// A fixed garden: 95 flowers and 5 peaks. Colours cycle, peaks sit at fixed squares.
+const colours = ['blue', 'red', 'yellow', 'green', 'magenta'];
+const peakAt = new Set(['0,9', '3,3', '5,7', '8,2', '9,9']);
+const board = [];
+for (let r = 0; r < 10; r++) {
+    const row = [];
+    for (let c = 0; c < 10; c++) {
+        if (peakAt.has(`${r},${c}`)) row.push('P');
+        else if ((r === 2 && c === 5) || (r === 6 && c === 6)) row.push('');
+        else row.push(colours[(r * 3 + c) % 5]);
+    }
+    board.push(row);
+}
+// Row 4 is free of peaks, so a Martian on the left side can reach flowers along it
+const martians = [
+    { id: 1, pid: 1, type: 'bot', r: 4, c: -1 },
+    { id: 2, pid: 2, type: 'ali', r: 0, c: 10 },
+];
+const gamedatas = {
+    board,
+    martians,
+    reserves: {
+        1: { blue: 3, red: 1, yellow: 0, green: 2, magenta: 0, wild: 0 },
+        2: { blue: 0, red: 0, yellow: 1, green: 1, magenta: 4, wild: 1 },
+    },
+    tube: { blue: 0, red: 0, yellow: 0, green: 0, magenta: 0 },
+    specials: Object.fromEntries([1,2,3,4,5,6,7,8,9,10].map((s) => [s, { used: false, by: 0 }])),
+    coop: false,
+    martians_per: 1,
+    colours,
+    martian_types: ['bot', 'ali', 'marty', 'bob', 'robby'],
+    special_kinds: {},
+    player_order: [1, 2],
+    players: { 1: { name: 'Ann' }, 2: { name: 'Ben' } },
+    turn_martian: 0,
+};
+
+const flowersInRow = (r, fromC, dir) => {
+    const out = [];
+    for (let c = fromC; c >= 0 && c < 10; c += dir) {
+        if (board[r][c] === 'P') break;
+        if (board[r][c] !== '') out.push([r, c]);
+    }
+    return out;
+};
+const turnArgs = {
+    can_move: true,
+    moves: [{ martian: 1, targets: flowersInRow(4, 0, 1) }],
+    jumps: [{ martian: 1, targets: [] }],
+    diagonals: [{ martian: 1, targets: [[3, 1], [2, 2]] }],
+    specials: Object.fromEntries([1,2,3,4,5,6,7,8,9,10].map((s) => [s, { kind: '', used: false, available: [1, 4, 5, 8, 10].includes(s), martian: [2, 3, 5].includes(s), cells: 1 }])),
+    payable: ['blue'],
+    flowers: [], peaks: [], empties: [],
+    reserve: gamedatas.reserves[1],
+    tube_total: 0,
+    turn_special: 0,
+    turn_martian: 0,
+};
+const placementArgs = {
+    free_types: ['bot', 'ali', 'marty', 'bob', 'robby'],
+    free_slots: [[0, -1], [1, -1], [2, 10], [9, 10], [10, 4]],
+    per_player: 1,
+    placed_by_active: 0,
+};
+
+// ?clean=1 hides the harness report, so screenshots show only the game (used for the Control Panel displays)
+if (new URLSearchParams(location.search).get('clean')) {
+    document.getElementById('out').style.display = 'none';
+    document.getElementById('player_panels').style.display = 'none';
+}
+// ?zoom=0.8 shrinks the whole page (screenshots for the Control Panel only)
+const Z = Number(new URLSearchParams(location.search).get('zoom') || 0);
+if (Z) document.body.style.zoom = String(Z);
+// ?w=375 pins the page to a phone width (headless Chrome will not go below about 500px on its own)
+const W = Number(new URLSearchParams(location.search).get('w') || 0);
+if (W) {
+    document.getElementById('page-content').style.width = W + 'px';
+    document.getElementById('page-content').style.padding = '0';
+    document.getElementById('page-content').style.boxSizing = 'border-box';
+    document.body.style.overflowX = 'hidden';
+}
+const results = {};
+const check = (name, ok, detail) => { results[name] = { ok: !!ok, detail: detail === undefined ? null : detail }; };
+const q = (sel) => document.querySelector(sel);
+const qa = (sel) => Array.from(document.querySelectorAll(sel));
+const rect = (el) => el.getBoundingClientRect();
+const tap = (el) => el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+const buttonLabels = () => statusBar.buttons.map((b) => b.label + (b.disabled ? '(off)' : ''));
+const pass = (name) => { results[name] = { ok: true }; };
+const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+async function run() {
+    const mode = new URLSearchParams(location.search).get('mode') || 'turn';
+    const game = new Game(bga);
+    game.setup(gamedatas);
+    await flush();
+
+    // Layout facts (measured on the live DOM)
+    const cells = qa('#enc_board .enc_cell');
+    const cell = rect(cells[0]);
+    const boardRect = rect(q('#enc_board'));
+    const root = rect(q('#game_play_area'));
+    const tableRect = rect(q('#enc_table'));
+    const wrapRect = rect(q('#enc_board_wrap'));
+    results.debug_rects = { value: { game_play_area: [Math.round(root.left), Math.round(root.width)], enc_table: [Math.round(tableRect.left), Math.round(tableRect.width)], wrap: [Math.round(wrapRect.left), Math.round(wrapRect.width)], board: [Math.round(boardRect.left), Math.round(boardRect.width)], specials_cols: getComputedStyle(q('#enc_specials')).gridTemplateColumns, first_special: [Math.round(rect(q('.enc_special')).width), Math.round(rect(q('.enc_special')).height)], chip: [Math.round(rect(q('.enc_chip')).width), Math.round(rect(q('.enc_chip')).height)] } };
+    const centreOffset = (boardRect.left + boardRect.width / 2) - (root.left + root.width / 2);
+    const specialRect = qa('.enc_special').map((el) => rect(el));
+    const minSpecialW = Math.min(...specialRect.map((r) => r.width));
+    const minSpecialH = Math.min(...specialRect.map((r) => r.height));
+    const minChipH = Math.min(...qa('.enc_chip').map((el) => rect(el).height));
+    results.viewport = { value: `${innerWidth}x${innerHeight}, page ${W || 'auto'}` };
+    results.board_css_px = { value: Math.round(boardRect.width) };
+    results.gutter_px = { value: Math.round(rect(q('#enc_board_wrap')).left - (W || innerWidth) * 0) };
+    results.cell_px = { value: Math.round(cell.width * 10) / 10 };
+    results.cell_tap_min_px = { value: Math.round(Math.min(...cells.map((el) => Math.min(rect(el).width, rect(el).height))) * 10) / 10 };
+    results.special_button_px = { value: `${Math.round(minSpecialW)}x${Math.round(minSpecialH)}` };
+    results.chip_min_height_px = { value: Math.round(minChipH) };
+    results.board_centre_offset_px = { value: Math.round(centreOffset * 10) / 10 };
+    results.horizontal_overflow_px = { value: document.documentElement.scrollWidth - (W || innerWidth) };
+    results.errors_after_setup = { value: window.errors.slice() };
+    check('no_js_errors_setup', window.errors.length === 0, window.errors);
+    check('centre_within_2px', Math.abs(centreOffset) <= 2, Math.round(centreOffset * 10) / 10);
+    check('no_horizontal_scroll', document.documentElement.scrollWidth <= (W || innerWidth), document.documentElement.scrollWidth);
+
+    if (mode === 'placement') {
+        game.enterPlacement(placementArgs, true);
+        await flush();
+        const slots = qa('#enc_board .enc_slot');
+        check('start_squares_rendered', slots.length === 30, slots.length);
+        check('start_squares_visible_while_placing', getComputedStyle(slots[0]).display !== 'none', getComputedStyle(slots[0]).display);
+        results.types_rendered = { value: qa('.enc_type').length + ' / host ' + !!document.getElementById('enc_types') + ' / args ' + JSON.stringify(placementArgs.free_types) };
+        tap(q('.enc_type[data-type="ali"]'));
+        await flush();
+        check('type_selected_then_square_highlights', qa('#enc_board .enc_target').length === 5, qa('#enc_board .enc_target').length);
+        tap(q('#enc_board .enc_slot[data-r="10"][data-c="4"]'));
+        await flush();
+        check('confirm_enabled_after_square', buttonLabels().includes('Confirm'), buttonLabels());
+        const confirmBtn = statusBar.buttons.find((b) => b.label === 'Confirm');
+        confirmBtn.fn();
+        check('placement_action_sent', log.actions.length === 1 && log.actions[0].name === 'actPlaceMartian' && log.actions[0].args.martianType === 'ali' && log.actions[0].args.row === 10 && log.actions[0].args.col === 4, log.actions);
+        results.final = { value: 'placement' };
+    } else {
+        game.enterTurn(turnArgs, true);
+        await flush();
+        check('martian_can_move_marked', qa('.enc_martian.enc_can_move').length === 1, qa('.enc_martian.enc_can_move').length);
+        check('own_martian_outline', !!q('.enc_martian.enc_mine'), null);
+        // Tap the Martian: the flowers on its row light up
+        tap(q('.enc_martian[data-id="1"]'));
+        await flush();
+        check('move_targets_highlighted', qa('#enc_board .enc_target').length === turnArgs.moves[0].targets.length, qa('#enc_board .enc_target').length);
+        // Tap the first flower on the row: landing set, the adjacent flowers offered
+        const [tr, tc] = turnArgs.moves[0].targets[0];
+        tap(q(`#enc_board .enc_cell[data-r="${tr}"][data-c="${tc}"]`));
+        await flush();
+        const adjCount = qa('#enc_board .enc_candidate').length;
+        check('adjacent_offered_after_landing', adjCount > 0 || game.adjacentFlowers(tr, tc).length === 0, adjCount);
+        check('confirm_blocked_until_adjacent_chosen', game.adjacentFlowers(tr, tc).length === 0 || !buttonLabels().some((l) => l === 'Confirm'), buttonLabels());
+        if (game.adjacentFlowers(tr, tc).length > 0) {
+            const [ar, ac] = game.adjacentFlowers(tr, tc)[0];
+            tap(q(`#enc_board .enc_cell[data-r="${ar}"][data-c="${ac}"]`));
+            await flush();
+        }
+        const confirm = statusBar.buttons.find((b) => b.label === 'Confirm');
+        check('confirm_enabled_for_move', !!confirm && !confirm.disabled, buttonLabels());
+        confirm.fn();
+        const moved = log.actions.find((a) => a.name === 'actMove');
+        check('move_action_sent', !!moved && moved.args.martian === 1 && moved.args.r === tr && moved.args.c === tc, moved);
+
+        // Special action: the tube (slot 1). Needs a payable colour, then Confirm.
+        game.enterTurn(turnArgs, true);
+        await flush();
+        tap(q('.enc_special[data-slot="1"]'));
+        await flush();
+        check('special_needs_payment_first', statusBar.buttons.some((b) => b.label === 'Confirm' && b.disabled), buttonLabels());
+        tap(q('.enc_chip[data-colour="blue"]'));
+        await flush();
+        const c2 = statusBar.buttons.find((b) => b.label === 'Confirm');
+        check('special_confirm_after_payment', !!c2 && !c2.disabled, buttonLabels());
+        c2.fn();
+        const spec = log.actions.find((a) => a.name === 'actSpecial');
+        check('special_action_sent', !!spec && spec.args.slot === 1 && spec.args.colour === 'blue', spec);
+
+        // Undo clears a stage
+        game.enterTurn(turnArgs, true);
+        await flush();
+        tap(q('.enc_special[data-slot="4"]'));
+        await flush();
+        const undo = statusBar.buttons.find((b) => b.label === 'Undo');
+        check('undo_button_during_stage', !!undo, buttonLabels());
+        undo.fn();
+        await flush();
+        check('undo_clears_stage', !statusBar.buttons.some((b) => b.label === 'Confirm'), buttonLabels());
+
+        // A flower the server did not offer is refused on the spot, with a reason
+        game.enterTurn(turnArgs, true);
+        await flush();
+        tap(q('.enc_martian[data-id="1"]'));
+        await flush();
+        tap(q('#enc_board .enc_cell[data-r="0"][data-c="0"]'));
+        await flush();
+        check('refusal_has_reason', /not|cannot|No Martian|Tap/.test(statusBar.title), statusBar.title);
+    }
+
+    // Layout and events after every flow
+    check('no_js_errors_total', window.errors.length === 0, window.errors);
+    results.sounds_played = { value: log.sounds };
+    const out = JSON.stringify(results, null, 2);
+    document.getElementById('out').textContent = out;
+    document.body.dataset.done = '1';
+}
+
+run().catch((e) => {
+    const types = document.getElementById('enc_types');
+    document.getElementById('out').textContent = 'FAILED: ' + (e && e.stack ? e.stack : e)
+        + '\nJS errors: ' + JSON.stringify(window.errors) + '\nenc_types: ' + (types ? types.outerHTML.slice(0, 300) : 'none');
+    document.body.dataset.done = '1';
+});
+</script>
+</body>
+</html>

@@ -44,6 +44,8 @@ TARGET_MAP = {
     "gardensofmars": ("games/gardensofmars/bga", "gardensofmars"),
     "gardensofmarstest": ("games/gardensofmars/bga", "gardensofmars"),
     "gardensofio": ("games/gardensofio/bga", "gardensofio"),
+    "gardensofenceladus": ("games/gardensofenceladus/bga", "gardensofenceladus"),
+    # <bga:targets>  (tools/bga.py register inserts new games above this line)
 }
 
 def load_credentials():

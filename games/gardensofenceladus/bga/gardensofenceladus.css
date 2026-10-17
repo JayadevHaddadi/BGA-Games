@@ -1,0 +1,408 @@
+/*
+ * Gardens of Enceladus: play area styles.
+ * Rules we keep to (BGA reviewer feedback, see BGA_REVIEWER_FEEDBACK.md): flat matte pieces, no shadows or glow,
+ * no looping animation, no emoji, corners 3px or less, the default BGA font, tap targets of 32px or more.
+ * The table texture (img/table.jpg) is set from the script on <body> so it covers the whole page.
+ */
+
+/* ---------- page: a textured table behind everything, BGA wrappers transparent ---------- */
+
+body.enceladus_page_bg {
+    background-color: #141a26;
+    background-image: var(--enc-table, none);
+    background-size: cover;
+    background-position: center top;
+    background-attachment: fixed;
+}
+
+body.enceladus_page_bg #page-content,
+body.enceladus_page_bg #ebd-body,
+body.enceladus_page_bg #game_play_area,
+body.enceladus_page_bg #game_play_area_background {
+    background: transparent;
+}
+
+/* ---------- layout ---------- */
+
+#enc_root {
+    color: #eef3f8;
+    font-size: 14px;
+    line-height: 1.35;
+    /* the start squares on the left and right sit one square outside the garden: never scroll the page sideways */
+    overflow-x: hidden;
+}
+
+#enc_table {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 4px 8px 12px;
+    box-sizing: border-box;
+}
+
+/* Read by screen readers only; the status bar shows the same text */
+#enc_hint {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+/* ---------- special actions strip (sits above the garden, like the printed board) ---------- */
+
+#enc_specials {
+    display: grid;
+    grid-template-columns: repeat(var(--enc-cols, 10), 1fr);
+    gap: 3px;
+    margin: 0 auto 4px;
+}
+
+.enc_special {
+    position: relative;
+    min-height: 40px;
+    padding: 3px;
+    border: 1px solid rgba(238, 243, 248, 0.25);
+    border-radius: 3px;
+    background: #dfe8f0;
+    cursor: pointer;
+}
+
+.enc_special img:first-child {
+    display: block;
+    width: 84%;
+    height: auto;
+    margin: 0 auto;
+}
+
+.enc_special.enc_usable {
+    outline: 2px solid #ffd54a;
+    outline-offset: 1px;
+}
+
+.enc_special.enc_unavailable {
+    opacity: 0.45;
+}
+
+.enc_special.enc_used {
+    cursor: default;
+}
+
+/* A used special action is covered with a grey counter (the wildflower action has none, it just empties) */
+.enc_counter {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.enc_special[aria-pressed="true"] {
+    outline: 3px solid #2f80ed;
+    outline-offset: 1px;
+}
+
+/* ---------- the garden ---------- */
+
+#enc_board_wrap {
+    position: relative;
+    margin: 0 auto;
+    box-sizing: content-box;
+}
+
+#enc_board {
+    position: relative;
+    margin: 0 auto;
+    background-color: #dfe8f0;
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    user-select: none;
+}
+
+#enc_cells,
+#enc_pieces {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.enc_cell,
+.enc_slot {
+    position: absolute;
+    width: 10%;
+    height: 10%;
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    background: transparent;
+    cursor: default;
+}
+
+.enc_cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.enc_piece {
+    width: 86%;
+    height: 86%;
+    object-fit: contain;
+    pointer-events: none;
+}
+
+.enc_peak_img {
+    width: 92%;
+    height: 92%;
+}
+
+.enc_slot {
+    display: none;
+    border: 1px dashed rgba(20, 26, 38, 0.55);
+    cursor: pointer;
+}
+
+#enc_board.enc_placing .enc_slot {
+    display: block;
+}
+
+/* Highlights: outlines only, never glow */
+.enc_target {
+    outline: 3px solid #ffd54a;
+    outline-offset: -3px;
+    cursor: pointer;
+}
+
+.enc_candidate {
+    outline: 3px dashed #ffd54a;
+    outline-offset: -3px;
+    cursor: pointer;
+}
+
+.enc_next {
+    outline: 4px solid #2f80ed;
+    outline-offset: -4px;
+}
+
+/* Martians: a flat button over the square it stands on (or on the start square outside the garden) */
+.enc_martian {
+    position: absolute;
+    width: 10%;
+    height: 10%;
+    box-sizing: border-box;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: default;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.enc_martian img {
+    width: 84%;
+    height: 84%;
+    object-fit: contain;
+    pointer-events: none;
+}
+
+.enc_martian.enc_mine {
+    outline: 2px dotted rgba(238, 243, 248, 0.9);
+    outline-offset: -2px;
+}
+
+.enc_martian.enc_can_move {
+    cursor: pointer;
+    outline: 3px solid #ffd54a;
+    outline-offset: -3px;
+}
+
+.enc_martian.enc_selected {
+    outline: 4px solid #2f80ed;
+    outline-offset: -4px;
+}
+
+/* ---------- reserve, tube, player panels ---------- */
+
+#enc_reserve {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin: 10px 0 4px;
+}
+
+.enc_reserve_title {
+    width: 100%;
+    text-align: center;
+    font-weight: bold;
+}
+
+.enc_chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 58px;
+    min-height: 44px;
+    padding: 4px 8px;
+    border: 1px solid rgba(238, 243, 248, 0.3);
+    border-radius: 3px;
+    background: rgba(12, 16, 24, 0.6);
+    color: #eef3f8;
+    font: inherit;
+    cursor: default;
+}
+
+.enc_chip img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+}
+
+.enc_chip b {
+    font-size: 16px;
+}
+
+.enc_chip.enc_payable {
+    border-color: #ffd54a;
+    cursor: pointer;
+}
+
+.enc_chip.enc_selected {
+    outline: 3px solid #2f80ed;
+    outline-offset: 1px;
+}
+
+#enc_tube {
+    text-align: center;
+    opacity: 0.9;
+    margin-top: 2px;
+}
+
+#enc_types {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    margin: 6px 0 8px;
+}
+
+.enc_type {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 64px;
+    min-height: 64px;
+    padding: 4px;
+    border: 1px solid rgba(238, 243, 248, 0.3);
+    border-radius: 3px;
+    background: rgba(12, 16, 24, 0.6);
+    color: #eef3f8;
+    font: inherit;
+    cursor: pointer;
+}
+
+.enc_type img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+}
+
+.enc_type.enc_selected {
+    outline: 3px solid #2f80ed;
+}
+
+.enc_panel_reserve {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 6px;
+    margin-top: 4px;
+    font-size: 12px;
+}
+
+.enc_panel_item {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.enc_panel_item img {
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+}
+
+/* ---------- end of game breakdown (in the play area, no popup) ---------- */
+
+#enc_final {
+    margin: 12px auto 0;
+    max-width: 480px;
+    padding: 8px 10px;
+    border: 1px solid rgba(238, 243, 248, 0.3);
+    border-radius: 3px;
+    background: rgba(12, 16, 24, 0.7);
+}
+
+#enc_final h3 {
+    margin: 0 0 6px;
+    font-size: 15px;
+}
+
+.enc_hands {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.enc_hands th,
+.enc_hands td {
+    padding: 4px 6px;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.enc_hand_count {
+    display: inline-block;
+    min-width: 1.6em;
+    text-align: center;
+    margin-right: 4px;
+    font-weight: bold;
+}
+
+/* ---------- focus and touch ---------- */
+
+#enc_root button:focus-visible {
+    outline: 3px solid #ffd54a;
+    outline-offset: 1px;
+}
+
+@media (hover: hover) {
+    .enc_target:hover,
+    .enc_candidate:hover {
+        outline-color: #ffffff;
+    }
+
+    .enc_special:not(.enc_used):hover {
+        border-color: #ffd54a;
+    }
+}
+
+@media (max-width: 800px) {
+    #enc_table {
+        padding: 0 4px 10px;
+    }
+}
+
+@media (max-width: 420px) {
+    #enc_table {
+        padding: 0 4px 10px;
+    }
+
+    .enc_chip {
+        min-width: 50px;
+    }
+}

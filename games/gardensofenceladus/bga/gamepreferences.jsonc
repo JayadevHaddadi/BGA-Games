@@ -1,0 +1,5 @@
+{
+  // user preference ids should be between 100 and 199
+  // No colour-blind preference: every flower carries its own centre symbol (circle, square, triangle, diamond, star),
+  // and the colour is always shown next to it in the reserve and the scoring breakdown.
+}

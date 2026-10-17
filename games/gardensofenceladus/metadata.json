@@ -1,0 +1,45 @@
+{
+  "_comment": "Single source for the BGA Control Panel (Game Metadata Manager) and the Studio pages. Run: python3 tools/bga.py gmm gardensofenceladus. Fields marked PROPOSAL are our suggestion, check them before saving.",
+  "slug": "gardensofenceladus",
+  "studio_project": "gardensofenceladus",
+  "game_name": "Gardens of Enceladus",
+  "bgg_id": 253793,
+  "bgg_url": "https://boardgamegeek.com/boardgame/253793/gardens-of-enceladus",
+  "year_published": 2018,
+  "players": "2 to 5",
+  "estimated_duration_minutes": 45,
+  "publisher": {
+    "name": "nestorgames",
+    "bgg_id": 9976,
+    "website": "https://www.nestorgames.com"
+  },
+  "designers": ["Néstor Romeral Andrés"],
+  "artists": [],
+  "rules_edits": ["Nathan Morse"],
+  "rules_url": "https://nestorgames.com/rulebooks/GARDENSOFENCELADUS_B_EN.pdf",
+  "description": "Our Martians from Gardens of Mars and Gardens of Io have travelled to Saturn's moon Enceladus to harvest the flowers they planted last year. Your little Martian gardener moves across an icy garden of 10 x 10 squares, collecting flowers of five colours from the board. Every flower with no neighbour is gathered at once, and special actions let you swap and move peaks and flowers around the garden.\n\nAt the end of the game each player's reserve is read as a hand: the number of flowers of each colour, sorted from lowest to highest. The best hand wins. Balance your colours, because a hand with a missing colour is terribly low. A cooperative variant asks for the highest team score you can reach.",
+  "zombie_mode_level": 1,
+  "tags": ["Abstract strategy", "Set collection", "Grid", "Science fiction", "Cooperative variant"],
+  "tags_note": "PROPOSAL: pick from BGA's tag list in the Control Panel; BGA may not accept all of these.",
+  "characteristics": {
+    "complexity": 3,
+    "luck": 2,
+    "strategy": 4,
+    "diplomacy": 1,
+    "note": "PROPOSAL: sliders 1 to 5 in the Control Panel only (not in gameinfos.jsonc)."
+  },
+  "licence": {
+    "status": "NOT CONFIRMED",
+    "note": "Gardens of Enceladus is not yet in LICENSING_TRACKER.md. The other Gardens titles from nestorgames were granted in 2026-10-01. Confirm before the publisher page is signed."
+  },
+  "assets": {
+    "box": "metadata_assets/box_280x280.png",
+    "icon": "metadata_assets/icon_50x50.png",
+    "icon_hi": "metadata_assets/icon_500x500.png",
+    "banner": "metadata_assets/banner_1386x400.jpg",
+    "banner_wide": "metadata_assets/banner_1920x556.jpg",
+    "title": "metadata_assets/title_2000x2000.png",
+    "publisher": "metadata_assets/publisher_280x280.png",
+    "display": ["metadata_assets/display_1.jpg", "metadata_assets/display_2.jpg"]
+  }
+}

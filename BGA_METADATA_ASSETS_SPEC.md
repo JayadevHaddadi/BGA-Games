@@ -44,3 +44,7 @@ This document defines the exact dimensions, formats, transparency rules, and pla
 * Do **NOT** put 1920×556 banners or promotional graphics into your BGA code's `img/` folder:
   * Every image inside `img/` is loaded into memory during the table preloader phase. Large non-gameplay images cause table creation lag or timeout errors.
   * Metadata assets are uploaded separately in the BGA Studio Web Control Panel.
+
+---
+
+> **Update (Gardens of Enceladus, Oct 2026):** the sizes above differ from AGENTS.md section 5.D. `tools/bga_assets.py` now produces both banner sizes (1386x400 and 1920x556), so either upload works. Check `python3 tools/bga.py check <slug>` for the sizes the tool expects.
