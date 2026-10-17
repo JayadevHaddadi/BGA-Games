@@ -30,6 +30,7 @@ on:
           - microforge
           - gardensofenceladus
           - microchip
+          - people
           # <bga:options>  (tools/bga.py register inserts new games above this line)
 
 jobs:
@@ -162,6 +163,12 @@ jobs:
             if echo "$CHANGED" | grep -qi "games/microchip"; then
               echo "Deploying Microchip..."
               python tools/sync.py microchip
+              DEPLOYED=1
+            fi
+
+            if echo "$CHANGED" | grep -qi "games/people"; then
+              echo "Deploying People..."
+              python tools/sync.py people
               DEPLOYED=1
             fi
 

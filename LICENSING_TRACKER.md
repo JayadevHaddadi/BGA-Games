@@ -15,6 +15,7 @@ This document tracks publisher/designer permissions, communications, contact inf
 | **Gardens of Mars** | Néstor Romeral Andrés | nestorgames | 🚀 **Active Dev / Approved (nestorgames)** | Active Dev (`gardensofmars`) |
 | **Gardens of Enceladus** | Néstor Romeral Andrés | nestorgames | ⚠️ **NOT CONFIRMED: no licence row yet, confirm before publisher sign-off** | Active Dev (`gardensofenceladus`) |
 | **Microchip** | Néstor Romeral Andrés | nestorgames | ⚠️ **NOT CONFIRMED: no licence row yet, confirm before publisher sign-off** | Active Dev (`microchip`) |
+| **People** | Néstor Romeral Andrés | nestorgames | ⚠️ **NOT CONFIRMED: no licence row yet, confirm before publisher sign-off** | Active Dev (`people`) |
 | **Omega** | Néstor Romeral Andrés | Eclipse Editorial / nestorgames | ✅ **BGA License Granted (2024-07-24)** | Ready for Testing (`omega`) |
 | **Seven** | Néstor Romeral Andrés | Eclipse Editorial / nestorgames | ✅ **BGA License Granted (2024-07-24)** | Scaffolding / Assets In Hand |
 | **Taiji** | Néstor Romeral Andrés | Eclipse Editorial / nestorgames | ✅ **BGA License Granted (2024-07-24)** | Backlog / Approved |

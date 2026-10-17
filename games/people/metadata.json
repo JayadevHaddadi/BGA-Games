@@ -1,0 +1,46 @@
+{
+  "_comment": "Single source for the BGA Control Panel (Game Metadata Manager) and the Studio pages. Run: python3 tools/bga.py gmm people. Fields marked PROPOSAL or PROVISIONAL are our suggestion, check them before saving.",
+  "slug": "people",
+  "studio_project": "people",
+  "game_name": "People",
+  "bgg_id": 467193,
+  "bgg_id_note": "PROVISIONAL: from a BGG-sourced aggregator (BoardMatch, game 467193). Not yet checked on boardgamegeek.com.",
+  "bgg_url": "https://boardgamegeek.com/boardgame/467193",
+  "year_published": 2026,
+  "players": "2 to 4",
+  "estimated_duration_minutes": 40,
+  "publisher": {
+    "name": "nestorgames",
+    "bgg_id": 9976,
+    "website": "https://www.nestorgames.com"
+  },
+  "designers": ["Néstor Romeral Andrés"],
+  "artists": [],
+  "rules_edits": [],
+  "rules_url": "",
+  "description": "A dystopian city where people are the crop. Build factories between the districts of the game area: each factory scores the humans on its two sides, multiplied together. Use the police to disperse the humans, the bulldozer to sweep them along the streets, roadblocks to cut the city off, and more people to fill it up. Spend your bitcoins wisely: unspent ones count as points at the end.\n\nA tribute to Soylent Green. The game is for 2 to 4 players. The game area shrinks as the table fills, and the game ends when the player to move has no factory left to build.",
+  "zombie_mode_level": 1,
+  "tags": ["Abstract strategy", "Area control", "Connection", "Grid", "Science fiction"],
+  "tags_note": "PROPOSAL: pick from BGA's tag list in the Control Panel; BGA may not accept all of these.",
+  "characteristics": {
+    "complexity": 2,
+    "luck": 2,
+    "strategy": 4,
+    "diplomacy": 1,
+    "note": "PROPOSAL: sliders 1 to 5 in the Control Panel only (not in gameinfos.jsonc)."
+  },
+  "licence": {
+    "status": "NOT CONFIRMED",
+    "note": "People is in LICENSING_TRACKER.md as NOT CONFIRMED. Confirm the nestorgames licence before the publisher page is signed."
+  },
+  "assets": {
+    "box": "metadata_assets/box_280x280.png",
+    "icon": "metadata_assets/icon_50x50.png",
+    "icon_hi": "metadata_assets/icon_500x500.png",
+    "banner": "metadata_assets/banner_1386x400.jpg",
+    "banner_wide": "metadata_assets/banner_1920x556.jpg",
+    "title": "metadata_assets/title_2000x2000.png",
+    "publisher": "metadata_assets/publisher_280x280.png",
+    "display": ["metadata_assets/display_1.jpg", "metadata_assets/display_2.jpg"]
+  }
+}

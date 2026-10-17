@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>People harness</title>
+<link rel="stylesheet" href="../../bga/people.css">
+<style>
+  /* Mimics BGA's padded wrappers so the centring and full-width checks mean something */
+  body { margin: 0; background: #222; font-family: Arial, sans-serif; }
+  #page-content { padding: 0 12px; }
+  #ebd-body { padding: 0 6px; }
+  #game_play_area { padding: 8px; }
+  #statusbar { font: bold 14px Arial, sans-serif; padding: 6px; background: #fff; color: #000; }
+  #player_panels { background: #fff; color: #000; font-size: 12px; padding: 4px; }
+  #out { font: 12px monospace; white-space: pre-wrap; background: #fff; color: #000; padding: 8px; }
+</style>
+</head>
+<body>
+<div id="page-content"><div id="ebd-body"><div id="statusbar"></div>
+<div id="game_play_area"></div></div></div>
+<div id="player_panels"></div>
+<pre id="out">running</pre>
+<script>
+// Globals BGA provides to the game
+window._ = (s) => s;
+window.g_gamethemeurl = '../../bga/';
+window.errors = [];
+window.addEventListener('error', (e) => window.errors.push(String(e.message)));
+window.addEventListener('unhandledrejection', (e) => window.errors.push(String(e.reason)));
+</script>
+<script type="module">
+import { Game } from '../../bga/modules/js/Game.js';
+
+const params = new URLSearchParams(location.search);
+const players = Number(params.get('players') || 4);
+const mode = params.get('mode') || 'factory';
+const out = document.getElementById('out');
+
+/* ---------------------------------------------------------------- sample state (mirrors Rules.php) */
+
+const AREAS = { 2: [1, 5, 0, 4], 3: [1, 5, 0, 5], 4: [0, 5, 0, 5] };
+const bounds = AREAS[players];
+const inArea = (r, c) => r >= bounds[0] && r <= bounds[1] && c >= bounds[2] && c <= bounds[3];
+const humans = Array.from({ length: 6 }, (_, r) => Array.from({ length: 6 }, (_, c) => (inArea(r, c) ? 1 + ((r * 7 + c * 3) % 4) : 0)));
+
+const edges = [];
+const fence = [];
+for (let r = 0; r < 6; r++) for (let c = 0; c < 5; c++) {
+    if (inArea(r, c) !== inArea(r, c + 1) && (inArea(r, c) || inArea(r, c + 1))) fence.push(`v:${r}:${c}`);
+}
+for (let r = 0; r < 5; r++) for (let c = 0; c < 6; c++) {
+    if (inArea(r, c) !== inArea(r + 1, c) && (inArea(r, c) || inArea(r + 1, c))) fence.push(`h:${r}:${c}`);
+}
+fence.forEach((key) => edges.push({ key, type: 'R', pid: 0 }));
+const factories = { 2: ['v:2:1', 'h:3:3', 'v:4:2'], 3: ['v:2:1', 'h:3:3', 'v:3:4', 'h:1:2'], 4: ['v:2:1', 'h:3:3', 'v:3:4', 'h:1:2'] }[players];
+factories.forEach((key, i) => edges.push({ key, type: 'F', pid: (i % players) + 1 }));
+const used = new Set(edges.map((e) => e.key));
+
+const names = ['Alice', 'Bruno', 'Chen', 'Dara'];
+const colours = ['red', 'blue', 'yellow', 'green'];
+const playersData = {};
+for (let i = 0; i < players; i++) {
+    playersData[i + 1] = { seat: i, bitcoins: 10 - (i % 3), factories: 14 - i, colour: colours[i], name: names[i] };
+}
+const order = [...Array(players).keys()].map((i) => i + 1);
+
+const free = [];
+for (let r = 0; r < 6; r++) for (let c = 0; c < 6; c++) {
+    if (!inArea(r, c)) continue;
+    if (inArea(r, c + 1) && !used.has(`v:${r}:${c}`)) free.push(`v:${r}:${c}`);
+    if (inArea(r + 1, c) && !used.has(`h:${r}:${c}`)) free.push(`h:${r}:${c}`);
+}
+
+// Open neighbours: inside the area, with no roadblock on the edge between (a factory does not block)
+const openNeighbours = (r, c) => [[r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]].filter(([nr, nc]) => {
+    if (!inArea(nr, nc)) return false;
+    const key = nr === r ? `v:${r}:${Math.min(c, nc)}` : `h:${Math.min(r, nr)}:${c}`;
+    const e = edges.find((x) => x.key === key);
+    return !(e && e.type === 'R');
+});
+
+const police = [];
+// The bulldozer's own district (2, 2) is never a police target, so it is skipped here as well
+[[2, 2], [3, 1], [4, 3]].forEach(([r, c]) => {
+    if (!inArea(r, c) || (r === 2 && c === 2)) return;
+    const open = openNeighbours(r, c);
+    const count = Math.min(humans[r][c], open.length);
+    if (count > 0) police.push([r, c, count, open]);
+});
+const anchors = [];
+for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) {
+    if (inArea(r, c) && inArea(r + 1, c + 1)) anchors.push([r, c]);
+}
+const bribeArgs = {
+    options: {
+        police,
+        sweep: [[2, 2], [2, 3], [2, 4]].filter(([r, c]) => inArea(r, c)),
+        roadblock: free.slice(0, 6),
+        more: anchors.slice(0, 6),
+    },
+    bitcoins: 9,
+};
+const gamedatas = {
+    bounds,
+    humans,
+    edges,
+    players: playersData,
+    player_order: order,
+    roadblocks: 12 - fence.length,
+    pool: 8,
+    bulldozer: [2, 2],
+    shield: [3, 1],
+    scores: Object.fromEntries(order.map((pid) => [pid, 3 * pid])),
+};
+
+/* ---------------------------------------------------------------- mock BGA */
+
+const log = { actions: [], sounds: [], buttons: [], fns: {}, title: '' };
+const statusBar = {
+    setTitle(t) { log.title = t; },
+    addActionButton(label, fn, opts) { log.fns[label] = fn; log.buttons.push({ label, disabled: !!(opts && opts.disabled), color: opts && opts.color }); },
+    removeActionButtons() { log.buttons = []; },
+};
+const bga = {
+    gameArea: { getElement: () => document.getElementById('game_play_area') },
+    statusBar,
+    sounds: { play: (id) => log.sounds.push(id) },
+    actions: { performAction: (name, args) => log.actions.push({ name, args }) },
+    states: { register() {} },
+    notifications: { setupPromiseNotifications() {} },
+    players: { getCurrentPlayerId: () => 1, getActivePlayerId: () => 1 },
+    userPreferences: { get: () => 1 },
+    gameui: { instantaneousMode: false },
+    playerPanels: {
+        getElement: (pid) => {
+            let el = document.getElementById(`panel_${pid}`);
+            if (!el) {
+                el = document.createElement('div');
+                el.id = `panel_${pid}`;
+                document.getElementById('player_panels').appendChild(el);
+            }
+            return el;
+        },
+        getScoreCounter: () => ({ toValue() {} }),
+    },
+};
+
+/* ---------------------------------------------------------------- run the mode and measure */
+
+const game = new Game(bga);
+game.setup(gamedatas);
+const active = mode !== 'waiting';
+if (mode === 'bribe') {
+    game.enterBribe(bribeArgs, true);
+    game.chooseMode('police');
+} else if (mode === 'script') {
+    // the script below drives the states itself
+} else if (mode === 'end') {
+    game.notif_finalScoring({
+        rows: order.map((pid) => ({ player_id: pid, player_name: names[pid - 1], colour: colours[pid - 1], factories: [{ score: 4 }, { score: 6 }], bitcoins: 3, total: 13 })),
+    });
+} else {
+    game.enterFactory({ free, factories_left: 14 }, active);
+}
+
+// Scripted player: taps the board as a player would and presses the buttons the page offers.
+const tap = (el) => el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+const press = (label) => { const b = log.buttons.find((x) => x.label === label); if (b && !b.disabled) log.fns[label](); return !!b; };
+const enabled = (label) => log.buttons.some((x) => x.label === label && !x.disabled);
+const script = {};
+if (mode === 'script') {
+    game.enterFactory({ free, factories_left: 14 }, true);
+    tap(document.querySelector('.pp_edge.pp_target'));
+    script.factoryConfirmEnabled = enabled('Confirm');
+    press('Confirm');
+    script.factoryAction = log.actions.slice(-1)[0];
+    game.enterBribe(bribeArgs, true);
+    document.querySelector('.pp_bribe[data-mode="police"]').click();
+    const first = bribeArgs.options.police[0];
+    tap(document.querySelector(`.pp_dist[data-r="${first[0]}"][data-c="${first[1]}"]`));
+    script.policeStage = { need: first[2], open: first[3].length, confirmEnabled: enabled('Confirm') };
+    first[3].slice(0, first[2]).forEach(([r, c]) => tap(document.querySelector(`.pp_dist[data-r="${r}"][data-c="${c}"]`)));
+    script.policeConfirmEnabled = enabled('Confirm');
+    press('Confirm');
+    script.policeAction = log.actions.slice(-1)[0];
+}
+
+const rect = (el) => el.getBoundingClientRect();
+const inAreaEl = (el) => !el.classList.contains('pp_inactive');
+const edgeSizes = [...document.querySelectorAll('.pp_edge')].filter(inAreaEl).map((el) => {
+    const b = rect(el);
+    return Math.min(b.width, b.height);
+});
+const distSizes = [...document.querySelectorAll('.pp_dist:not(.pp_out)')].map((el) => Math.min(rect(el).width, rect(el).height));
+const root = rect(document.getElementById('pp_root'));
+const board = rect(document.getElementById('pp_board'));
+const viewport = document.documentElement.clientWidth || window.innerWidth;
+const report = {
+    viewport: window.innerWidth,
+    players,
+    mode,
+    edgeTargetMin: Math.round(Math.min(...edgeSizes)),
+    districtMin: Math.round(Math.min(...distSizes)),
+    boardWidth: Math.round(board.width),
+    boardCentreOffset: Math.round((board.left + board.width / 2) - viewport / 2),
+    horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    rootWidth: Math.round(root.width),
+    actionButtons: log.buttons.map((b) => `${b.label}${b.disabled ? ' (disabled)' : ''}`),
+    statusTitle: log.title,
+    errors: window.errors,
+    script: mode === 'script' ? script : undefined,
+};
+out.textContent = JSON.stringify(report, null, 2);
+out.dataset.done = '1';
+document.body.dataset.done = '1';
+</script>
+</body>
+</html>

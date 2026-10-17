@@ -1,0 +1,19 @@
+{
+  // user preference ids should be between 100 and 199
+  "100": {
+    "name": "Colorblind support (shapes on factories and bulldozer)",
+    "values": {
+      "1": { "name": "On", "cssPref": "people_cb_on" },
+      "0": { "name": "Off", "cssPref": "people_cb_off" }
+    },
+    "default": 1
+  },
+  "101": {
+    "name": "Sound effects",
+    "values": {
+      "1": { "name": "On", "cssPref": "people_sound_on" },
+      "0": { "name": "Off", "cssPref": "people_sound_off" }
+    },
+    "default": 1
+  }
+}

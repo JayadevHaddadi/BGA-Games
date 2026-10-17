@@ -1,0 +1,15 @@
+{
+    // Statistics for the table
+    "table": {
+        "turns_number": { "id": 10, "name": "Number of turns", "type": "int" },
+        "factories_placed": { "id": 11, "name": "Factories built", "type": "int" },
+        "bribes_used": { "id": 12, "name": "Bribes used", "type": "int" }
+    },
+
+    // Statistics for each player
+    "player": {
+        "turns_number": { "id": 10, "name": "Number of turns", "type": "int" },
+        "factories_placed": { "id": 11, "name": "Factories built", "type": "int" },
+        "bribes_used": { "id": 12, "name": "Bribes used", "type": "int" }
+    }
+}

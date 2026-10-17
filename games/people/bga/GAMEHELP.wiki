@@ -1,0 +1,64 @@
+==Goal==
+
+Build factories that feed on people. Each factory scores the number of humans on the two districts it sits between, multiplied together. The player with the most points at the end wins. Bitcoins you did not spend score one point each.
+
+==Setup==
+
+* The 6 x 6 city is laid out. Humans start in the game area: 72 people, at least one in every district of the area. The 8 humans outside the area stay in a pool and never go on the board, except through "More people".
+* The bulldozer starts on a random district of the area. The shield starts beside the board and comes onto it the first time the police are used.
+* Each player takes 10 '''bitcoins''' and factories: 15 with 2 players, 14 with 3, 13 with 4. Colours are fixed by turn order: red, blue, yellow, green.
+* The starting player is chosen at random.
+
+The game area depends on the number of players:
+
+{| class="wikitable"
+! Players !! Game area !! Fence
+|-
+| 2 || 5 x 5, bottom left || 10 roadblocks on its top and right sides
+|-
+| 3 || 5 x 6, bottom left || 6 roadblocks on its top side
+|-
+| 4 || The whole city || None
+|}
+
+==Your turn==
+
+{| class="wikitable"
+! # !! Step !! What you do
+|-
+| 1 || '''Build a factory''' (mandatory) || Tap an empty edge between two districts of the game area. Tap another edge to change your mind, then press '''Confirm'''. An edge can hold a factory or a roadblock, never both.
+|-
+| 2 || '''Bribe''' (optional) || Spend 1 bitcoin for one of four bribes, or press '''Skip bribe'''. You can bribe only once per turn.
+|}
+
+==Bribes==
+
+Choose a bribe with its button. Tap the targets on the board, then press '''Confirm'''. '''Undo''' clears your tap.
+
+{| class="wikitable"
+! Bribe !! What it does
+|-
+| '''Police''' || Tap a district with humans, other than the bulldozer's district. The shield moves there. One human goes to each open neighbour (no roadblock between them). If there are fewer humans than open neighbours, you choose which neighbours get one.
+|-
+| '''Bulldozer''' || The bulldozer takes up to 5 humans from its own district, then drives straight up, down, left or right to a district it can reach. Each district it drives into gets one human. The rest of the humans go to the last district. It stops before a roadblock or the edge of the game area.
+|-
+| '''Roadblock''' || Place one roadblock from the supply on an empty edge between two districts of the game area.
+|-
+| '''More people''' || Needs 4 humans outside the area. Tap the crossing of four districts inside the game area. Each of the four districts gets one human from outside.
+|}
+
+==End of the game==
+
+The game ends when the player whose turn it is cannot build a factory: they have none left, or there is no empty edge in the game area. Scores are then added up:
+
+* Each factory: the humans on one side times the humans on the other side.
+* Plus one point for each unspent bitcoin.
+
+The highest total wins. Equal totals share the win.
+
+==Notes on the rules==
+
+* The bulldozer always takes the most it can, up to 5 humans. Taking fewer never helps it reach further.
+* Humans are never held between turns. A bulldozer sweep always empties the bulldozer.
+* The shield has no effect on play. It only marks the last district the police visited.
+* The rulebook says "play again" for a tie. Here equal totals share the win.
