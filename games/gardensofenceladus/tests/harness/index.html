@@ -147,7 +147,19 @@ const check = (name, ok, detail) => { results[name] = { ok: !!ok, detail: detail
 const q = (sel) => document.querySelector(sel);
 const qa = (sel) => Array.from(document.querySelectorAll(sel));
 const rect = (el) => el.getBoundingClientRect();
-const tap = (el) => el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+// A tap goes to whatever is on top at the centre of the element, as a finger would. If another element is in the way,
+// the flow fails with the name of the blocking element.
+let blocked = 0;
+const tap = (el) => {
+    const r = rect(el);
+    const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    if (!top || !(top === el || el.contains(top))) {
+        blocked += 1;
+        results['tap_blocked_' + blocked] = { ok: false, detail: `${el.className || el.id} is covered by ${top ? (top.className || top.id || top.tagName) : 'nothing'}` };
+        return;
+    }
+    top.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+};
 const buttonLabels = () => statusBar.buttons.map((b) => b.label + (b.disabled ? '(off)' : ''));
 const pass = (name) => { results[name] = { ok: true }; };
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -211,6 +223,14 @@ async function run() {
         tap(q('.enc_martian[data-id="1"]'));
         await flush();
         check('move_targets_highlighted', qa('#enc_board .enc_target').length === turnArgs.moves[0].targets.length, qa('#enc_board .enc_target').length);
+        // A real tap goes to whatever element is on top at that point. Check that the top element is the square.
+        const topAt = (el) => {
+            const r = rect(el);
+            const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+            return !!top && (top === el || el.contains(top));
+        };
+        results.hit_test_targets = { value: turnArgs.moves[0].targets.map(([a, b]) => topAt(q(`#enc_board .enc_cell[data-r="${a}"][data-c="${b}"]`))) };
+        check('target_squares_receive_taps', turnArgs.moves[0].targets.every(([a, b]) => topAt(q(`#enc_board .enc_cell[data-r="${a}"][data-c="${b}"]`))), results.hit_test_targets.value);
         // Tap the first flower on the row: landing set, the adjacent flowers offered
         const [tr, tc] = turnArgs.moves[0].targets[0];
         tap(q(`#enc_board .enc_cell[data-r="${tr}"][data-c="${tc}"]`));

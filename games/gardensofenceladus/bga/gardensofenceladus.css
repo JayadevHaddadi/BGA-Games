@@ -129,6 +129,11 @@ body.enceladus_page_bg #game_play_area_background {
     height: 100%;
 }
 
+/* The piece layer covers the whole board. Only the martian buttons take taps; everything else falls through to the squares. */
+#enc_pieces {
+    pointer-events: none;
+}
+
 .enc_cell,
 .enc_slot {
     position: absolute;
@@ -190,6 +195,7 @@ body.enceladus_page_bg #game_play_area_background {
 
 /* Martians: a flat button over the square it stands on (or on the start square outside the garden) */
 .enc_martian {
+    pointer-events: auto;
     position: absolute;
     width: 10%;
     height: 10%;
