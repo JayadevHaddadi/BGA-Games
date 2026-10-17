@@ -1,0 +1,378 @@
+/*
+ * Microchip: stylesheet. Flat, matte, printed-card look (the boards are paper, the tiles are matte plastic).
+ * Prefix mc_ for the play area, microc_ for the page. No shadows, no animation, radius 3px at most.
+ */
+
+body.microc_page_bg {
+    background-color: #b9b6b0;
+    background-image: var(--mc-table, none);
+    background-size: 512px 512px;
+}
+
+body.microc_page_bg #page-content,
+body.microc_page_bg #ebd-body,
+body.microc_page_bg #game_play_area,
+body.microc_page_bg #game_play_area_background {
+    background: transparent;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+.mc_root {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 8px 8px 16px;
+    color: #1d1d1b;
+    box-sizing: border-box;
+}
+
+.mc_root *,
+.mc_root *::before,
+.mc_root *::after {
+    box-sizing: border-box;
+}
+
+.mc_block {
+    background: #f7f5f0;
+    border: 1px solid #a9a397;
+    border-radius: 3px;
+    padding: 10px;
+    margin-bottom: 12px;
+    min-width: 0;
+}
+
+.mc_head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 4px 12px;
+    margin-bottom: 8px;
+}
+
+.mc_head h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.mc_note {
+    font-size: 0.85rem;
+    color: #4a4740;
+}
+
+.mc_hint {
+    min-height: 1.3em;
+    margin: 6px 0 10px;
+    font-size: 0.9rem;
+}
+
+.mc_empty {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #4a4740;
+}
+
+/* ---------- Pool ---------- */
+
+.mc_pool {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.mc_pool_block {
+    display: grid;
+    grid-auto-rows: auto;
+    gap: 4px;
+    width: 100%;
+    max-width: 640px;
+}
+
+.mc_pool_cell {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    min-width: 0;
+    border-radius: 3px;
+}
+
+.mc_pool_cell.mc_draw_col {
+    background: #e4dfd3;
+}
+
+.mc_tile_btn {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-width: 32px;
+    min-height: 32px;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    background: none;
+    cursor: default;
+}
+
+.mc_tile_btn:disabled {
+    opacity: 0.85;
+}
+
+.mc_tile_btn.mc_can {
+    cursor: pointer;
+    outline: 2px solid #1d1d1b;
+    outline-offset: 1px;
+}
+
+.mc_tile_btn.mc_sel {
+    outline: 4px solid #1d1d1b;
+    outline-offset: 2px;
+}
+
+@media (hover: hover) {
+    .mc_tile_btn.mc_can:hover {
+        outline-width: 3px;
+    }
+}
+
+.mc_tile_svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.mc_tile_sym {
+    display: none;
+}
+
+.microc_cb_on .mc_tile_sym {
+    display: block;
+}
+
+/* ---------- Boards ---------- */
+
+.mc_main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0 12px;
+}
+
+.mc_board_wrap {
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr);
+    grid-template-rows: 20px auto;
+    width: 100%;
+    max-width: 420px;
+    margin: 0 auto;
+}
+
+.mc_board_wrap.mc_small {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+    max-width: none;
+}
+
+.mc_axis {
+    display: grid;
+    font-size: 0.8rem;
+    color: #4a4740;
+    text-align: center;
+    align-items: center;
+}
+
+.mc_axis_top {
+    grid-column: 2;
+    grid-row: 1;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.mc_axis_side {
+    grid-column: 1;
+    grid-row: 2;
+    grid-template-rows: repeat(5, minmax(0, 1fr));
+}
+
+.mc_grid {
+    position: relative;
+    grid-column: 2;
+    grid-row: 2;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    aspect-ratio: 1 / 1;
+    background: #fbfaf6;
+    border: 1px solid #5d5a52;
+    border-radius: 3px;
+}
+
+.mc_board_wrap.mc_small .mc_grid {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.mc_space {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    border: 1px solid rgba(29, 29, 27, 0.14);
+    border-radius: 0;
+    background: none;
+}
+
+button.mc_space {
+    cursor: pointer;
+}
+
+.mc_sp_blue { background-color: #bccbe8; }
+.mc_sp_red { background-color: #f5aaa5; }
+.mc_sp_green { background-color: #b3e6c0; }
+.mc_sp_yellow { background-color: #fff2a8; }
+.mc_sp_pink { background-color: #f2dcef; }
+
+.mc_sym {
+    display: none;
+    position: absolute;
+    left: 8%;
+    top: 8%;
+    width: 28%;
+    height: 28%;
+    fill: #1d1d1b;
+    opacity: 0.8;
+    pointer-events: none;
+}
+
+.microc_cb_on .mc_sym {
+    display: block;
+}
+
+.mc_space.mc_target {
+    outline: 3px solid #1d1d1b;
+    outline-offset: -4px;
+}
+
+.mc_placed {
+    position: absolute;
+    width: 20%;
+    height: 20%;
+    padding: 2%;
+    margin: 0;
+    z-index: 1;
+    pointer-events: auto;
+}
+
+.mc_placed[role="button"] {
+    cursor: pointer;
+}
+
+.mc_placed.mc_sel {
+    outline: 3px solid #1d1d1b;
+    outline-offset: -2px;
+}
+
+.mc_placed.mc_last {
+    outline: 3px double #1d1d1b;
+    outline-offset: -4px;
+}
+
+.mc_placed.mc_chip {
+    outline: 2px dashed #1d1d1b;
+    outline-offset: -2px;
+}
+
+.mc_placed.mc_ghost {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.mc_placed.mc_ghost.mc_bad {
+    opacity: 0.85;
+    outline: 2px dashed #b00020;
+    outline-offset: -2px;
+}
+
+.mc_placed .mc_tile_svg {
+    display: block;
+}
+
+/* ---------- Tray and other boards ---------- */
+
+.mc_tray {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 56px;
+}
+
+.mc_tray .mc_tile_btn {
+    width: 56px;
+    height: 56px;
+    min-width: 56px;
+    min-height: 56px;
+}
+
+.mc_boards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+}
+
+.mc_other {
+    min-width: 0;
+}
+
+/* ---------- Player panel line (persistent, compact) ---------- */
+
+.mc_panel_line {
+    font-size: 0.8rem;
+    line-height: 1.3;
+    margin-top: 2px;
+}
+
+/* ---------- Results ---------- */
+
+.mc_results {
+    margin-top: 4px;
+}
+
+.mc_table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+}
+
+.mc_table th,
+.mc_table td {
+    padding: 6px 4px;
+    border-bottom: 1px solid #c9c4b8;
+    text-align: left;
+}
+
+.mc_table td {
+    text-align: right;
+}
+
+/* ---------- Wider screens: the boards sit side by side ---------- */
+
+@media (min-width: 760px) {
+    .mc_main {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 380px) {
+    .mc_root {
+        padding: 6px 4px 12px;
+    }
+
+    .mc_block {
+        padding: 8px;
+    }
+}
+
+:focus-visible {
+    outline: 3px solid #1a56db;
+    outline-offset: 2px;
+}

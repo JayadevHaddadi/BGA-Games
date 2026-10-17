@@ -1,0 +1,66 @@
+==Goal==
+
+Build the most valuable '''microchip''' from the tiles you collect. A microchip is a structure of tiles whose white paths join up with no open ends. Each connection is worth 1 point, and every tile you hold outside your microchip costs 2 points.
+
+==Setup==
+
+* The pool holds the tiles, face up: '''60 tiles''' in 5 colours (12 each) for 3 or 4 players, 60 for 5 players (6 rows), and 50 for 2 players (10 tiles go back to the box).
+* Each player receives a '''board''': a 5 x 5 grid of coloured spaces. Each colour appears five times on a board.
+* The right-hand column of the pool is the '''draw column'''.
+* The starting player is chosen at random. Play goes clockwise.
+
+==Tiles==
+
+Each tile has white paths. A path that reaches a side of the tile is a '''connection'''. There are five shapes, 12 tiles per colour:
+
+{| class="wikitable"
+! Shape !! Connections !! Copies per colour
+|-
+| Cross || 4 || 1
+|-
+| T || 3 || 3
+|-
+| Corner || 2 || 2
+|-
+| Straight || 2 || 2
+|-
+| End (with a square pad) || 1 || 4
+|}
+
+==Your turn==
+
+* '''Draw.''' On your turn take one tile from the draw column. Players take turns clockwise. When the draw column is empty, the next column to the left becomes the draw column.
+* '''Arrange.''' You may arrange your tiles on your board at any time, including on other players' turns. Tap a tile in your tray, tap a space, check it, then press '''Confirm'''. You can move a tile on the board, turn it (if turning is allowed), or take it back to your tray.
+
+==Placing a tile==
+
+A tile can be placed only if all of these are true:
+
+* The space is empty.
+* The colour of the tile matches the colour of the space.
+* Every connection of the tile that points at a neighbouring tile meets a connection on that tile. Where a path meets a tile, that tile must have a path too, and where there is no path, the neighbour must have none.
+* No connection points at the edge of the board.
+
+A connection may point at an empty space while you build. It is an '''open path''' until a tile is placed there.
+
+==Finishing==
+
+When the pool is empty, every player builds the final microchip. Press '''Finish''' when you are done, then '''Confirm finish'''. The game ends when every player has finished.
+
+==Scoring==
+
+* A microchip has no open paths, and all its tiles are connected to each other.
+* Its value is the sum of the connections of its tiles.
+* Your score is the value of your most valuable microchip, minus 2 for each tile you hold that is not in it.
+* If the scores are equal, the player whose microchip has more tiles wins. If that is also equal, the players share the win.
+
+==Options and preferences==
+
+* '''Tile rotation''' (game option): by default each tile may be turned a quarter turn at a time before it is placed. The rulebook does not say whether tiles may be turned; choose ''Tiles stay as drawn'' to play without turning.
+* '''Colourblind support''' (preference): shows a shape on every space and tile. Triangle is blue, square is red, circle is green, diamond is yellow and cross is pink.
+
+==Notes on the rules==
+
+* The rulebook does not say whether tiles may be turned. The game allows it by default (see the game option above).
+* Boards are generated with the rulebook's method for making a board, one for each player.
+* The rulebook says to play again when there is a tie that cannot be broken. Online, the players share the win instead.

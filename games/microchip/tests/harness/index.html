@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Microchip harness</title>
+<link rel="stylesheet" href="../../bga/microchip.css">
+<style>
+  /* the harness page itself: a plain background, the game inside the body like BGA's game area */
+  body { margin: 0; font-family: sans-serif; }
+  #game_play_area { padding: 0; }
+  #out { white-space: pre; font: 12px monospace; padding: 8px; }
+</style>
+</head>
+<body class="microc_cb_on" data-done="0">
+<div id="page-content">
+  <div id="game_play_area"></div>
+</div>
+<pre id="out">running</pre>
+
+<script>
+// Mock of the BGA framework pieces the client uses. Records calls so the checks can read them.
+window._ = (s) => s;
+const calls = [];
+const buttons = [];
+let title = '';
+const bga = {
+  states: { register() {} },
+  gameArea: { getElement: () => document.getElementById('game_play_area') },
+  notifications: { setupPromiseNotifications() {} },
+  statusBar: {
+    setTitle(text, args) {
+      title = text;
+      if (args) Object.keys(args).forEach((k) => { title = title.replace('${' + k + '}', args[k]); });
+    },
+    addActionButton(label, fn, opts) { buttons.push({ label, fn, opts: opts || {} }); },
+    removeActionButtons() { buttons.length = 0; },
+  },
+  players: { getCurrentPlayerId: () => 1 },
+  playerPanels: {
+    getElement: (pid) => document.getElementById('panel_' + pid) || null,
+    getScoreCounter: () => ({ toValue() {} }),
+  },
+  actions: {
+    performAction(name, args) { calls.push({ name, args }); return Promise.resolve(); },
+  },
+};
+
+const COLOURS = ['blue', 'red', 'green', 'yellow', 'pink'];
+const SET = ['plus', 'tee', 'tee', 'tee', 'corner', 'corner', 'straight', 'straight', 'end', 'end', 'end', 'end'];
+const params = new URLSearchParams(location.search);
+const mode = params.get('mode') || 'turn';
+// clean=1 hides the report, for the Control Panel screenshots; zoom=0.7 shrinks the whole page
+if (params.get('clean')) { document.getElementById('out').style.display = 'none'; document.body.style.overflow = 'hidden'; }
+if (params.get('zoom')) document.body.style.zoom = params.get('zoom');
+
+// A fixed fixture: 3 players, pool 5 x 12, my tray and board filled in a little
+function fixture() {
+  const tiles = [];
+  for (let id = 0; id < 60; id++) {
+    tiles.push({ id, colour: COLOURS[Math.floor(id / 12)], shape: SET[id % 12], location: 'pool', owner: 0, col: null, row: null, r: null, c: null, rot: 0 });
+  }
+  // Pool: column-major from the right (col 11 is the draw column)
+  const poolIds = mode === 'build' ? [] : [...Array(40).keys(), ...Array.from({ length: 15 }, (_, i) => 45 + i)];
+  poolIds.forEach((id, k) => { tiles[id].location = 'pool'; tiles[id].col = 11 - Math.floor(k / 5); tiles[id].row = k % 5; });
+  if (mode === 'build') tiles.forEach((t) => { if (t.id < 40) t.location = 'box'; });
+  const hand = [40, 41, 42];
+  hand.forEach((id) => { tiles[id].location = 'hand'; tiles[id].owner = 1; });
+  // Tiles not used by this fixture are in the box
+  if (mode === 'build') for (let id = 45; id < 60; id++) tiles[id].location = 'box';
+  // Board of player 1: two tiles placed (an end facing east at A1 pairs with a tee at B1? keep it simple)
+  tiles[43].location = 'board'; tiles[43].owner = 1; tiles[43].r = 0; tiles[43].c = 0; tiles[43].shape = 'end'; tiles[43].colour = 'blue'; tiles[43].rot = 1;
+  tiles[44].location = 'board'; tiles[44].owner = 1; tiles[44].r = 0; tiles[44].c = 1; tiles[44].shape = 'end'; tiles[44].colour = 'red'; tiles[44].rot = 3;
+  // Tray tiles: blue end, red tee, green straight (ids 40, 41, 42 are colour blue/red/green by id)
+  tiles[40].colour = 'blue'; tiles[40].shape = 'end';
+  tiles[41].colour = 'red'; tiles[41].shape = 'tee';
+  tiles[42].colour = 'green'; tiles[42].shape = 'straight';
+  const spaces = {};
+  for (const pid of [1, 2, 3]) {
+    spaces[pid] = [];
+    for (let r = 0; r < 5; r++) {
+      spaces[pid][r] = [];
+      for (let c = 0; c < 5; c++) spaces[pid][r][c] = COLOURS[(2 * r + c) % 5];
+    }
+  }
+  return {
+    players: { 1: { name: 'Ana' }, 2: { name: 'Ben' }, 3: { name: 'Cy' } },
+    player_order: [1, 2, 3],
+    tiles,
+    spaces,
+    finished: { 1: false, 2: false, 3: false },
+    drawer: mode === 'build' ? 0 : 1,
+    rotation: true,
+    pool_size: [5, 12],
+  };
+}
+
+const results = [];
+function check(ok, what) { results.push({ ok: !!ok, what }); }
+
+async function run() {
+  const { Game } = await import('../../bga/modules/js/Game.js');
+  const gd = fixture();
+  const game = new Game(bga);
+  window.game = game;
+  game.amActive = true;
+  game.setup(gd);
+  game.amActive = true;
+  game.refreshButtons();
+
+  const root = document.getElementById('microc_root');
+  const press = (label) => {
+    const b = buttons.find((x) => x.label === label);
+    if (!b) return false;
+    if (b.opts.disabled) return 'disabled';
+    b.fn();
+    return true;
+  };
+  const labels = () => buttons.map((b) => b.label + (b.opts.disabled ? '(off)' : ''));
+
+  // 1. Layout at this width
+  const doc = document.documentElement;
+  check(doc.scrollWidth <= window.innerWidth, `no horizontal page scroll (scrollWidth ${doc.scrollWidth}, width ${window.innerWidth})`);
+  const canBtns = [...root.querySelectorAll('.mc_tile_btn.mc_can')];
+  const tapSizes = canBtns.map((b) => Math.min(b.getBoundingClientRect().width, b.getBoundingClientRect().height));
+  const minTap = tapSizes.length ? Math.min(...tapSizes) : 0;
+  const drawCount = mode === 'turn' ? 5 : 0;
+  check(canBtns.length === drawCount, `draw-column tiles tappable: ${canBtns.length}, expected ${drawCount}`);
+  if (drawCount) check(minTap >= 32, `draw-column tiles at least 32px (${minTap.toFixed(1)}px)`);
+  const boardSpaces = [...root.querySelectorAll('#mc_board_me .mc_space')];
+  const spaceMin = Math.min(...boardSpaces.map((b) => Math.min(b.getBoundingClientRect().width, b.getBoundingClientRect().height)));
+  check(boardSpaces.length === 25 && spaceMin >= 32, `board spaces at least 32px (${spaceMin.toFixed(1)}px)`);
+  const trayBtns = [...root.querySelectorAll('.mc_tray .mc_tile_btn')];
+  const trayCount = 3;
+  check(trayBtns.length === trayCount, `tray tiles: ${trayBtns.length}, expected ${trayCount}`);
+  const traySizes = trayBtns.map((b) => Math.min(b.getBoundingClientRect().width, b.getBoundingClientRect().height));
+  check(traySizes.every((s) => s >= 32), `tray tiles at least 32px (${traySizes.map((s) => s.toFixed(0)).join(',')})`);
+
+  if (mode === 'turn') {
+    // 2. Draw: tap a draw-column tile, then Take this tile
+    root.querySelector('.mc_can').click();
+    check(labels().includes('Take this tile') && labels().includes('Cancel'), `draw buttons after tapping the draw column: ${labels()}`);
+    press('Take this tile');
+    const drawCall = calls[calls.length - 1];
+    check(drawCall && drawCall.name === 'actDraw' && typeof drawCall.args.tileId === 'number', `actDraw sent (${JSON.stringify(drawCall)})`);
+    const id = drawCall.args.tileId;
+    game.notif_tileDrawn({ player_id: 1, tile: { id, colour: game.tiles.get(id).colour, shape: game.tiles.get(id).shape }, from: { col: 11, row: 0 }, next_drawer: 2, draw_column: 11, pool_left: 34 });
+    check(root.querySelectorAll('.mc_tray .mc_tile_btn').length === 4, 'tray has four tiles after drawing');
+    check(!labels().includes('Take this tile'), 'no draw button once the turn has passed');
+
+    // 3. Placement. Tray tile 40 is a blue end. The free blue spaces are (1,3), (2,1), (3,4), (4,2)
+    game.onTrayTile(40);
+    check(root.querySelectorAll('#mc_board_me .mc_target').length === 4, `four free blue spaces are targets (${root.querySelectorAll('#mc_board_me .mc_target').length})`);
+    const space = (r, c) => [...root.querySelectorAll('#mc_board_me .mc_space')].find((s) => +s.dataset.r === r && +s.dataset.c === c);
+
+    // A wrong colour is still staged: the ghost shows, Confirm is off and the reason is in the hint
+    space(0, 2).click();
+    check(labels().includes('Confirm(off)'), `Confirm is off on a wrong colour: ${labels()}`);
+    check(/colour/i.test(root.querySelector('#mc_hint').textContent), `reason shown: ${root.querySelector('#mc_hint').textContent}`);
+
+    // (3,4) is blue on the east edge. Pointing north it is fine; pointing east it is refused; south is fine again.
+    space(3, 4).click();
+    check(game.stageProblem() === null && labels().includes('Confirm'), `(3,4) north is legal (${game.stageProblem()})`);
+    game.rotateSel();
+    check(game.stageProblem() === 'edge', `(3,4) east points at the edge (${game.stageProblem()})`);
+    check(labels().includes('Confirm(off)'), 'Confirm off for an edge connection');
+    game.rotateSel();
+    check(game.stageProblem() === null, `(3,4) south is legal again (${game.stageProblem()})`);
+    press('Cancel');
+    check(game.sel === null, 'Cancel clears the staged tile');
+
+    // (2,1) touches nothing: legal. Confirm sends the move.
+    game.onTrayTile(40);
+    space(2, 1).click();
+    check(game.stageProblem() === null, `(2,1) is legal (${game.stageProblem()})`);
+    press('Confirm');
+    const place = calls[calls.length - 1];
+    check(place.name === 'actPlace' && place.args.r === 2 && place.args.c === 1 && place.args.rot === 0 && place.args.tileId === 40, `actPlace sent (${JSON.stringify(place)})`);
+    game.notif_tilePlaced({ player_id: 1, tile: { id: 40, colour: 'blue', shape: 'end' }, r: 2, c: 1, rot: 0, moved: false, coord: 'B3' });
+    check(game.sel === null, 'selection cleared once the server accepts the placement');
+    check(root.querySelectorAll('#mc_board_me .mc_placed').length === 3, 'three tiles on my board after the placement');
+
+    // 4. Board tile: Rotate and Remove
+    root.querySelector('#mc_board_me .mc_placed[data-id="43"]').click();
+    check(labels().includes('Remove') && labels().includes('Rotate'), `board tile buttons: ${labels()}`);
+    const before = tilesRot(43);
+    press('Rotate');
+    check(game.sel.rot === (before + 1) % 4, 'Rotate turns the staged board tile');
+    press('Cancel');
+    check(game.sel === null, 'Cancel clears the selection');
+
+    // 5. Tray tile: Rotate but no Remove
+    game.onTrayTile(41);
+    check(labels().includes('Rotate') && !labels().includes('Remove'), 'tray tile: Rotate, no Remove');
+    game.clearSel();
+  } else {
+    // 6. Build: pool empty. Finish asks for confirmation, then sends actFinish
+    check(labels().includes('Finish'), `Finish offered when the pool is empty: ${labels()}`);
+    press('Finish');
+    check(labels().includes('Confirm finish') && labels().includes('Cancel'), `confirm step: ${labels()}`);
+    press('Confirm finish');
+    const fin = calls[calls.length - 1];
+    check(fin && fin.name === 'actFinish', `actFinish sent (${JSON.stringify(fin)})`);
+    game.notif_playerFinished({ player_id: 1 });
+    check(!labels().includes('Finish') && !labels().includes('Confirm finish'), 'no build buttons after finishing');
+    game.notif_finalScoring({
+      rows: [
+        { player_id: 1, score: 0, value: 2, chip_tiles: 2, unused: 1, owned: 3, chip: ['0,0', '0,1'] },
+        { player_id: 2, score: -4, value: 0, chip_tiles: 0, unused: 2, owned: 2, chip: [] },
+      ],
+    });
+    check(!root.querySelector('#mc_results').hidden && root.querySelectorAll('#mc_results tbody tr').length === 2, 'results table shows both players');
+    check(root.querySelectorAll('#mc_board_me .mc_placed.mc_chip').length === 2, `the two chip tiles are highlighted (${root.querySelectorAll('#mc_board_me .mc_placed.mc_chip').length})`);
+  }
+
+  const blocksInfo = [...root.querySelectorAll('.mc_pool_block')].map((b) => {
+    const r = b.getBoundingClientRect();
+    return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height), cells: b.children.length, cols: b.style.gridTemplateColumns };
+  });
+  const poolWrap = root.querySelector('#mc_pool').getBoundingClientRect();
+  check(true, `pool wrap w=${Math.round(poolWrap.width)} blocks=${JSON.stringify(blocksInfo)}`);
+  const failures = results.filter((r) => !r.ok);
+  const report = { mode, width: window.innerWidth, checks: results.length, failures: failures.length, results };
+  document.getElementById('out').textContent = JSON.stringify(report, null, 1);
+  document.body.dataset.done = '1';
+}
+
+function tilesRot(id) {
+  return window.game.tiles.get(id).rot;
+}
+
+run().catch((e) => {
+  document.getElementById('out').textContent = 'ERROR ' + (e && e.stack ? e.stack : e);
+  document.body.dataset.done = '1';
+});
+</script>
+</body>
+</html>

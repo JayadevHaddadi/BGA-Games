@@ -29,6 +29,7 @@ on:
           - nestorgamesgp
           - microforge
           - gardensofenceladus
+          - microchip
           # <bga:options>  (tools/bga.py register inserts new games above this line)
 
 jobs:
@@ -155,6 +156,12 @@ jobs:
             if echo "$CHANGED" | grep -qi "games/gardensofenceladus"; then
               echo "Deploying Gardens of Enceladus..."
               python tools/sync.py gardensofenceladus
+              DEPLOYED=1
+            fi
+
+            if echo "$CHANGED" | grep -qi "games/microchip"; then
+              echo "Deploying Microchip..."
+              python tools/sync.py microchip
               DEPLOYED=1
             fi
 

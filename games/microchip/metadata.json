@@ -1,0 +1,54 @@
+{
+  "_comment": "Single source for the Control Panel (Game Metadata Manager). Run: python3 tools/bga.py gmm <slug>",
+  "slug": "microchip",
+  "studio_project": "microchip",
+  "game_name": "Microchip",
+  "bgg_id": 371557,
+  "bgg_url": "https://boardgamegeek.com/boardgame/371557",
+  "year_published": 2022,
+  "players": "2 to 5",
+  "estimated_duration_minutes": 15,
+  "publisher": {
+    "name": "nestorgames",
+    "bgg_id": 9976,
+    "website": ""
+  },
+  "designers": [
+    "Néstor Romeral Andrés"
+  ],
+  "artists": [],
+  "rules_edits": [],
+  "rules_url": null,
+  "description": "Microchip is an abstract strategy game for 2 to 5 players by Néstor Romeral Andrés. Tiles with white paths are drawn in turn from a shared pool and arranged on your own board, where every space has a colour. A tile can only go on a space of its colour, and its paths must meet the paths of the tiles next to it, with nothing running off the edge of the board.\n\nBuild the most valuable microchip you can: each connection in your microchip scores a point, and every tile you hold outside it costs 2 points.",
+  "zombie_mode_level": 1,
+  "tags": [
+    "Abstract strategy",
+    "Tile placement",
+    "Pattern building"
+  ],
+  "tags_note": "PROPOSAL: pick from BGA's tag list in the Control Panel.",
+  "characteristics": {
+    "complexity": 3,
+    "luck": 2,
+    "strategy": 3,
+    "diplomacy": 1,
+    "note": "PROPOSAL: sliders 1 to 5 in the Control Panel only."
+  },
+  "licence": {
+    "status": "NOT CONFIRMED",
+    "note": "No licence row yet: confirm with the publisher (nestorgames) before publisher sign-off. See LICENSING_TRACKER.md."
+  },
+  "assets": {
+    "box": "metadata_assets/box_280x280.png",
+    "icon": "metadata_assets/icon_50x50.png",
+    "icon_hi": "metadata_assets/icon_500x500.png",
+    "banner": "metadata_assets/banner_1386x400.jpg",
+    "banner_wide": "metadata_assets/banner_1920x556.jpg",
+    "title": "metadata_assets/title_2000x2000.png",
+    "publisher": "metadata_assets/publisher_280x280.png",
+    "display": [
+      "metadata_assets/display_1.jpg",
+      "metadata_assets/display_2.jpg"
+    ]
+  }
+}

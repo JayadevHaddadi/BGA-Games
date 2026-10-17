@@ -45,6 +45,7 @@ TARGET_MAP = {
     "gardensofmarstest": ("games/gardensofmars/bga", "gardensofmars"),
     "gardensofio": ("games/gardensofio/bga", "gardensofio"),
     "gardensofenceladus": ("games/gardensofenceladus/bga", "gardensofenceladus"),
+    "microchip": ("games/microchip/bga", "microchip"),
     # <bga:targets>  (tools/bga.py register inserts new games above this line)
 }
 

@@ -1,0 +1,18 @@
+{
+  // user preference ids should be between 100 and 199
+  // See https://en.doc.boardgamearena.com/Options_and_preferences:_gameoptions.json,_gamepreferences.json for more details
+  "100": {
+    "name": "Colourblind support (symbols on spaces and tiles)",
+    "values": {
+      "1": {
+        "name": "On",
+        "cssPref": "microc_cb_on"
+      },
+      "0": {
+        "name": "Off",
+        "cssPref": "microc_cb_off"
+      }
+    },
+    "default": 1
+  }
+}

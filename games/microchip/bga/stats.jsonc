@@ -1,0 +1,13 @@
+{
+    // Statistics for the table
+    "table": {
+        "tiles_drawn": { "id": 10, "name": "Tiles drawn", "type": "int" },
+        "tiles_placed": { "id": 11, "name": "Tiles placed", "type": "int" }
+    },
+
+    // Statistics for each player
+    "player": {
+        "tiles_drawn": { "id": 10, "name": "Tiles drawn", "type": "int" },
+        "tiles_placed": { "id": 11, "name": "Tiles placed", "type": "int" }
+    }
+}

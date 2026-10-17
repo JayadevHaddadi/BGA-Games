@@ -1,0 +1,731 @@
+/**
+ *------
+ * BGA framework: Gregory Isabelli & Emmanuel Colin & BoardGameArena
+ * Microchip implementation : © Jayadev Haddadi
+ *
+ * Game.js - client for Microchip. The server (Rules.php) is the source of truth. The client stages one tile at a
+ * time (tap a tile, tap a space, Rotate if allowed, Confirm), uses the same rules to say why a space is not possible,
+ * and sends one action.
+ *------
+ */
+
+const MC_SIZE = 5;
+// Smallest tap target for a pool tile (guideline E.3 wants 32px; the pool wraps into blocks to keep this)
+const MC_MIN_TAP = 36;
+const MC_SIDES = { plus: [0, 1, 2, 3], tee: [0, 1, 2], corner: [1, 2], straight: [0, 2], end: [0] };
+const MC_STEP = [[-1, 0], [0, 1], [1, 0], [0, -1]];
+const MC_ENDS = [[50, 0], [100, 50], [50, 100], [0, 50]];
+// Tile colours are the saturated ones from the game; space colours are the lighter squares of the boards
+const MC_TILE_FILL = { blue: '#1d4ed8', red: '#d62828', green: '#1f9d55', yellow: '#f0c000', pink: '#a855c7' };
+// Colour-blind symbols: one silhouette per colour, drawn on tiles and on spaces
+const MC_SYM = {
+    blue: '<path d="M50 12 L90 84 L10 84 Z"/>',
+    red: '<rect x="14" y="14" width="72" height="72"/>',
+    green: '<circle cx="50" cy="50" r="38"/>',
+    yellow: '<path d="M50 6 L94 50 L50 94 L6 50 Z"/>',
+    pink: '<path d="M37 6 H63 V37 H94 V63 H63 V94 H37 V63 H6 V37 H37 Z"/>',
+};
+
+const mcKey = (r, c) => `${r},${c}`;
+const mcCoord = (r, c) => `${String.fromCharCode(65 + c)}${r + 1}`;
+const mcInside = (r, c) => r >= 0 && r < MC_SIZE && c >= 0 && c < MC_SIZE;
+
+/** Connections of a tile (north, east, south, west) after a number of quarter turns clockwise. */
+function mcConn(shape, rot) {
+    const out = [false, false, false, false];
+    (MC_SIDES[shape] || []).forEach((side) => { out[(side + rot) % 4] = true; });
+    return out;
+}
+
+/** Same check as Rules::placementProblem in PHP. Returns null when legal, otherwise a short code. */
+function mcProblem(spaces, placed, colour, shape, rot, r, c) {
+    if (!mcInside(r, c)) return 'outside';
+    if (placed[mcKey(r, c)]) return 'occupied';
+    if (spaces[r][c] !== colour) return 'colour';
+    const conn = mcConn(shape, rot);
+    for (let side = 0; side < 4; side++) {
+        const nr = r + MC_STEP[side][0];
+        const nc = c + MC_STEP[side][1];
+        if (!mcInside(nr, nc)) {
+            if (conn[side]) return 'edge';
+            continue;
+        }
+        const other = placed[mcKey(nr, nc)];
+        if (!other) continue;
+        if (mcConn(other.shape, other.rot)[(side + 2) % 4] !== conn[side]) return 'mismatch';
+    }
+    return null;
+}
+
+function mcTileHTML(colour, shape, rot) {
+    const conn = mcConn(shape, rot);
+    let paths = '';
+    conn.forEach((on, side) => {
+        if (on) paths += `<line x1="50" y1="50" x2="${MC_ENDS[side][0]}" y2="${MC_ENDS[side][1]}"/>`;
+    });
+    if (shape === 'end') paths += '<rect x="34" y="34" width="32" height="32" stroke="none"/>';
+    const ink = colour === 'yellow' ? '#1d1d1b' : '#ffffff';
+    return `<svg class="mc_tile_svg" viewBox="0 0 100 100" aria-hidden="true" focusable="false">`
+        + `<rect x="1" y="1" width="98" height="98" rx="3" fill="${MC_TILE_FILL[colour]}"/>`
+        + `<g class="mc_paths" fill="#ffffff" stroke="#ffffff" stroke-width="12">${paths}</g>`
+        + `<svg class="mc_tile_sym" x="7" y="7" width="26" height="26" viewBox="0 0 100 100" fill="${ink}">${MC_SYM[colour]}</svg>`
+        + `</svg>`;
+}
+
+function mcSymHTML(colour) {
+    return `<svg class="mc_sym" viewBox="0 0 100 100" aria-hidden="true" focusable="false">${MC_SYM[colour]}</svg>`;
+}
+
+function mcImg(name) {
+    return `${typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : ''}img/${name}`;
+}
+
+/* ---------------------------------------------------------------------------------------------- */
+/* State class (name matches the PHP state class)                                                  */
+/* ---------------------------------------------------------------------------------------------- */
+
+class PlayState {
+    constructor(game) { this.game = game; }
+    onEnteringState(args, isActive) { this.game.enterPlay(isActive); }
+    onUpdateActionButtons(args, isActive) { this.game.updateButtons(isActive); }
+    onLeavingState() { this.game.leaveState(); }
+}
+
+/* ---------------------------------------------------------------------------------------------- */
+/* Game                                                                                            */
+/* ---------------------------------------------------------------------------------------------- */
+
+export class Game {
+    constructor(bga) {
+        this.bga = bga;
+        // The staged choice: { id, from: 'pool' | 'tray' | 'board', rot, r, c }. r and c are null until a space is tapped.
+        this.sel = null;
+        this.amActive = false;
+        this.finishPending = false;
+        this.chipKeys = {};
+        // The tile placed or moved last: marked on its board so it is easy to find after a move
+        this.lastId = null;
+        this.bga.states.register('Play', new PlayState(this));
+    }
+
+    setup(gamedatas) {
+        this.gd = gamedatas;
+        this.me = this.viewerId();
+        this.order = gamedatas.player_order.map(Number);
+        this.tiles = new Map(gamedatas.tiles.map((t) => [t.id, { ...t }]));
+        this.spaces = {};
+        Object.keys(gamedatas.spaces).forEach((pid) => { this.spaces[Number(pid)] = gamedatas.spaces[pid]; });
+        this.finished = {};
+        Object.keys(gamedatas.finished).forEach((pid) => { this.finished[Number(pid)] = !!gamedatas.finished[pid]; });
+        this.drawer = Number(gamedatas.drawer);
+        this.rotation = !!gamedatas.rotation;
+        this.poolRows = gamedatas.pool_size[0];
+        this.poolCols = gamedatas.pool_size[1];
+
+        this.buildDOM();
+        // Without this call the interface only updates after a page refresh (AGENTS.md mistake 12).
+        this.bga.notifications.setupPromiseNotifications({});
+        this.renderAll();
+    }
+
+    /* ------------------------------------------------------------------------------------------ */
+    /* Page structure                                                                              */
+    /* ------------------------------------------------------------------------------------------ */
+
+    buildDOM() {
+        const root = document.createElement('div');
+        root.id = 'microc_root';
+        root.className = 'mc_root';
+        root.innerHTML = `
+            <section class="mc_block" aria-labelledby="mc_h_pool">
+                <div class="mc_head"><h3 id="mc_h_pool">${_('Pool')}</h3><span class="mc_note">${_('The right-hand column is the draw column.')}</span></div>
+                <div class="mc_pool" id="mc_pool"></div>
+            </section>
+            <div class="mc_main">
+                <section class="mc_block mc_mine" id="mc_mine" aria-labelledby="mc_h_mine">
+                    <div class="mc_head"><h3 id="mc_h_mine">${_('Your board')}</h3></div>
+                    <div id="mc_board_me"></div>
+                    <p class="mc_hint" id="mc_hint" aria-live="polite"></p>
+                    <div class="mc_head"><h3>${_('Your tray')}</h3></div>
+                    <div class="mc_tray" id="mc_tray"></div>
+                </section>
+                <section class="mc_block mc_others" aria-labelledby="mc_h_others">
+                    <div class="mc_head"><h3 id="mc_h_others">${_('Boards')}</h3></div>
+                    <div class="mc_boards" id="mc_boards"></div>
+                </section>
+            </div>
+            <section class="mc_block mc_results" id="mc_results" hidden></section>`;
+        this.bga.gameArea.getElement().appendChild(root);
+        document.body.classList.add('microc_page_bg');
+        document.body.style.setProperty('--mc-table', `url("${mcImg('table.jpg')}")`);
+
+        this.el = {
+            root,
+            pool: root.querySelector('#mc_pool'),
+            mine: root.querySelector('#mc_mine'),
+            board: root.querySelector('#mc_board_me'),
+            hint: root.querySelector('#mc_hint'),
+            tray: root.querySelector('#mc_tray'),
+            boards: root.querySelector('#mc_boards'),
+            results: root.querySelector('#mc_results'),
+        };
+        if (this.me === null) {
+            this.el.mine.hidden = true;
+        }
+
+        this.el.pool.addEventListener('click', (e) => {
+            const btn = e.target.closest('.mc_tile_btn');
+            if (btn) this.onPoolTile(Number(btn.dataset.id));
+        });
+        this.el.board.addEventListener('click', (e) => this.onBoardClick(e));
+        this.el.tray.addEventListener('click', (e) => {
+            const btn = e.target.closest('.mc_tile_btn');
+            if (btn) this.onTrayTile(Number(btn.dataset.id));
+        });
+        if (typeof ResizeObserver !== 'undefined') {
+            new ResizeObserver(() => this.renderPool()).observe(this.el.pool);
+        }
+    }
+
+    viewerId() {
+        if (this.bga?.players && typeof this.bga.players.getCurrentPlayerId === 'function') {
+            const id = this.bga.players.getCurrentPlayerId();
+            return id ? Number(id) : null;
+        }
+        return typeof gameui !== 'undefined' && gameui.player_id ? Number(gameui.player_id) : null;
+    }
+
+    playerName(pid) {
+        return this.gd?.players?.[pid]?.name || '';
+    }
+
+    colourLabel(colour) {
+        return { blue: _('blue'), red: _('red'), green: _('green'), yellow: _('yellow'), pink: _('pink') }[colour] || colour;
+    }
+
+    shapeLabel(shape) {
+        return { plus: _('cross'), tee: _('T'), corner: _('corner'), straight: _('straight'), end: _('end') }[shape] || shape;
+    }
+
+    /* ------------------------------------------------------------------------------------------ */
+    /* Derived data                                                                                */
+    /* ------------------------------------------------------------------------------------------ */
+
+    poolTiles() {
+        return [...this.tiles.values()].filter((t) => t.location === 'pool');
+    }
+
+    /** The draw column: the rightmost column that still holds a tile (-1 when the pool is empty). */
+    drawCol() {
+        const cols = this.poolTiles().map((t) => t.col);
+        return cols.length ? Math.max(...cols) : -1;
+    }
+
+    trayTiles(pid) {
+        return [...this.tiles.values()].filter((t) => t.location === 'hand' && t.owner === pid);
+    }
+
+    boardTiles(pid) {
+        return [...this.tiles.values()].filter((t) => t.location === 'board' && t.owner === pid);
+    }
+
+    /** Tiles on my board, keyed by "r,c", without the tile currently staged. */
+    placedMine(exceptId) {
+        const out = {};
+        this.boardTiles(this.me).forEach((t) => {
+            if (t.id !== exceptId) out[mcKey(t.r, t.c)] = { shape: t.shape, rot: t.rot };
+        });
+        return out;
+    }
+
+    stageProblem() {
+        const s = this.sel;
+        if (!s || s.from === 'pool' || s.r === null) return 'pick';
+        const t = this.tiles.get(s.id);
+        return mcProblem(this.spaces[this.me], this.placedMine(s.id), t.colour, t.shape, s.rot, s.r, s.c);
+    }
+
+    problemText(code) {
+        return {
+            pick: _('Tap a space on your board to place this tile.'),
+            outside: _('That space is not on the board.'),
+            occupied: _('That space already has a tile.'),
+            colour: _('The tile colour must match the colour of the space.'),
+            edge: _('A connection cannot point to the edge of the board.'),
+            mismatch: _('The connections must match the tiles next to it.'),
+        }[code] || _('That placement is not legal.');
+    }
+
+    /* ------------------------------------------------------------------------------------------ */
+    /* Rendering                                                                                   */
+    /* ------------------------------------------------------------------------------------------ */
+
+    renderAll() {
+        this.sanitizeSel();
+        this.renderPool();
+        this.renderMine();
+        this.renderOthers();
+        this.renderTray();
+        this.renderPanels();
+        this.renderStatus();
+        this.refreshButtons();
+    }
+
+    /** Drops a staged choice when the server has moved on (someone else drew the tile, or it was placed). */
+    sanitizeSel() {
+        const s = this.sel;
+        if (!s) return;
+        const t = this.tiles.get(s.id);
+        if (!t) { this.sel = null; return; }
+        if (s.from === 'pool' && (t.location !== 'pool' || t.col !== this.drawCol() || this.drawer !== this.me || this.finished[this.me])) {
+            this.sel = null;
+        } else if (s.from === 'tray' && (t.location !== 'hand' || t.owner !== this.me)) {
+            this.sel = null;
+        } else if (s.from === 'board' && (t.location !== 'board' || t.owner !== this.me)) {
+            this.sel = null;
+        }
+    }
+
+    renderPool() {
+        const wrap = this.el.pool;
+        wrap.textContent = '';
+        const width = wrap.clientWidth || 340;
+        const cols = this.poolCols;
+        const rows = this.poolRows;
+        // Wrap the columns into blocks when they would not fit with a usable tap size
+        const blocks = Math.max(1, Math.ceil((cols * MC_MIN_TAP) / width));
+        const per = Math.ceil(cols / blocks);
+        const at = new Map(this.poolTiles().map((t) => [mcKey(t.row, t.col), t]));
+        const draw = this.drawCol();
+        const canDraw = this.me !== null && this.drawer === this.me && !this.finished[this.me];
+
+        for (let start = 0; start < cols; start += per) {
+            const n = Math.min(per, cols - start);
+            const block = document.createElement('div');
+            block.className = 'mc_pool_block';
+            block.style.gridTemplateColumns = `repeat(${n}, minmax(0, 1fr))`;
+            for (let c = start; c < start + n; c++) {
+                for (let r = 0; r < rows; r++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'mc_pool_cell' + (c === draw ? ' mc_draw_col' : '');
+                    cell.style.gridColumn = String(c - start + 1);
+                    cell.style.gridRow = String(r + 1);
+                    const t = at.get(mcKey(r, c));
+                    if (t) {
+                        const btn = document.createElement('button');
+                        const takable = canDraw && c === draw;
+                        const staged = this.sel && this.sel.from === 'pool' && this.sel.id === t.id;
+                        btn.type = 'button';
+                        btn.className = 'mc_tile_btn' + (takable ? ' mc_can' : '') + (staged ? ' mc_sel' : '');
+                        btn.dataset.id = String(t.id);
+                        btn.disabled = !takable;
+                        btn.setAttribute('aria-label', `${this.colourLabel(t.colour)} ${this.shapeLabel(t.shape)}`);
+                        btn.innerHTML = mcTileHTML(t.colour, t.shape, 0);
+                        cell.appendChild(btn);
+                    }
+                    block.appendChild(cell);
+                }
+            }
+            wrap.appendChild(block);
+        }
+    }
+
+    renderMine() {
+        if (this.me === null) return;
+        this.el.board.innerHTML = this.boardHTML(this.me, true);
+    }
+
+    renderOthers() {
+        const list = this.order.filter((pid) => pid !== this.me);
+        this.el.boards.textContent = '';
+        list.forEach((pid) => {
+            const card = document.createElement('div');
+            card.className = 'mc_other';
+            card.title = this.playerName(pid);
+            card.innerHTML = this.boardHTML(pid, false);
+            this.el.boards.appendChild(card);
+        });
+        this.el.boards.hidden = list.length === 0;
+    }
+
+    /**
+     * A board: 5 x 5 spaces, with tiles laid over them. On my board the spaces are buttons, the placed tiles are
+     * buttons, and the staged choice is shown as a ghost. Coordinates (A to E, 1 to 5) are shown around my board only.
+     */
+    boardHTML(pid, mine) {
+        const spaces = this.spaces[pid];
+        const staged = mine && this.sel && this.sel.from !== 'pool' ? this.sel : null;
+        const stagedTile = staged ? this.tiles.get(staged.id) : null;
+        const problem = staged && staged.r !== null ? this.stageProblem() : null;
+        let grid = '<div class="mc_grid">';
+        for (let r = 0; r < MC_SIZE; r++) {
+            for (let c = 0; c < MC_SIZE; c++) {
+                const colour = spaces[r][c];
+                const target = stagedTile && !this.spaceOccupied(r, c, staged.id) && colour === stagedTile.colour;
+                const cls = `mc_space mc_sp_${colour}` + (target ? ' mc_target' : '');
+                const label = `${mcCoord(r, c)}, ${this.colourLabel(colour)}`;
+                if (mine) {
+                    grid += `<button type="button" class="${cls}" data-r="${r}" data-c="${c}" aria-label="${label}">${mcSymHTML(colour)}</button>`;
+                } else {
+                    grid += `<div class="${cls}">${mcSymHTML(colour)}</div>`;
+                }
+            }
+        }
+        const chip = this.chipKeys[pid] || null;
+        this.boardTiles(pid).forEach((t) => {
+            if (staged && t.id === staged.id) return; // the staged tile is drawn as the ghost below
+            const cls = 'mc_placed' + (chip && chip.has(mcKey(t.r, t.c)) ? ' mc_chip' : '') + (t.id === this.lastId ? ' mc_last' : '') + (mine && staged && staged.id === t.id ? ' mc_sel' : '');
+            grid += this.placedHTML(t, cls, mine);
+        });
+        if (staged && staged.r !== null) {
+            const cls = 'mc_placed mc_ghost' + (problem ? ' mc_bad' : '');
+            grid += this.placedHTML({ id: staged.id, r: staged.r, c: staged.c, rot: staged.rot, colour: stagedTile.colour, shape: stagedTile.shape }, cls, false);
+        }
+        grid += '</div>';
+        if (!mine) {
+            return `<div class="mc_board_wrap mc_small">${grid}</div>`;
+        }
+        const top = [0, 1, 2, 3, 4].map((c) => `<span>${String.fromCharCode(65 + c)}</span>`).join('');
+        const side = [0, 1, 2, 3, 4].map((r) => `<span>${r + 1}</span>`).join('');
+        return `<div class="mc_board_wrap">`
+            + `<div class="mc_axis mc_axis_top">${top}</div>`
+            + `<div class="mc_axis mc_axis_side">${side}</div>`
+            + grid
+            + `</div>`;
+    }
+
+    placedHTML(t, cls, interactive) {
+        const pos = `left:${t.c * 20}%;top:${t.r * 20}%`;
+        const attrs = interactive ? ` data-id="${t.id}" role="button" tabindex="0" aria-label="${this.colourLabel(t.colour)} ${this.shapeLabel(t.shape)}"` : '';
+        return `<div class="${cls}" style="${pos}"${attrs}>${mcTileHTML(t.colour, t.shape, t.rot)}</div>`;
+    }
+
+    spaceOccupied(r, c, exceptId) {
+        return this.boardTiles(this.me).some((t) => t.id !== exceptId && t.r === r && t.c === c);
+    }
+
+    renderTray() {
+        if (this.me === null) return;
+        const tray = this.trayTiles(this.me);
+        this.el.tray.textContent = '';
+        if (tray.length === 0) {
+            const p = document.createElement('p');
+            p.className = 'mc_empty';
+            p.textContent = _('No tiles waiting. Draw one from the pool.');
+            this.el.tray.appendChild(p);
+            return;
+        }
+        tray.forEach((t) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'mc_tile_btn mc_tray_tile' + (this.sel && this.sel.id === t.id ? ' mc_sel' : '');
+            btn.dataset.id = String(t.id);
+            btn.setAttribute('aria-label', `${this.colourLabel(t.colour)} ${this.shapeLabel(t.shape)}`);
+            btn.innerHTML = mcTileHTML(t.colour, t.shape, 0);
+            this.el.tray.appendChild(btn);
+        });
+    }
+
+    /** Short persistent line in each player's panel: tiles on the board, tiles in the tray, finished. */
+    renderPanels() {
+        this.order.forEach((pid) => {
+            const el = this.bga?.playerPanels?.getElement?.(pid);
+            if (!el) return;
+            let line = el.querySelector('.mc_panel_line');
+            if (!line) {
+                line = document.createElement('div');
+                line.className = 'mc_panel_line';
+                el.appendChild(line);
+            }
+            const placed = this.boardTiles(pid).length;
+            const tray = this.trayTiles(pid).length;
+            const text = this.finished[pid]
+                ? _('Finished')
+                : _('${placed} on board, ${tray} in tray').replace('${placed}', placed).replace('${tray}', tray);
+            line.textContent = text;
+        });
+    }
+
+    renderStatus() {
+        let title;
+        if (this.me !== null && this.finished[this.me]) {
+            title = _('You have finished. Waiting for the other players.');
+        } else if (this.poolTiles().length === 0) {
+            title = _('The pool is empty. Build your microchip, then press Finish.');
+        } else if (this.drawer === this.me) {
+            title = _('Your turn: take one tile from the draw column.');
+        } else {
+            title = _('${player} takes the next tile. You can arrange your tiles meanwhile.');
+            this.bga.statusBar.setTitle(title, { player: this.playerName(this.drawer) });
+            return;
+        }
+        this.bga.statusBar.setTitle(title, {});
+    }
+
+    /* ------------------------------------------------------------------------------------------ */
+    /* Interaction                                                                                 */
+    /* ------------------------------------------------------------------------------------------ */
+
+    hint(text) {
+        this.el.hint.textContent = text;
+    }
+
+    canAct() {
+        return this.amActive && this.me !== null && !this.finished[this.me];
+    }
+
+    onPoolTile(id) {
+        if (!this.canAct()) return;
+        const t = this.tiles.get(id);
+        if (this.drawer !== this.me) {
+            this.hint(_('It is not your turn to draw.'));
+            return;
+        }
+        if (t.col !== this.drawCol()) {
+            this.hint(_('Only tiles in the draw column can be taken.'));
+            return;
+        }
+        this.hint('');
+        this.sel = this.sel && this.sel.id === id && this.sel.from === 'pool' ? null : { id, from: 'pool', rot: 0, r: null, c: null };
+        this.renderAll();
+    }
+
+    onTrayTile(id) {
+        if (!this.canAct()) return;
+        this.hint('');
+        this.sel = this.sel && this.sel.id === id ? null : { id, from: 'tray', rot: 0, r: null, c: null };
+        this.renderAll();
+    }
+
+    onBoardClick(e) {
+        if (!this.canAct()) return;
+        const placed = e.target.closest('.mc_placed[data-id]');
+        if (placed) {
+            this.onPlacedTile(Number(placed.dataset.id));
+            return;
+        }
+        const space = e.target.closest('.mc_space[data-r]');
+        if (space) {
+            this.onSpace(Number(space.dataset.r), Number(space.dataset.c));
+        }
+    }
+
+    onPlacedTile(id) {
+        const t = this.tiles.get(id);
+        if (!t || t.owner !== this.me) return;
+        this.hint('');
+        this.sel = this.sel && this.sel.id === id ? null : { id, from: 'board', rot: t.rot, r: t.r, c: t.c };
+        this.renderAll();
+    }
+
+    onSpace(r, c) {
+        if (!this.sel || this.sel.from === 'pool') {
+            this.hint(_('Tap a tile in your tray or on your board first.'));
+            return;
+        }
+        if (this.spaceOccupied(r, c, this.sel.id)) {
+            this.hint(this.problemText('occupied'));
+            return;
+        }
+        // A wrong colour is still staged, so the player sees the ghost and why Confirm is off
+        this.sel.r = r;
+        this.sel.c = c;
+        const problem = this.stageProblem();
+        this.hint(problem ? this.problemText(problem) : _('Tap Confirm to place the tile here.'));
+        this.renderAll();
+    }
+
+    rotateSel() {
+        if (!this.sel || !this.rotation || this.sel.from === 'pool') return;
+        this.sel.rot = (this.sel.rot + 1) % 4;
+        this.renderAll();
+    }
+
+    clearSel() {
+        this.sel = null;
+        this.hint('');
+        this.renderAll();
+    }
+
+    /* ------------------------------------------------------------------------------------------ */
+    /* Action bar                                                                                  */
+    /* ------------------------------------------------------------------------------------------ */
+
+    refreshButtons() {
+        this.bga.statusBar.removeActionButtons();
+        if (!this.canAct()) return;
+
+        const s = this.sel;
+        if (s && s.from === 'pool') {
+            if (this.drawer === this.me) {
+                this.bga.statusBar.addActionButton(_('Take this tile'), () => this.doDraw(), { color: 'primary' });
+            }
+            this.bga.statusBar.addActionButton(_('Cancel'), () => this.clearSel(), { color: 'alert' });
+            return;
+        }
+        if (s) {
+            const t = this.tiles.get(s.id);
+            const problem = this.stageProblem();
+            const moved = s.r !== null && (s.from === 'tray' || s.r !== t.r || s.c !== t.c || s.rot !== t.rot);
+            this.bga.statusBar.addActionButton(_('Confirm'), () => this.doPlace(), { color: 'primary', disabled: problem !== null || !moved });
+            if (this.rotation) {
+                this.bga.statusBar.addActionButton(_('Rotate'), () => this.rotateSel(), { color: 'secondary' });
+            }
+            if (s.from === 'board') {
+                this.bga.statusBar.addActionButton(_('Remove'), () => this.doReturn(), { color: 'alert' });
+            }
+            this.bga.statusBar.addActionButton(_('Cancel'), () => this.clearSel(), { color: 'alert' });
+            return;
+        }
+        if (this.poolTiles().length === 0) {
+            if (this.finishPending) {
+                this.bga.statusBar.addActionButton(_('Confirm finish'), () => this.doFinish(), { color: 'primary' });
+                this.bga.statusBar.addActionButton(_('Cancel'), () => { this.finishPending = false; this.refreshButtons(); }, { color: 'alert' });
+            } else {
+                this.bga.statusBar.addActionButton(_('Finish'), () => { this.finishPending = true; this.refreshButtons(); }, { color: 'primary' });
+            }
+        }
+    }
+
+    doDraw() {
+        const id = this.sel.id;
+        this.bga.actions.performAction('actDraw', { tileId: id });
+    }
+
+    doPlace() {
+        const s = this.sel;
+        this.bga.actions.performAction('actPlace', { tileId: s.id, r: s.r, c: s.c, rot: s.rot });
+    }
+
+    doReturn() {
+        this.bga.actions.performAction('actReturn', { tileId: this.sel.id });
+    }
+
+    doFinish() {
+        this.finishPending = false;
+        this.bga.actions.performAction('actFinish', {});
+    }
+
+    /* ------------------------------------------------------------------------------------------ */
+    /* State hooks                                                                                 */
+    /* ------------------------------------------------------------------------------------------ */
+
+    enterPlay(isActive) {
+        this.amActive = !!isActive;
+        this.renderAll();
+    }
+
+    updateButtons(isActive) {
+        this.amActive = !!isActive;
+        this.refreshButtons();
+    }
+
+    leaveState() {
+        this.amActive = false;
+        this.sel = null;
+        this.finishPending = false;
+    }
+
+    /* ------------------------------------------------------------------------------------------ */
+    /* Notifications (the server sends the changes; the client keeps its copy in step)             */
+    /* ------------------------------------------------------------------------------------------ */
+
+    notif_tileDrawn(args) {
+        const t = this.tiles.get(args.tile.id);
+        if (t) {
+            t.location = 'hand';
+            t.owner = Number(args.player_id);
+            t.col = null;
+            t.row = null;
+        }
+        this.drawer = Number(args.next_drawer);
+        this.renderAll();
+    }
+
+    notif_poolEmpty() {
+        this.renderAll();
+    }
+
+    notif_tilePlaced(args) {
+        this.lastId = args.tile.id;
+        const t = this.tiles.get(args.tile.id);
+        if (t) {
+            t.location = 'board';
+            t.owner = Number(args.player_id);
+            t.r = args.r;
+            t.c = args.c;
+            t.rot = args.rot;
+        }
+        if (this.sel && this.sel.id === args.tile.id && Number(args.player_id) === this.me) {
+            this.sel = null;
+        }
+        this.renderAll();
+    }
+
+    notif_tileReturned(args) {
+        const t = this.tiles.get(args.tile.id);
+        if (t) {
+            t.location = 'hand';
+            t.owner = Number(args.player_id);
+            t.r = null;
+            t.c = null;
+            t.rot = 0;
+        }
+        if (this.sel && this.sel.id === args.tile.id && Number(args.player_id) === this.me) {
+            this.sel = null;
+        }
+        this.renderAll();
+    }
+
+    notif_playerFinished(args) {
+        this.finished[Number(args.player_id)] = true;
+        if (Number(args.player_id) === this.me) {
+            this.sel = null;
+            this.amActive = false;
+        }
+        this.renderAll();
+    }
+
+    notif_finalScoring(args) {
+        this.amActive = false;
+        this.sel = null;
+        this.chipKeys = {};
+        args.rows.forEach((row) => {
+            this.chipKeys[row.player_id] = new Set(row.chip);
+            const counter = this.bga?.playerPanels?.getScoreCounter?.(row.player_id);
+            if (counter && typeof counter.toValue === 'function') counter.toValue(row.score);
+        });
+        this.renderResults(args.rows);
+        this.renderAll();
+    }
+
+    renderResults(rows) {
+        const box = this.el.results;
+        const body = rows.map((row) => `<tr>
+                <th scope="row">${this.escape(this.playerName(row.player_id))}</th>
+                <td>${row.value}</td>
+                <td>${row.chip_tiles}</td>
+                <td>${row.unused}</td>
+                <td><strong>${row.score}</strong></td>
+            </tr>`).join('');
+        box.innerHTML = `<div class="mc_head"><h3>${_('Final scores')}</h3></div>
+            <table class="mc_table">
+                <thead><tr>
+                    <th scope="col">${_('Player')}</th>
+                    <th scope="col">${_('Microchip value')}</th>
+                    <th scope="col">${_('Tiles in microchip')}</th>
+                    <th scope="col">${_('Unused tiles')}</th>
+                    <th scope="col">${_('Score')}</th>
+                </tr></thead>
+                <tbody>${body}</tbody>
+            </table>
+            <p class="mc_note">${_('Score = microchip value minus 2 for each unused tile. Ties: more tiles in the microchip wins.')}</p>`;
+        box.hidden = false;
+    }
+
+    escape(text) {
+        const div = document.createElement('div');
+        div.textContent = String(text);
+        return div.innerHTML;
+    }
+}
