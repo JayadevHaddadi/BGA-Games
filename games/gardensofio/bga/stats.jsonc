@@ -4,7 +4,8 @@
         "turns_number": { "id": 10, "name": "Number of turns", "type": "int" },
         "flowers_planted": { "id": 11, "name": "Total flowers planted", "type": "int" },
         "laps_completed": { "id": 12, "name": "Total laps completed", "type": "int" },
-        "specials_used": { "id": 13, "name": "Special actions used", "type": "int" }
+        "specials_used": { "id": 13, "name": "Special actions used", "type": "int" },
+        "flowers_taken_from_board": { "id": 14, "name": "Flowers taken from the board (lap bonus)", "type": "int" }
     },
 
     // Statistics for each player

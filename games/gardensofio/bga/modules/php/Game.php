@@ -61,7 +61,7 @@ class Game extends \Bga\GameFramework\Table
         $count = count($playerIds);
 
         $this->playerScore->initDb($playerIds, 0);
-        $this->tableStats->init(['turns_number', 'flowers_planted', 'laps_completed', 'specials_used'], 0);
+        $this->tableStats->init(['turns_number', 'flowers_planted', 'laps_completed', 'specials_used', 'flowers_taken_from_board'], 0);
         $this->playerStats->init(['turns_number', 'flowers_planted', 'laps_completed', 'specials_used', 'largest_group', 'flowers_taken_from_board'], 0);
 
         $lapOption = (int) ($options[100] ?? 1);
