@@ -32,17 +32,17 @@ ALPHA_ICON_SIZES = {'box_280x280.png': (280, 280), 'icon_50x50.png': (50, 50), '
 
 # Things that break BGA's build, its HAL linter, or our guidelines. Scanned in PHP, JS, CSS and SQL.
 FAIL_PATTERNS = [
-    (r'\bplaySound\b', 'Mistake 11: never name anything playSound (use this.bga.sounds.play or sfx(id))', ['js', 'php']),
+    (r'\bplaySound\b', 'rule 15: never name anything playSound (use this.bga.sounds.play or sfx(id))', ['js', 'php']),
     (r'gameui\.playSound', 'deprecated gameui.playSound', ['js']),
     (r'ajaxcall', 'deprecated gameui.ajaxcall (use this.bga.actions.performAction)', ['js']),
     (r'scoreCtrl', 'deprecated this.scoreCtrl (use this.bga.playerPanels.getScoreCounter)', ['js']),
     (r'player_board_', 'direct player board DOM access (use this.bga.playerPanels.getElement)', ['js']),
-    (r'TRUNCATE\s+TABLE', 'Mistake 5: TRUNCATE is rejected by HAL (use DELETE FROM)', ['php', 'sql']),
+    (r'TRUNCATE\s+TABLE', 'rule 6: TRUNCATE is rejected by HAL (use DELETE FROM)', ['php', 'sql']),
     (r'box-shadow', 'guideline C.3: no drop shadows', ['css', 'js']),
     (r'drop-shadow', 'guideline C.3: no drop shadows', ['css', 'js']),
     (r'transition:\s*all', 'guideline C.3: no transition: all', ['css', 'js']),
     (r'AudioContext|createOscillator', 'guideline D.4: no Web Audio synths (use sound files)', ['js']),
-    (r"color:\s*'(danger|red)'", 'Mistake 8: button colour must be alert, primary or secondary', ['js']),
+    (r"color:\s*'(danger|red)'", 'rule 16: button colour must be alert, primary or secondary', ['js']),
     (r'[\U0001F300-\U0001FAFF\u2600-\u27BF]', 'guideline C.3: no emoji in UI text or labels', ['js', 'css', 'php']),
 ]
 FAIL_PATTERNS += [
@@ -326,7 +326,7 @@ export class Game {
         // Fit the board to the measured width (phones: full width, desktop: capped). See AGENTS.md "Layout".
         if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => this.fitLayout()).observe(root);
         this.fitLayout();
-        // Without this call the interface only updates after a page refresh (AGENTS.md mistake 12).
+        // Without this call the interface only updates after a page refresh (AGENTS.md rule 12).
         this.bga.notifications.setupPromiseNotifications({});
     }
 
@@ -662,7 +662,7 @@ def cmd_check(args):
     # 5. Config values
     if (bga / 'gameinfos.jsonc').exists():
         gi = read_jsonc(bga / 'gameinfos.jsonc')
-        (rep.add('PASS', 'bgg_id set') if gi.get('bgg_id') else rep.add('FAIL', 'bgg_id set', 'add "bgg_id" to gameinfos.jsonc (AGENTS.md section 5.B.6)'))
+        (rep.add('PASS', 'bgg_id set') if gi.get('bgg_id') else rep.add('FAIL', 'bgg_id set', 'add "bgg_id" to gameinfos.jsonc (AGENTS.md rule 17)'))
         (rep.add('PASS', 'publisher set') if gi.get('publisher') else rep.add('WARN', 'publisher set'))
         width = (gi.get('game_interface_width') or {}).get('min')
         (rep.add('PASS', 'game_interface_width min 320') if width == 320 else rep.add('FAIL', 'game_interface_width min 320', f'is {width}'))
@@ -698,8 +698,9 @@ def cmd_check(args):
     (rep.add('PASS', f'notification handlers ({len(php_notifs)} server notifications)') if not no_handler
      else rep.add('WARN', 'notification handlers', 'no notif_<name> for: ' + ', '.join(no_handler)
                   + ' (fine for log-only notifications; add one if it changes the board)'))
-    (rep.add('PASS', 'setupPromiseNotifications called') if 'setupPromiseNotifications' in js_text
-     else rep.add('FAIL', 'setupPromiseNotifications called', 'Mistake 12: the UI will not update without it'))
+    if not legacy:  # the legacy Dojo template registers notifications with dojo.subscribe instead
+        (rep.add('PASS', 'setupPromiseNotifications called') if 'setupPromiseNotifications' in js_text
+         else rep.add('FAIL', 'setupPromiseNotifications called', 'AGENTS.md rule 12: the UI will not update without it'))
 
     # 8. Sounds: each sound id used in the client exists as .ogg and .mp3 in the top-level sounds/ folder
     sound_ids = set(re.findall(r"sfx\('(\w+)'\)|sounds\.play\('(\w+)'\)", js_text))
@@ -738,7 +739,7 @@ def cmd_check(args):
         (rep.add('PASS', 'DROP TABLE IF EXISTS before each CREATE') if not no_drop else rep.add('WARN', 'DROP TABLE IF EXISTS before each CREATE', ', '.join(no_drop)))
         inline = [n for n, line in enumerate(text.splitlines(), 1)
                   if re.match(r'^\s*`\w+`\s', line) and '--' in line]
-        (rep.add('PASS', 'no inline comments on column lines') if not inline else rep.add('FAIL', 'no inline comments on column lines', f'lines {inline[:5]} (Mistake 9)'))
+        (rep.add('PASS', 'no inline comments on column lines') if not inline else rep.add('FAIL', 'no inline comments on column lines', f'lines {inline[:5]} (AGENTS.md rule 6)'))
 
     # 11. Metadata images: present and the right size
     meta_dir = bga / 'metadata_assets'
@@ -775,7 +776,7 @@ def cmd_check(args):
             rep.add('FAIL', 'metadata.json bgg_id matches gameinfos.jsonc')
         desc = meta.get('description') or ''
         if desc.startswith('TODO') or len(desc) < 200:
-            rep.add('FAIL' if desc.startswith('TODO') else 'WARN', 'GMM description', 'write 1 to 2 English paragraphs (AGENTS.md 5.B.2)')
+            rep.add('FAIL' if desc.startswith('TODO') else 'WARN', 'GMM description', 'write 1 to 2 English paragraphs (BGA_REFERENCE.md section 6)')
         else:
             rep.add('PASS', 'GMM description')
         (rep.add('PASS', 'designers listed') if meta.get('designers') else rep.add('WARN', 'designers listed'))
@@ -975,7 +976,7 @@ def cmd_gmm(args):
         '',
         '* `python3 tools/bga.py check ' + slug + '` has no FAIL lines.',
         '* Screenshots at 375 px and 1280 px pass the layout checks (`tests/harness`).',
-        '* The GMM warnings about licence and tags can be ignored for Private Alpha (AGENTS.md 5.C).',
+        '* The GMM warnings about licence and tags can be ignored for Private Alpha (BGA_REFERENCE.md section 6).',
         '',
     ]
     out = folder / 'GMM_FILLIN.md'
