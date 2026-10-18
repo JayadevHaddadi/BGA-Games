@@ -249,6 +249,22 @@ async function run() {
         const moved = log.actions.find((a) => a.name === 'actMove');
         check('move_action_sent', !!moved && moved.args.martian === 1 && moved.args.r === tr && moved.args.c === tc, moved);
 
+        // An adjacent flower that also lies on the move line is picked as the adjacent flower, not re-targeted
+        game.enterTurn(turnArgs, true);
+        await flush();
+        tap(q('.enc_martian[data-id="1"]'));
+        await flush();
+        const [lr, lc] = turnArgs.moves[0].targets[2];
+        tap(q(`#enc_board .enc_cell[data-r="${lr}"][data-c="${lc}"]`));
+        await flush();
+        tap(q(`#enc_board .enc_cell[data-r="${lr}"][data-c="${lc + 1}"]`));
+        await flush();
+        const c3 = statusBar.buttons.find((b) => b.label === 'Confirm');
+        check('inline_adjacent_confirm_enabled', !!c3 && !c3.disabled, buttonLabels());
+        if (c3) c3.fn();
+        const moved2 = log.actions.filter((a) => a.name === 'actMove').pop();
+        check('inline_adjacent_sent', !!moved2 && moved2.args.r === lr && moved2.args.c === lc && moved2.args.adjR === lr && moved2.args.adjC === lc + 1, moved2);
+
         // Special action: the tube (slot 1). Needs a payable colour, then Confirm.
         game.enterTurn(turnArgs, true);
         await flush();

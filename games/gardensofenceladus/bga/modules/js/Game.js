@@ -144,9 +144,16 @@ export class Game {
         return null;
     }
 
-    /** Plays a sound for a confirmed game event only (never on hover or on staging). */
+    /** Plays a sound for a confirmed game event only (never on hover or on staging). Off with preference 101 and in replays. */
     sfx(id) {
         try {
+            const g = this.bga?.gameui;
+            if (g?.isReplayMode?.() || g?.instantaneousMode) return;
+            if (Number(this.bga?.userPreferences?.get?.(101) ?? 1) === 0) return;
+            const now = Date.now();
+            this.lastSound = this.lastSound || {};
+            if (now - (this.lastSound[id] || 0) < 300) return;
+            this.lastSound[id] = now;
             this.bga.sounds.play(id);
         } catch (e) {
             // sounds are optional
@@ -393,7 +400,7 @@ export class Game {
         this.highlightTargets();
         this.updateSpecialButtons();
         this.updateButtons(args, isActive);
-        this.setStatus(isActive ? this.idleHint() : _('Waiting for another player.'));
+        this.setStatus(isActive ? this.idleHint() : _('${player} is playing.').replace('${player}', this.playerName(Number(this.getActivePlayerId()))));
     }
 
     leaveState() {
@@ -565,16 +572,17 @@ export class Game {
         }
         const st = this.stage;
         if (st && st.type === 'move') {
+            // The adjacent pick comes first: a flower next to the target can also lie on the move line,
+            // and re-targeting it would make the move impossible to confirm.
+            if (st.target && !st.adj && this.adjacentFlowers(st.target[0], st.target[1]).some(([a, b]) => a === r && b === c)) {
+                st.adj = [r, c];
+                this.afterStageChange();
+                return;
+            }
             if (this.isMoveTarget(st, r, c)) {
                 st.target = [r, c];
                 st.adj = null;
                 st.needsAdj = this.adjacentFlowers(r, c).length > 0;
-                if (!st.needsAdj) st.adj = null;
-                this.afterStageChange();
-                return;
-            }
-            if (st.target && this.adjacentFlowers(st.target[0], st.target[1]).some(([a, b]) => a === r && b === c)) {
-                st.adj = [r, c];
                 this.afterStageChange();
                 return;
             }
@@ -659,6 +667,7 @@ export class Game {
 
     specialCellAllowed(st, step, r, c) {
         const occupiedByMartian = this.martians.some((m) => m.r === r && m.c === c);
+        if (st.cells.some(([a, b]) => a === r && b === c)) return false;
         if (step === 'peak') return this.board[r][c] === 'P';
         if (step === 'flower') return this.board[r][c] !== '' && this.board[r][c] !== 'P' && !(st.slot === 5 && occupiedByMartian);
         if (step === 'empty') return this.board[r][c] === '' && !occupiedByMartian;
@@ -688,14 +697,13 @@ export class Game {
                 r1: cells[0][0], c1: cells[0][1], r2: cells[1][0], c2: cells[1][1],
             });
         }
-        this.stage = null;
+        // The stage is cleared when the state changes, not here: a refused action keeps the choice on screen.
     }
 
     confirmPlacement() {
         const st = this.stage;
         if (!st || !st.cell) return;
         this.bga.actions.performAction('actPlaceMartian', { martianType: st.martianType, row: st.cell[0], col: st.cell[1] });
-        this.stage = null;
     }
 
     /* ------------------------------------------------------------------------ highlights */

@@ -42,18 +42,15 @@ class Game extends \Bga\GameFramework\Table
 
     protected function setupNewGame($players, $options = [])
     {
-        $defaultColors = ['4caf50', 'e91e63', '2196f3', 'ff9800', '9c27b0'];
+        // Colours from gameinfos.jsonc, then each player's favourite colour (the BGA template pattern)
+        $gameinfos = $this->getGameinfos();
+        $defaultColors = $gameinfos['player_colors'];
         $values = [];
-        $i = 0;
         foreach ($players as $pid => $player) {
-            $values[] = vsprintf("(%s, '%s', '%s')", [
-                $pid,
-                $defaultColors[$i % count($defaultColors)],
-                addslashes($player['player_name']),
-            ]);
-            $i++;
+            $values[] = vsprintf("(%s, '%s', '%s')", [$pid, array_shift($defaultColors), addslashes($player['player_name'])]);
         }
         static::DbQuery("INSERT INTO `player` (`player_id`, `player_color`, `player_name`) VALUES " . implode(',', $values));
+        $this->reattributeColorsBasedOnPreferences($players, $gameinfos['player_colors']);
         $this->reloadPlayersBasicInfos();
 
         $playerIds = array_map('intval', array_keys($players));
@@ -136,18 +133,19 @@ class Game extends \Bga\GameFramework\Table
         return $changes;
     }
 
-    public function coordLabel(int $r, int $c): string
+    /** Square label for the log: "C4" on the garden; a translatable phrase (recursive log args) for start squares. */
+    public function coordLabel(int $r, int $c): string|array
     {
         if (Rules::inGrid($r, $c)) {
             return chr(ord('A') + $c) . ($r + 1);
         }
         if ($c === -1) {
-            return clienttranslate('left side, row ') . ($r + 1);
+            return ['log' => clienttranslate('left side, row ${row}'), 'args' => ['row' => $r + 1]];
         }
         if ($c === Rules::SIZE) {
-            return clienttranslate('right side, row ') . ($r + 1);
+            return ['log' => clienttranslate('right side, row ${row}'), 'args' => ['row' => $r + 1]];
         }
-        return clienttranslate('bottom side, column ') . chr(ord('A') + $c);
+        return ['log' => clienttranslate('bottom side, column ${col}'), 'args' => ['col' => chr(ord('A') + $c)]];
     }
 
     /* ---------------------------------------------------------------------------------------------- */
