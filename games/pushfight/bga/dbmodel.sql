@@ -20,9 +20,11 @@ DROP TABLE IF EXISTS `piece`;
 CREATE TABLE IF NOT EXISTS `piece` (
   `piece_id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `player_id` INT NOT NULL,
-  `piece_type` VARCHAR(16) NOT NULL, -- 'king' (square pusher) or 'pawn' (round)
-  `pos_x` INT DEFAULT NULL,          -- 1 to 8 (NULL if fallen off board)
-  `pos_y` INT DEFAULT NULL,          -- 1 to 4 (NULL if fallen off board)
+  -- piece_type: 'king' (square pusher) or 'pawn' (round). pos_x 1 to 8, pos_y 1 to 4, both NULL once off the board.
+  -- (Comments stay on their own lines: BGA drops a column line that carries a comment.)
+  `piece_type` VARCHAR(16) NOT NULL,
+  `pos_x` INT DEFAULT NULL,
+  `pos_y` INT DEFAULT NULL,
   `is_alive` TINYINT(1) NOT NULL DEFAULT 1,
   PRIMARY KEY (`piece_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
