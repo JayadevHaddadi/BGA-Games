@@ -55,6 +55,9 @@ board), **Yavalath** (`fitContainerToScreen`).
   `TARGET_MAP` in `tools/sync.py` maps folders to Studio projects and is the list of games.
 * **Always commit and push straight to `main`** (no feature branches, no PRs) unless the user says otherwise.
   Run `git pull --rebase origin main` before pushing: other sessions push to the same branch.
+* One session per game, and several sessions share the Linux checkout. Commit your own changes to shared files
+  (`tools/sync.py`, the workflow, root docs) right away: an uncommitted edit there blocks every other session's pull.
+  Never revert or stash another session's uncommitted work without the user's say.
 * **Deploy**: a push to `main` runs `.github/workflows/bga-deploy.yml`, which syncs every game folder changed anywhere
   in the pushed commits (`tools/sync.py --changed`). Manual run: Actions → BGA Studio Deployer → pick a game or `all`.
   Fast lane: `python tools/sync.py <slug>` (seconds).
