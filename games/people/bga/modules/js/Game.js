@@ -392,7 +392,7 @@ export class Game {
         if (this.mode === 'police') {
             if (!st) return _('Police: tap a district with humans. The shield moves there.');
             if (st.recipients.length < st.need) {
-                return `${_('Police: tap')} ${st.need - st.recipients.length} ${_('open neighbour(s) to receive a human.')}`;
+                return _('Police: tap ${n} open neighbour(s) to receive a human.').replace('${n}', String(st.need - st.recipients.length));
             }
             return _('Confirm the police, or tap another district.');
         }
@@ -407,7 +407,7 @@ export class Game {
 
     waitingText() {
         const name = this.activePlayerName();
-        return name ? `${_('Waiting for')} ${name}.` : _('Waiting for another player.');
+        return name ? _('Waiting for ${player}.').replace('${player}', name) : _('Waiting for another player.');
     }
 
     activePlayerName() {
