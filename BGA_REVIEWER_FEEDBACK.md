@@ -1,100 +1,116 @@
-# BGA Reviewer Feedback — Mandatory Rules for All Agents
+# BGA review checklist (reviewer feedback, all games)
 
-Source: Ian (BGA Studio reviewer), reply to the Private Alpha requests for 4 games (Sugar Gliders named explicitly), Oct 2026. His tone shows patience wearing thin. **Result: not ready for Public Alpha. A broader presentation and UX pass is required before resubmission.**
+Read this before any UI work and before any review request. Code patterns for each point are in
+[BGA_REFERENCE.md](BGA_REFERENCE.md); `python3 tools/bga.py check <slug>` automates the items marked ✓.
 
-Reviewer link he told us to follow: https://en.doc.boardgamearena.com/BGA_Studio_Guidelines
+## Why this file exists
 
-## What Ian said (his four recurring complaints)
+The BGA reviewer (Ian) declined Private/Public Alpha for Sugar Gliders, Yavalath, Kiln and Omega with the same
+feedback, and his patience is wearing thin:
 
 1. Generic / AI-generated-looking UI patterns.
-2. Insufficient adaptation to the specific identity of the game.
+2. Not adapted to the specific identity of the game.
 3. Mobile and responsive presentation needs more care.
 4. The interface feels generated, not deliberately designed as a finished BGA adaptation.
 
-## What Ian wants (the meta-rules)
+His meta-rules:
+- **Feedback on one game applies to every game.** He will not repeat a point per project.
+- **Read the [Studio Guidelines](https://en.doc.boardgamearena.com/BGA_Studio_Guidelines) before any review request.**
+  Never request a review "to see what they say".
+- **"Abstract/simple game" is no excuse.**
+- **One clean resubmission**, not a series of requests. With it, write a reply that lists, per reviewer point, what
+  changed and where.
 
-- **Feedback from one game applies to ALL games.** He will not report the same UX/UI requirement separately for every project. Every new game and every resubmission must already include everything raised before.
-- **Read the Studio Guidelines before requesting any review.** Do not request a review "to see what they say".
-- **"Abstract/simple game" is not an excuse.** An abstract game still needs a deliberate, accessible, polished adaptation.
-- **One clean resubmission, not iterative review requests.** Finish the full pass first.
+## Checklist
 
-## Rules for agents
+### A. Layout and mobile (guidelines A.1, C.4, E.3)
+- [ ] The whole game is centred on the screen with a "no action" margin: board centre offset 0 px (± 2) at 1280 and
+      375 px, for every player count. Side columns balanced with equal spacers (Kiln: 220 px left and right).
+- [ ] Phones: the board takes the full width, edge to edge (widen the root to the viewport, size from the measured
+      width, tight `viewBox`). Desktop capped (about 700 px or the natural size).
+- [ ] ✓ `game_interface_width.min` = 320. Fluid layout, no fixed widths, usable at 100 % zoom.
+- [ ] Every tap target ≥ 32 × 32 px at 375 px (aim 40 to 44), **measured** with `getBoundingClientRect` for the
+      largest board variant and every player count. Record the numbers in the commit. If geometry makes 32 px
+      impossible (Omega radius 6: 13 cells across 375 px), say so to the reviewer.
+- [ ] Portrait and landscape at 320 to 400 px. Four player panels use at most a quarter of a phone screen.
+- [ ] No horizontal scroll.
 
-1. Never request Private Alpha / Public Alpha / Beta until every item in the checklist below passes on desktop AND a real phone-width viewport.
-2. Before touching UI on ANY game, re-read this file. Apply every item to every game, not just the one you were asked about.
-3. If a UI choice feels like a default template (stock panels, gradients, emoji icons), replace it with something drawn from the actual game.
+### B. Panels and information (A.2, A.3)
+- [ ] Never duplicate player info in the play area: no score bars, name chips, colour pips or turn-order badges on
+      the board. Scores in the BGA score counter; persistent per-player info as one compact line in the player panel.
+- [ ] Related information grouped in one place; always-needed information not only in a panel.
+- [ ] No round numbers, settings or titles in the panels. No always-visible counters nobody reads (use tooltips).
+- [ ] No automatic popups mid-game (tutorials only, skippable, click-outside closes). Never hide components behind a popup.
+- [ ] Rules and tie-break text in `GAMEHELP.wiki` / `tie_breaker_description`, not on the board.
+- [ ] No designer, publisher or developer credits in the play area (`gameinfos.jsonc` and the Control Panel).
 
-## Pre-submission checklist (from the Studio Guidelines)
+### C. Action bar (A.2, C.3)
+- [ ] ✓ Blue `primary` = go; red `alert` = undo, pass, skip, cancel, clear; white `secondary` = side choice; grey = disabled.
+- [ ] At most 4 buttons; main action centred; undo/cancel on the far right. One copy of each action; never a
+      duplicate button in the play area. No custom buttons next to BGA's own controls.
+- [ ] Hide actions that are never relevant; grey out the temporarily unavailable ones.
+- [ ] Prefer one "Restart turn" or a timed confirm over undo-everywhere. Tap-to-stage + Confirm makes mis-taps recoverable.
+- [ ] Board interactions stay on the board (buttons do not replace them).
 
-**Layout and mobile**
-- Play area centered on every device; margins around board for mobile scrolling/deselection.
-- Board centred on the **screen**, not just inside the game box: side columns must balance (see the section below). Measure the offset, don't eyeball it.
-- The table texture covers the **whole browser page** (behind BGA's header and page wrappers), not only the game box.
-- Fluid layout, no fixed widths; fully usable at 100% zoom; do not rely on zoom buttons.
-- Test portrait AND landscape at 320-390px wide; 4-player panels use at most 1/4 of a phone screen.
-- Never hide game components behind popups; no automatic popups mid-game (tutorials only).
-- Do not scatter related info across corners; don't keep always-needed info only on player panels.
-- No in-game logos or branding unrelated to the game; no round numbers/settings/titles in player panels.
+### D. Visual language (C.3, C.5)
+- [ ] ✓ No drop shadows (`box-shadow`, `filter: drop-shadow`), glow halos, gloss ellipses, gradient chips, pill
+      badges, glassmorphism, rounded "cards" (corners ≤ 3 px; only true circles use 50 %), `transition: all`.
+- [ ] ✓ No looping animation. Animations 0.5 s (0.8 s max), purposeful, batched, and off under
+      `prefers-reduced-motion`. Allowed exception: a gentle marker on the current player's own piece during their turn.
+- [ ] ✓ No emoji or glyphs in labels and buttons (✓ ↺ 🔊 ⭐ 🏆). Icons come from the game's components, with `aria-label`.
+- [ ] Default BGA font only. No text baked into images. No in-game logos or marketing text.
+- [ ] Pieces and board look like the physical game: its shapes, palette and materials (wood, felt, paper, clay), flat
+      matte pieces with a thin outline. A hex game gets a hexagonal board. Prefer the publisher's own glyphs and art,
+      compared against the real board.
+- [ ] Highlights use `outline` or a tint, not glow. Last-move markers are obvious (tinted cell + double ring); with
+      3+ players mark the last `players - 1` moves, newest solid, older dashed. One-shot ping, no loop.
+- [ ] Themed table background on the **whole page** (`body` class, BGA wrappers transparent), subtle and low
+      contrast, never a flat colour. Verify on full-page screenshots at 1280 and 375 px.
 
-**Action bar and buttons**
-- At most 4 buttons. Main action centered; cancel/undo/pass far right and visually separate.
-- Blue = forward, red (`alert`) = cancel/undo/pass, white = optional, grey = disabled. Never tint buttons to match the theme.
-- Hide actions that are never relevant; grey out ones that are temporarily unavailable.
-- No custom buttons mixed with BGA built-ins; no "Round in progress" text in the bar.
-- Prefer timed confirmation (5-8s) or a single Restart Turn over Undo-everywhere.
+### E. Feedback and log (C.1, C.2)
+- [ ] Valid targets highlighted; consequences previewed before Confirm.
+- [ ] Every refused action gives a short plain-text reason (status bar). Silence is never acceptable.
+- [ ] Every action in the log says who did what, with the same coordinates as the board labels (label the axes);
+      automatic and forced actions included; small simultaneous events grouped.
+- [ ] Tooltips on every icon and control (BGA `addTooltip`, action-button `tooltip`), translatable, adding information.
+- [ ] End of game: a step-by-step scoring breakdown, not an instant final number.
 
-**Clarity and feedback**
-- Highlight valid options; show consequences before the player commits.
-- Every failed action says why (short plain-text error, shake/grey-out). Silence is never acceptable.
-- Log every major action including automated ones, saying who did what, with icons/colors and alt-text; group small simultaneous actions into one line.
-- Animations 0.5s regular, 0.8s max; batch repetitive updates; no decorative looping/bouncing/glowing.
-- Sound: below BGA default volume, short, always paired with a visual cue.
-- Tooltips add information (translatable); don't duplicate what's visible.
+### F. Sound (D.4)
+- [ ] ✓ Real files in `sounds/` (`.ogg` + `.mp3`), short and below BGA's default volume, through `bga.sounds.play`.
+- [ ] Only for confirmed events (server notifications). Never on hover, `mouseenter`, staging or a local undo.
+- [ ] ✓ Preference 101 "Sound effects" (default on); silent in replay and instantaneous mode; repeats throttled.
+- [ ] Never the only cue: every sound has a visual counterpart.
 
-**Accessibility**
-- Never rely on color alone: add shapes/symbols/patterns per piece color (colorblind-safe).
-- Text contrast WCAG AA (4.5:1); outline player-color names so they read on light and dark.
-- Tap targets at least 32x32px (aim 40-44px) with spacing; scroll rather than shrink.
-- Every icon/button labeled for screen readers.
-- Default BGA font only; all text translatable; no decorative/themed fonts; no text baked into images.
+### G. Accessibility (D.1 to D.3)
+- [ ] Never colour alone: every player or piece colour has its own **silhouette** (triangle, square, plus, diamond;
+      not hollow vs filled), on by default, preference 100 to switch it off. Win and lose highlights differ by line
+      style, not only green vs red. Check the symbol at the smallest size used.
+- [ ] Player-colour names outlined so they read on light and dark.
+- [ ] Text and icon contrast WCAG AA (4.5:1). Every interactive element has a label. All text translatable.
+- [ ] `:hover` only inside `@media (hover: hover)`; mouse-only previews only when `matchMedia('(hover: hover)')`.
 
-**Technical**
-- Exact state restored after refresh (server is source of truth, including pending actions/selection).
-- Replays flow without blocking popups; end game shows a scoring breakdown, not an instant final score.
-- Errors never crash the game or expose stack traces.
-- PHP: `act*` / `arg*` / `st*` prefixes, PSR-4 namespaces, validate all action input, no `@` suppression, no `.action.php`.
+### H. Technical (forum "Alpha games guidelines for reviewers")
+- [ ] All rules and all original material implemented (official variants as options where practical).
+- [ ] Playable start to finish without bugs, turn-based and real time; replay works from start to end.
+- [ ] Refresh or reconnect restores the exact state (server is the source of truth, pending choices included).
+- [ ] `getGameProgression()` moves during the game.
+- [ ] Errors never crash the game or show stack traces; no `@` suppression; every action input validated.
+- [ ] Game page complete: description, English rules link, box image, a banner without text, presentation text.
+- [ ] Quality equal to or above comparable BGA games, playable at once by someone who knows the rules.
+- [ ] Reviewers play at least 3 games before approving: make those games pleasant.
 
-## Layout centring and full-screen table (Ian's Kiln feedback, Oct 2026)
+## Making it feel designed (our reading of Ian's words)
 
-Ian's words: "Can you center the board please?" and "Can you extend the background to all the screen?". Guideline A.1 (layout) asks for the whole game centred for large screens with a "no action" margin around it. Guideline C.5 (background) describes the background as the table the game lives on, so it covers the whole screen.
+The guidelines forbid themed fonts and theme-tinted buttons, so identity comes from everything else: board, pieces,
+icons and log symbols drawn from the real game; a textured table; game-specific log lines, tooltips and scoring
+breakdown. Avoid the stock template look: emoji icons, uniform rounded cards with shadows, gradient headers,
+dashboards of stat tiles. Then look at a phone-width screenshot and fix whatever looks cramped or accidental.
 
-Rules for every game:
-1. **Balance the side columns.** If a game has a side panel on one side only (score track, player mat, seat), reserve the same width on the other side with an empty spacer column. Otherwise the board drifts sideways. Use fixed equal side columns, not `auto`, when the content widths differ.
-2. **Measure, don't eyeball.** The centre offset must be 0 px (± 2 px) at 1280 px wide and 375 px wide, for every player count the game supports. Check the bounding box of the central board against the centre of the game area (`#game_play_area`).
-3. **Full-page texture.** Apply the themed background to `body` (add a class such as `<game>_page_bg` to `document.body` in setup) and make the BGA wrappers transparent (`#page-content`, `#ebd-body`, `#game_play_area`, `#game_play_area_background`). Do not put the texture only on the game box. Keep it subtle and low-contrast (C.5).
-4. **Verify on screenshots.** Take a full-page screenshot at 1280 px and 375 px and confirm the background reaches the edges of the screen and the board is centred. Check that the wrapper selectors exist on the live BGA page before relying on them, since the harness is only a mock.
+## Review history
 
-Reference implementation: Kiln (`games/KILN/bga/kiln.css`, `.kiln_page_bg`, balanced grid areas).
-
-## Making it feel designed, not generated (our interpretation)
-
-Ian's wording is subjective, so this is our reading of it. The guidelines forbid themed fonts and theme-tinted buttons, so identity has to come from everything else:
-- Draw board, pieces, icons and log symbols from the actual game's look (real component art/SVGs, real iconography), not generic shapes.
-- Use a subtle thematic background: slight texture/pattern with a touch of blur, never a flat color or busy detail.
-- Game-specific log entries, tooltips, scoring breakdown and endgame presentation.
-- Avoid the stock-template look: emoji as icons, uniform rounded cards with drop shadows, gradient headers, generic dashboards of stat tiles, symmetrical boilerplate layouts.
-- Test on a real phone-width viewport and fix what looks cramped or accidental. Mobile care is called out explicitly.
-
-## Reviewer approval criteria (forum thread "Alpha games guidelines for reviewers", Een, 2020)
-
-Source: https://forum.boardgamearena.com/viewtopic.php?t=17325. This is what reviewers check before approving a game. It adds the following to the checklist above.
-
-- **Faithful and complete**: ALL rules correctly implemented and ALL original game material present, nothing missing (include official variants/modes where practical).
-- **Tooltips on ALL icons and UI elements** (not just some).
-- **Interface clear and intuitive, centered horizontally on large screens, resizes properly for mobile.**
-- **Playable start to finish without bugs**, in both turn-based and real-time modes (if applicable).
-- **Replayable from start to end** (replay/archive mode works).
-- **Game progression percentage must not freeze at zero** (implement `getGameProgression()`).
-- **Game page complete**: correct details, English rules link, 3D game box visual for published games, appealing banner and presentation text. (Games released without a box, e.g. nestorgames cotton cases, need a sensible stand-in: logo-based box art.)
-- **Quality bar**: must equal or beat comparable games already on BGA, and be playable immediately by someone who knows the rules.
-- Reviewers play before approving (a minimum of 3 games played has been required since 2021, per forum notes).
+| Date | Game | Points raised |
+| :--- | :--- | :--- |
+| Oct 2026 | Sugar Gliders (+3 others) | Generic look, identity, mobile, "generated" feel |
+| Oct 2026 | Yavalath | Same UX/UI points; hexagonal board; credits in the play area; button colours; hover sounds |
+| Oct 2026 | Kiln | Shadows, glossy cards, emoji, custom tooltips; background; hover sounds; mobile width; centre the board; background on the whole screen |
+| Oct 2026 | Omega | Player info duplicated in the play area; CSS bans; full-width board on phones; sounds from files only |

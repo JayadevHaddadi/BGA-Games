@@ -35,7 +35,7 @@ Approved by nestorgames (Néstor Romeral Andrés) — see project memory `bga-st
 
 ## Suggested project layout
 
-Follow the modern template already used for `games/pushfight/bga/` and `games/lordsofscotland/bga/` (PHP 8 OOP + `#[PossibleAction]` attributes), not the legacy Mandala Dojo template — this is a fresh game with no legacy code to carry forward. See root `BGA_DEVELOPER_CHEAT_SHEET.md` for the framework gotchas (zombie method, stats API parameter order, Game Metadata Manager asset specs, etc.) before starting.
+Follow the playbook in root `AGENTS.md` (section 1) and start from `python3 tools/bga.py new`; the reference implementations are `games/gardensofenceladus/` and `games/people/` (PHP 8 OOP + `#[PossibleAction]` attributes), not the legacy Mandala Dojo template — this is a fresh game with no legacy code to carry forward. See root `BGA_REFERENCE.md` for the framework patterns and gotchas (zombie method, stats API parameter order, Control Panel asset specs, etc.) before starting.
 
 ```
 games/seven/

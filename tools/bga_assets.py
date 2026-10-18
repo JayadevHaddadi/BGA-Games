@@ -12,7 +12,7 @@ the same code makes every game's Control Panel images:
         "publisher_tint": [35, 49, 74],            # optional: logo is redrawn in this colour
     })
 
-Outputs go to bga/metadata_assets/ with the sizes in BGA_METADATA_ASSETS_SPEC.md and AGENTS.md section 5.D.
+Outputs go to bga/metadata_assets/ with the sizes in BGA_REFERENCE.md section 6.
 No text is ever drawn into banners: BGA overlays the title and the player rankings itself.
 """
 from pathlib import Path

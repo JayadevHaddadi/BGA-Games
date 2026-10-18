@@ -37,7 +37,7 @@ Notable optional rules: a pie rule (swap-color option) for 2p games, and a 2p to
 
 ## Suggested project layout
 
-Follow the modern template already used for `games/pushfight/bga/` and `games/lordsofscotland/bga/` (PHP 8 OOP + `#[PossibleAction]` attributes). See root `BGA_DEVELOPER_CHEAT_SHEET.md` for framework gotchas before starting.
+Follow the playbook in root `AGENTS.md` (section 1) and start from `python3 tools/bga.py new`; the reference implementations are `games/gardensofenceladus/` and `games/people/` (PHP 8 OOP + `#[PossibleAction]` attributes). See root `BGA_REFERENCE.md` for the framework patterns and gotchas before starting.
 
 ```
 games/omega/
@@ -45,3 +45,10 @@ games/omega/
 ├── IMPLEMENTATION_NOTES.md    # this file
 └── bga/                       # to be created — Studio codebase (project name: omegatest)
 ```
+
+## Reviewer notes (Omega, Oct 2026; moved from AGENTS.md)
+- Colour-blind silhouettes: triangle / square / plus / diamond (pref 100, `cssPref: omega_cb_on`).
+- Board sizes radius 2 to 6. At 375 px the radius-6 board has 13 cells across, about 27 px per cell, below the 32 px
+  target: geometry makes 32 px impossible there, so say so explicitly in the reply to the reviewer.
+- No in-board score bar, name chips, colour pips or tiebreak hints: scores in the BGA counter, group breakdown in the
+  player panel line.
