@@ -225,8 +225,8 @@ class Game extends \\Bga\\GameFramework\\Table
 
         // 2. Scores and statistics (every name must exist in stats.jsonc)
         $this->playerScore->initDb(array_map('intval', array_keys($players)), 0);
-        // $this->tableStats->init(['turns_number'], 0);
-        // $this->playerStats->init(['turns_number'], 0);
+        $this->tableStats->init(['turns_number'], 0);
+        $this->playerStats->init(['turns_number'], 0);
 
         // 3. The initial game situation, then the first player
         $this->activeNextPlayer();
@@ -277,6 +277,8 @@ class PlayerTurn extends GameState
     #[PossibleAction]
     public function actPass(int $activePlayerId, array $args): string
     {
+        $this->tableStats->inc('turns_number', 1);
+        $this->playerStats->inc('turns_number', 1, $activePlayerId);
         $this->game->giveExtraTime($activePlayerId);
         $this->game->activeNextPlayer();
         return PlayerTurn::class;
@@ -429,11 +431,15 @@ TEMPLATE_DBMODEL = '''-- %(name)s database model
 '''
 
 TEMPLATE_STATS = '''{
-    // Statistics for the table
-    "table": {},
+    // Statistics for the table (ids 10 and up; every name used in PHP must be here)
+    "table": {
+        "turns_number": { "id": 10, "name": "Number of turns", "type": "int" }
+    },
 
     // Statistics for each player
-    "player": {}
+    "player": {
+        "turns_number": { "id": 10, "name": "Number of turns", "type": "int" }
+    }
 }
 '''
 
@@ -721,6 +727,7 @@ def cmd_check(args):
         st = read_jsonc(bga / 'stats.jsonc')
         known_t, known_p = set(st.get('table', {})), set(st.get('player', {}))
         code = '\n'.join(p.read_text(encoding='utf-8') for p in files_under(bga / 'modules' / 'php', ['php']))
+        code = re.sub(r'/\*.*?\*/|^\s*//.*$', '', code, flags=re.S | re.M)  # commented-out calls do not count
         used_t = set(re.findall(r"tableStats->(?:inc|set)\('(\w+)'", code))
         used_p = set(re.findall(r"playerStats->(?:inc|set)\('(\w+)'", code))
         for m in re.finditer(r"(table|player)Stats->init\(\s*\[([^\]]*)\]", code):
