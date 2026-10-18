@@ -42,18 +42,15 @@ class Game extends \Bga\GameFramework\Table
 
     protected function setupNewGame($players, $options = [])
     {
-        $defaultColors = ['4caf50', 'e91e63', '2196f3', 'ff9800', '9c27b0'];
+        // Colours from gameinfos.jsonc, then each player's favourite colour (the BGA template pattern)
+        $gameinfos = $this->getGameinfos();
+        $defaultColors = $gameinfos['player_colors'];
         $values = [];
-        $i = 0;
         foreach ($players as $pid => $player) {
-            $values[] = vsprintf("(%s, '%s', '%s')", [
-                $pid,
-                $defaultColors[$i % count($defaultColors)],
-                addslashes($player['player_name']),
-            ]);
-            $i++;
+            $values[] = vsprintf("(%s, '%s', '%s')", [$pid, array_shift($defaultColors), addslashes($player['player_name'])]);
         }
         static::DbQuery("INSERT INTO `player` (`player_id`, `player_color`, `player_name`) VALUES " . implode(',', $values));
+        $this->reattributeColorsBasedOnPreferences($players, $gameinfos['player_colors']);
         $this->reloadPlayersBasicInfos();
 
         $playerIds = array_map('intval', array_keys($players));
@@ -157,7 +154,7 @@ class Game extends \Bga\GameFramework\Table
         $col = (int) $tile['pool_col'];
         $row = (int) $tile['pool_row'];
         static::DbQuery("UPDATE `tile` SET `location` = 'hand', `owner` = $pid, `pool_col` = NULL, `pool_row` = NULL WHERE `tile_id` = $tileId");
-        $this->incStat(1, 'tiles_drawn', $pid);
+        $this->addStat(1, 'tiles_drawn', $pid);
         $next = $this->nextDrawer($pid);
         $this->globals->set('drawer', $next);
         return [
@@ -247,7 +244,7 @@ class Game extends \Bga\GameFramework\Table
         }
         static::DbQuery("UPDATE `tile` SET `location` = 'board', `r` = $r, `c` = $c, `rot` = $rot WHERE `tile_id` = $tileId");
         if (!$moved) {
-            $this->incStat(1, 'tiles_placed', $pid);
+            $this->addStat(1, 'tiles_placed', $pid);
         }
         return [
             'tile' => $this->tileInfo($tileId, $tile),
@@ -327,7 +324,7 @@ class Game extends \Bga\GameFramework\Table
         return array_map('intval', json_decode((string) $this->globals->get('player_order', '[]'), true) ?: []);
     }
 
-    public function incStat(int $delta, string $name, int $pid): void
+    public function addStat(int $delta, string $name, int $pid): void
     {
         $this->playerStats->inc($name, $delta, $pid);
         $this->tableStats->inc($name, $delta);

@@ -27,6 +27,13 @@ class Play extends GameState
         );
     }
 
+    /** Everyone builds at the same time. Players who already finished (or left) stay inactive. */
+    public function onEnteringState(): void
+    {
+        $open = array_values(array_filter($this->game->playerOrder(), fn($pid) => !$this->game->isFinished($pid)));
+        $this->gamestate->setPlayersMultiactive($open, EndScore::class, true);
+    }
+
     public function getArgs(): array
     {
         return [];
@@ -146,8 +153,12 @@ class Play extends GameState
         return null;
     }
 
-    /** A player who left the table: their drawing is taken for them, then they are out. */
-    public function zombie(int $playerId): string
+    /**
+     * A player who left the table: their drawing is taken for them, then they are out.
+     * Returns null: setPlayerNonMultiactive already moves to EndScore when this was the last player, and the
+     * framework redirects to any state returned here (returning Play would undo that move).
+     */
+    public function zombie(int $playerId): ?string
     {
         if (!$this->game->poolEmpty() && $this->game->drawer() === $playerId) {
             $cells = $this->game->poolCells();
@@ -174,6 +185,6 @@ class Play extends GameState
         }
         $this->game->setFinished($playerId);
         $this->gamestate->setPlayerNonMultiactive($playerId, EndScore::class);
-        return Play::class;
+        return null;
     }
 }
