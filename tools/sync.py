@@ -4,10 +4,14 @@ Board Game Arena (BGA) Universal Delta-Sync Tool
 Synchronizes local game files to remote BGA Studio SFTP repository.
 
 Usage:
-    python tools/sync.py pushfighttest
-    python tools/sync.py mandala
-    python tools/sync.py lordsofscotland
-    python tools/sync.py pushfighttest --dry-run
+    python tools/sync.py <target>                 # one game (keys of TARGET_MAP below)
+    python tools/sync.py <target> --dry-run       # list uploads without connecting
+    python tools/sync.py all                      # every game (its main slot)
+    python tools/sync.py --changed BASE HEAD      # every game with files changed between two commits (CI uses this)
+
+The remote folder becomes a mirror of the local folder: files missing locally are DELETED on Studio
+(except the files BGA owns: _ide_helper.php, bga-framework.d.ts, misc/, LICENCE_BGA).
+Targets in NO_PRUNE (Mandala, whose Studio copy is the team's source of truth) are upload-only.
 """
 
 import os
@@ -49,6 +53,40 @@ TARGET_MAP = {
     "people": ("games/people/bga", "people"),
     # <bga:targets>  (tools/bga.py register inserts new games above this line)
 }
+
+# Upload-only targets: never delete remote files (the Studio copy is shared with other developers).
+NO_PRUNE = {"mandala"}
+
+# Targets that always upload every file.
+ALWAYS_FORCE = {"lordsofscotland"}
+
+
+def main_targets():
+    """One target per local folder: the key that equals its remote folder, preferring non-test slots."""
+    best = {}
+    for key, (local, remote) in TARGET_MAP.items():
+        score = (key == remote, not key.endswith("test"))
+        if local not in best or score > best[local][0]:
+            best[local] = (score, key)
+    return {local: key for local, (score, key) in best.items()}
+
+
+def changed_targets(base, head):
+    """Targets whose local folder has files changed between two commits (a new branch falls back to HEAD~1)."""
+    import subprocess
+    if not base or set(base) == {"0"}:
+        base = f"{head}~1"
+    out = subprocess.run(["git", "diff", "--name-only", base, head], cwd=ROOT_DIR, capture_output=True, text=True)
+    if out.returncode != 0:
+        print(f"git diff {base} {head} failed: {out.stderr.strip()}; falling back to HEAD~1")
+        out = subprocess.run(["git", "diff", "--name-only", f"{head}~1", head], cwd=ROOT_DIR, capture_output=True, text=True)
+    files = [f.strip().lower() for f in out.stdout.splitlines() if f.strip()]
+    targets = []
+    for local, key in main_targets().items():
+        prefix = local.rstrip("/").lower() + "/"
+        if any(f.startswith(prefix) for f in files) and key not in targets:
+            targets.append(key)
+    return targets
 
 def load_credentials():
     if os.environ.get("BGA_SFTP_PASSWORD"):
@@ -101,7 +139,7 @@ def rmtree_remote(sftp, remote_path):
     except Exception as e:
         print(f"Warning: Could not remove remote directory {remote_path}: {e}", flush=True)
 
-def sync_directory(sftp, local_dir, remote_dir, dry_run=False, force=False):
+def sync_directory(sftp, local_dir, remote_dir, dry_run=False, force=False, prune=True):
     uploaded = 0
     skipped = 0
 
@@ -121,9 +159,13 @@ def sync_directory(sftp, local_dir, remote_dir, dry_run=False, force=False):
             pass
 
     # Automatically prune obsolete or legacy template files from remote SFTP if not in local_dir
-    system_files = {"_ide_helper.php", "bga-framework.d.ts", ".", "..", "misc", ".svn"}
+    system_files = {"_ide_helper.php", "bga-framework.d.ts", ".", "..", "misc", ".svn", "LICENCE_BGA"}
     for rem_name in list(remote_attrs.keys()):
         if rem_name in system_files:
+            continue
+        if not prune:
+            if not os.path.exists(os.path.join(local_dir, rem_name)):
+                print(f"[KEEP] {posixpath.join(remote_dir, rem_name)} is not in the local copy (upload-only target)", flush=True)
             continue
         l_path_check = os.path.join(local_dir, rem_name)
         if not os.path.exists(l_path_check):
@@ -154,7 +196,7 @@ def sync_directory(sftp, local_dir, remote_dir, dry_run=False, force=False):
         r_path = posixpath.join(remote_dir, item)
 
         if os.path.isdir(l_path):
-            u, s = sync_directory(sftp, l_path, r_path, dry_run=dry_run, force=force)
+            u, s = sync_directory(sftp, l_path, r_path, dry_run=dry_run, force=force, prune=prune)
             uploaded += u
             skipped += s
         else:
@@ -181,60 +223,81 @@ def sync_directory(sftp, local_dir, remote_dir, dry_run=False, force=False):
 
     return uploaded, skipped
 
-def main():
-    parser = argparse.ArgumentParser(description="BGA Multi-Game Universal SFTP Sync Tool")
-    parser.add_argument("target", help=f"Game target to sync. Supported: {', '.join(TARGET_MAP.keys())} or custom <local_dir>")
-    parser.add_argument("remote_dir", nargs="?", default=None, help="Remote destination directory (optional if target is known)")
-    parser.add_argument("--dry-run", action="store_true", help="Preview files that would be uploaded without connecting/uploading")
-    parser.add_argument("--force", action="store_true", help="Force upload all files regardless of remote mtime/size")
-
-    args = parser.parse_args()
-    target_key = args.target.lower()
-
+def sync_target(target_key, remote_dir=None, dry_run=False, force=False):
     if target_key in TARGET_MAP:
         local_rel, remote_base = TARGET_MAP[target_key]
         local_base = os.path.join(ROOT_DIR, local_rel)
     else:
-        local_base = os.path.abspath(args.target)
-        remote_base = args.remote_dir or os.path.basename(local_base)
+        local_base = os.path.abspath(target_key)
+        remote_base = remote_dir or os.path.basename(local_base)
 
     if not os.path.exists(local_base):
         print(f"Error: Local directory does not exist: {local_base}")
-        sys.exit(1)
+        return False
+    force = force or target_key in ALWAYS_FORCE
+    prune = target_key not in NO_PRUNE
 
     print(f"=== BGA Universal Sync: {target_key.upper()} ===")
     print(f"Local:  {local_base}")
     print(f"Remote: {remote_base}")
-    print(f"Mode:   {'DRY-RUN (No Upload)' if args.dry_run else 'LIVE SFTP UPLOAD'}{' [FORCE]' if args.force else ''}\n")
-
-    cfg = load_credentials()
-    host = cfg.get("host", "1.studio.boardgamearena.com")
-    port = int(cfg.get("port", 2022))
-    username = cfg["username"]
-    password = cfg["password"]
+    mode = 'DRY-RUN (No Upload)' if dry_run else 'LIVE SFTP UPLOAD'
+    print(f"Mode:   {mode}{' [FORCE]' if force else ''}{'' if prune else ' [UPLOAD-ONLY]'}\n")
 
     t0 = time.time()
-
-    if args.dry_run:
+    if dry_run:
         print("[DRY-RUN] Simulating upload without SFTP connection...")
-        uploaded, skipped = sync_directory(None, local_base, remote_base, dry_run=True, force=args.force)
+        uploaded, skipped = sync_directory(None, local_base, remote_base, dry_run=True, force=force, prune=prune)
         print(f"\n[DRY-RUN COMPLETE] Would upload {uploaded} files ({skipped} unchanged) in {time.time() - t0:.2f}s.")
-        return
+        return True
 
-    transport, sftp = connect_sftp(host, port, username, password)
+    cfg = load_credentials()
+    transport, sftp = connect_sftp(cfg.get("host", "1.studio.boardgamearena.com"), int(cfg.get("port", 2022)),
+                                   cfg["username"], cfg["password"])
     try:
-        # Pre-purge known forbidden vendor skeletons if present remotely (e.g. composer autoload triggering $GLOBALS HAL error)
-        vendor_remote = posixpath.join(remote_base, "modules", "vendor")
+        # Pre-purge known forbidden vendor skeletons if present remotely (composer autoload triggers a HAL error)
         try:
-            rmtree_remote(sftp, vendor_remote)
+            rmtree_remote(sftp, posixpath.join(remote_base, "modules", "vendor"))
         except Exception:
             pass
-
-        uploaded, skipped = sync_directory(sftp, local_base, remote_base, dry_run=False, force=args.force)
+        uploaded, skipped = sync_directory(sftp, local_base, remote_base, dry_run=False, force=force, prune=prune)
         print(f"\n[SUCCESS] Synced {uploaded} file(s) ({skipped} unchanged) in {time.time() - t0:.2f}s!")
     finally:
         sftp.close()
         transport.close()
+    return True
+
+
+def main():
+    parser = argparse.ArgumentParser(description="BGA Multi-Game Universal SFTP Sync Tool")
+    parser.add_argument("target", nargs="?", help=f"Game target: {', '.join(TARGET_MAP.keys())}, 'all', or a custom <local_dir>")
+    parser.add_argument("remote_dir", nargs="?", default=None, help="Remote destination directory (optional if target is known)")
+    parser.add_argument("--dry-run", action="store_true", help="Preview files that would be uploaded without connecting/uploading")
+    parser.add_argument("--force", action="store_true", help="Force upload all files regardless of remote mtime/size")
+    parser.add_argument("--changed", nargs=2, metavar=("BASE", "HEAD"), help="Sync every game changed between two commits")
+    args = parser.parse_args()
+
+    if args.changed:
+        targets = changed_targets(*args.changed)
+        print(f"Changed games: {', '.join(targets) or 'none'}")
+    elif args.target and args.target.lower() == "all":
+        targets = list(main_targets().values())
+    elif args.target:
+        targets = [args.target.lower()]
+    else:
+        parser.error("give a target, 'all' or --changed BASE HEAD")
+
+    failed = []
+    for key in targets:
+        try:
+            if not sync_target(key, args.remote_dir if len(targets) == 1 else None, dry_run=args.dry_run, force=args.force):
+                failed.append(key)
+        except Exception as e:
+            print(f"[ERROR] {key}: {e}")
+            failed.append(key)
+    if failed:
+        print(f"\nFailed: {', '.join(failed)}")
+        sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

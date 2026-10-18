@@ -41,7 +41,8 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          # Full history: a push can hold several commits, and every game they touch must deploy
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -65,118 +66,9 @@ jobs:
           fi
 
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            CHOICE="${{ github.event.inputs.target }}"
-            if [ "$CHOICE" = "all" ]; then
-              python tools/sync.py omega
-              python tools/sync.py yavalath
-              python tools/sync.py lordsofscotland
-              python tools/sync.py pushfight
-              python tools/sync.py mandala
-            else
-              python tools/sync.py "$CHOICE"
-            fi
+            python tools/sync.py "${{ github.event.inputs.target }}"
           else
-            # Triggered by push to main: detect which game changed
-            CHANGED=$(git diff --name-only HEAD~1 HEAD || echo "all")
-            echo "Changed files:"
-            echo "$CHANGED"
-
-            DEPLOYED=0
-            if echo "$CHANGED" | grep -q "games/omega"; then
-              echo "Deploying Omega to official slot (omega)..."
-              python tools/sync.py omega
-              DEPLOYED=1
-            fi
-
-            if echo "$CHANGED" | grep -q "games/yavalath"; then
-              echo "Deploying Yavalath..."
-              python tools/sync.py yavalath
-              DEPLOYED=1
-            fi
-
-            if echo "$CHANGED" | grep -q "games/lordsofscotland"; then
-              echo "Deploying Lords of Scotland..."
-              python tools/sync.py lordsofscotland --force
-              DEPLOYED=1
-            fi
-
-            if echo "$CHANGED" | grep -q "games/pushfight"; then
-              echo "Deploying Push Fight..."
-              python tools/sync.py pushfight
-              DEPLOYED=1
-            fi
-
-            if echo "$CHANGED" | grep -q "games/mandala"; then
-              echo "Deploying Mandala..."
-              python tools/sync.py mandala
-              DEPLOYED=1
-            fi
-
-            if echo "$CHANGED" | grep -qi "games/kiln"; then
-              echo "Deploying Kiln..."
-              python tools/sync.py kiln
-              DEPLOYED=1
-            fi
-
-            if echo "$CHANGED" | grep -qi "games/sugargliders"; then
-              echo "Deploying Sugar Gliders..."
-              python tools/sync.py sugargliders
-              DEPLOYED=1
-            fi
-
-            if echo "$CHANGED" | grep -qi "games/gardensofuranus"; then
-              echo "Deploying Gardens of Uranus..."
-              python tools/sync.py gardensofuranus
-              DEPLOYED=1
-            fi
-
-            if echo "$CHANGED" | grep -qi "games/gardensofmars"; then
-              echo "Deploying Gardens of Mars..."
-              python tools/sync.py gardensofmars
-              DEPLOYED=1
-            fi
-
-            if echo "$CHANGED" | grep -qi "games/gardensofio"; then
-              echo "Deploying Gardens of Io..."
-              python tools/sync.py gardensofio
-              DEPLOYED=1
-            fi
-
-            if echo "$CHANGED" | grep -qi "games/nestorgamesgp"; then
-              echo "Deploying nestorgames GP..."
-              python tools/sync.py nestorgamesgp
-              DEPLOYED=1
-            fi
-
-            if echo "$CHANGED" | grep -qi "games/microforge"; then
-              echo "Deploying MicroForge..."
-              python tools/sync.py microforge
-              DEPLOYED=1
-            fi
-
-            if echo "$CHANGED" | grep -qi "games/gardensofenceladus"; then
-              echo "Deploying Gardens of Enceladus..."
-              python tools/sync.py gardensofenceladus
-              DEPLOYED=1
-            fi
-
-            if echo "$CHANGED" | grep -qi "games/microchip"; then
-              echo "Deploying Microchip..."
-              python tools/sync.py microchip
-              DEPLOYED=1
-            fi
-
-            if echo "$CHANGED" | grep -qi "games/people"; then
-              echo "Deploying People..."
-              python tools/sync.py people
-              DEPLOYED=1
-            fi
-
-            # <bga:deploy>  (tools/bga.py register inserts new game blocks above this line)
-            if [ "$DEPLOYED" -eq 0 ]; then
-              echo "No specific game folder modified. Deploying active test games..."
-              python tools/sync.py omega
-              python tools/sync.py yavalath
-              python tools/sync.py lordsofscotland
-            fi
+            # Every game folder changed anywhere in the pushed commits (merge commits included).
+            # The mapping from folder to Studio project is TARGET_MAP in tools/sync.py.
+            python tools/sync.py --changed "${{ github.event.before }}" "${{ github.sha }}"
           fi
