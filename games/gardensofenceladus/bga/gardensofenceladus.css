@@ -234,13 +234,44 @@ body.enceladus_page_bg #game_play_area_background {
 
 /* ---------- reserve, tube, player panels ---------- */
 
-#enc_reserve {
+#enc_pay {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: center;
     gap: 6px;
     margin: 10px 0 4px;
+}
+
+#enc_pay[hidden],
+#enc_info[hidden] {
+    display: none;
+}
+
+#enc_info {
+    margin: 6px auto 0;
+    max-width: 640px;
+    padding: 6px 10px;
+    border: 1px solid rgba(238, 243, 248, 0.3);
+    border-radius: 3px;
+    background: rgba(12, 16, 24, 0.6);
+    color: #eef3f8;
+    font-size: 14px;
+    text-align: center;
+}
+
+.enc_sb_item {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
+.enc_sb_item img {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
 }
 
 .enc_reserve_title {
@@ -290,37 +321,16 @@ body.enceladus_page_bg #game_play_area_background {
     margin-top: 2px;
 }
 
-#enc_types {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 6px;
-    margin: 6px 0 8px;
+.enc_panel_hand {
+    margin-top: 4px;
+    font-weight: bold;
+    font-size: 13px;
 }
 
-.enc_type {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-width: 64px;
-    min-height: 64px;
-    padding: 4px;
-    border: 1px solid rgba(238, 243, 248, 0.3);
-    border-radius: 3px;
-    background: rgba(12, 16, 24, 0.6);
-    color: #eef3f8;
-    font: inherit;
-    cursor: pointer;
-}
-
-.enc_type img {
-    width: 40px;
-    height: 40px;
-    object-fit: contain;
-}
-
-.enc_type.enc_selected {
-    outline: 3px solid #2f80ed;
+/* the raw ranking number is internal; the panel shows the hand as sorted counts */
+.player_score_value,
+.player_score {
+    display: none;
 }
 
 .enc_panel_reserve {

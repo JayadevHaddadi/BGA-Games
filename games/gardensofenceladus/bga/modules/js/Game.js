@@ -80,13 +80,14 @@ export class Game {
             <div id="enc_table">
                 <p id="enc_hint" aria-live="polite"></p>
                 <div id="enc_specials" role="group" aria-label="${_('Special actions')}"></div>
+                <p id="enc_info" aria-live="polite" hidden></p>
                 <div id="enc_board_wrap">
                     <div id="enc_board" role="grid" aria-label="${_('Garden: 10 by 10 squares. Columns A to J, rows 1 to 10.')}">
                         <div id="enc_cells"></div>
                         <div id="enc_pieces"></div>
                     </div>
                 </div>
-                <div id="enc_reserve" role="group" aria-label="${_('Your reserve')}"></div>
+                <div id="enc_pay" role="group" aria-label="${_('Pay with')}" hidden></div>
                 <div id="enc_tube"></div>
                 <div id="enc_final" hidden></div>
             </div>`;
@@ -98,7 +99,7 @@ export class Game {
         document.getElementById('enc_board').style.backgroundImage = `url("${encImg('board.jpg')}")`;
         this.renderSpecials();
         this.renderBoard();
-        this.renderReserve(null);
+        this.renderPay();
         this.renderTube();
         this.renderPanels();
         this.fitLayout();
@@ -283,8 +284,9 @@ export class Game {
         for (let slot = 1; slot <= 10; slot++) {
             const img = slot === 10 ? 'flower_wild.png' : `special_${slot}.png`;
             const used = this.specials[slot] && this.specials[slot].used;
-            html += `<button type="button" class="enc_special${used ? ' enc_used' : ''}" data-slot="${slot}"
-                title="${this.specialTitle(slot)}" aria-label="${this.specialTitle(slot)}" aria-pressed="false">
+            const title = this.bga.gameui?.addTooltip ? '' : ` title="${this.specialTitle(slot)}"`;
+            html += `<button type="button" id="enc_special_${slot}" class="enc_special${used ? ' enc_used' : ''}" data-slot="${slot}"
+                ${title} aria-label="${this.specialTitle(slot)}" aria-pressed="false">
                 <img src="${encImg(img)}" alt="">
                 ${used ? `<img class="enc_counter" src="${encImg('counter.png')}" alt="">` : ''}
             </button>`;
@@ -292,7 +294,67 @@ export class Game {
         host.innerHTML = html;
         host.querySelectorAll('.enc_special').forEach((el) => {
             el.addEventListener('click', () => this.onSpecialClick(Number(el.dataset.slot)));
+            // BGA tooltip for desktop hover (native title as the fallback); the tap explanation is the info box
+            if (this.bga.gameui?.addTooltip) this.bga.gameui.addTooltip(el.id, this.specialTitle(Number(el.dataset.slot)), '');
         });
+    }
+
+    specialName(slot) {
+        return {
+            1: _('Tube'), 2: _('Jump'), 3: _('Diagonal'), 4: _('Pick any flower'), 5: _('Swap Martian'),
+            6: _('Swap peak and flower'), 7: _('Swap two flowers'), 8: _('Move a flower'), 9: _('Move a peak'), 10: _('Wildflower'),
+        }[slot];
+    }
+
+    specialEffect(slot) {
+        return {
+            1: _('Pick 3 random flowers from the tube.'),
+            2: _('Jump your Martian over an adjacent peak.'),
+            3: _('Move your Martian diagonally.'),
+            4: _('Pick any flower from the garden.'),
+            5: _('Swap your Martian with a peak or a flower.'),
+            6: _('Swap any peak with any flower.'),
+            7: _('Swap any two flowers.'),
+            8: _('Move any flower to an empty square.'),
+            9: _('Move any peak to an empty square.'),
+            10: _('Take the grey wildflower.'),
+        }[slot];
+    }
+
+    /** Why the current player cannot use this special now, or null if they can. Checked on the client from what every player sees. */
+    specialBlocker(slot) {
+        const info = (this.specials || {})[slot];
+        if (info && info.used) return _('Already used in this game.');
+        if (!this.isActive || this.stateName !== 'PlayerTurn' || !this.args) return _('It is not your turn.');
+        if (this.myPayable().length === 0) return _('You have no colour with 3 flowers to pay.');
+        if (slot === 1 && Object.values(this.tube).reduce((a, b) => a + b, 0) < 3) return _('The tube has fewer than 3 flowers.');
+        if (ENC_MARTIAN_SPECIALS.includes(slot)) {
+            const own = this.martians.filter((m) => m.pid === this.myId && (!this.args.turn_martian || m.id === this.args.turn_martian));
+            if (!own.some((m) => encIsGrid(m.r, m.c))) return _('Your Martian is not in the garden yet.');
+        }
+        const a = (this.args.specials || {})[slot];
+        if (!a || !a.available) return _('There is nothing it can act on right now.');
+        return null;
+    }
+
+    myPayable() {
+        const mine = this.reserves[this.myId] || {};
+        return ENC_COLOURS.filter((col) => (mine[col] || 0) >= 3);
+    }
+
+    showInfo(text) {
+        const box = document.getElementById('enc_info');
+        if (!box) return;
+        box.textContent = text || '';
+        box.hidden = !text;
+    }
+
+    describeSpecial(slot) {
+        const blocker = this.specialBlocker(slot);
+        const verdict = blocker
+            ? `${_('You cannot use it now.')} ${blocker}`
+            : _('You can use it now: it costs 3 flowers of one colour.');
+        return `${this.specialName(slot)}: ${this.specialEffect(slot)} ${verdict}`;
     }
 
     specialTitle(slot) {
@@ -311,29 +373,64 @@ export class Game {
         return titles[slot];
     }
 
-    renderReserve(args) {
-        const host = document.getElementById('enc_reserve');
-        if (this.myId === null || !this.reserves[this.myId]) {
+    /** Payment choice: only the colours the player can pay with (3 or more flowers). Shown while a special action waits for its payment. */
+    renderPay() {
+        const host = document.getElementById('enc_pay');
+        if (!host) return;
+        const st = this.stage;
+        const show = this.isActive && st && st.type === 'special' && !st.colour && this.myPayable().length > 1;
+        host.hidden = !show;
+        if (!show) {
             host.innerHTML = '';
             return;
         }
-        const mine = this.reserves[this.myId];
-        const payable = this.stage && this.stage.type === 'special' ? (args?.payable || []) : [];
-        const chips = ENC_COLOURS.concat(['wild']).map((col) => {
-            const n = mine[col] || 0;
-            const isWild = col === 'wild';
-            const canPay = payable.includes(col);
-            const selected = this.stage && this.stage.type === 'special' && this.stage.colour === col ? ' enc_selected' : '';
-            const label = isWild ? _('Grey wildflower (cannot pay)') : this.colourLabel(col);
-            return `<button type="button" class="enc_chip${canPay ? ' enc_payable' : ''}${selected}" data-colour="${col}"
-                ${canPay ? '' : 'tabindex="-1"'} aria-label="${label}: ${n}" title="${label}: ${n}">
-                <img src="${encImg(isWild ? 'flower_wild.png' : `flower_${col}.png`)}" alt="">
-                <b>${n}</b></button>`;
-        }).join('');
-        host.innerHTML = `<span class="enc_reserve_title">${_('Your reserve')}</span>${chips}`;
+        const mine = this.reserves[this.myId] || {};
+        const chips = this.myPayable().map((col) => `<button type="button" class="enc_chip enc_payable" data-colour="${col}"
+            aria-label="${this.colourLabel(col)}: ${mine[col] || 0}" title="${this.colourLabel(col)}: ${mine[col] || 0}">
+            <img src="${encImg(`flower_${col}.png`)}" alt=""><b>${mine[col] || 0}</b></button>`).join('');
+        host.innerHTML = `<span class="enc_reserve_title">${_('Pay 3 flowers of which colour?')}</span>${chips}`;
         host.querySelectorAll('.enc_chip').forEach((el) => {
             el.addEventListener('click', () => this.onChipClick(el.dataset.colour));
         });
+    }
+
+    /** Compact reserve for the status bar: flower icon and count per colour. */
+    reserveHtml() {
+        const mine = this.reserves[this.myId];
+        if (!mine) return '';
+        const cols = ENC_COLOURS.concat(mine.wild ? ['wild'] : []);
+        return cols.map((col) => `<span class="enc_sb_item"><img src="${encImg(`flower_${col}.png`)}" alt="${this.colourLabel(col)}"><b>${mine[col] || 0}</b></span>`).join('');
+    }
+
+    /** The hand as players read it: counts sorted from lowest to highest, the wildflower counted as the best colour. */
+    handOf(pid) {
+        const res = this.reserves[pid] || {};
+        const wild = res.wild || 0;
+        let best = null;
+        (wild > 0 ? ENC_COLOURS : [null]).forEach((declared) => {
+            const tally = ENC_COLOURS.map((col) => (res[col] || 0) + (col === declared ? wild : 0)).sort((a, b) => a - b);
+            if (!best || this.compareHands(tally, best) > 0) best = tally;
+        });
+        return best;
+    }
+
+    compareHands(a, b) {
+        for (let i = 0; i < a.length; i++) {
+            if (a[i] !== b[i]) return a[i] - b[i];
+        }
+        return 0;
+    }
+
+    handText(pid) {
+        let hand = this.handOf(pid);
+        if (this.coop) {
+            // every player shows the team score: the lowest hand
+            this.gamedatas.player_order.forEach((p) => {
+                const h = this.handOf(p);
+                if (this.compareHands(h, hand) < 0) hand = h;
+            });
+        }
+        return hand.join('-');
     }
 
     renderTube() {
@@ -354,6 +451,14 @@ export class Game {
                 el.appendChild(line);
             }
             line.innerHTML = this.panelLine(pid);
+            let hand = el.querySelector('.enc_panel_hand');
+            if (!hand) {
+                hand = document.createElement('div');
+                hand.className = 'enc_panel_hand';
+                el.insertBefore(hand, line);
+            }
+            hand.title = _('Hand: flowers of each colour, sorted from lowest to highest');
+            hand.textContent = `${_('Hand')}: ${this.handText(pid)}`;
         });
     }
 
@@ -381,13 +486,17 @@ export class Game {
         this.args = args;
         this.isActive = isActive;
         this.stage = null;
-        this.setStatus(isActive
-            ? _('Choose a Martian type below, then tap a start square on the left, right or bottom side.')
-            : _('Other players are placing their Martians.'));
-        this.renderPlacementTypes(args, isActive);
+        this.showInfo('');
+        this.setStatus(isActive ? this.placementHint() : _('Other players are placing their Martians.'));
         this.renderPieces();
         this.highlightTargets();
         this.updateButtons(args, isActive);
+    }
+
+    placementHint() {
+        const type = this.args?.martian_type || '';
+        const name = type.charAt(0).toUpperCase() + type.slice(1);
+        return _('You play the ${martian} Martian. Tap a start square on the left, right or bottom side.').replace('${martian}', name);
     }
 
     enterTurn(args, isActive) {
@@ -395,7 +504,8 @@ export class Game {
         this.args = args;
         this.isActive = isActive;
         this.stage = null;
-        this.renderReserve(args);
+        this.showInfo('');
+        this.renderPay();
         this.renderPieces();
         this.highlightTargets();
         this.updateSpecialButtons();
@@ -408,43 +518,17 @@ export class Game {
         this.stage = null;
         this.args = null;
         this.stateName = null;
-        const types = document.getElementById('enc_types');
-        if (types) types.remove();
+        this.renderPay();
         this.clearHighlights();
-    }
-
-    renderPlacementTypes(args, isActive) {
-        let host = document.getElementById('enc_types');
-        if (!isActive || !args) {
-            if (host) host.remove();
-            return;
-        }
-        if (!host) {
-            host = document.createElement('div');
-            host.id = 'enc_types';
-            host.setAttribute('role', 'group');
-            host.setAttribute('aria-label', _('Martian types'));
-            document.getElementById('enc_table').insertBefore(host, document.getElementById('enc_board_wrap'));
-        }
-        host.innerHTML = args.free_types.map((t) => {
-            const selected = this.stage && this.stage.type === 'place' && this.stage.martianType === t ? ' enc_selected' : '';
-            const name = t.charAt(0).toUpperCase() + t.slice(1);
-            return `<button type="button" class="enc_type${selected}" data-type="${t}" aria-label="${name}" title="${name}">
-                <img src="${encImg(`martian_${t}.png`)}" alt=""><span>${name}</span></button>`;
-        }).join('');
-        host.querySelectorAll('.enc_type').forEach((el) => {
-            el.addEventListener('click', () => {
-                this.stage = { type: 'place', martianType: el.dataset.type, cell: null };
-                this.afterStageChange();
-            });
-        });
     }
 
     idleHint() {
         if (this.stage) return '';
         if (!this.args) return '';
         if (this.args.can_move) {
-            return _('Move your Martian: tap your Martian, then a highlighted flower. Or first use a special action (optional).');
+            return this.singleMartian()
+                ? _('Move your Martian: tap a highlighted flower. Or first use a special action (optional).')
+                : _('Move a Martian: tap your Martian, then a highlighted flower. Or first use a special action (optional).');
         }
         if (this.anySpecialUsable()) {
             return _('No Martian can reach a flower yet. Use a special action to make a move, or end the game.');
@@ -452,12 +536,24 @@ export class Game {
         return _('No Martian can reach a flower.');
     }
 
+    /** True when the player has one usable Martian: no need to select it before moving. */
+    singleMartian() {
+        const lock = this.args?.turn_martian;
+        return this.martians.filter((m) => m.pid === this.myId && (!lock || m.id === lock)).length <= 1;
+    }
+
     anySpecialUsable() {
         return Object.values(this.args?.specials || {}).some((s) => s.available);
     }
 
     setStatus(text) {
-        this.bga.statusBar.setTitle(text || '', {});
+        // On the player's own turn the status bar also shows their reserve (compact flower icons with counts)
+        const showReserve = this.isActive && this.stateName === 'PlayerTurn' && !!text;
+        if (showReserve) {
+            this.bga.statusBar.setTitle(`${text} \${reserve}`, { reserve: this.reserveHtml() });
+        } else {
+            this.bga.statusBar.setTitle(text || '', {});
+        }
         // #enc_hint is read by screen readers only (CSS hides it visually)
         const hint = document.getElementById('enc_hint');
         if (hint) hint.textContent = text || '';
@@ -507,7 +603,7 @@ export class Game {
     readyToConfirm() {
         const st = this.stage;
         if (!st) return false;
-        if (st.type === 'place') return !!(st.martianType && st.cell);
+        if (st.type === 'place') return !!st.cell;
         if (st.type === 'move') return !!st.target && (!st.needsAdj || !!st.adj);
         if (st.type === 'special') {
             const martianOk = !ENC_MARTIAN_SPECIALS.includes(st.slot) || !!st.martian;
@@ -523,7 +619,7 @@ export class Game {
 
     afterStageChange() {
         this.renderPieces();
-        this.renderReserve(this.args);
+        this.renderPay();
         this.updateSpecialButtons();
         this.highlightTargets();
         this.updateButtons(this.args, this.isActive);
@@ -532,9 +628,9 @@ export class Game {
 
     stageHint() {
         const st = this.stage;
-        if (!st) return this.stateName === 'PlaceMartian' ? _('Choose a Martian type below, then tap a start square.') : this.idleHint();
+        if (!st) return this.stateName === 'PlaceMartian' ? this.placementHint() : this.idleHint();
         if (st.type === 'place') {
-            return st.cell ? _('Confirm the start square, or tap another one.') : _('Tap a start square on the left, right or bottom side.');
+            return st.cell ? _('Confirm the start square, or tap another one.') : this.placementHint();
         }
         if (st.type === 'move') {
             if (!st.target) return _('Tap a highlighted flower to move your Martian there.');
@@ -542,7 +638,7 @@ export class Game {
             return _('Confirm the move, or tap another flower.');
         }
         if (st.type === 'special') {
-            if (!st.colour) return _('Pay 3 flowers of one colour: tap a colour in your reserve.');
+            if (!st.colour) return _('Pay 3 flowers of one colour: choose the colour to pay with.');
             const steps = ENC_STEPS[st.slot] || [];
             if (steps.length === 0) return _('Confirm to use this special action.');
             if (st.cells.length < steps.length) {
@@ -561,12 +657,8 @@ export class Game {
     onCellClick(r, c) {
         if (!this.isActive || !this.args) return;
         if (this.stateName === 'PlaceMartian') {
-            if (!this.stage || this.stage.type !== 'place' || !this.stage.martianType) {
-                this.setStatus(_('Choose a Martian type first.'));
-                return;
-            }
             if (!this.isStartSquare(r, c)) return;
-            this.stage.cell = [r, c];
+            this.stage = { type: 'place', cell: [r, c] };
             this.afterStageChange();
             return;
         }
@@ -589,7 +681,7 @@ export class Game {
             return this.failTap(_('That square is not a possible move for this Martian.'));
         }
         if (st && st.type === 'special') {
-            if (!st.colour) return this.failTap(_('Pay first: tap a colour in your reserve.'));
+            if (!st.colour) return this.failTap(_('Pay first: choose the colour to pay with.'));
             if (ENC_MARTIAN_SPECIALS.includes(st.slot) && !st.martian) return this.failTap(_('Tap your Martian first.'));
             const step = (ENC_STEPS[st.slot] || [])[st.cells.length];
             if (!step || !this.specialCellAllowed(st, step, r, c)) {
@@ -637,17 +729,18 @@ export class Game {
     }
 
     onSpecialClick(slot) {
+        // A tap always explains the action and whether it can be used (mobile has no hover)
+        this.showInfo(this.describeSpecial(slot));
         if (!this.isActive || this.stateName !== 'PlayerTurn') return;
-        const info = (this.args.specials || {})[slot];
-        if (!info || info.used) return this.failTap(_('That special action has already been used in this game.'));
-        if (!info.available) {
-            return this.failTap(_('That special action cannot be used now: check the flowers you can pay with and the squares it needs.'));
-        }
+        const blocker = this.specialBlocker(slot);
+        if (blocker) return this.failTap(`${this.specialName(slot)}: ${blocker}`);
         if (this.stage && this.stage.type === 'special' && this.stage.slot === slot) {
             this.stage = null;
         } else {
             const martian = this.defaultMartianFor(slot);
             this.stage = { type: 'special', slot, colour: null, martian, cells: [] };
+            const payable = this.args.payable || [];
+            if (payable.length === 1) this.stage.colour = payable[0];
         }
         this.afterStageChange();
     }
@@ -703,7 +796,7 @@ export class Game {
     confirmPlacement() {
         const st = this.stage;
         if (!st || !st.cell) return;
-        this.bga.actions.performAction('actPlaceMartian', { martianType: st.martianType, row: st.cell[0], col: st.cell[1] });
+        this.bga.actions.performAction('actPlaceMartian', { row: st.cell[0], col: st.cell[1] });
     }
 
     /* ------------------------------------------------------------------------ highlights */
@@ -727,6 +820,11 @@ export class Game {
         }
         const st = this.stage;
         if (!st) {
+            if (this.singleMartian() && (this.args.moves || []).length === 1) {
+                // One Martian: no need to select it, its moves are live at once
+                this.args.moves[0].targets.forEach(([r, c]) => mark(r, c, 'enc_target'));
+                return;
+            }
             (this.args.moves || []).forEach((mv) => {
                 document.querySelectorAll('.enc_martian').forEach((el) => {
                     if (Number(el.dataset.id) === mv.martian) el.classList.add('enc_can_move');
@@ -805,7 +903,6 @@ export class Game {
 
     notif_reserveChanged(args) {
         this.reserves[args.player_id] = args.reserve;
-        if (args.player_id === this.myId) this.renderReserve(this.args);
         this.renderPanels();
     }
 
@@ -844,7 +941,7 @@ export class Game {
             ? _('Team score: the lowest hand')
             : _('Final hands: flowers of each colour, sorted from lowest to highest');
         const body = rows.map((row) => {
-            const counts = row.sorted.map((n) => `<span class="enc_hand_count">${n}</span>`).join('');
+            const counts = `<span class="enc_hand_text">${row.sorted.join('-')}</span>`;
             const declared = row.declared ? ` (${_('wildflower')}: ${row.declared})` : '';
             return `<tr><th scope="row">${row.player_name}</th><td>${counts}</td><td>${declared}</td></tr>`;
         }).join('');

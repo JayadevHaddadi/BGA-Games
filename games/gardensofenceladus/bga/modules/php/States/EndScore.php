@@ -42,6 +42,7 @@ class EndScore extends GameState
                 'wild' => (int) ($counts[Rules::WILD] ?? 0),
                 'declared' => $hand['declared'] === null ? null : $this->game->colourName($hand['declared']),
                 'sorted' => $hand['sorted'],
+                'hand' => Game::handText($hand['sorted']),
                 'key' => $hand['key'],
             ];
         }
@@ -58,7 +59,9 @@ class EndScore extends GameState
             foreach ($rows as $row) {
                 $this->playerScore->set($row['player_id'], $row['key']);
             }
-            $this->notify->all('finalScoring', clienttranslate('Cooperative game over: the team score is the lowest hand.'), [
+            $this->notify->all('finalScoring', clienttranslate('Cooperative game over: the team score is the lowest hand, ${hands}.'), [
+                'hands' => Game::handText($lowest['sorted']),
+                'hand' => Game::handText($lowest['sorted']),
                 'rows' => $rows,
                 'is_coop' => true,
                 'i18n' => [],
@@ -68,7 +71,9 @@ class EndScore extends GameState
             foreach ($rows as $row) {
                 $this->playerScore->set($row['player_id'], $row['key']);
             }
-            $this->notify->all('finalScoring', clienttranslate('The game is over. Each hand is the flowers of each colour, sorted from lowest to highest.'), [
+            $handsText = implode('; ', array_map(fn($row) => $row['player_name'] . ': ' . Game::handText($row['sorted']), $rows));
+            $this->notify->all('finalScoring', clienttranslate('The game is over. Hands (flowers of each colour, lowest to highest): ${hands}'), [
+                'hands' => $handsText,
                 'rows' => $rows,
                 'is_coop' => false,
                 'i18n' => [],

@@ -12,7 +12,7 @@ use Bga\Games\gardensofenceladus\Game;
 use Bga\Games\gardensofenceladus\Rules;
 
 /**
- * Setup: each player in turn order chooses a Martian type and a free start square outside the garden
+ * Setup: each player in turn order chooses a free start square (the Martian type is dealt at random in setup) outside the garden
  * (left, right or bottom side). With the 2-player variant, each player places two Martians.
  */
 class PlaceMartian extends GameState
@@ -42,7 +42,7 @@ class PlaceMartian extends GameState
             }
         }
         return [
-            'free_types' => array_values(array_diff(Rules::MARTIAN_TYPES, $this->game->martianTypesInUse())),
+            'martian_type' => $this->game->nextMartianType($pid),
             'free_slots' => $freeSlots,
             'per_player' => $this->game->martiansPerPlayer(),
             'placed_by_active' => count(array_filter($martians, fn($m) => $m['pid'] === $pid)),
@@ -50,16 +50,15 @@ class PlaceMartian extends GameState
     }
 
     #[PossibleAction]
-    public function actPlaceMartian(string $martianType, int $row, int $col): string
+    public function actPlaceMartian(int $row, int $col): string
     {
         $pid = (int) $this->game->getActivePlayerId();
-        $this->checkPlacement($pid, $martianType, $row, $col);
-        return $this->place($pid, $martianType, $row, $col);
+        $this->checkPlacement($pid, $row, $col);
+        return $this->place($pid, $this->game->nextMartianType($pid), $row, $col);
     }
 
     public function zombie(int $playerId): string
     {
-        $types = array_values(array_diff(Rules::MARTIAN_TYPES, $this->game->martianTypesInUse()));
         $slots = [];
         $taken = array_map(fn($m) => $m['r'] . ',' . $m['c'], $this->game->getMartians());
         foreach (Rules::startSlots() as [$r, $c]) {
@@ -68,17 +67,11 @@ class PlaceMartian extends GameState
             }
         }
         $slot = $slots[array_rand($slots)];
-        return $this->place($playerId, $types[array_rand($types)], $slot[0], $slot[1]);
+        return $this->place($playerId, $this->game->nextMartianType($playerId), $slot[0], $slot[1]);
     }
 
-    private function checkPlacement(int $pid, string $martianType, int $row, int $col): void
+    private function checkPlacement(int $pid, int $row, int $col): void
     {
-        if (!in_array($martianType, Rules::MARTIAN_TYPES, true)) {
-            throw new UserException(clienttranslate('Choose one of the Martian types.'));
-        }
-        if (in_array($martianType, $this->game->martianTypesInUse(), true)) {
-            throw new UserException(clienttranslate('Another player already uses that Martian type.'));
-        }
         $isStart = false;
         foreach (Rules::startSlots() as [$r, $c]) {
             if ($r === $row && $c === $col) {

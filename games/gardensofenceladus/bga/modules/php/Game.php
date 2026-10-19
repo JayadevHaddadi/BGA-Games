@@ -64,6 +64,14 @@ class Game extends \Bga\GameFramework\Table
         $this->globals->set('coop', (int) ($options[100] ?? 1) === 2 ? 1 : 0);
         $this->globals->set('martians_per', $perPlayer);
         $this->globals->set('player_order', json_encode($playerIds));
+        // Martian types are not chosen: every Martian gets its own random type (one or two per player).
+        $types = Rules::MARTIAN_TYPES;
+        shuffle($types);
+        $assigned = [];
+        foreach ($playerIds as $pid) {
+            $assigned[$pid] = array_splice($types, 0, $perPlayer);
+        }
+        $this->globals->set('martian_assign', json_encode($assigned));
         $this->globals->set('turn_special', 0);
         $this->globals->set('turn_martian', 0);
 
@@ -166,6 +174,15 @@ class Game extends \Bga\GameFramework\Table
             ];
         }
         return $out;
+    }
+
+    /** The type of the next Martian this player places (types were dealt at setup). */
+    public function nextMartianType(int $pid): string
+    {
+        $assigned = json_decode((string) $this->globals->get('martian_assign', '{}'), true);
+        $mine = $assigned[$pid] ?? $assigned[(string) $pid] ?? [];
+        $placed = count(array_filter($this->getMartians(), fn($m) => $m['pid'] === $pid));
+        return (string) ($mine[$placed] ?? $mine[0] ?? Rules::MARTIAN_TYPES[0]);
     }
 
     public function martianTypesInUse(): array
@@ -361,6 +378,12 @@ class Game extends \Bga\GameFramework\Table
         foreach ($keys as $pid => $key) {
             $this->playerScore->set($pid, $key);
         }
+    }
+
+    /** A hand as shown to players: the sorted counts, lowest to highest ("3-4-5-5-6"). */
+    public static function handText(array $sorted): string
+    {
+        return implode('-', $sorted);
     }
 
     public function colourName(string $colour): string

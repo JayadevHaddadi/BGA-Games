@@ -10,3 +10,13 @@
 7. Status bar shows the active player's reserve.
 8. Score: the huge number (e.g. 1031699, base-21 encoding) is unreadable. Show the hand as sorted counts (e.g. 3-4-5-5-6) in the panel and the end screen; keep any encoding only internal for ranking.
 Everything else: OK.
+
+### Status of the feedback above (2026-10-19)
+- 1: not code; press "Reload game options configuration" in Studio.
+- 2 done: types dealt at random in setup (stored in global `martian_assign`, 2 each in the 2-Martian variant); `actPlaceMartian(row, col)` only.
+- 3 done: with one usable Martian the move targets are highlighted and tappable at once; selection only with two.
+- 4 done: BGA tooltip on hover plus an info box above the garden on tap (name, effect, can/cannot use and why).
+- 5 done: reserve under the board removed.
+- 6 done: payment choice strip shows only colours with 3+ flowers; one colour is auto-selected.
+- 7 done: status bar shows the own reserve (flower icons with counts) on your turn.
+- 8 done: panel shows "Hand: 3-4-5-5-6" (the numeric score counter is hidden by CSS); end breakdown and end log line show the sorted hands. The integer key is unchanged. Not changeable: BGA's own end-of-game score table still shows the integer.
