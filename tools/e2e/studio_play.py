@@ -167,15 +167,22 @@ class Runner:
                 self.snap('login_form_missing')
                 self.dump_dom('login_form_missing')
                 raise StepFailed('no "Email or username" field found on the Studio page (adjust USERNAME_PLACEHOLDER)')
-        user_box.fill(user)
-        try:
-            p.get_by_text(re.compile(r'^next$', re.I)).first.click(timeout=8000)
-        except Exception:
-            p.keyboard.press('Enter')
-        try:
-            pass_box.wait_for(state='visible', timeout=20000)
-        except Exception:
-            self.snap('login_no_password_step')
+        user_box.click()
+        user_box.press_sequentially(user, delay=40)   # the form validates the name asynchronously; fill() is too fast
+        time.sleep(2)
+        shown = False
+        for attempt in range(4):
+            try:
+                p.get_by_text(re.compile(r'^next$', re.I)).first.click(timeout=8000)
+            except Exception:
+                p.keyboard.press('Enter')
+            try:
+                pass_box.wait_for(state='visible', timeout=8000)
+                shown = True
+                break
+            except Exception:
+                self.snap(f'login_next_attempt_{attempt + 1}')
+        if not shown:
             self.dump_dom('login_no_password_step')
             raise StepFailed('no password field after "Next" (unknown username, captcha, or changed flow)')
         pass_box.fill(password)
