@@ -26,7 +26,7 @@ This document tracks publisher/designer permissions, communications, contact inf
 | **Counterplays** | Néstor Romeral Andrés | Eclipse Editorial / nestorgames | ✅ **BGA License Granted (2024-09-05)** | Backlog / Approved |
 | **Stack-22** | Néstor Romeral Andrés | Eclipse Editorial / nestorgames | ✅ **BGA License Granted (2024-09-05)** | Backlog / Approved |
 | **Line or Colour** | Néstor Romeral Andrés | Eclipse Editorial / nestorgames | ✅ **BGA License Granted (2025-03-27)** | Backlog / Approved |
-| **Push Fight / Tsuki-Dashi** | Brett Picotte | Tinkerhouse Games (Mike) | 🤝 **In discussion; BGA asked (29 Sep) that Mike adds the licence at gamepublishers** | Sublicense & Tsuki-Dashi Branding (`pushfight`) |
+| **Push Fight / Tsuki-Dashi** | Brett Picotte | Tinkerhouse Games (Mike) | ✅ **BGA licence granted 2019-12-13; Tsuki-Dashi branding in discussion with Tinkerhouse** | Sublicense & Tsuki-Dashi Branding (`pushfight`) |
 | **Mandala** | Trevor Benjamin, Brett J. Gilbert | Lookout Games / Asmodee | ✅ **Live / Released** | Maintained (`mandala`) |
 | **Yavalath** | Cameron Browne, Ludi | Cameron Browne / Cyberite Ltd | ⚠️ **Public Alpha (2026-10-06); licence form was filled by us on Cameron's behalf, confirmation mail came to us: Cameron must submit or confirm it** | Reviewer Testing (`yavalath`) |
 | **Lords of Scotland**| Richard James (Evertide Games) | Rights reverted to designer | 🔴 **Blocked: need designer contact (Lupe silent since 3 Oct)** | Core Engine Ready (`lordsofscotland`) |
