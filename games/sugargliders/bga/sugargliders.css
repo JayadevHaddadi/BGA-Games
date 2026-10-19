@@ -78,7 +78,8 @@
 .sg_tray_tile_btn.selected {
     border-color: #1f5fbf;
     background: #e3eefc;
-    box-shadow: 0 0 0 2px #1f5fbf;
+    outline: 2px solid #1f5fbf;
+    outline-offset: 0;
 }
 
 /* Board scaler (JS sets width/height/transform) */
@@ -90,7 +91,6 @@
     overflow: hidden;
     margin: 0 auto;
     border-radius: 12px;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
     flex: 0 0 auto;
 }
 
@@ -177,7 +177,6 @@
 /* Food tile SVG */
 .sg-food-tile {
     pointer-events: none;
-    filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.7)) drop-shadow(0 3px 5px rgba(0, 0, 0, 0.45));
 }
 
 /* Sugar glider pieces */
@@ -189,7 +188,6 @@
     display: inline-block;
     transition: transform 0.2s ease-out;
     transform: translateY(0);
-    filter: drop-shadow(0 4px 5px rgba(0, 0, 0, 0.45));
 }
 
 /* Glider lifts only while its own cell is hovered */
@@ -257,7 +255,7 @@
 
 /* Torpor: resting glider is dimmed and labelled (no looping decoration) */
 .sg-glider-piece.in-torpor .sg-glider-inner {
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4)) saturate(0.7) brightness(0.92);
+    filter: saturate(0.7) brightness(0.92);
 }
 
 .sg-torpor-zzz {
