@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lords of Scotland harness</title>
+<link rel="stylesheet" href="../../bga/lordsofscotland.css">
+<style>
+  body { margin: 0; font-family: sans-serif; background: #fff; }
+  #game_play_area { padding: 0; }
+  #out { white-space: pre-wrap; font: 12px monospace; padding: 8px; }
+</style>
+</head>
+<body data-done="0">
+<div id="page-content">
+  <div id="statusbar"></div>
+  <div id="game_play_area"></div>
+</div>
+<div id="player_panels"></div>
+<pre id="out">running</pre>
+
+<script>
+window._ = (s) => s;
+window.g_gamethemeurl = '../../bga/';
+window.errors = [];
+window.addEventListener('error', (e) => {
+  const msg = String(e.message || e);
+  if (!msg.includes('ResizeObserver')) window.errors.push(msg);
+});
+window.addEventListener('unhandledrejection', (e) => {
+  const msg = String(e.reason || e);
+  if (!msg.includes('ResizeObserver')) window.errors.push(msg);
+});
+</script>
+<script type="module">
+import { Game } from '../../bga/modules/js/Game.js';
+
+const calls = [];
+const buttons = [];
+
+const bga = {
+  states: {
+    register() {}
+  },
+  gameArea: { getElement: () => document.getElementById('game_play_area') },
+  notifications: { setupPromiseNotifications() {} },
+  userPreferences: { get: () => 1 },
+  sounds: { play() {} },
+  statusBar: {
+    setTitle() {},
+    addActionButton(text, callback, opts) {
+      buttons.push({ text, callback, opts: opts || {} });
+    },
+    removeActionButtons() { buttons.length = 0; },
+  },
+  players: {
+    getCurrentPlayerId: () => 1,
+    isCurrentPlayerActive: () => true,
+    getActivePlayerId: () => 1,
+  },
+  playerPanels: {
+    getElement: (pid) => {
+      let el = document.getElementById('panel_' + pid);
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'panel_' + pid;
+        document.getElementById('player_panels').appendChild(el);
+      }
+      return el;
+    },
+    getScoreCounter: () => ({ toValue() {} }),
+  },
+  actions: {
+    performAction(name, args) { calls.push({ name, args }); return Promise.resolve(); },
+  },
+};
+
+function fixture() {
+  return {
+    players: {
+      1: { id: 1, name: 'Alice', color: 'c0392b', score: 0 },
+      2: { id: 2, name: 'Bob', color: '2980b9', score: 0 },
+    },
+    current_player_id: 1,
+    current_skirmish: 1,
+    current_round: 1,
+    victor_initiative: 1,
+    lowest_face_up: null,
+    target_score: 40,
+    clans: {
+      1: { name: 'Campbell' },
+      2: { name: 'MacKenzie' },
+      3: { name: 'MacDonald' },
+      4: { name: 'MacLean' },
+      5: { name: 'Wemyss' },
+      6: { name: 'Fergusson' },
+      7: { name: 'MacIntyre' },
+      8: { name: 'Stewart' },
+    },
+    recruit: [
+      { slot: 1, card_id: 10, clan: 1, strength: 2, face_up: true },
+      { slot: 2, card_id: 11, clan: 2, strength: 3, face_up: true },
+      { slot: 3, card_id: 12, clan: 3, strength: 4, face_up: true },
+      { slot: 4, card_id: 13, clan: 4, strength: 5, face_up: true },
+      { slot: 5, card_id: 14, clan: 5, strength: 6, face_up: true },
+    ],
+    supporters: [
+      { card_id: 20, clan: 1, strength: 5, location_arg: 1 },
+      { card_id: 21, clan: 2, strength: 4, location_arg: 2 },
+    ],
+    deck_count: 35,
+    discard_count: 0,
+    hand: [
+      { card_id: 1, clan: 1, strength: 1, location_arg: 1 },
+      { card_id: 2, clan: 2, strength: 2, location_arg: 1 },
+      { card_id: 3, clan: 3, strength: 3, location_arg: 1 },
+      { card_id: 4, clan: 4, strength: 4, location_arg: 1 },
+      { card_id: 5, clan: 5, strength: 5, location_arg: 1 },
+    ],
+    armies: {
+      1: [],
+      2: [],
+    },
+    army_strengths: {
+      1: 0,
+      2: 0,
+    },
+  };
+}
+
+try {
+  const game = new Game(bga);
+  game.setup(fixture());
+
+  setTimeout(() => {
+    const board = document.getElementById('los-container') || document.getElementById('los-center-table');
+    const boardRect = board ? board.getBoundingClientRect() : { width: 0 };
+    const vp = window.innerWidth;
+    const horizontalOverflow = Math.max(0, document.documentElement.scrollWidth - vp);
+
+    // Measure card tap target size
+    let minCard = 999;
+    document.querySelectorAll('.los-card, .los-hand-card').forEach(c => {
+      const r = c.getBoundingClientRect();
+      const s = Math.min(r.width, r.height);
+      if (s > 0 && s < minCard) minCard = s;
+    });
+
+    const report = {
+      viewport: vp,
+      boardWidth: Math.round(boardRect.width),
+      horizontalOverflow: Math.round(horizontalOverflow),
+      cardTargetMin: minCard === 999 ? 0 : Math.round(minCard),
+      jsErrors: window.errors,
+      ok: window.errors.length === 0 && horizontalOverflow === 0,
+    };
+
+    document.getElementById('out').textContent = JSON.stringify(report, null, 2);
+    document.body.dataset.done = '1';
+  }, 350);
+
+} catch (err) {
+  window.errors.push(err.stack || err.message);
+  document.getElementById('out').textContent = JSON.stringify({ ok: false, error: String(err.stack || err) }, null, 2);
+  document.body.dataset.done = '1';
+}
+</script>
+</body>
+</html>

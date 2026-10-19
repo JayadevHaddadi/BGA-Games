@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gardens of Mars harness</title>
+<link rel="stylesheet" href="../../bga/gardensofmars.css">
+<style>
+  body { margin: 0; font-family: sans-serif; background: #fff; }
+  #game_play_area { padding: 0; }
+  #out { white-space: pre-wrap; font: 12px monospace; padding: 8px; }
+</style>
+</head>
+<body data-done="0">
+<div id="page-content">
+  <div id="statusbar"></div>
+  <div id="game_play_area"></div>
+</div>
+<div id="player_panels"></div>
+<pre id="out">running</pre>
+
+<script>
+window._ = (s) => s;
+window.g_gamethemeurl = '../../bga/';
+window.errors = [];
+window.addEventListener('error', (e) => {
+  const msg = String(e.message || e);
+  if (!msg.includes('ResizeObserver')) window.errors.push(msg);
+});
+window.addEventListener('unhandledrejection', (e) => {
+  const msg = String(e.reason || e);
+  if (!msg.includes('ResizeObserver')) window.errors.push(msg);
+});
+</script>
+<script type="module">
+import { Game } from '../../bga/modules/js/Game.js';
+
+const calls = [];
+const buttons = [];
+
+const bga = {
+  states: {
+    register() {}
+  },
+  gameArea: { getElement: () => document.getElementById('game_play_area') },
+  notifications: { setupPromiseNotifications() {} },
+  userPreferences: { get: () => 1 },
+  sounds: { play() {} },
+  statusBar: {
+    setTitle() {},
+    addActionButton(text, callback, opts) {
+      buttons.push({ text, callback, opts: opts || {} });
+    },
+    removeActionButtons() { buttons.length = 0; },
+  },
+  players: {
+    getCurrentPlayerId: () => 1,
+    isCurrentPlayerActive: () => true,
+    getActivePlayerId: () => 1,
+  },
+  playerPanels: {
+    getElement: (pid) => {
+      let el = document.getElementById('panel_' + pid);
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'panel_' + pid;
+        document.getElementById('player_panels').appendChild(el);
+      }
+      return el;
+    },
+    getScoreCounter: () => ({ toValue() {} }),
+  },
+  actions: {
+    performAction(name, args) { calls.push({ name, args }); return Promise.resolve(); },
+  },
+};
+
+function fixture() {
+  const HEX_RADIUS = 5;
+  const board_cells = [];
+  for (let q = -HEX_RADIUS; q <= HEX_RADIUS; q++) {
+    const r_min = Math.max(-HEX_RADIUS, -HEX_RADIUS - q);
+    const r_max = Math.min(HEX_RADIUS, HEX_RADIUS - q);
+    for (let r = r_min; r <= r_max; r++) {
+      board_cells.push({ q, r });
+    }
+  }
+  return {
+    players: {
+      1: { id: 1, name: 'Alice', color: '23b2e8' },
+      2: { id: 2, name: 'Bob', color: 'f44336' },
+    },
+    scores: { 1: 0, 2: 0 },
+    board_cells,
+    board_flowers: [],
+    peaks: [],
+    gardeners: {
+      1: { gardener_id: 1, player_id: 1, martian_type: 1, q: 0, r: 0, track_pos: 1 },
+      2: { gardener_id: 2, player_id: 2, martian_type: 2, q: 1, r: -1, track_pos: 1 },
+    },
+    dice_pool: [
+      { die_id: 1, color: 'blue', value: 3, used: 0 },
+      { die_id: 2, color: 'yellow', value: 4, used: 0 },
+    ],
+    flower_colors: ['blue', 'yellow', 'orange', 'purple', 'red', 'green'],
+    is_coop: false,
+    two_gardeners: false,
+    track_variant: 1,
+    player_flowers: {
+      1: { blue: 5, yellow: 5, orange: 5, purple: 5, red: 5, green: 5 },
+      2: { blue: 5, yellow: 5, orange: 5, purple: 5, red: 5, green: 5 },
+    },
+  };
+}
+
+try {
+  const game = new Game(bga);
+  game.setup(fixture());
+
+  setTimeout(() => {
+    const board = document.getElementById('gom_main_container') || document.getElementById('gom_board_svg');
+    const boardRect = board ? board.getBoundingClientRect() : { width: 0 };
+    const vp = window.innerWidth;
+    const horizontalOverflow = Math.max(0, document.documentElement.scrollWidth - vp);
+
+    // Measure cell tap target size
+    let minCell = 999;
+    document.querySelectorAll('.gom-hex-cell').forEach(c => {
+      const r = c.getBoundingClientRect();
+      const s = Math.min(r.width, r.height);
+      if (s > 0 && s < minCell) minCell = s;
+    });
+
+    const report = {
+      viewport: vp,
+      boardWidth: Math.round(boardRect.width),
+      horizontalOverflow: Math.round(horizontalOverflow),
+      cellTargetMin: minCell === 999 ? 0 : Math.round(minCell),
+      jsErrors: window.errors,
+      ok: window.errors.length === 0 && horizontalOverflow === 0 && minCell >= 32,
+    };
+
+    document.getElementById('out').textContent = JSON.stringify(report, null, 2);
+    document.body.dataset.done = '1';
+  }, 350);
+
+} catch (err) {
+  window.errors.push(err.stack || err.message);
+  document.getElementById('out').textContent = JSON.stringify({ ok: false, error: String(err.stack || err) }, null, 2);
+  document.body.dataset.done = '1';
+}
+</script>
+</body>
+</html>

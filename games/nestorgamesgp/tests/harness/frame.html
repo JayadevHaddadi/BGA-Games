@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nestorgames GP frame</title>
+<style>body{margin:0;background:#fff} iframe{border:0;display:block}</style>
+</head>
+<body>
+<iframe id="f" title="harness" width="375" height="2400"></iframe>
+<pre id="out">waiting</pre>
+<script>
+const params = new URLSearchParams(location.search);
+const w = Number(params.get('w') || 375);
+const f = document.getElementById('f');
+f.width = String(w);
+f.src = `index.html`;
+const started = Date.now();
+const poll = setInterval(() => {
+    let doc = null;
+    try { doc = f.contentDocument; } catch (e) { doc = null; }
+    if (doc && doc.body && doc.body.dataset.done === '1') {
+        clearInterval(poll);
+        const text = doc.getElementById('out').textContent;
+        document.getElementById('out').textContent = text;
+        document.body.dataset.done = '1';
+    } else if (Date.now() - started > 15000) {
+        clearInterval(poll);
+        document.getElementById('out').textContent = 'timed out';
+        document.body.dataset.done = '1';
+    }
+}, 50);
+</script>
+</body>
+</html>

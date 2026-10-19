@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gardens of Uranus harness</title>
+<link rel="stylesheet" href="../../bga/gardensofuranus.css">
+<style>
+  body { margin: 0; font-family: sans-serif; background: #fff; }
+  #game_play_area { padding: 0; }
+  #out { white-space: pre-wrap; font: 12px monospace; padding: 8px; }
+</style>
+</head>
+<body data-done="0">
+<div id="page-content">
+  <div id="statusbar"></div>
+  <div id="game_play_area"></div>
+</div>
+<div id="player_panels"></div>
+<pre id="out">running</pre>
+
+<script>
+window._ = (s) => s;
+window.g_gamethemeurl = '../../bga/';
+window.errors = [];
+window.addEventListener('error', (e) => {
+  const msg = String(e.message || e);
+  if (!msg.includes('ResizeObserver')) window.errors.push(msg);
+});
+window.addEventListener('unhandledrejection', (e) => {
+  const msg = String(e.reason || e);
+  if (!msg.includes('ResizeObserver')) window.errors.push(msg);
+});
+</script>
+<script type="module">
+import { Game } from '../../bga/modules/js/Game.js';
+
+const calls = [];
+const buttons = [];
+
+const bga = {
+  states: {
+    register() {}
+  },
+  gameArea: { getElement: () => document.getElementById('game_play_area') },
+  notifications: { setupPromiseNotifications() {} },
+  userPreferences: { get: () => 1 },
+  sounds: { play() {} },
+  statusBar: {
+    setTitle() {},
+    addActionButton(text, callback, opts) {
+      buttons.push({ text, callback, opts: opts || {} });
+    },
+    removeActionButtons() { buttons.length = 0; },
+  },
+  players: {
+    getCurrentPlayerId: () => 1,
+    isCurrentPlayerActive: () => true,
+    getActivePlayerId: () => 1,
+  },
+  playerPanels: {
+    getElement: (pid) => {
+      let el = document.getElementById('panel_' + pid);
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'panel_' + pid;
+        document.getElementById('player_panels').appendChild(el);
+      }
+      return el;
+    },
+    getScoreCounter: () => ({ toValue() {} }),
+  },
+  actions: {
+    performAction(name, args) { calls.push({ name, args }); return Promise.resolve(); },
+  },
+};
+
+function fixture() {
+  const cells = [];
+  const R = 4;
+  for (let q = -R; q <= R; q++) {
+    const r_min = Math.max(-R, -R - q);
+    const r_max = Math.min(R, R - q);
+    for (let r = r_min; r <= r_max; r++) {
+      cells.push({ q, r, flower_color: null, has_tree: 0 });
+    }
+  }
+  return {
+    players: {
+      1: { id: 1, name: 'Alice', color: '4caf50' },
+      2: { id: 2, name: 'Bob', color: 'e91e63' },
+    },
+    scores: { 1: 0, 2: 0 },
+    board_type: 1,
+    special_powers: 1,
+    cells,
+    gardeners: {
+      1: { player_id: 1, martian: 'bot', q: 0, r: 0, power_used: 0 },
+      2: { player_id: 2, martian: 'ali', q: 1, r: -1, power_used: 0 },
+    },
+    all_flowers: {
+      1: { blue: 4, yellow: 4, orange: 4, purple: 4, red: 4, green: 4 },
+      2: { blue: 4, yellow: 4, orange: 4, purple: 4, red: 4, green: 4 },
+    },
+    hand_cards: [],
+    draft_cards: [],
+    board_decks: [],
+    scored_cards: { 1: [], 2: [] },
+    card_scores: {},
+    final_scoring: null,
+  };
+}
+
+try {
+  const game = new Game(bga);
+  game.setup(fixture());
+
+  setTimeout(() => {
+    const board = document.getElementById('gou_main_container') || document.getElementById('gou_board_svg') || document.querySelector('.gou_board_wrap');
+    const boardRect = board ? board.getBoundingClientRect() : { width: 0 };
+    const vp = window.innerWidth;
+    const horizontalOverflow = Math.max(0, document.documentElement.scrollWidth - vp);
+
+    // Measure cell tap target size
+    let minCell = 999;
+    document.querySelectorAll('.gou_spot, .gou_cell').forEach(c => {
+      const r = c.getBoundingClientRect();
+      const s = Math.min(r.width, r.height);
+      if (s > 0 && s < minCell) minCell = s;
+    });
+
+    const report = {
+      viewport: vp,
+      boardWidth: Math.round(boardRect.width),
+      horizontalOverflow: Math.round(horizontalOverflow),
+      cellTargetMin: minCell === 999 ? 0 : Math.round(minCell),
+      jsErrors: window.errors,
+      ok: window.errors.length === 0 && horizontalOverflow === 0,
+    };
+
+    document.getElementById('out').textContent = JSON.stringify(report, null, 2);
+    document.body.dataset.done = '1';
+  }, 350);
+
+} catch (err) {
+  window.errors.push(err.stack || err.message);
+  document.getElementById('out').textContent = JSON.stringify({ ok: false, error: String(err.stack || err) }, null, 2);
+  document.body.dataset.done = '1';
+}
+</script>
+</body>
+</html>

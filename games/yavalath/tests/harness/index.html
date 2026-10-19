@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Yavalath harness</title>
+<link rel="stylesheet" href="../../bga/yavalath.css">
+<style>
+  body { margin: 0; font-family: sans-serif; background: #fff; }
+  #game_play_area { padding: 0; }
+  #out { white-space: pre-wrap; font: 12px monospace; padding: 8px; }
+</style>
+</head>
+<body data-done="0">
+<div id="page-content">
+  <div id="statusbar"></div>
+  <div id="game_play_area"></div>
+</div>
+<div id="player_panels"></div>
+<pre id="out">running</pre>
+
+<script>
+window._ = (s) => s;
+window.g_gamethemeurl = '../../bga/';
+window.errors = [];
+window.addEventListener('error', (e) => {
+  const msg = String(e.message || e);
+  if (!msg.includes('ResizeObserver')) window.errors.push(msg);
+});
+window.addEventListener('unhandledrejection', (e) => {
+  const msg = String(e.reason || e);
+  if (!msg.includes('ResizeObserver')) window.errors.push(msg);
+});
+</script>
+<script type="module">
+import { Game } from '../../bga/modules/js/Game.js';
+
+const calls = [];
+const buttons = [];
+let stateHandler = null;
+
+const bga = {
+  states: {
+    register(name, handler) {
+      if (name === 'PlayerTurn') stateHandler = handler;
+    }
+  },
+  gameArea: { getElement: () => document.getElementById('game_play_area') },
+  notifications: { setupPromiseNotifications() {} },
+  userPreferences: { get: () => 1 },
+  sounds: { play() {} },
+  statusBar: {
+    setTitle() {},
+    addActionButton(text, callback, opts) {
+      buttons.push({ text, callback, opts: opts || {} });
+    },
+    removeActionButtons() { buttons.length = 0; },
+  },
+  players: {
+    getCurrentPlayerId: () => 1,
+    isCurrentPlayerActive: () => true,
+    getActivePlayerId: () => 1,
+  },
+  playerPanels: {
+    getElement: (pid) => {
+      let el = document.getElementById('panel_' + pid);
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'panel_' + pid;
+        document.getElementById('player_panels').appendChild(el);
+      }
+      return el;
+    },
+    getScoreCounter: () => ({ toValue() {} }),
+  },
+  actions: {
+    performAction(name, args) { calls.push({ name, args }); return Promise.resolve(); },
+  },
+};
+
+function fixture() {
+  const board = {};
+  const HEX_RADIUS = 4;
+  for (let q = -HEX_RADIUS + 1; q < HEX_RADIUS; q++) {
+    const r1 = Math.max(-HEX_RADIUS + 1, -q - HEX_RADIUS + 1);
+    const r2 = Math.min(HEX_RADIUS - 1, -q + HEX_RADIUS - 1);
+    for (let r = r1; r <= r2; r++) {
+      board[`${q}_${r}`] = { q, r, color: null, player_id: null };
+    }
+  }
+  return {
+    players: {
+      1: { id: 1, name: 'Alice', color: 'ffffff' },
+      2: { id: 2, name: 'Bob', color: '000000' },
+    },
+    board,
+    player_colors: { 1: 'white', 2: 'black' },
+    eliminated_players: [],
+    hex_radius: 4,
+    win_length: 4,
+    lose_length: 3,
+    game_mode: 1,
+    pie_rule_enabled: false,
+    pie_rule_used: false,
+    turn_count: 1,
+    last_move: null,
+    last_moves: [],
+  };
+}
+
+try {
+  const game = new Game(bga);
+  game.setup(fixture());
+
+  if (stateHandler) {
+    stateHandler.onEnteringState({ can_swap: false }, true);
+  }
+
+  // Click the first valid cell to stage a move
+  const firstCell = document.querySelector('.yavalath_cell');
+  if (firstCell) {
+    firstCell.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  }
+
+  setTimeout(() => {
+    const board = document.getElementById('yavalath_container') || document.getElementById('yavalath_board_svg');
+    const boardRect = board ? board.getBoundingClientRect() : { width: 0 };
+    const vp = window.innerWidth;
+    const horizontalOverflow = Math.max(0, document.documentElement.scrollWidth - vp);
+
+    // Measure cell tap target size
+    let minCell = 999;
+    document.querySelectorAll('.yavalath_cell').forEach(c => {
+      const r = c.getBoundingClientRect();
+      const s = Math.min(r.width, r.height);
+      if (s > 0 && s < minCell) minCell = s;
+    });
+
+    const hasConfirm = buttons.some(b => (b.text && b.text.includes('Confirm')) || (b.opts && b.opts.id === 'btnConfirmMove'));
+
+    const report = {
+      viewport: vp,
+      boardWidth: Math.round(boardRect.width),
+      horizontalOverflow: Math.round(horizontalOverflow),
+      cellTargetMin: minCell === 999 ? 0 : Math.round(minCell),
+      hasConfirmButton: hasConfirm,
+      jsErrors: window.errors,
+      ok: window.errors.length === 0 && horizontalOverflow === 0 && hasConfirm && minCell >= 32,
+    };
+
+    document.getElementById('out').textContent = JSON.stringify(report, null, 2);
+    document.body.dataset.done = '1';
+  }, 250);
+
+} catch (err) {
+  window.errors.push(err.stack || err.message);
+  document.getElementById('out').textContent = JSON.stringify({ ok: false, error: String(err) }, null, 2);
+  document.body.dataset.done = '1';
+}
+</script>
+</body>
+</html>

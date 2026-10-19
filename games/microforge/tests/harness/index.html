@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MicroForge harness</title>
+<link rel="stylesheet" href="../../bga/microforge.css">
+<style>
+  body { margin: 0; font-family: sans-serif; background: #fff; }
+  #game_play_area { padding: 0; }
+  #out { white-space: pre-wrap; font: 12px monospace; padding: 8px; }
+</style>
+</head>
+<body data-done="0">
+<div id="page-content">
+  <div id="statusbar"></div>
+  <div id="game_play_area"></div>
+</div>
+<div id="player_panels"></div>
+<pre id="out">running</pre>
+
+<script>
+window._ = (s) => s;
+window.g_gamethemeurl = '../../bga/';
+window.errors = [];
+window.addEventListener('error', (e) => {
+  const msg = String(e.message || e);
+  if (!msg.includes('ResizeObserver')) window.errors.push(msg);
+});
+window.addEventListener('unhandledrejection', (e) => {
+  const msg = String(e.reason || e);
+  if (!msg.includes('ResizeObserver')) window.errors.push(msg);
+});
+</script>
+<script type="module">
+import { Game } from '../../bga/modules/js/Game.js';
+
+const calls = [];
+const buttons = [];
+
+const bga = {
+  states: {
+    register() {}
+  },
+  gameArea: { getElement: () => document.getElementById('game_play_area') },
+  notifications: { setupPromiseNotifications() {} },
+  userPreferences: { get: () => 1 },
+  sounds: { play() {} },
+  statusBar: {
+    setTitle() {},
+    addActionButton(text, callback, opts) {
+      buttons.push({ text, callback, opts: opts || {} });
+    },
+    removeActionButtons() { buttons.length = 0; },
+  },
+  players: {
+    getCurrentPlayerId: () => 1,
+    isCurrentPlayerActive: () => true,
+    getActivePlayerId: () => 1,
+  },
+  playerPanels: {
+    getElement: (pid) => {
+      let el = document.getElementById('panel_' + pid);
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'panel_' + pid;
+        document.getElementById('player_panels').appendChild(el);
+      }
+      return el;
+    },
+    getScoreCounter: () => ({ toValue() {} }),
+  },
+  actions: {
+    performAction(name, args) { calls.push({ name, args }); return Promise.resolve(); },
+  },
+};
+
+function fixture() {
+  const hexes = [
+    { hex_id: 1, coord_q: 0, coord_r: 0, ring: 0, resource_slots: 1, building_slots: 1, is_port: 0, owner_id: 1, resource: 'iron', edges: '111111' },
+    { hex_id: 2, coord_q: 1, coord_r: -1, ring: 1, resource_slots: 1, building_slots: 1, is_port: 0, owner_id: 2, resource: 'crystal', edges: '111111' },
+    { hex_id: 3, coord_q: 0, coord_r: -1, ring: 1, resource_slots: 0, building_slots: 0, is_port: 1, owner_id: null, resource: null, edges: '111111' },
+  ];
+  return {
+    players: {
+      1: { id: 1, name: 'Alice', color: 'c0392b' },
+      2: { id: 2, name: 'Bob', color: '2980b9' },
+    },
+    hexes,
+    buildings: [],
+    units: [
+      { unit_id: 1, owner_id: 1, unit_type: 'bot', hex_id: 1, attack_target: null, moved_cost: 0 },
+      { unit_id: 2, owner_id: 2, unit_type: 'bot', hex_id: 2, attack_target: null, moved_cost: 0 },
+    ],
+    items: [],
+    ports: [],
+    player_state: {
+      1: { credits: 10, vp: 0, missions_bought: 0, mission_fee: 5, income: 3, supply: { bot: 19, mech: 5 }, missions_done: 0 },
+      2: { credits: 10, vp: 0, missions_bought: 0, mission_fee: 5, income: 3, supply: { bot: 19, mech: 5 }, missions_done: 0 },
+    },
+    missions: [],
+    mission_met: { 1: {}, 2: {} },
+    mission_deck_left: 10,
+    prices: { iron: 3, crystal: 4, bot: 5, mech: 10 },
+    hex_radius: 1,
+    vp_target: 10,
+    rules_level: 'basic',
+    has_market: true,
+    moving_prices: false,
+    fixed_prices: { iron: 3, crystal: 4, bot: 5, mech: 10 },
+    triangular_move: false,
+    homes: { 1: 1, 2: 2 },
+    build_iron: { extractor: 1, factory: 2 },
+    base_income: 3,
+    mech_power: 5,
+    bots_per_iron: 2,
+    supply_total: { bot: 20, mech: 5, factory: 6, extractor: 6 },
+    dock_goods: ['bot', 'iron'],
+    price_min: { iron: 1, crystal: 2, bot: 2, mech: 3 },
+    price_max: { iron: 6, crystal: 8, bot: 10, mech: 12 },
+    port_bonus: 0,
+    port_discount: 0,
+    push_need: 2,
+    kill_need: 3,
+  };
+}
+
+try {
+  const game = new Game(bga);
+  game.setup(fixture());
+
+  setTimeout(() => {
+    const board = document.getElementById('mf_board') || document.getElementById('mf_main_container');
+    const boardRect = board ? board.getBoundingClientRect() : { width: 0 };
+    const vp = window.innerWidth;
+    const horizontalOverflow = Math.max(0, document.documentElement.scrollWidth - vp);
+
+    // Measure cell tap target size
+    let minCell = 999;
+    document.querySelectorAll('.mf_hex, .mf_hex_cell').forEach(c => {
+      const r = c.getBoundingClientRect();
+      const s = Math.min(r.width, r.height);
+      if (s > 0 && s < minCell) minCell = s;
+    });
+
+    const report = {
+      viewport: vp,
+      boardWidth: Math.round(boardRect.width),
+      horizontalOverflow: Math.round(horizontalOverflow),
+      cellTargetMin: minCell === 999 ? 0 : Math.round(minCell),
+      jsErrors: window.errors,
+      ok: window.errors.length === 0 && horizontalOverflow === 0,
+    };
+
+    document.getElementById('out').textContent = JSON.stringify(report, null, 2);
+    document.body.dataset.done = '1';
+  }, 350);
+
+} catch (err) {
+  window.errors.push(err.stack || err.message);
+  document.getElementById('out').textContent = JSON.stringify({ ok: false, error: String(err.stack || err) }, null, 2);
+  document.body.dataset.done = '1';
+}
+</script>
+</body>
+</html>

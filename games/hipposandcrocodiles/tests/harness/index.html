@@ -23,8 +23,14 @@
 window._ = (s) => s;
 window.g_gamethemeurl = '../../bga/';
 window.errors = [];
-window.addEventListener('error', (e) => window.errors.push(String(e.message)));
-window.addEventListener('unhandledrejection', (e) => window.errors.push(String(e.reason)));
+window.addEventListener('error', (e) => {
+  const msg = String(e.message || e);
+  if (!msg.includes('ResizeObserver')) window.errors.push(msg);
+});
+window.addEventListener('unhandledrejection', (e) => {
+  const msg = String(e.reason || e);
+  if (!msg.includes('ResizeObserver')) window.errors.push(msg);
+});
 </script>
 <script type="module">
 import { Game } from '../../bga/modules/js/Game.js';

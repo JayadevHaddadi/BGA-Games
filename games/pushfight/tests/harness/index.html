@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Push Fight harness</title>
+<link rel="stylesheet" href="../../bga/pushfight.css">
+<style>
+  body { margin: 0; font-family: sans-serif; background: #fff; }
+  #game_play_area { padding: 0; }
+  #out { white-space: pre-wrap; font: 12px monospace; padding: 8px; }
+</style>
+</head>
+<body data-done="0">
+<div id="page-content">
+  <div id="statusbar"></div>
+  <div id="game_play_area"></div>
+</div>
+<div id="player_panels"></div>
+<pre id="out">running</pre>
+
+<script>
+window._ = (s) => s;
+window.g_gamethemeurl = '../../bga/';
+window.errors = [];
+window.addEventListener('error', (e) => {
+  const msg = String(e.message || e);
+  if (!msg.includes('ResizeObserver')) window.errors.push(msg);
+});
+window.addEventListener('unhandledrejection', (e) => {
+  const msg = String(e.reason || e);
+  if (!msg.includes('ResizeObserver')) window.errors.push(msg);
+});
+</script>
+<script type="module">
+import { Game } from '../../bga/modules/js/Game.js';
+
+const calls = [];
+const buttons = [];
+let turnHandler = null;
+
+const bga = {
+  states: {
+    register(name, handler) {
+      if (name === 'PlayerTurn') turnHandler = handler;
+    }
+  },
+  gameArea: { getElement: () => document.getElementById('game_play_area') },
+  notifications: { setupPromiseNotifications() {} },
+  userPreferences: { get: () => 1 },
+  sounds: { play() {} },
+  statusBar: {
+    setTitle() {},
+    addActionButton(text, callback, opts) {
+      buttons.push({ text, callback, opts: opts || {} });
+    },
+    removeActionButtons() { buttons.length = 0; },
+    clearActionButtons() { buttons.length = 0; },
+  },
+  players: {
+    getCurrentPlayerId: () => 1,
+    isCurrentPlayerActive: () => true,
+    getActivePlayerId: () => 1,
+  },
+  playerPanels: {
+    getElement: (pid) => {
+      let el = document.getElementById('panel_' + pid);
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'panel_' + pid;
+        document.getElementById('player_panels').appendChild(el);
+      }
+      return el;
+    },
+    getScoreCounter: () => ({ toValue() {} }),
+  },
+  actions: {
+    performAction(name, args) { calls.push({ name, args }); return Promise.resolve(); },
+  },
+};
+
+function fixture() {
+  return {
+    players: {
+      1: { id: 1, name: 'Alice', color: 'ffffff' },
+      2: { id: 2, name: 'Bob', color: '4a2c11' },
+    },
+    pieces: [
+      { piece_id: 1, player_id: 1, type: 'king', is_alive: 1, pos_x: 2, pos_y: 2 },
+      { piece_id: 2, player_id: 1, type: 'king', is_alive: 1, pos_x: 2, pos_y: 3 },
+      { piece_id: 3, player_id: 1, type: 'round', is_alive: 1, pos_x: 3, pos_y: 2 },
+      { piece_id: 4, player_id: 2, type: 'king', is_alive: 1, pos_x: 4, pos_y: 2 },
+      { piece_id: 5, player_id: 2, type: 'round', is_alive: 1, pos_x: 5, pos_y: 2 },
+    ],
+    anchored_piece_id: 0,
+    moves_remaining: 2,
+    turn_phase: 'move',
+    turn_count: 1,
+    setup_variant: 1,
+  };
+}
+
+try {
+  const game = new Game(bga);
+  game.setup(fixture());
+
+  if (turnHandler) {
+    turnHandler.onEnteringState({ phase: 'move', moves_remaining: 2, can_skip_move: true }, true);
+  }
+
+  // Click on our piece to select it
+  const piece1 = document.querySelector('.pft-piece[data-piece-id="1"]');
+  if (piece1) {
+    piece1.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  }
+
+  setTimeout(() => {
+    const board = document.getElementById('pft_board');
+    const boardRect = board ? board.getBoundingClientRect() : { width: 0 };
+    const vp = window.innerWidth;
+    const horizontalOverflow = Math.max(0, document.documentElement.scrollWidth - vp);
+
+    // Measure cell tap target size
+    let minCell = 999;
+    document.querySelectorAll('.pft-cell').forEach(c => {
+      const r = c.getBoundingClientRect();
+      const s = Math.min(r.width, r.height);
+      if (s > 0 && s < minCell) minCell = s;
+    });
+
+    const report = {
+      viewport: vp,
+      boardWidth: Math.round(boardRect.width),
+      horizontalOverflow: Math.round(horizontalOverflow),
+      cellTargetMin: minCell === 999 ? 0 : Math.round(minCell),
+      jsErrors: window.errors,
+      ok: window.errors.length === 0 && horizontalOverflow === 0 && minCell >= 32,
+    };
+
+    document.getElementById('out').textContent = JSON.stringify(report, null, 2);
+    document.body.dataset.done = '1';
+  }, 250);
+
+} catch (err) {
+  window.errors.push(err.stack || err.message);
+  document.getElementById('out').textContent = JSON.stringify({ ok: false, error: String(err) }, null, 2);
+  document.body.dataset.done = '1';
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nestorgames GP harness</title>
+<link rel="stylesheet" href="../../bga/nestorgamesgp.css">
+<style>
+  body { margin: 0; font-family: sans-serif; background: #fff; }
+  #game_play_area { padding: 0; }
+  #out { white-space: pre-wrap; font: 12px monospace; padding: 8px; }
+</style>
+</head>
+<body data-done="0">
+<div id="page-content">
+  <div id="statusbar"></div>
+  <div id="game_play_area"></div>
+</div>
+<div id="player_panels"></div>
+<pre id="out">running</pre>
+
+<script>
+window._ = (s) => s;
+window.g_gamethemeurl = '../../bga/';
+window.errors = [];
+window.addEventListener('error', (e) => {
+  const msg = String(e.message || e);
+  if (!msg.includes('ResizeObserver')) window.errors.push(msg);
+});
+window.addEventListener('unhandledrejection', (e) => {
+  const msg = String(e.reason || e);
+  if (!msg.includes('ResizeObserver')) window.errors.push(msg);
+});
+</script>
+<script type="module">
+import { Game } from '../../bga/modules/js/Game.js';
+
+const calls = [];
+const buttons = [];
+
+const bga = {
+  states: {
+    register() {}
+  },
+  gameArea: { getElement: () => document.getElementById('game_play_area') },
+  notifications: { setupPromiseNotifications() {} },
+  userPreferences: { get: () => 1 },
+  sounds: { play() {} },
+  statusBar: {
+    setTitle() {},
+    addActionButton(text, callback, opts) {
+      buttons.push({ text, callback, opts: opts || {} });
+    },
+    removeActionButtons() { buttons.length = 0; },
+  },
+  players: {
+    getCurrentPlayerId: () => 1,
+    isCurrentPlayerActive: () => true,
+    getActivePlayerId: () => 1,
+  },
+  playerPanels: {
+    getElement: (pid) => {
+      let el = document.getElementById('panel_' + pid);
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'panel_' + pid;
+        document.getElementById('player_panels').appendChild(el);
+      }
+      return el;
+    },
+    getScoreCounter: () => ({ toValue() {} }),
+  },
+  actions: {
+    performAction(name, args) { calls.push({ name, args }); return Promise.resolve(); },
+  },
+};
+
+function fixture() {
+  const circuit = {"track_id":1,"last":74,"spaces":{"1":{"c":6,"r":0,"dir":270,"type":"straight"},"2":{"c":5,"r":0,"dir":270,"type":"straight"},"3":{"c":4,"r":0,"dir":180,"type":"corner"},"4":{"c":4,"r":1,"dir":180,"type":"straight"},"5":{"c":4,"r":2,"dir":180,"type":"straight"},"6":{"c":4,"r":3,"dir":180,"type":"straight"},"7":{"c":4,"r":4,"dir":180,"type":"straight"},"8":{"c":4,"r":5,"dir":270,"type":"corner"},"9":{"c":3,"r":5,"dir":270,"type":"straight"},"10":{"c":2,"r":5,"dir":0,"type":"corner"},"11":{"c":2,"r":4,"dir":0,"type":"straight"},"12":{"c":2,"r":3,"dir":0,"type":"straight"},"13":{"c":2,"r":2,"dir":0,"type":"straight"},"14":{"c":2,"r":1,"dir":0,"type":"straight"},"15":{"c":2,"r":0,"dir":270,"type":"corner"},"16":{"c":1,"r":0,"dir":270,"type":"straight"},"17":{"c":0,"r":0,"dir":180,"type":"corner"},"18":{"c":0,"r":1,"dir":180,"type":"straight"},"19":{"c":0,"r":2,"dir":180,"type":"straight"},"20":{"c":0,"r":3,"dir":180,"type":"straight"},"21":{"c":0,"r":4,"dir":180,"type":"straight"},"22":{"c":0,"r":5,"dir":180,"type":"straight"},"23":{"c":0,"r":6,"dir":180,"type":"straight"},"24":{"c":0,"r":7,"dir":90,"type":"corner"},"25":{"c":1,"r":7,"dir":90,"type":"straight"},"26":{"c":2,"r":7,"dir":90,"type":"straight"},"27":{"c":3,"r":7,"dir":90,"type":"straight"},"28":{"c":4,"r":7,"dir":90,"type":"straight"},"29":{"c":5,"r":7,"dir":90,"type":"straight"},"30":{"c":6,"r":7,"dir":90,"type":"straight"},"31":{"c":7,"r":7,"dir":90,"type":"straight"},"32":{"c":8,"r":7,"dir":0,"type":"corner"},"33":{"c":8,"r":6,"dir":0,"type":"straight"},"34":{"c":8,"r":5,"dir":270,"type":"corner"},"35":{"c":7,"r":5,"dir":270,"type":"straight"},"36":{"c":6,"r":5,"dir":0,"type":"corner"},"37":{"c":6,"r":4,"dir":0,"type":"straight"},"38":{"c":6,"r":3,"dir":90,"type":"corner"},"39":{"c":7,"r":3,"dir":90,"type":"straight"},"40":{"c":8,"r":3,"dir":90,"type":"straight"},"41":{"c":9,"r":3,"dir":90,"type":"straight"},"42":{"c":10,"r":3,"dir":90,"type":"straight"},"43":{"c":11,"r":3,"dir":90,"type":"straight"},"44":{"c":12,"r":3,"dir":90,"type":"straight"},"45":{"c":13,"r":3,"dir":180,"type":"corner"},"46":{"c":13,"r":4,"dir":180,"type":"straight"},"47":{"c":13,"r":5,"dir":180,"type":"loop"},"48":{"c":13,"r":6,"dir":180,"type":"straight"},"49":{"c":13,"r":7,"dir":270,"type":"corner"},"50":{"c":12,"r":7,"dir":270,"type":"straight"},"51":{"c":11,"r":7,"dir":270,"type":"straight"},"52":{"c":10,"r":7,"dir":0,"type":"corner"},"53":{"c":10,"r":6,"dir":0,"type":"straight"},"54":{"c":10,"r":5,"dir":90,"type":"corner"},"55":{"c":11,"r":5,"dir":90,"type":"straight"},"56":{"c":12,"r":5,"dir":90,"type":"straight"},"57":{"c":13,"r":5,"dir":90,"type":"loop"},"58":{"c":14,"r":5,"dir":90,"type":"straight"},"59":{"c":15,"r":5,"dir":90,"type":"straight"},"60":{"c":16,"r":5,"dir":0,"type":"corner"},"61":{"c":16,"r":4,"dir":0,"type":"straight"},"62":{"c":16,"r":3,"dir":0,"type":"straight"},"63":{"c":16,"r":2,"dir":0,"type":"straight"},"64":{"c":16,"r":1,"dir":0,"type":"straight"},"65":{"c":16,"r":0,"dir":270,"type":"corner"},"66":{"c":15,"r":0,"dir":270,"type":"straight"},"67":{"c":14,"r":0,"dir":270,"type":"pit_lane"},"68":{"c":13,"r":0,"dir":270,"type":"pit_lane"},"69":{"c":12,"r":0,"dir":270,"type":"pit_lane"},"70":{"c":11,"r":0,"dir":270,"type":"pit_lane"},"71":{"c":10,"r":0,"dir":270,"type":"pit_lane"},"72":{"c":9,"r":0,"dir":270,"type":"pit_lane"},"73":{"c":8,"r":0,"dir":270,"type":"pit_lane"},"74":{"c":7,"r":0,"dir":270,"type":"pit_lane"}},"links":[],"branch":{"type":"shortcut","from":8,"to":36},"aliases":[[47,57]],"teleports":[],"gate_switches":[],"gate_connector":null};
+
+  return {
+    players: {
+      1: { id: 1, name: 'Alice', color: 'ff0000', player_name: 'Alice' },
+      2: { id: 2, name: 'Bob', color: '0000ff', player_name: 'Bob' },
+    },
+    all_racers: {
+      1: { racer_id: 1, player_id: 1, car_color: 'red', position: 1, laps: 0, qualifying_score: 15 },
+      2: { racer_id: 2, player_id: 2, car_color: 'blue', position: 2, laps: 0, qualifying_score: 12 },
+    },
+    total_laps: 3,
+    is_team_mode: false,
+    active_racer_id: 1,
+    car_turn_order: [1, 2],
+    qualifying_board: {
+      1: { player_id: 1, car_color: 'red', qualifying_score: 15 },
+      2: { player_id: 2, car_color: 'blue', qualifying_score: 12 },
+    },
+    qualifying_active: false,
+    track_items: [],
+    player_inventory: { 1: [], 2: [] },
+    racer_inventory: { 1: [], 2: [] },
+    circuit: circuit,
+    final_scores: {},
+    final_points: {},
+    gate_open: false,
+    items_enabled: false,
+    racers_started: { 1: true, 2: true },
+  };
+}
+
+try {
+  const game = new Game(bga);
+  game.setup(fixture());
+
+  setTimeout(() => {
+    const board = document.getElementById('gp_game_container') || document.getElementById('gp_board');
+    const boardRect = board ? board.getBoundingClientRect() : { width: 0 };
+    const vp = window.innerWidth;
+    const horizontalOverflow = Math.max(0, document.documentElement.scrollWidth - vp);
+
+    // Measure cell tap target size
+    let minCell = 999;
+    document.querySelectorAll('.gp_space, .gp_cell, .gp_grid_cell').forEach(c => {
+      const r = c.getBoundingClientRect();
+      const s = Math.min(r.width, r.height);
+      if (s > 0 && s < minCell) minCell = s;
+    });
+
+    const report = {
+      viewport: vp,
+      boardWidth: Math.round(boardRect.width),
+      horizontalOverflow: Math.round(horizontalOverflow),
+      cellTargetMin: minCell === 999 ? 0 : Math.round(minCell),
+      jsErrors: window.errors,
+      ok: window.errors.length === 0 && horizontalOverflow === 0,
+    };
+
+    document.getElementById('out').textContent = JSON.stringify(report, null, 2);
+    document.body.dataset.done = '1';
+  }, 350);
+
+} catch (err) {
+  window.errors.push(err.stack || err.message);
+  document.getElementById('out').textContent = JSON.stringify({ ok: false, error: String(err.stack || err) }, null, 2);
+  document.body.dataset.done = '1';
+}
+</script>
+</body>
+</html>
