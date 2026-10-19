@@ -479,7 +479,7 @@ class Runner:
         self.snap('after_quit')
 
     def s_replay(self):
-        """After the game ended, the log shows a "Replay game" button; the replay must start without errors."""
+        """After the game ended the log shows "Replay game"; it opens a point-of-view choice, then the replay itself."""
         gf = self.game_frame()
         try:
             gf.get_by_text(REPLAY_BUTTON_TEXT).first.click(timeout=10000)
@@ -487,8 +487,14 @@ class Runner:
             self.snap('replay_missing')
             self.dump_dom('replay_missing')
             raise StepFailed('no "Replay game" button in the log after the game ended')
-        time.sleep(8)
-        self.wait_ready(90000)
+        try:
+            self.page.get_by_text(re.compile(r'choose this player', re.I)).first.click(timeout=30000)
+        except Exception:
+            self.snap('replay_pov_missing')
+            self.dump_dom('replay_pov_missing')
+            raise StepFailed('the replay did not offer a point-of-view choice ("Choose this player")')
+        time.sleep(6)
+        self.wait_ready(120000)
         self.check('in replay')
         self.snap('replay')
 
