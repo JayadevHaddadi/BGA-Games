@@ -1,0 +1,27 @@
+name: Game tests
+
+# Offline tests for every game on each push: reviewer-rule checks, PHP lint, rules tests and the browser harnesses.
+# Runs on GitHub's machines, so no local computer needs to be on. Same command locally: python3 tools/test_all.py
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'games/**'
+      - 'tools/**'
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+      - name: Install Python packages
+        run: pip install pillow
+      - name: Run all game tests
+        run: python3 tools/test_all.py

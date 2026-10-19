@@ -1,0 +1,5 @@
+{
+  "_comment": "Accepted FAILs of `bga.py check`, reported but not fatal in tools/test_all.py. Remove an entry once fixed.",
+  "mandala": ["*"],
+  "microforge": ["bgg_id set"]
+}
