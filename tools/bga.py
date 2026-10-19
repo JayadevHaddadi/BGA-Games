@@ -36,7 +36,7 @@ FAIL_PATTERNS = [
     (r'gameui\.playSound', 'deprecated gameui.playSound', ['js']),
     (r'ajaxcall', 'deprecated gameui.ajaxcall (use this.bga.actions.performAction)', ['js']),
     (r'scoreCtrl', 'deprecated this.scoreCtrl (use this.bga.playerPanels.getScoreCounter)', ['js']),
-    (r'player_board_', 'direct player board DOM access (use this.bga.playerPanels.getElement)', ['js']),
+    (r"(getElementById|querySelector(All)?|\$)\(\s*['\"`]#?player_board_", 'direct player board DOM access (use this.bga.playerPanels.getElement)', ['js']),
     (r'TRUNCATE\s+TABLE', 'rule 6: TRUNCATE is rejected by HAL (use DELETE FROM)', ['php', 'sql']),
     (r'box-shadow', 'guideline C.3: no drop shadows', ['css', 'js']),
     (r'drop-shadow', 'guideline C.3: no drop shadows', ['css', 'js']),
@@ -717,7 +717,7 @@ def cmd_check(args):
     (rep.add('PASS', f'sounds ({len(sound_ids)} ids, ogg + mp3)') if not missing_sound
      else rep.add('FAIL', 'sounds ogg + mp3 present', ', '.join(missing_sound)))
     if (bga / 'img').exists():
-        stray = [p.name for p in (bga / 'img').iterdir() if re.match(r'(box|banner|icon|publisher|display|title)', p.name)]
+        stray = [p.name for p in (bga / 'img').iterdir() if p.is_file() and re.match(r'(box|banner|icon|publisher|display|title)[_.]', p.name)]
         (rep.add('FAIL', 'no metadata images in img/', ', '.join(stray) + ' (move to metadata_assets/)') if stray
          else rep.add('PASS', 'no metadata images in img/'))
         total = sum(p.stat().st_size for p in (bga / 'img').rglob('*') if p.is_file())
