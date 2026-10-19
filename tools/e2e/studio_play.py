@@ -317,8 +317,26 @@ class Runner:
         tid = self.create_started_table()
         self.table_id = tid
         time.sleep(5)
-        self.page.goto(f'{STUDIO}/table?table={tid}', wait_until='domcontentloaded', timeout=60000)
+        p = self.page
+        p.goto(f'{STUDIO}/table?table={tid}', wait_until='domcontentloaded', timeout=60000)
+        try:
+            p.get_by_text(re.compile(r'^\s*go to game\s*$', re.I)).first.click(timeout=30000)
+        except Exception:
+            self.snap('no_go_to_game')
+            self.dump_dom('no_go_to_game')
+            raise StepFailed(f'table {tid} has no "Go to game" button (the game did not start?)')
         self.wait_ready()
+
+    def express_stop(self):
+        """Clean up: end the running test table from its table page."""
+        if not self.table_id:
+            return
+        try:
+            self.page.goto(f'{STUDIO}/table?table={self.table_id}', wait_until='domcontentloaded', timeout=30000)
+            self.page.get_by_text(re.compile(r'^\s*express stop\s*$', re.I)).first.click(timeout=8000)
+            time.sleep(3)
+        except Exception:
+            pass
 
     def wait_ready(self, timeout=120000):
         end = time.time() + timeout / 1000
@@ -531,6 +549,7 @@ def main():
             if a.probe:
                 r.probe_tables()
                 r.write_reports(dict(meta, finished=datetime.datetime.utcnow().isoformat()))
+                r.express_stop()
                 print('probe done, see', out)
                 browser.close()
                 return 0
@@ -570,6 +589,7 @@ def main():
             r.scenario(name, fns[name])
         meta['finished'] = datetime.datetime.utcnow().isoformat()
         overall = r.write_reports(meta)
+        r.express_stop()
         browser.close()
     print(f'{a.game} {players}p: {overall}  ->  {out}')
     return 0 if overall == 'pass' else 1
