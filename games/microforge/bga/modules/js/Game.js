@@ -140,15 +140,27 @@ export class Game {
         this.slotSel = null;
         this.missionSel = null;
         this.render();
-        if (args.sound) {
-            try {
-                this.bga.sounds.play(args.sound);
-            } catch (e) { /* sound is optional */ }
-        }
+        if (args.sound) this.sfx(args.sound);
     }
 
     notif_endGameScores() {
-        this.bga.sounds.play('mf_win');
+        this.sfx('mf_win');
+    }
+
+    /** Sounds: confirmed events only, off with preference 101, silent in replays, no stacking. */
+    sfx(id) {
+        try {
+            const g = this.bga?.gameui;
+            if (g?.isReplayMode?.() || g?.instantaneousMode) return;
+            if (Number(this.bga?.userPreferences?.get?.(101) ?? 1) === 0) return;
+            const now = Date.now();
+            this.lastSound = this.lastSound || {};
+            if (now - (this.lastSound[id] || 0) < 300) return;
+            this.lastSound[id] = now;
+            this.bga.sounds.play(id);
+        } catch (e) {
+            // sounds are optional
+        }
     }
 
     // ------------------------------------------------------------------ helpers

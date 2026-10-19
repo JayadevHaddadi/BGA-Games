@@ -33,7 +33,6 @@
     width: 100%;
     height: auto;
     border-radius: 10px;
-    box-shadow: 0 3px 8px rgba(0,0,0,0.22);
 }
 .mf_hint { font-size: 11px; display: block; color: #5a4630; margin-top: 2px; }
 
@@ -84,12 +83,11 @@
     border-radius: 8px;
     cursor: pointer;
     text-align: center;
-    transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+    transition: transform 0.15s, border-color 0.15s;
 }
 .mf_mission:hover {
     border-color: #2980b9;
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.12);
 }
 .mf_mission_sel {
     border-color: #2980b9 !important;
