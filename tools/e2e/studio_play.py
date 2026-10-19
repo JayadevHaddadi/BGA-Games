@@ -37,6 +37,7 @@ SELECTORS = {
     'play_area': '#game_play_area',
 }
 LOGIN_BUTTON_TEXT = re.compile(r'^(log ?in|sign ?in)$', re.I)
+USERNAME_PLACEHOLDER = re.compile(r'email or username', re.I)
 EXPRESS_START_TEXT = re.compile(r'express start', re.I)
 DEBUG_MENU_TEXT = re.compile(r'^debug$', re.I)
 QUIT_TEXT = re.compile(r'(quit|leave) (the )?game', re.I)
@@ -151,32 +152,38 @@ class Runner:
 
     # ---- shared steps ------------------------------------------------------------------------------
     def login(self, user, password):
+        """Studio login is a two-step modal: "Email or username" + Next, then the password."""
         p = self.page
         p.goto(STUDIO + '/', wait_until='domcontentloaded', timeout=60000)
-        self.snap('login_page')
-        self.dump_dom('login_page')
-        if not p.locator(SELECTORS['password']).first.is_visible():
-            for role in ('link', 'button'):
-                try:
-                    p.get_by_role(role, name=LOGIN_BUTTON_TEXT).first.click(timeout=5000)
-                    break
-                except Exception:
-                    pass
+        user_box = p.get_by_placeholder(USERNAME_PLACEHOLDER).first
+        pass_box = p.locator(SELECTORS['password']).first
         try:
-            p.locator(SELECTORS['password']).first.wait_for(state='visible', timeout=20000)
+            user_box.wait_for(state='visible', timeout=15000)
         except Exception:
-            self.snap('login_form_missing')
-            self.dump_dom('login_form_missing')
-            raise StepFailed('no password field found on the Studio login page (see login_page dumps; adjust SELECTORS)')
-        p.locator(SELECTORS['username']).first.fill(user)
-        p.locator(SELECTORS['password']).first.fill(password)
+            try:
+                p.get_by_text(LOGIN_BUTTON_TEXT).first.click(timeout=5000)
+                user_box.wait_for(state='visible', timeout=15000)
+            except Exception:
+                self.snap('login_form_missing')
+                self.dump_dom('login_form_missing')
+                raise StepFailed('no "Email or username" field found on the Studio page (adjust USERNAME_PLACEHOLDER)')
+        user_box.fill(user)
+        p.get_by_role('button', name=re.compile(r'^next$', re.I)).first.click(timeout=8000)
+        try:
+            pass_box.wait_for(state='visible', timeout=20000)
+        except Exception:
+            self.snap('login_no_password_step')
+            self.dump_dom('login_no_password_step')
+            raise StepFailed('no password field after "Next" (unknown username, captcha, or changed flow)')
+        pass_box.fill(password)
         p.keyboard.press('Enter')
         try:
-            p.locator(SELECTORS['password']).first.wait_for(state='hidden', timeout=30000)
+            pass_box.wait_for(state='hidden', timeout=30000)
         except Exception:
             self.snap('login_failed')
             self.dump_dom('login_failed')
-            raise StepFailed('login did not complete (wrong password, captcha, or login form changed)')
+            raise StepFailed('login did not complete (wrong password, captcha, or changed flow)')
+        p.wait_for_load_state('domcontentloaded')
         self.snap('logged_in')
 
     def open_table(self):
