@@ -247,35 +247,42 @@ class Runner:
         time.sleep(2)
         self.snap('gamepanel')
         self.dump_dom('gamepanel')
-        leftover = p.get_by_text(re.compile(r'^\s*go to game\s*$', re.I)).first
-        try:
-            has_leftover = leftover.is_visible(timeout=2000)
-        except Exception:
-            has_leftover = False
-        if has_leftover:
-            # A table of this account is already ready (e.g. left over from an earlier run): play that one.
+        go = p.get_by_text(re.compile(r'^\s*go to game\s*$', re.I)).first
+        searching = p.get_by_text(re.compile(r'searching for players', re.I)).first
+
+        def visible(loc, ms=1500):
+            try:
+                return loc.is_visible(timeout=ms)
+            except Exception:
+                return False
+
+        # The panel is in one of three states: ready (Go to game), searching (Studio is adding test players), idle (Start).
+        if visible(go):
             self.console.append('note: reusing the table that was already ready on the game panel')
-            leftover.click(timeout=10000)
-            p.wait_for_url(re.compile(r'table=\d+'), timeout=60000)
-            self.table_id = re.search(r'table=(\d+)', p.url).group(1)
-            self.wait_ready()
-            return
-        self.select_players()
-        try:
-            p.get_by_text(re.compile(r'search for players', re.I)).first.click(timeout=10000)
-        except Exception:
-            self.dump_dom('no_start_button')
-            raise StepFailed('no "Start / Search for players" button on the game panel')
-        time.sleep(4)
+        elif visible(searching):
+            self.console.append('note: a table was already searching for players; waiting for it')
+        else:
+            self.select_players()
+            try:
+                p.get_by_text(re.compile(r'search for players', re.I)).first.click(timeout=10000)
+            except Exception:
+                self.snap('no_start_button')
+                self.dump_dom('no_start_button')
+                raise StepFailed('no Start button, Searching state or Go to game button on the game panel')
         self.snap('after_start')
-        self.dump_dom('after_start')
-        self.table_id = self.find_table_id(60)
-        if not self.table_id:
-            self.snap('no_table')
-            self.dump_dom('no_table')
-            raise StepFailed('Start did not create a table (no table id in the URL or the page links)')
-        # Studio fills the table with test players and launches it; the panel stays open, so go to the table itself.
-        p.goto(f'{STUDIO}/table?table={self.table_id}', wait_until='domcontentloaded', timeout=60000)
+        try:
+            go.wait_for(state='visible', timeout=120000)
+        except Exception:
+            self.snap('no_go_to_game')
+            self.dump_dom('no_go_to_game')
+            raise StepFailed('the table never became ready ("Go to game" did not appear within 120 s)')
+        go.click(timeout=10000)
+        try:
+            p.wait_for_url(re.compile(r'table=\d+'), timeout=60000)
+        except Exception:
+            self.snap('no_table_url')
+            raise StepFailed('"Go to game" did not open a table page')
+        self.table_id = re.search(r'table=(\d+)', p.url).group(1)
         self.wait_ready()
 
     def find_table_id(self, seconds):
