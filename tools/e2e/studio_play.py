@@ -504,8 +504,15 @@ class Runner:
                 raise StepFailed('the replay did not offer a point-of-view choice ("Choose this player"): '
                                  + (self.page_error() or 'no error text'))
             time.sleep(6)
-            self.wait_ready(120000)
-            if 'unable to find game archive' in self.all_text().lower() and attempt < 4:
+            missing = 'unable to find game archive' in self.all_text().lower()
+            if not missing:
+                try:
+                    self.wait_ready(120000)
+                except StepFailed:
+                    missing = 'unable to find game archive' in self.all_text().lower()
+                    if not missing:
+                        raise
+            if missing and attempt < 4:
                 self.note(f'replay attempt {attempt}: the game archive is not written yet; waiting')
                 time.sleep(30)
                 self.page.goto(game_url, wait_until='domcontentloaded', timeout=60000)
