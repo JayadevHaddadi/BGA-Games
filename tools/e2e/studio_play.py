@@ -256,31 +256,25 @@ class Runner:
             return m ? m[1] : null;
         }""", self.game)
 
-    EXPRESS_ENDPOINTS = ('expressGameStart', 'expressStart', 'startExpress', 'expressgamestart')
-
     def create_started_table(self):
-        """createnew (manual mode) -> wanted players -> Express start, all through the endpoints the panel itself uses.
-        Returns the table id. Raises StepFailed with the server's own message."""
+        """createnew -> wanted players -> Express start, through the endpoints the Studio panel itself calls
+        (found in the panel's script: startTable with expressStart posts to /tablemanager/tablemanager/expressStart.html).
+        Express start fills the table with the developer test accounts (JayadevHaddadi0, 1, ...). Returns the table id."""
         gid = self.game_id()
         if not gid:
             raise StepFailed('could not read the game id from the game panel (project missing?)')
         res = self.api('/table/table/createnew.html', {'game': str(gid), 'mode': '1'})
-        self.console.append(f'note: createnew {json.dumps(res, default=str)[:200]}')
         tid = res.get('data', {}).get('table') if isinstance(res.get('data'), dict) else None
         if not tid:
-            raise StepFailed(f'createnew failed: {res.get("error") or res.get("raw")}')
+            raise StepFailed(f'createnew failed: http={res.get("http")} error={res.get("error") or res.get("raw")}')
         tid = str(tid)
         res = self.api('/table/table/changeWantedPlayers.html', {'table': tid, 'minp': str(self.players), 'maxp': str(self.players)})
-        self.console.append(f'note: changeWantedPlayers {json.dumps(res, default=str)[:200]}')
-        started = False
-        for name in self.EXPRESS_ENDPOINTS:
-            res = self.api(f'/table/table/{name}.html', {'table': tid})
-            self.console.append(f'note: {name} {json.dumps(res, default=str)[:240]}')
-            if res.get('http') == 200 and str(res.get('status')) == '1':
-                started = True
-                break
-        if not started:
-            raise StepFailed(f'Express start through the API failed (see the notes in this report); table {tid}')
+        if str(res.get('status')) != '1':
+            raise StepFailed(f'could not set {self.players} players on table {tid}: {res.get("error") or res.get("raw")}')
+        res = self.api('/tablemanager/tablemanager/expressStart.html', {'table': tid})
+        self.console.append(f'note: expressStart table {tid}: http={res.get("http")} status={res.get("status")} error={res.get("error")}')
+        if res.get('http') != 200 or str(res.get('status')) != '1':
+            raise StepFailed(f'Express start failed for table {tid}: {res.get("error") or res.get("raw")}')
         return tid
 
     def probe_js(self, name):
@@ -306,96 +300,25 @@ class Runner:
         (self.out / f'{name}_express_js.txt').write_text('\n'.join(rows), encoding='utf-8')
 
     def probe_tables(self):
-        """First live run: create a table through the API and find out how the Studio starts it with test players."""
-        gid = self.game_id()
-        res = self.api('/table/table/createnew.html', {'game': str(gid), 'mode': '1'})
-        tid = str(res['data']['table'])
-        self.console.append(f'note: created table {tid}')
-        self.api('/table/table/changeWantedPlayers.html', {'table': tid, 'minp': str(self.players), 'maxp': str(self.players)})
-        self.page.goto(f'{STUDIO}/table?table={tid}', wait_until='domcontentloaded', timeout=60000)
-        time.sleep(6)
-        self.console.append(f'note: table page url {self.page.url}')
-        self.snap('probe_table_waiting')
-        self.dump_dom('probe_table_waiting')
-        self.probe_js('probe')
-
-    def dropdown(self, label_re):
-        return self.page.locator('button.bga-dropdown-button', has_text=label_re).first
+        """First live run: start a table through the API, open it, and dump the page layout and the debug menu."""
+        self.open_table()
+        self.snap('probe_table')
+        self.dump_dom('probe_table')
+        self.dump_debug('probe_table')
+        try:
+            self.page.locator('#debug_menu_icon, [id*="debug" i], [class*="debug" i], [title*="debug" i]').first.click(timeout=5000)
+            time.sleep(1.5)
+            self.snap('probe_debug_open')
+            self.dump_dom('probe_debug_open')
+        except Exception as e:
+            self.console.append(f'note: no debug control to click: {str(e)[:100]}')
 
     def open_table(self):
-        p = self.page
-        p.goto(f'{STUDIO}/gamepanel?game={self.game}', wait_until='domcontentloaded', timeout=60000)
-        try:
-            p.wait_for_function("() => !/application loading/i.test(document.body.innerText.slice(0, 600))", timeout=30000)
-        except Exception:
-            pass
-        time.sleep(2)
-        self.snap('gamepanel')
-        self.dump_dom('gamepanel')
-        go = p.get_by_text(re.compile(r'^\s*go to game\s*$', re.I)).first
-        searching = p.get_by_text(re.compile(r'searching for players', re.I)).first
-
-        def visible(loc, ms=1500):
-            try:
-                return loc.is_visible(timeout=ms)
-            except Exception:
-                return False
-
-        # The panel is in one of three states: ready (Go to game), searching (Studio is adding test players), idle (Start).
-        if visible(go):
-            self.console.append('note: reusing the table that was already ready on the game panel')
-        elif visible(searching):
-            self.console.append('note: a table was already searching for players; waiting for it')
-        else:
-            self.select_players()
-            try:
-                p.get_by_text(re.compile(r'search for players', re.I)).first.click(timeout=10000)
-            except Exception:
-                self.snap('no_start_button')
-                self.dump_dom('no_start_button')
-                raise StepFailed('no Start button, Searching state or Go to game button on the game panel')
-        self.snap('after_start')
-        try:
-            go.wait_for(state='visible', timeout=120000)
-        except Exception:
-            self.snap('no_go_to_game')
-            self.dump_dom('no_go_to_game')
-            raise StepFailed('the table never became ready ("Go to game" did not appear within 120 s)')
-        go.click(timeout=10000)
-        try:
-            p.wait_for_url(re.compile(r'table=\d+'), timeout=60000)
-        except Exception:
-            self.snap('no_table_url')
-            raise StepFailed('"Go to game" did not open a table page')
-        self.table_id = re.search(r'table=(\d+)', p.url).group(1)
+        tid = self.create_started_table()
+        self.table_id = tid
+        time.sleep(5)
+        self.page.goto(f'{STUDIO}/table?table={tid}', wait_until='domcontentloaded', timeout=60000)
         self.wait_ready()
-
-    def find_table_id(self, seconds):
-        p = self.page
-        end = time.time() + seconds
-        while time.time() < end:
-            m = re.search(r'[?&]table=(\d+)', p.url)
-            if m:
-                return m.group(1)
-            try:
-                hrefs = p.evaluate("() => [...document.querySelectorAll('a[href*=\"table=\"]')].map(a => a.href)")
-            except Exception:
-                hrefs = []
-            ids = [int(m.group(1)) for h in hrefs for m in [re.search(r'[?&]table=(\d+)', h)] if m]
-            if ids:
-                return str(max(ids))   # the panel also lists older tables; the newest has the highest id
-            time.sleep(2)
-        return None
-
-    def select_players(self):
-        """The Players number dropdown (options 2..max) on the game panel."""
-        n = str(self.players)
-        try:
-            self.dropdown(re.compile(r'^\s*\d\s*$')).click(timeout=5000)
-            self.page.locator('button.bga-dropdown-option', has_text=re.compile(rf'^\s*{n}\s*$')).first.click(timeout=5000)
-            self.snap('players_selected')
-        except Exception as e:
-            self.console.append(f'note: could not set {n} players on the game panel: {str(e)[:80]}')
 
     def wait_ready(self, timeout=120000):
         end = time.time() + timeout / 1000
