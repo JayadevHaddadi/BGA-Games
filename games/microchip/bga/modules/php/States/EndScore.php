@@ -22,7 +22,7 @@ class EndScore extends GameState
     ) {
         parent::__construct(
             $game,
-            id: 99,
+            id: 90,
             type: StateType::GAME,
         );
     }

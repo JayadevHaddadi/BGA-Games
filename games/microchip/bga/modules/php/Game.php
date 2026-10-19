@@ -406,6 +406,12 @@ class Game extends \Bga\GameFramework\Table
         $this->gamestate->jumpToState($state);
     }
 
+    /** Studio debug menu: zombie-driven autoplay to the end of the game (used by tools/e2e/studio_play.py). */
+    public function debug_playToEnd()
+    {
+        $this->debug->playUntil(fn(int $count) => ($this->gamestate->getCurrentMainStateId() ?? 0) >= 99 || $count >= 800);
+    }
+
     public function upgradeTableDb($from_version)
     {
         // First public version: nothing to migrate. dbmodel.sql drops and recreates every table.

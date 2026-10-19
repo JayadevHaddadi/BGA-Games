@@ -35,18 +35,18 @@ class Game extends \Bga\GameFramework\Table
 
     protected function setupNewGame($players, $options = [])
     {
-        $defaultColors = ['4caf50', 'e91e63', '2196f3'];
+        $gameinfos = $this->getGameinfos();
+        $defaultColors = $gameinfos['player_colors'];
         $values = [];
-        $i = 0;
         foreach ($players as $pid => $player) {
             $values[] = vsprintf("(%s, '%s', '%s')", [
                 $pid,
-                $defaultColors[$i % count($defaultColors)],
+                array_shift($defaultColors),
                 addslashes($player['player_name']),
             ]);
-            $i++;
         }
         static::DbQuery("INSERT INTO `player` (`player_id`, `player_color`, `player_name`) VALUES " . implode(',', $values));
+        $this->reattributeColorsBasedOnPreferences($players, $gameinfos['player_colors']);
         $this->reloadPlayersBasicInfos();
 
         $playerIds = array_map('intval', array_keys($players));
@@ -262,6 +262,12 @@ class Game extends \Bga\GameFramework\Table
             'variant' => $this->isVariant(),
             'last' => $last === null ? null : $last['id'],
         ];
+    }
+
+    /** Studio debug menu: zombie-driven autoplay to the end of the game (used by tools/e2e/studio_play.py). */
+    public function debug_playToEnd()
+    {
+        $this->debug->playUntil(fn(int $count) => ($this->gamestate->getCurrentMainStateId() ?? 0) >= 99 || $count >= 800);
     }
 
     public function upgradeTableDb($from_version)
