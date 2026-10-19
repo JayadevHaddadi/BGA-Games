@@ -117,7 +117,7 @@ class Runner:
             (self.out / f'{name}.txt').write_text(text[:20000], encoding='utf-8')
             clickable = self.page.evaluate(
                 """() => [...document.querySelectorAll('a,button,[role=button],select,input')]
-                    .filter(e => e.offsetParent !== null)
+                    .filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; })
                     .map(e => (e.tagName + ' #' + e.id + ' .' + (e.className||'').toString().slice(0,40) + ' | ' +
                                (e.tagName === 'INPUT' ? ('type=' + e.type + ' name=' + e.name + ' placeholder=' + e.placeholder) : (e.innerText||'')).toString().trim().slice(0,80)))
                     .slice(0, 400)""")
@@ -154,11 +154,24 @@ class Runner:
         if err:
             raise StepFailed(f'{what}: error text on page: "{err}"')
 
-    def title(self):
+    def header(self):
+        """The BGA table header, e.g. "Move #1 Progression 0%" (present in every game)."""
         try:
-            return self.page.locator(SELECTORS['title']).first.inner_text(timeout=2000).strip()
+            body = self.page.evaluate('document.body ? document.body.innerText : ""')
         except Exception:
             return ''
+        m = re.search(r'Move #(\d+)\s*Progression\s*(\d+)\s*%', body)
+        return f'Move #{m.group(1)} Progression {m.group(2)}%' if m else ''
+
+    def title(self):
+        """Status bar text when the framework exposes it, else the table header."""
+        try:
+            text = self.page.locator(SELECTORS['title']).first.inner_text(timeout=1500).strip()
+            if text:
+                return text
+        except Exception:
+            pass
+        return self.header()
 
     def click_text(self, pattern, timeout=8000, exact_role=None):
         loc = self.page.get_by_text(pattern).first
@@ -279,16 +292,27 @@ class Runner:
     def wait_ready(self, timeout=120000):
         p = self.page
         try:
-            p.locator(SELECTORS['title']).first.wait_for(state='visible', timeout=timeout)
             p.wait_for_function(
-                "() => { const t = document.querySelector('%s'); return t && t.innerText.trim().length > 0 && "
-                "!/loading/i.test(document.body.innerText.slice(0, 4000)); }" % SELECTORS['title'].replace("'", "\\'"),
+                "() => /Move #\\d+\\s*Progression\\s*\\d+\\s*%/.test(document.body.innerText) && "
+                "!/loading game|application loading/i.test(document.body.innerText.slice(0, 3000))",
                 timeout=timeout)
         except Exception:
             self.snap('not_ready')
             self.dump_dom('not_ready')
             self.check('game did not finish loading')
-            raise StepFailed('game did not finish loading (no status bar text)')
+            raise StepFailed('game did not finish loading (no "Move #/Progression" table header)')
+
+    def dump_debug(self, name):
+        """Elements that look like the Studio debug control, with their HTML (no input values)."""
+        try:
+            rows = self.page.evaluate("""() => [...document.querySelectorAll('*')].filter(e => {
+                const t = ((e.id || '') + ' ' + (e.className && e.className.toString ? e.className.toString() : '') + ' ' +
+                           (e.getAttribute('title') || '') + ' ' + (e.getAttribute('aria-label') || '')).toLowerCase();
+                return /debug|bug/.test(t);
+            }).slice(0, 25).map(e => e.outerHTML.replace(/\s+/g, ' ').slice(0, 260))""")
+            (self.out / f'{name}_debug_candidates.txt').write_text('\n'.join(rows), encoding='utf-8')
+        except Exception as e:
+            self.console.append(f'debug dump failed: {e}')
 
     def run_debug(self, name):
         """Open the Studio debug menu and run debug_<name>."""
@@ -486,6 +510,16 @@ def main():
         if a.probe:
             r.snap('probe_table')
             r.dump_dom('probe_table')
+            r.dump_debug('probe_table')
+            try:
+                p2 = r.page.locator('[id*="debug" i], [class*="debug" i], [title*="debug" i], [class*="bug" i], [id*="bug" i]').first
+                p2.click(timeout=5000)
+                time.sleep(1.5)
+                r.snap('probe_debug_open')
+                r.dump_dom('probe_debug_open')
+            except Exception as e:
+                r.console.append(f'note: no debug control to click: {str(e)[:100]}')
+                r.write_reports(dict(meta, finished=datetime.datetime.utcnow().isoformat()))
             print('probe done, see', out)
             browser.close()
             return 0
