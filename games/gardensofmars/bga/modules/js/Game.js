@@ -1192,11 +1192,9 @@ export class Game {
         const myId = this.getCurrentPlayerId() || 0;
         const myGardeners = Object.values(this.gamedatas?.gardeners || {}).filter(g => String(g.player_id) === String(myId));
         const myUnplaced = myGardeners.find(g => g.q === null || g.q === undefined);
-        const needsMyPlacement = !!myUnplaced;
 
-        const isActive = isCurrentPlayerActive !== null
-            ? !!isCurrentPlayerActive
-            : (this.isCurrentPlayerActive() || needsMyPlacement);
+        // Only the active player places (one at a time). Having an unplaced gardener does not make it your turn.
+        const isActive = isCurrentPlayerActive !== null ? !!isCurrentPlayerActive : this.isCurrentPlayerActive();
 
         if (!isActive) {
             this.bga?.statusBar?.setTitle?.(_('Waiting for other players to choose their starting position...'));
