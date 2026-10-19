@@ -168,7 +168,10 @@ class Runner:
                 self.dump_dom('login_form_missing')
                 raise StepFailed('no "Email or username" field found on the Studio page (adjust USERNAME_PLACEHOLDER)')
         user_box.fill(user)
-        p.get_by_role('button', name=re.compile(r'^next$', re.I)).first.click(timeout=8000)
+        try:
+            p.get_by_text(re.compile(r'^next$', re.I)).first.click(timeout=8000)
+        except Exception:
+            p.keyboard.press('Enter')
         try:
             pass_box.wait_for(state='visible', timeout=20000)
         except Exception:
@@ -419,6 +422,8 @@ def main():
             r.login(*creds)
             r.open_table()
         except Exception as e:
+            r.snap('setup_failed')
+            r.dump_dom('setup_failed')
             r.results.append({'scenario': 'setup', 'status': 'fail', 'detail': str(e), 'seconds': 0})
             print('[FAIL] setup', e)
             meta['finished'] = datetime.datetime.utcnow().isoformat()
