@@ -12,21 +12,24 @@ This document tracks publisher/designer permissions, communications, contact inf
 | **KILN** | Néstor Romeral Andrés | Eclipse Editorial / nestorgames | ✅ **BGA License Granted (2026-10-01)** | Active Dev (`kiln`) |
 | **nestorgames GP** | Néstor Romeral Andrés | nestorgames | ✅ **BGA License Granted (2026-10-01)** | Active Dev (`nestorgamesgp`) |
 | **Gardens of Uranus** | Néstor Romeral Andrés | nestorgames | ✅ **BGA License Granted (2026-10-01)** | Active Dev (`gardensofuranus`) |
-| **Gardens of Mars** | Néstor Romeral Andrés | nestorgames | 🚀 **Active Dev / Approved (nestorgames)** | Active Dev (`gardensofmars`) |
-| **Gardens of Enceladus** | Néstor Romeral Andrés | nestorgames | ⚠️ **NOT CONFIRMED: no licence row yet, confirm before publisher sign-off** | Active Dev (`gardensofenceladus`) |
-| **Microchip** | Néstor Romeral Andrés | nestorgames | ⚠️ **NOT CONFIRMED: no licence row yet, confirm before publisher sign-off** | Active Dev (`microchip`) |
-| **People** | Néstor Romeral Andrés | nestorgames | ⚠️ **NOT CONFIRMED: no licence row yet, confirm before publisher sign-off** | Active Dev (`people`) |
+| **Gardens of Mars** | Néstor Romeral Andrés | nestorgames | ⚠️ **Approved by Nestor (assets sent 7 Oct), not on BGA's licence list: Nestor must add it at gamepublishers** | Private Alpha requested 9 Oct (`gardensofmars`) |
+| **Gardens of Io** | Néstor Romeral Andrés | nestorgames | ⚠️ **Not on BGA's licence list: Nestor must add it at gamepublishers** | Private Alpha 14 Oct, Public Alpha requested 14 Oct (`gardensofio`) |
+| **Gardens of Enceladus** | Néstor Romeral Andrés | nestorgames | ⚠️ **NOT CONFIRMED: not on BGA's licence list; ask Nestor to add it at gamepublishers** | Implemented, on Studio (`gardensofenceladus`) |
+| **Microchip** | Néstor Romeral Andrés | nestorgames | ⚠️ **NOT CONFIRMED: not on BGA's licence list; ask Nestor to add it at gamepublishers** | Implemented, on Studio (`microchip`) |
+| **People** | Néstor Romeral Andrés | nestorgames | ⚠️ **NOT CONFIRMED: not on BGA's licence list; ask Nestor to add it at gamepublishers** | Implemented, on Studio (`people`) |
+| **Red** | Néstor Romeral Andrés | nestorgames | ⚠️ **NOT CONFIRMED: not on BGA's licence list; ask Nestor to add it at gamepublishers** | Implemented 19 Oct (`redd`; verify bgg_id 112118) |
+| **Hippos and Crocodiles** | unknown | unknown | ⚪ **Unknown: identify the publisher** | Not started (`hipposandcrocodiles`) |
 | **Omega** | Néstor Romeral Andrés | Eclipse Editorial / nestorgames | ✅ **BGA License Granted (2024-07-24)** | Ready for Testing (`omega`) |
 | **Seven** | Néstor Romeral Andrés | Eclipse Editorial / nestorgames | ✅ **BGA License Granted (2024-07-24)** | Scaffolding / Assets In Hand |
-| **Taiji** | Néstor Romeral Andrés | Eclipse Editorial / nestorgames | ✅ **BGA License Granted (2024-07-24)** | Backlog / Approved |
+| **Taiji** | Néstor Romeral Andrés | Eclipse Editorial / nestorgames | ✅ **BGA License Granted (2024-07-24)** | Already on BGA (Nestor, 23 Sep): skip |
 | **Pent-Up** | Néstor Romeral Andrés | Eclipse Editorial / nestorgames | ✅ **BGA License Granted (2024-09-05)** | Backlog / Approved |
 | **Counterplays** | Néstor Romeral Andrés | Eclipse Editorial / nestorgames | ✅ **BGA License Granted (2024-09-05)** | Backlog / Approved |
 | **Stack-22** | Néstor Romeral Andrés | Eclipse Editorial / nestorgames | ✅ **BGA License Granted (2024-09-05)** | Backlog / Approved |
 | **Line or Colour** | Néstor Romeral Andrés | Eclipse Editorial / nestorgames | ✅ **BGA License Granted (2025-03-27)** | Backlog / Approved |
-| **Push Fight / Tsuki-Dashi** | Brett Picotte | Tinkerhouse Games (Mike) | 🤝 **In Discussion with Tinkerhouse (2026-10-07)** | Sublicense & Tsuki-Dashi Branding (`pushfight`) |
+| **Push Fight / Tsuki-Dashi** | Brett Picotte | Tinkerhouse Games (Mike) | 🤝 **In discussion; BGA asked (29 Sep) that Mike adds the licence at gamepublishers** | Sublicense & Tsuki-Dashi Branding (`pushfight`) |
 | **Mandala** | Trevor Benjamin, Brett J. Gilbert | Lookout Games / Asmodee | ✅ **Live / Released** | Maintained (`mandala`) |
-| **Yavalath** | Cameron Browne, Ludi | Cameron Browne / Cyberite Ltd | 🚀 **Public Alpha (2026-10-06)** | Reviewer Testing (`yavalath`) |
-| **Lords of Scotland**| Richard James (Evertide Games) | Rights reverted to designer | 🔴 **Blocked: need designer contact** | Core Engine Ready (`lordsofscotland`) |
+| **Yavalath** | Cameron Browne, Ludi | Cameron Browne / Cyberite Ltd | ⚠️ **Public Alpha (2026-10-06); licence form was filled by us on Cameron's behalf, confirmation mail came to us: Cameron must submit or confirm it** | Reviewer Testing (`yavalath`) |
+| **Lords of Scotland**| Richard James (Evertide Games) | Rights reverted to designer | 🔴 **Blocked: need designer contact (Lupe silent since 3 Oct)** | Core Engine Ready (`lordsofscotland`) |
 | **Amazons** | Walter Zamkauskas | nestorgames (edition) | ⚪ Inquiry Sent | Backlog |
 | **ConHex** | Michail Antonow | nestorgames (edition) | ⚪ Inquiry Sent | Backlog |
 
