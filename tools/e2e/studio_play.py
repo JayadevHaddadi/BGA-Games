@@ -205,16 +205,29 @@ class Runner:
         self.dump_dom('login_failed')
         raise StepFailed('login failed (' + ' | '.join(summary) + ')')
 
+    def dropdown(self, label_re):
+        return self.page.locator('button.bga-dropdown-button', has_text=label_re).first
+
     def open_table(self):
         p = self.page
         p.goto(f'{STUDIO}/gamepanel?game={self.game}', wait_until='domcontentloaded', timeout=60000)
+        try:
+            p.wait_for_function("() => !/application loading/i.test(document.body.innerText.slice(0, 600))", timeout=30000)
+        except Exception:
+            pass
+        time.sleep(2)
         self.snap('gamepanel')
+        self.dump_dom('gamepanel')
         self.select_players()
         try:
-            self.click_text(EXPRESS_START_TEXT, timeout=20000)
+            self.dropdown(re.compile(r'^\s*play\s*$', re.I)).click(timeout=10000)
+            time.sleep(1)
+            self.snap('play_dropdown')
+            self.dump_dom('play_dropdown')
+            self.click_text(EXPRESS_START_TEXT, timeout=8000)
         except Exception:
             self.dump_dom('no_express_start')
-            raise StepFailed('no "Express start" control on the game panel (project missing, or page changed)')
+            raise StepFailed('no "Express start" entry in the PLAY dropdown of the game panel (see play_dropdown dumps)')
         try:
             p.wait_for_url(re.compile(r'[?&]table=\d+'), timeout=90000)
         except Exception:
@@ -224,20 +237,14 @@ class Runner:
         self.wait_ready()
 
     def select_players(self):
-        """Studio offers a player-count choice before Express start; the control is unverified."""
-        p = self.page
+        """The Players number dropdown (options 2..max) on the game panel."""
         n = str(self.players)
         try:
-            sel = p.locator('select').filter(has=p.locator(f'option[value="{n}"]')).first
-            if sel.is_visible(timeout=1500):
-                sel.select_option(n)
-                return
-        except Exception:
-            pass
-        try:
-            p.get_by_role('button', name=re.compile(rf'^{n}$')).first.click(timeout=1500)
-        except Exception:
-            self.console.append(f'note: could not find a player-count control for {n} players; table uses the default')
+            self.dropdown(re.compile(r'^\s*\d\s*$')).click(timeout=5000)
+            self.page.locator('button.bga-dropdown-option', has_text=re.compile(rf'^\s*{n}\s*$')).first.click(timeout=5000)
+            self.snap('players_selected')
+        except Exception as e:
+            self.console.append(f'note: could not set {n} players on the game panel: {str(e)[:80]}')
 
     def wait_ready(self, timeout=120000):
         p = self.page
