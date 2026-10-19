@@ -6,7 +6,7 @@
   python3 tools/e2e/studio_play.py gardensofenceladus --probe     # log in, dump page structure, no assertions
   python3 tools/e2e/studio_play.py --selftest                     # check the runner itself, no login needed
 
-Scenarios (default: all): load, refresh, autoplay, zombie, replay.
+Scenarios (default: all): load, refresh, autoplay, replay (after the game ended), zombie (own table).
 Output (default tools/e2e/out/<game>-<players>p/): report.json, report.md, numbered screenshots, DOM dumps on failure.
 Exit code: 0 all passed, 1 a scenario failed, 2 no credentials / setup problem.
 
@@ -377,16 +377,25 @@ class Runner:
             rows += [f'[frame {i}] {x}' for x in found]
         (self.out / f'{name}_debug_candidates.txt').write_text('\n'.join(rows), encoding='utf-8')
 
-    def run_debug(self, name):
-        """Open the Studio debug menu and run debug_<name>."""
-        p = self.page
+    def play_to_end(self):
+        """Studio's debug panel (bug icon): the game's own debug_playToEnd button if it has one, otherwise the built-in
+        "play moves using zombie code" button, double-clicked to play to the end of the game."""
+        gf = self.game_frame()
         try:
-            self.click_text(DEBUG_MENU_TEXT, timeout=8000)
-            p.get_by_text(re.compile(re.escape(name), re.I)).first.click(timeout=8000)
-        except Exception:
+            panel = gf.locator('#toggleDebugFunctionsPanel')
+            if not panel.is_visible():
+                gf.locator('#toggleDebugFunctions').click(timeout=8000)
+                time.sleep(1)
+            if gf.locator('#debug_playToEnd').count():
+                gf.locator('#debug_playToEnd').click(timeout=8000)
+                self.console.append('note: autoplay via the game\'s debug_playToEnd')
+            else:
+                gf.locator('#debug_play_moves').dblclick(timeout=8000)
+                self.console.append('note: autoplay via the built-in zombie play button (double click)')
+        except Exception as e:
             self.snap('debug_menu_missing')
             self.dump_dom('debug_menu_missing')
-            raise StepFailed(f'Studio debug menu or "{name}" entry not found')
+            raise StepFailed(f'Studio debug panel not usable (#toggleDebugFunctions / #debug_play_moves): {str(e)[:100]}')
 
     def wait_end(self, timeout=420):
         end = time.time() + timeout
@@ -438,30 +447,30 @@ class Runner:
             raise StepFailed(f'state changed over a refresh: "{before}" -> "{after}"')
 
     def s_autoplay(self):
-        self.run_debug('playToEnd')
+        self.play_to_end()
         self.wait_end()
         self.snap('game_end')
         self.check('at game end')
 
     def s_zombie(self):
-        """Current player quits; the rest of the game must still be playable to the end."""
+        """The test account quits (from the table page); the game must carry on or end cleanly, with no error."""
+        p = self.page
+        p.goto(f'{STUDIO}/table?table={self.table_id}', wait_until='domcontentloaded', timeout=60000)
         try:
-            self.click_text(QUIT_TEXT, timeout=6000)
+            p.get_by_text(QUIT_TEXT).first.click(timeout=10000)
         except Exception:
-            try:
-                self.page.locator('#bga-menu-button, .bga-menu, [id*="menu"]').first.click(timeout=3000)
-                self.click_text(QUIT_TEXT, timeout=6000)
-            except Exception:
-                self.dump_dom('quit_missing')
-                raise StepFailed('"Quit game" control not found (unverified UI path)')
+            self.snap('quit_missing')
+            self.dump_dom('quit_missing')
+            raise StepFailed('"Quit game" button not found on the table page')
+        time.sleep(2)
+        self.snap('quit_dialog')
         try:
             self.click_text(CONFIRM_TEXT, timeout=5000)
         except Exception:
             pass
-        time.sleep(5)
+        time.sleep(6)
         self.check('after a player quit')
         self.snap('after_quit')
-        self.s_autoplay()
 
     def s_replay(self):
         try:
@@ -532,7 +541,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('game', nargs='?')
     ap.add_argument('--players', default='2', help='a number, or "max" for the game\'s maximum')
-    ap.add_argument('--scenarios', default='load,refresh,autoplay,zombie,replay')
+    ap.add_argument('--scenarios', default='load,refresh,autoplay,replay,zombie')
     ap.add_argument('--out', help='output folder')
     ap.add_argument('--headed', action='store_true')
     ap.add_argument('--probe', action='store_true', help='log in, open a table, dump the page structure, assert nothing')
