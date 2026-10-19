@@ -113,6 +113,13 @@ class Runner:
             self.console.append(f'screenshot failed: {e}')
         return path.name
 
+    def game_frame(self):
+        """The frame that holds the game (Studio wraps it: /tableview?table=N > /<server>/<game>?table=N)."""
+        for f in self.page.frames:
+            if re.search(rf'/\d+/{self.game}\?', f.url):
+                return f
+        return self.page.main_frame
+
     def all_text(self):
         """Visible text of the main page and every frame (the table page may render the game in a frame)."""
         parts = []
@@ -139,12 +146,18 @@ class Runner:
         try:
             text = self.page.evaluate('document.body ? document.body.innerText : ""')
             (self.out / f'{name}.txt').write_text(text[:20000], encoding='utf-8')
-            clickable = self.page.evaluate(
-                """() => [...document.querySelectorAll('a,button,[role=button],select,input')]
-                    .filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; })
-                    .map(e => (e.tagName + ' #' + e.id + ' .' + (e.className||'').toString().slice(0,40) + ' | ' +
-                               (e.tagName === 'INPUT' ? ('type=' + e.type + ' name=' + e.name + ' placeholder=' + e.placeholder) : (e.innerText||'')).toString().trim().slice(0,80)))
-                    .slice(0, 400)""")
+            clickable = []
+            for i, f in enumerate(self.page.frames):
+                try:
+                    rows = f.evaluate(
+                        """() => [...document.querySelectorAll('a,button,[role=button],select,input,[onclick],[id]')]
+                            .filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; })
+                            .map(e => (e.tagName + ' #' + e.id + ' .' + (e.className||'').toString().slice(0,40) + ' title=' + (e.getAttribute('title')||'') + ' | ' +
+                                       (e.tagName === 'INPUT' ? ('type=' + e.type + ' name=' + e.name + ' placeholder=' + e.placeholder) : (e.innerText||'')).toString().trim().slice(0,60)))
+                            .slice(0, 500)""")
+                except Exception:
+                    rows = []
+                clickable += [f'[frame {i}] {r}' for r in rows]
             (self.out / f'{name}_clickable.txt').write_text('\n'.join(clickable), encoding='utf-8')
         except Exception as e:
             self.console.append(f'dom dump failed: {e}')
@@ -306,7 +319,7 @@ class Runner:
         self.dump_dom('probe_table')
         self.dump_debug('probe_table')
         try:
-            self.page.locator('#debug_menu_icon, [id*="debug" i], [class*="debug" i], [title*="debug" i]').first.click(timeout=5000)
+            self.game_frame().locator('[id*="debug" i], [class*="debug" i], [title*="debug" i], [id*="bug" i], [class*="bug" i]').first.click(timeout=5000)
             time.sleep(1.5)
             self.snap('probe_debug_open')
             self.dump_dom('probe_debug_open')
@@ -350,16 +363,19 @@ class Runner:
         raise StepFailed('game did not finish loading (no "Move #/Progression" table header in any frame)')
 
     def dump_debug(self, name):
-        """Elements that look like the Studio debug control, with their HTML (no input values)."""
-        try:
-            rows = self.page.evaluate("""() => [...document.querySelectorAll('*')].filter(e => {
-                const t = ((e.id || '') + ' ' + (e.className && e.className.toString ? e.className.toString() : '') + ' ' +
-                           (e.getAttribute('title') || '') + ' ' + (e.getAttribute('aria-label') || '')).toLowerCase();
-                return /debug|bug/.test(t);
-            }).slice(0, 25).map(e => e.outerHTML.replace(/\s+/g, ' ').slice(0, 260))""")
-            (self.out / f'{name}_debug_candidates.txt').write_text('\n'.join(rows), encoding='utf-8')
-        except Exception as e:
-            self.console.append(f'debug dump failed: {e}')
+        """Elements that look like the Studio debug control, in every frame, with their HTML (no input values)."""
+        rows = []
+        for i, f in enumerate(self.page.frames):
+            try:
+                found = f.evaluate("""() => [...document.querySelectorAll('*')].filter(e => {
+                    const t = ((e.id || '') + ' ' + (e.className && e.className.toString ? e.className.toString() : '') + ' ' +
+                               (e.getAttribute('title') || '') + ' ' + (e.getAttribute('aria-label') || '')).toLowerCase();
+                    return /debug|bug/.test(t);
+                }).slice(0, 25).map(e => e.outerHTML.replace(/\\s+/g, ' ').slice(0, 260))""")
+            except Exception:
+                found = []
+            rows += [f'[frame {i}] {x}' for x in found]
+        (self.out / f'{name}_debug_candidates.txt').write_text('\n'.join(rows), encoding='utf-8')
 
     def run_debug(self, name):
         """Open the Studio debug menu and run debug_<name>."""
