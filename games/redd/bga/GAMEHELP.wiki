@@ -1,0 +1,19 @@
+==Goal==
+
+Describe the goal in one or two sentences.
+
+==Setup==
+
+* Describe the setup.
+
+==Your turn==
+
+{| class="wikitable"
+! # !! Step !! What you do
+|-
+| 1 || '''Step name''' || What happens.
+|}
+
+==Game end==
+
+* When the game ends and how the winner is found.

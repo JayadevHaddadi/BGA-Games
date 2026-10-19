@@ -793,7 +793,7 @@ export class Game {
                     <!-- Black Tile Push Rule Indicator (Top-Left Corner) -->
                     <div class="kiln_black_rule_badge" id="kiln_black_rule_badge" role="button" tabindex="0" title="${_('Pushing black tile out gives 1 extra turn')}">
                         <div class="kiln_black_rule_tile">
-                            <span class="kiln_black_push_arrow">➔</span>
+                            <span class="kiln_black_push_arrow">&gt;</span>
                         </div>
                         <div class="kiln_black_rule_bonus">${_('+1 turn')}</div>
                     </div>

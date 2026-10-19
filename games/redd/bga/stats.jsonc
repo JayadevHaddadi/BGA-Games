@@ -1,0 +1,18 @@
+{
+    // Statistics for the table
+    "table": {},
+
+    // Statistics for each player
+    "player": {
+        "tiles_placed": {
+            "id": 10,
+            "name": "Tiles placed",
+            "type": "int"
+        },
+        "large_tiles_placed": {
+            "id": 11,
+            "name": "Large tiles placed",
+            "type": "int"
+        }
+    }
+}

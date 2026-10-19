@@ -1,0 +1,53 @@
+{
+  "_comment": "Single source for the Control Panel (Game Metadata Manager). Run: python3 tools/bga.py gmm <slug>",
+  "slug": "redd",
+  "studio_project": "redd",
+  "game_name": "Red",
+  "bgg_id": 112118,
+  "bgg_url": "https://boardgamegeek.com/boardgame/112118",
+  "year_published": null,
+  "players": null,
+  "estimated_duration_minutes": 30,
+  "publisher": {
+    "name": "nestorgames",
+    "bgg_id": 9976,
+    "website": ""
+  },
+  "designers": [
+    {
+      "name": "Néstor Romeral Andrés",
+      "bgg_id": 9976
+    }
+  ],
+  "artists": [],
+  "rules_edits": [],
+  "rules_url": null,
+  "description": "Red is an abstract tile-placement game by Néstor Romeral Andrés played with 36 tiles across three colours: black, white, and red. On each turn, players draft tiles showing contrasting backgrounds and inner circles, placing them adjacent on an expanding shared grid. Points are scored at game end by multiplying the size of your largest connected border group by your largest connected circle group.",
+  "zombie_mode_level": 1,
+  "tags": [],
+  "tags_note": "PROPOSAL: pick from BGA's tag list in the Control Panel.",
+  "characteristics": {
+    "complexity": 3,
+    "luck": 2,
+    "strategy": 3,
+    "diplomacy": 1,
+    "note": "PROPOSAL: sliders 1 to 5 in the Control Panel only."
+  },
+  "licence": {
+    "status": "NOT CONFIRMED",
+    "note": "Add a row to LICENSING_TRACKER.md and confirm before publisher sign-off."
+  },
+  "assets": {
+    "box": "metadata_assets/box_280x280.png",
+    "icon": "metadata_assets/icon_50x50.png",
+    "icon_hi": "metadata_assets/icon_500x500.png",
+    "banner": "metadata_assets/banner_1386x400.jpg",
+    "banner_wide": "metadata_assets/banner_1920x556.jpg",
+    "title": "metadata_assets/title_2000x2000.png",
+    "publisher": "metadata_assets/publisher_280x280.png",
+    "display": [
+      "metadata_assets/display_1.jpg",
+      "metadata_assets/display_2.jpg"
+    ]
+  }
+}

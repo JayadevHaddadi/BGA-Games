@@ -31,6 +31,7 @@ on:
           - gardensofenceladus
           - microchip
           - people
+          - redd
           # <bga:options>  (tools/bga.py register inserts new games above this line)
 
 jobs:

@@ -1,0 +1,92 @@
+== Overview ==
+Where do all the wooden and clay tiles in board games come from? They are fired in the '''Kiln'''!
+
+In '''Kiln''', 2 to 4 players operate a shared high-temperature kiln (a 6×6 grid). Players manipulate the kiln by pushing tiles through rows and columns. When connected groups of tiles in a player's color form in the kiln, the player extracts and replicates that shape onto their private 5×5 '''Warehouse'''.
+
+Completely filled rows or columns in the warehouse can be sold to game publishers for victory points. The first player to reach the winning score threshold wins the game.
+
+* '''Designer:''' Néstor Romeral Andrés
+* '''Publisher:''' [https://nestorgames.com nestorgames]
+* '''Players:''' 2–4 players (plus a 2-color 2-player variant)
+* '''Game Length:''' 15–30 minutes
+
+== Components ==
+* '''The Kiln Board (6×6):''' A shared central grid holding 36 tiles, surrounded by 24 perimeter arrow slots (6 on each side).
+* '''Tiles (37 total):'''
+*:* 36 Colored Tiles: 9 Red, 9 Blue, 9 Green, 9 Yellow.
+*:* 1 Neutral Black Tile.
+* '''Player Warehouses (5×5):''' A private storage board for each player.
+* '''Scoring Track (0 to 29):''' Tracks victory points, with a goal marker disc (default: 17 points).
+
+== Objective ==
+The game ends '''immediately''' when a player reaches or exceeds the target score (default: '''17 points'''). That player is the winner.
+
+== Turn Sequence ==
+Play proceeds clockwise. On your turn, you must perform the following phases in order:
+
+=== 1. Relocate the Outer Tile ===
+Take the current '''Outer Tile''' from the perimeter and place it onto '''any different empty border arrow''' among the remaining 23 border slots. You cannot leave it where it started.
+
+=== 2. Push into the Kiln ===
+Push the tile into the kiln along the row or column indicated by the arrow:
+* All 6 tiles in that line slide forward by 1 space.
+* The tile at the far opposite end is pushed out of the kiln and becomes the '''new Outer Tile''' for the next turn.
+
+=== 3. Identify the Largest Connected Group ===
+Look at the tiles of your color inside the 6×6 kiln:
+* Find your '''largest orthogonally connected group''' (connected by edges; diagonal adjacency does not count).
+* If there is a tie for your largest group size, you choose which one of the tied groups to copy.
+
+=== 4. Copy the Shape into Your Warehouse ===
+Replicate the exact polyomino shape into empty spaces in your personal 5×5 warehouse:
+* '''Fixed Orientation:''' The shape '''cannot be rotated''' and '''cannot be mirrored/flipped'''. It must match the kiln's orientation exactly.
+* '''Legality:''' Every cell of the shape must land on an empty warehouse square.
+* '''Skip if Impossible:''' If your largest group does not fit anywhere in your warehouse, you place nothing this turn. You cannot choose a smaller group instead.
+
+=== 5. Optional Selling Phase (Scoring) ===
+If you have completed entire rows or columns (5 filled cells), you may optionally sell them for victory points:
+* '''Either/Or Rule:''' You may sell '''Rows''' OR '''Columns''' in a single turn. You '''cannot mix''' rows and columns in the same sale!
+* Points follow triangular numbers based on how many lines you sell at once:
+
+{| class="wikitable" style="text-align:center;"
+|-
+! Completed Lines Sold !! Points Earned
+|-
+| '''1 Line''' || '''1 pt'''
+|-
+| '''2 Lines''' || '''3 pts'''
+|-
+| '''3 Lines''' || '''6 pts'''
+|-
+| '''4 Lines''' || '''10 pts'''
+|-
+| '''5 Lines (Wipeout)''' || '''15 pts'''
+|}
+
+* Erase the sold lines from your warehouse. Any tiles in unsold perpendicular lines remain in place.
+
+=== 6. Extra Turn Check ===
+* If the tile pushed out in Step 2 was the '''Black Neutral Tile''', you immediately take an '''extra turn'''!
+* Otherwise, the turn passes clockwise to the next player.
+
+== Variants & Options ==
+
+=== Fixing the Mess ===
+''Recommended for beginners and standard play.''
+
+If your largest shape cannot legally fit into your warehouse, you are allowed to '''erase 1 cell''' of your choice from your warehouse before proceeding to the selling phase.
+
+=== Heating up the Kiln ===
+Bonus spaces are active on spaces '''5, 8, 14, 17, 19, 23, and 26''' of the score track. Landing '''exactly''' on one of these spaces grants an immediate extra turn (maximum 1 extra turn per turn sequence).
+
+=== Advanced 2-Player (2 Colors Each) ===
+In a 2-player game, each player controls 2 colors with 2 separate warehouses and score discs:
+* On your turn, make 1 push in the kiln.
+* Copy 1 shape for Color A to Warehouse A, and 1 shape for Color B to Warehouse B.
+* Conduct optional sales for Warehouse A, then Warehouse B.
+
+== Strategy Tips ==
+* '''Triangular Scoring:''' Selling 1 line only gives 1 point, but 3 lines yield 6 points and 5 lines award 15 points. Gathering lines for multi-line sales is vastly more rewarding than selling single lines.
+* '''Keep Space Open:''' Creating huge color groups (5+ tiles) in the kiln can backfire if your warehouse gets too crowded to place them.
+* '''Disrupt Opponents:''' Use your push to split your opponents' clusters or push undesirable colors to merge their groups into shapes that won't fit into their warehouses.
+* '''Track the Black Tile:''' Watch where the neutral black tile is moving through the kiln; triggering its ejection grants a crucial extra turn.
