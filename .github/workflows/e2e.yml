@@ -102,7 +102,7 @@ jobs:
               python3 tools/e2e/studio_play.py "$g" --players "$p" || failed="$failed $g"
             done
           done
-          echo "failed=$(echo $failed | tr ' ' '\n' | sort -u | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
+          echo "failed=$(echo $failed | xargs -n1 2>/dev/null | sort -u | xargs)" >> "$GITHUB_OUTPUT"
 
       - name: Summary
         if: always() && steps.secret.outputs.ready == 'true'
