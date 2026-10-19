@@ -32,7 +32,7 @@ STUDIO = 'https://studio.boardgamearena.com'
 # ---- Guesses about Studio's page structure: adjust here after the first --probe run. ---------------------
 SELECTORS = {
     'username': 'input[name="email"], input#username_input, input[type="email"], input[type="text"]',
-    'password': 'input[type="password"]',
+    'password': 'input[type="password"], input[placeholder*="assword" i]',
     'title': '#pagemaintitletext',          # BGA status bar text (current state / "End of game")
     'play_area': '#game_play_area',
 }
@@ -90,6 +90,8 @@ class Runner:
         self.table_id = None
         page.on('console', self._on_console)
         page.on('pageerror', lambda e: self.console.append(f'pageerror: {e}'))
+        self.net = []
+        page.on('response', lambda r: self.net.append(f'{r.status} {r.request.method} {r.url[:140]}') if (r.status >= 400 or re.search(r'account|login|auth', r.url)) else None)
         page.on('dialog', lambda d: (self.console.append(f'js dialog: {d.message}'), d.accept()))
 
     def _on_console(self, msg):
@@ -122,6 +124,19 @@ class Runner:
             (self.out / f'{name}_clickable.txt').write_text('\n'.join(clickable), encoding='utf-8')
         except Exception as e:
             self.console.append(f'dom dump failed: {e}')
+
+    def dump_inputs(self, name):
+        """Every input with type, name, placeholder and real visibility. Never reads values."""
+        try:
+            rows = self.page.evaluate(
+                """() => [...document.querySelectorAll('input,textarea')].map(e => {
+                    const r = e.getBoundingClientRect(), cs = getComputedStyle(e);
+                    const vis = r.width > 0 && r.height > 0 && cs.visibility !== 'hidden' && cs.display !== 'none' && cs.opacity !== '0';
+                    return `${vis ? 'VISIBLE' : 'hidden '} type=${e.type} name=${e.name} placeholder=${e.placeholder} autocomplete=${e.autocomplete} class=${(e.className||'').toString().slice(0,50)} w=${Math.round(r.width)}`;
+                })""")
+            (self.out / f'{name}_inputs.txt').write_text('\n'.join(rows) + '\n\nNETWORK:\n' + '\n'.join(self.net[-60:]), encoding='utf-8')
+        except Exception as e:
+            self.console.append(f'inputs dump failed: {e}')
 
     def page_error(self):
         try:
@@ -184,6 +199,7 @@ class Runner:
                 self.snap(f'login_next_attempt_{attempt + 1}')
         if not shown:
             self.dump_dom('login_no_password_step')
+            self.dump_inputs('login_no_password_step')
             raise StepFailed('no password field after "Next" (unknown username, captcha, or changed flow)')
         pass_box.fill(password)
         p.keyboard.press('Enter')
