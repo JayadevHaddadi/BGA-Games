@@ -116,7 +116,7 @@ class Runner:
                 """() => [...document.querySelectorAll('a,button,[role=button],select,input')]
                     .filter(e => e.offsetParent !== null)
                     .map(e => (e.tagName + ' #' + e.id + ' .' + (e.className||'').toString().slice(0,40) + ' | ' +
-                               (e.innerText||e.value||e.placeholder||e.name||'').toString().trim().slice(0,60)))
+                               (e.tagName === 'INPUT' ? ('type=' + e.type + ' name=' + e.name + ' placeholder=' + e.placeholder) : (e.innerText||'')).toString().trim().slice(0,80)))
                     .slice(0, 400)""")
             (self.out / f'{name}_clickable.txt').write_text('\n'.join(clickable), encoding='utf-8')
         except Exception as e:
@@ -153,15 +153,21 @@ class Runner:
     def login(self, user, password):
         p = self.page
         p.goto(STUDIO + '/', wait_until='domcontentloaded', timeout=60000)
+        self.snap('login_page')
+        self.dump_dom('login_page')
         if not p.locator(SELECTORS['password']).first.is_visible():
-            try:
-                p.get_by_role('link', name=LOGIN_BUTTON_TEXT).first.click(timeout=5000)
-            except Exception:
+            for role in ('link', 'button'):
                 try:
-                    p.get_by_role('button', name=LOGIN_BUTTON_TEXT).first.click(timeout=5000)
+                    p.get_by_role(role, name=LOGIN_BUTTON_TEXT).first.click(timeout=5000)
+                    break
                 except Exception:
                     pass
-        p.locator(SELECTORS['password']).first.wait_for(state='visible', timeout=20000)
+        try:
+            p.locator(SELECTORS['password']).first.wait_for(state='visible', timeout=20000)
+        except Exception:
+            self.snap('login_form_missing')
+            self.dump_dom('login_form_missing')
+            raise StepFailed('no password field found on the Studio login page (see login_page dumps; adjust SELECTORS)')
         p.locator(SELECTORS['username']).first.fill(user)
         p.locator(SELECTORS['password']).first.fill(password)
         p.keyboard.press('Enter')
@@ -405,7 +411,7 @@ def main():
         try:
             r.login(*creds)
             r.open_table()
-        except StepFailed as e:
+        except Exception as e:
             r.results.append({'scenario': 'setup', 'status': 'fail', 'detail': str(e), 'seconds': 0})
             print('[FAIL] setup', e)
             meta['finished'] = datetime.datetime.utcnow().isoformat()
