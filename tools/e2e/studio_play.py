@@ -256,47 +256,46 @@ class Runner:
             return m ? m[1] : null;
         }""", self.game)
 
-    def probe_tables(self):
-        """First live run: log what the panel posts, then try the table API used by tools/studio_table.py."""
-        p = self.page
-        p.goto(f'{STUDIO}/gamepanel?game={self.game}', wait_until='domcontentloaded', timeout=60000)
-        time.sleep(4)
-        for _ in range(3):
-            try:
-                p.get_by_text(re.compile(r'^\s*cancel\s*$', re.I)).first.click(timeout=2500)
-                time.sleep(3)
-            except Exception:
-                break
-        self.snap('panel_idle')
-        self.posts.append('--- panel: choosing 3 players and pressing Start ---')
-        self.players = 3
-        self.select_players()
-        try:
-            p.get_by_text(re.compile(r'search for players', re.I)).first.click(timeout=8000)
-        except Exception as e:
-            self.console.append(f'note: Start not clickable: {str(e)[:80]}')
-        time.sleep(10)
-        self.snap('panel_after_start')
-        self.dump_dom('panel_after_start')
-        self.posts.append('--- api: createnew + startgame ---')
+    EXPRESS_ENDPOINTS = ('expressGameStart', 'expressStart', 'startExpress', 'expressgamestart')
+
+    def create_started_table(self):
+        """createnew (manual mode) -> wanted players -> Express start, all through the endpoints the panel itself uses.
+        Returns the table id. Raises StepFailed with the server's own message."""
         gid = self.game_id()
-        self.console.append(f'note: game id {gid}')
+        if not gid:
+            raise StepFailed('could not read the game id from the game panel (project missing?)')
         res = self.api('/table/table/createnew.html', {'game': str(gid), 'mode': '1'})
-        self.console.append(f'note: createnew {json.dumps(res, default=str)[:300]}')
+        self.console.append(f'note: createnew {json.dumps(res, default=str)[:200]}')
         tid = res.get('data', {}).get('table') if isinstance(res.get('data'), dict) else None
-        if tid:
-            res2 = self.api('/table/table/startgame.html', {'table': str(tid)})
-            self.console.append(f'note: startgame {json.dumps(res2, default=str)[:300]}')
-            time.sleep(6)
-            p.goto(f'{STUDIO}/table?table={tid}', wait_until='domcontentloaded', timeout=60000)
-            self.table_id = str(tid)
-            try:
-                self.wait_ready(60000)
-            except Exception as e:
-                self.console.append(f'note: table page not ready: {str(e)[:100]}')
-            self.snap('probe_table')
-            self.dump_dom('probe_table')
-            self.dump_debug('probe_table')
+        if not tid:
+            raise StepFailed(f'createnew failed: {res.get("error") or res.get("raw")}')
+        tid = str(tid)
+        res = self.api('/table/table/changeWantedPlayers.html', {'table': tid, 'minp': str(self.players), 'maxp': str(self.players)})
+        self.console.append(f'note: changeWantedPlayers {json.dumps(res, default=str)[:200]}')
+        started = False
+        for name in self.EXPRESS_ENDPOINTS:
+            res = self.api(f'/table/table/{name}.html', {'table': tid})
+            self.console.append(f'note: {name} {json.dumps(res, default=str)[:240]}')
+            if res.get('http') == 200 and str(res.get('status')) == '1':
+                started = True
+                break
+        if not started:
+            raise StepFailed(f'Express start through the API failed (see the notes in this report); table {tid}')
+        return tid
+
+    def probe_tables(self):
+        """First live run: create and start a table through the API, open it, and dump the page layout and debug menu."""
+        tid = self.create_started_table()
+        time.sleep(6)
+        self.page.goto(f'{STUDIO}/table?table={tid}', wait_until='domcontentloaded', timeout=60000)
+        self.table_id = tid
+        try:
+            self.wait_ready(90000)
+        except Exception as e:
+            self.console.append(f'note: table page not ready: {str(e)[:100]}')
+        self.snap('probe_table')
+        self.dump_dom('probe_table')
+        self.dump_debug('probe_table')
 
     def dropdown(self, label_re):
         return self.page.locator('button.bga-dropdown-button', has_text=label_re).first
