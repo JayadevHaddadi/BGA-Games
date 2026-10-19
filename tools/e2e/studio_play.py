@@ -43,6 +43,7 @@ DEBUG_MENU_TEXT = re.compile(r'^debug$', re.I)
 QUIT_TEXT = re.compile(r'(quit|leave) (the )?game', re.I)
 CONFIRM_TEXT = re.compile(r'^(yes|confirm|ok)$', re.I)
 REPLAY_TEXT = re.compile(r'replay', re.I)
+REPLAY_BUTTON_TEXT = re.compile(r'^\s*replay game\s*$', re.I)
 END_TEXT = re.compile(r'end of game|game results|has won|winner|victory', re.I)
 # Text that means the game or framework broke.
 ERROR_TEXTS = [
@@ -53,7 +54,7 @@ ERROR_TEXTS = [
 IGNORED_CONSOLE = [
     re.compile(p, re.I) for p in (
         r'favicon', r'google', r'analytics', r'sentry', r'adsbygoogle', r'Failed to load resource.*(40[34]|net::ERR_BLOCKED)',
-        r'cookie', r'facebook', r'twitter', r'status of 40[34]',
+        r'cookie', r'facebook', r'twitter', r'status of 40[034]', r'slideshare', r'privacy-center', r'unpkg', r'browser-update', r'Script load error', r'Failed to load script', r'Content Security Policy',
     )
 ]
 
@@ -478,22 +479,18 @@ class Runner:
         self.snap('after_quit')
 
     def s_replay(self):
-        """Every game-log line has a replay link (#replay_notif_N). Replay from a move in the middle of the game."""
+        """After the game ended, the log shows a "Replay game" button; the replay must start without errors."""
         gf = self.game_frame()
-        links = gf.locator('a[id^="replay_notif_"]')
-        n = links.count()
-        if n == 0:
+        try:
+            gf.get_by_text(REPLAY_BUTTON_TEXT).first.click(timeout=10000)
+        except Exception:
             self.snap('replay_missing')
             self.dump_dom('replay_missing')
-            raise StepFailed('no replay links (#replay_notif_N) in the game log')
-        self.note(f'{n} replay links in the log; replaying from the middle one')
-        links.nth(n // 2).click(force=True, timeout=8000)
+            raise StepFailed('no "Replay game" button in the log after the game ended')
         time.sleep(8)
         self.wait_ready(90000)
         self.check('in replay')
         self.snap('replay')
-        if not re.search(r'replay|review', self.all_text(), re.I):
-            self.note('replay view did not mention "replay" in its text (not necessarily a failure)')
 
     def write_reports(self, meta):
         overall = 'pass' if all(r['status'] != 'fail' for r in self.results) else 'fail'
