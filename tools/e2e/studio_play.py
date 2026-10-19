@@ -111,7 +111,29 @@ class Runner:
             self.console.append(f'screenshot failed: {e}')
         return path.name
 
+    def all_text(self):
+        """Visible text of the main page and every frame (the table page may render the game in a frame)."""
+        parts = []
+        for f in self.page.frames:
+            try:
+                parts.append(f.evaluate('document.body ? document.body.innerText : ""'))
+            except Exception:
+                pass
+        return '\n'.join(parts)
+
+    def dump_frames(self, name):
+        rows = []
+        for i, f in enumerate(self.page.frames):
+            try:
+                n = f.evaluate('document.body ? document.body.innerText.length : -1')
+                shadow = f.evaluate('[...document.querySelectorAll("*")].filter(e => e.shadowRoot).length')
+                rows.append(f'frame {i}: url={f.url[:120]} textLen={n} shadowHosts={shadow}')
+            except Exception as e:
+                rows.append(f'frame {i}: error {str(e)[:80]}')
+        (self.out / f'{name}_frames.txt').write_text('\n'.join(rows), encoding='utf-8')
+
     def dump_dom(self, name):
+        self.dump_frames(name)
         try:
             text = self.page.evaluate('document.body ? document.body.innerText : ""')
             (self.out / f'{name}.txt').write_text(text[:20000], encoding='utf-8')
@@ -139,10 +161,7 @@ class Runner:
             self.console.append(f'inputs dump failed: {e}')
 
     def page_error(self):
-        try:
-            body = self.page.evaluate('document.body ? document.body.innerText : ""')
-        except Exception:
-            return None
+        body = self.all_text()
         for t in ERROR_TEXTS:
             if t.lower() in body.lower():
                 i = body.lower().index(t.lower())
@@ -156,10 +175,7 @@ class Runner:
 
     def header(self):
         """The BGA table header, e.g. "Move #1 Progression 0%" (present in every game)."""
-        try:
-            body = self.page.evaluate('document.body ? document.body.innerText : ""')
-        except Exception:
-            return ''
+        body = self.all_text()
         m = re.search(r'Move #(\d+)\s*Progression\s*(\d+)\s*%', body)
         return f'Move #{m.group(1)} Progression {m.group(2)}%' if m else ''
 
@@ -290,17 +306,15 @@ class Runner:
             self.console.append(f'note: could not set {n} players on the game panel: {str(e)[:80]}')
 
     def wait_ready(self, timeout=120000):
-        p = self.page
-        try:
-            p.wait_for_function(
-                "() => /Move #\\d+\\s*Progression\\s*\\d+\\s*%/.test(document.body.innerText) && "
-                "!/loading game|application loading/i.test(document.body.innerText.slice(0, 3000))",
-                timeout=timeout)
-        except Exception:
-            self.snap('not_ready')
-            self.dump_dom('not_ready')
-            self.check('game did not finish loading')
-            raise StepFailed('game did not finish loading (no "Move #/Progression" table header)')
+        end = time.time() + timeout / 1000
+        while time.time() < end:
+            if self.header() and not re.search(r'loading game|application loading', self.all_text()[:3000], re.I):
+                return
+            time.sleep(2)
+        self.snap('not_ready')
+        self.dump_dom('not_ready')
+        self.check('game did not finish loading')
+        raise StepFailed('game did not finish loading (no "Move #/Progression" table header in any frame)')
 
     def dump_debug(self, name):
         """Elements that look like the Studio debug control, with their HTML (no input values)."""
@@ -329,7 +343,7 @@ class Runner:
         end = time.time() + timeout
         while time.time() < end:
             self.check('while playing')
-            body = self.page.evaluate('document.body ? document.body.innerText : ""')
+            body = self.all_text()
             if END_TEXT.search(self.title()) or END_TEXT.search(body[:6000]):
                 return True
             time.sleep(3)
