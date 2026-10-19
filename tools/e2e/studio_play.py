@@ -171,7 +171,7 @@ class Runner:
         Returns a summary with only status codes and a short error string: never the password or the response body."""
         return self.page.evaluate("""async ([user, pw]) => {
             const token = (typeof bgaConfig !== 'undefined') ? bgaConfig.requestToken : '';
-            const body = new URLSearchParams({email: user, password: pw, rememberme: 'on', redirect: 'join',
+            const body = new URLSearchParams({username: user, email: user, password: pw, rememberme: 'on', redirect: 'join',
                 request_token: token, form_id: 'loginform', 'dojo.preventCache': String(Date.now())});
             const r = await fetch('/account/auth/loginUserWithPassword.html', {method: 'POST', credentials: 'same-origin',
                 headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-Request-Token': token}, body});
