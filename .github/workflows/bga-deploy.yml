@@ -32,6 +32,7 @@ on:
           - microchip
           - people
           - redd
+          - hipposandcrocodiles
           # <bga:options>  (tools/bga.py register inserts new games above this line)
 
 jobs:

@@ -1,0 +1,32 @@
+==Goal==
+
+'''Hippos & Crocodiles''' is an abstract strategy game for 2 players designed by Néstor Romeral Andrés. The goal is to place animal pieces into the river or lake. If you cannot place a piece on your turn, you lose immediately; the last player to place a piece wins!
+
+==Setup==
+
+* One player controls the '''Hippos''' (magenta) and has 8 hippo pieces in reserve.
+* The other player controls the '''Crocodiles''' (green) and has 8 crocodile pieces in reserve.
+* The game is played on either the '''River''' (20×10 grid = 200 squares) or the '''Lake''' (14×14 grid = 196 squares).
+
+==Animals==
+
+Each animal occupies exactly 10 squares on the board:
+* '''Hippo''': A 3×3 square body with a single protruding snout cell.
+* '''Crocodile''': A central spine of 6 squares with two pairs of legs extending out to width 3.
+
+==Your turn==
+
+{| class="wikitable"
+! # !! Action !! Description
+|-
+| 1 || '''Pick placement''' || Tap an unoccupied board cell where your animal can fit. Animals can be placed in any of the 4 cardinal orientations ($0^\circ, 90^\circ, 180^\circ, 270^\circ$).
+|-
+| 2 || '''Rotate''' || Use the '''Rotate 90°''' button to change orientation.
+|-
+| 3 || '''Confirm''' || Click '''Confirm placement''' to lock in your move. Animals cannot overlap each other or extend beyond the board.
+|}
+
+==Game end==
+
+* When an active player cannot place any of their remaining animals legally onto the board, that player loses immediately.
+* The other player is declared the winner!

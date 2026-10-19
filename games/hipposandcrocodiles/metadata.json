@@ -1,0 +1,56 @@
+{
+  "_comment": "Single source for the Control Panel (Game Metadata Manager). Run: python3 tools/bga.py gmm <slug>",
+  "slug": "hipposandcrocodiles",
+  "studio_project": "hipposandcrocodiles",
+  "game_name": "Hippos & Crocodiles",
+  "bgg_id": 51197,
+  "bgg_url": "https://boardgamegeek.com/boardgame/51197",
+  "year_published": 2008,
+  "players": [2],
+  "estimated_duration_minutes": 15,
+  "publisher": {
+    "name": "nestorgames",
+    "bgg_id": 9976,
+    "website": "https://nestorgames.com"
+  },
+  "designers": [
+    "Néstor Romeral Andrés"
+  ],
+  "artists": [
+    "Néstor Romeral Andrés"
+  ],
+  "rules_edits": [],
+  "rules_url": null,
+  "description": "Hippos & Crocodiles is a tactical abstract strategy game for 2 players by Néstor Romeral Andrés. Players take turns placing their species of animal (Hippos or Crocodiles, each taking up 10 squares on the grid) into the river or lake. When a player cannot place a piece on their turn, they lose immediately; the last player to place a piece wins.",
+  "zombie_mode_level": 1,
+  "tags": [
+    "Abstract",
+    "Animals",
+    "Tile Placement"
+  ],
+  "tags_note": "PROPOSAL: pick from BGA's tag list in the Control Panel.",
+  "characteristics": {
+    "complexity": 2,
+    "luck": 1,
+    "strategy": 3,
+    "diplomacy": 1,
+    "note": "PROPOSAL: sliders 1 to 5 in the Control Panel only."
+  },
+  "licence": {
+    "status": "NOT CONFIRMED",
+    "note": "Add a row to LICENSING_TRACKER.md and confirm before publisher sign-off."
+  },
+  "assets": {
+    "box": "metadata_assets/box_280x280.png",
+    "icon": "metadata_assets/icon_50x50.png",
+    "icon_hi": "metadata_assets/icon_500x500.png",
+    "banner": "metadata_assets/banner_1386x400.jpg",
+    "banner_wide": "metadata_assets/banner_1920x556.jpg",
+    "title": "metadata_assets/title_2000x2000.png",
+    "publisher": "metadata_assets/publisher_280x280.png",
+    "display": [
+      "metadata_assets/display_1.jpg",
+      "metadata_assets/display_2.jpg"
+    ]
+  }
+}

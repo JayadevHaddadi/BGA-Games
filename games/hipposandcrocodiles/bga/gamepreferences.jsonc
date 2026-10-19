@@ -1,0 +1,19 @@
+{
+  // user preference ids should be between 100 and 199 (AGENTS.md: 100 colour-blind symbols, 101 sound)
+  "100": {
+    "name": "Colorblind support",
+    "values": {
+      "1": { "name": "On", "cssPref": "hippos_cb_on" },
+      "0": { "name": "Off", "cssPref": "hippos_cb_off" }
+    },
+    "default": 1
+  },
+  "101": {
+    "name": "Sound effects",
+    "values": {
+      "1": { "name": "On" },
+      "0": { "name": "Off" }
+    },
+    "default": 1
+  }
+}

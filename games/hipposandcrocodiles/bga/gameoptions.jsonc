@@ -1,0 +1,16 @@
+{
+    "100": {
+        "name": "Board",
+        "values": {
+            "1": {
+                "name": "River (20x10)",
+                "description": "Standard playing area of 200 squares"
+            },
+            "2": {
+                "name": "Lake (14x14)",
+                "description": "Square playing area of 196 squares"
+            }
+        },
+        "default": 1
+    }
+}

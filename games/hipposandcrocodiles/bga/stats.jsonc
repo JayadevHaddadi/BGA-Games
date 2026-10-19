@@ -1,0 +1,21 @@
+{
+    "table": {
+        "turns_number": {
+            "id": 10,
+            "name": "Number of turns",
+            "type": "int"
+        }
+    },
+    "player": {
+        "turns_number": {
+            "id": 10,
+            "name": "Number of turns",
+            "type": "int"
+        },
+        "pieces_placed": {
+            "id": 11,
+            "name": "Pieces placed",
+            "type": "int"
+        }
+    }
+}

@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hippos & Crocodiles harness</title>
+<link rel="stylesheet" href="../../bga/hipposandcrocodiles.css">
+<style>
+  body { margin: 0; font-family: sans-serif; background: #fff; }
+  #game_play_area { padding: 0; }
+  #out { white-space: pre-wrap; font: 12px monospace; padding: 8px; }
+</style>
+</head>
+<body data-done="0">
+<div id="page-content">
+  <div id="statusbar"></div>
+  <div id="game_play_area"></div>
+</div>
+<div id="player_panels"></div>
+<pre id="out">running</pre>
+
+<script>
+window._ = (s) => s;
+window.g_gamethemeurl = '../../bga/';
+window.errors = [];
+window.addEventListener('error', (e) => window.errors.push(String(e.message)));
+window.addEventListener('unhandledrejection', (e) => window.errors.push(String(e.reason)));
+</script>
+<script type="module">
+import { Game } from '../../bga/modules/js/Game.js';
+
+const calls = [];
+const buttons = [];
+const bga = {
+  states: { register() {} },
+  gameArea: { getElement: () => document.getElementById('game_play_area') },
+  notifications: { setupPromiseNotifications() {} },
+  userPreferences: { get: () => 1 },
+  sounds: { play() {} },
+  players: {
+    getCurrentPlayerId: () => 1,
+    isCurrentPlayerActive: () => true,
+    getActivePlayerId: () => 1,
+    getPlayer: (id) => ({ id, name: id == 1 ? 'Alice' : 'Bob', color: id == 1 ? 'e94190' : '008000' }),
+  },
+  playerPanels: {
+    getElement: (pid) => {
+      let el = document.getElementById('panel_' + pid);
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'panel_' + pid;
+        document.getElementById('player_panels').appendChild(el);
+      }
+      return el;
+    },
+    getScoreCounter: () => ({ toValue() {} }),
+  },
+  statusBar: {
+    removeActionButtons() { buttons.length = 0; },
+    addActionButton(text, callback, opts) { buttons.push({ text, callback, opts }); },
+    setTitle() {},
+  },
+  actions: {
+    performAction(name, args) { calls.push({ name, args }); return Promise.resolve(); },
+  },
+};
+
+function fixture() {
+  return {
+    board_type: 1, // River (20x10)
+    rows: 20,
+    cols: 10,
+    placed_pieces: [],
+    species: { 1: 'hippo', 2: 'crocodile' },
+    reserves: { 1: 8, 2: 8 },
+  };
+}
+
+try {
+  const game = new Game(bga);
+  game.setup(fixture());
+
+  // Enter turn state with legal placements
+  const legal_placements = [
+    { rot: 0, r: 0, c: 0 },
+    { rot: 0, r: 1, c: 0 },
+    { rot: 0, r: 0, c: 1 },
+    { rot: 1, r: 0, c: 0 },
+  ];
+  game.enterTurn({ species: 'hippo', legal_placements, reserve_left: 8 }, true);
+
+  // Simulate tapping cell (0, 0)
+  game.onCellClicked(0, 0);
+
+  // Check that Confirm button appeared
+  const hasConfirm = buttons.some(b => b.text && b.text.includes('Confirm'));
+
+  // Measure layout
+  setTimeout(() => {
+    const board = document.getElementById('hippos_board');
+    const boardRect = board ? board.getBoundingClientRect() : { width: 0 };
+    const vp = window.innerWidth;
+    const horizontalOverflow = Math.max(0, document.documentElement.scrollWidth - vp);
+
+    // Measure tap cell size
+    const firstCell = document.querySelector('.hippos_cell');
+    const cellRect = firstCell ? firstCell.getBoundingClientRect() : { width: 0, height: 0 };
+    const cellPx = Math.round(Math.min(cellRect.width, cellRect.height));
+
+    const report = {
+      viewport: vp,
+      boardWidth: Math.round(boardRect.width),
+      cellPx: cellPx,
+      hasConfirmButton: hasConfirm,
+      horizontalOverflow: Math.round(horizontalOverflow),
+      jsErrors: window.errors,
+      ok: window.errors.length === 0 && horizontalOverflow === 0 && cellPx >= 32 && hasConfirm,
+    };
+
+    document.getElementById('out').textContent = JSON.stringify(report, null, 2);
+    document.body.dataset.done = '1';
+  }, 200);
+
+} catch (err) {
+  window.errors.push(err.stack || err.message);
+  document.getElementById('out').textContent = JSON.stringify({ ok: false, error: String(err) }, null, 2);
+  document.body.dataset.done = '1';
+}
+</script>
+</body>
+</html>
