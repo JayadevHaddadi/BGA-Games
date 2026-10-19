@@ -479,24 +479,41 @@ class Runner:
         self.snap('after_quit')
 
     def s_replay(self):
-        """After the game ended the log shows "Replay game"; it opens a point-of-view choice, then the replay itself."""
-        gf = self.game_frame()
-        try:
-            gf.get_by_text(REPLAY_BUTTON_TEXT).first.click(timeout=10000)
-        except Exception:
-            self.snap('replay_missing')
-            self.dump_dom('replay_missing')
-            raise StepFailed('no "Replay game" button in the log after the game ended')
-        try:
-            self.page.get_by_text(re.compile(r'choose this player', re.I)).first.click(timeout=30000)
-        except Exception:
-            self.snap('replay_pov_missing')
-            self.dump_dom('replay_pov_missing')
-            raise StepFailed('the replay did not offer a point-of-view choice ("Choose this player")')
-        time.sleep(6)
-        self.wait_ready(120000)
-        self.check('in replay')
-        self.snap('replay')
+        """After the game ended the log shows "Replay game"; it opens a point-of-view choice, then the replay itself.
+        Studio writes the game archive a little after the end, so "Unable to find game archive" is retried."""
+        game_url = self.page.url
+        for attempt in range(1, 5):
+            gf = self.game_frame()
+            try:
+                gf.get_by_text(REPLAY_BUTTON_TEXT).first.click(timeout=10000)
+            except Exception:
+                self.snap('replay_missing')
+                self.dump_dom('replay_missing')
+                raise StepFailed('no "Replay game" button in the log after the game ended')
+            try:
+                self.page.get_by_text(re.compile(r'choose this player', re.I)).first.click(timeout=30000)
+            except Exception:
+                if 'unable to find game archive' in self.all_text().lower() and attempt < 4:
+                    self.note(f'replay attempt {attempt}: the game archive is not written yet; waiting')
+                    time.sleep(30)
+                    self.page.goto(game_url, wait_until='domcontentloaded', timeout=60000)
+                    self.wait_ready()
+                    continue
+                self.snap('replay_pov_missing')
+                self.dump_dom('replay_pov_missing')
+                raise StepFailed('the replay did not offer a point-of-view choice ("Choose this player"): '
+                                 + (self.page_error() or 'no error text'))
+            time.sleep(6)
+            self.wait_ready(120000)
+            if 'unable to find game archive' in self.all_text().lower() and attempt < 4:
+                self.note(f'replay attempt {attempt}: the game archive is not written yet; waiting')
+                time.sleep(30)
+                self.page.goto(game_url, wait_until='domcontentloaded', timeout=60000)
+                self.wait_ready()
+                continue
+            self.check('in replay')
+            self.snap('replay')
+            return
 
     def write_reports(self, meta):
         overall = 'pass' if all(r['status'] != 'fail' for r in self.results) else 'fail'
