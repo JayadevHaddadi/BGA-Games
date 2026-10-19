@@ -227,19 +227,31 @@ class Runner:
         time.sleep(4)
         self.snap('after_start')
         self.dump_dom('after_start')
-        if not re.search(r'[?&]table=\d+', p.url) or EXPRESS_START_TEXT.search(p.evaluate('document.body.innerText')):
-            try:
-                self.click_text(EXPRESS_START_TEXT, timeout=15000)
-            except Exception:
-                self.dump_dom('no_express_start')
-                raise StepFailed('no "Express start" control after Start (see after_start dumps)')
-        try:
-            p.wait_for_url(re.compile(r'[?&]table=\d+'), timeout=90000)
-        except Exception:
+        self.table_id = self.find_table_id(60)
+        if not self.table_id:
             self.snap('no_table')
-            raise StepFailed('Express start did not open a table')
-        self.table_id = re.search(r'table=(\d+)', p.url).group(1)
+            self.dump_dom('no_table')
+            raise StepFailed('Start did not create a table (no table id in the URL or the page links)')
+        # Studio fills the table with test players and launches it; the panel stays open, so go to the table itself.
+        p.goto(f'{STUDIO}/table?table={self.table_id}', wait_until='domcontentloaded', timeout=60000)
         self.wait_ready()
+
+    def find_table_id(self, seconds):
+        p = self.page
+        end = time.time() + seconds
+        while time.time() < end:
+            m = re.search(r'[?&]table=(\d+)', p.url)
+            if m:
+                return m.group(1)
+            try:
+                hrefs = p.evaluate("() => [...document.querySelectorAll('a[href*=\"table=\"]')].map(a => a.href)")
+            except Exception:
+                hrefs = []
+            ids = [int(m.group(1)) for h in hrefs for m in [re.search(r'[?&]table=(\d+)', h)] if m]
+            if ids:
+                return str(max(ids))   # the panel also lists older tables; the newest has the highest id
+            time.sleep(2)
+        return None
 
     def select_players(self):
         """The Players number dropdown (options 2..max) on the game panel."""
