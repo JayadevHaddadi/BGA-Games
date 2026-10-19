@@ -5,126 +5,32 @@
 
 class SoundController {
     constructor() {
-        this.ctx = null;
+        this.bga = null; // set by Game's constructor
+        this.muted = false; // preference 101 "Sound effects"
+        this.last = {};
     }
 
-    init() {
-        if (!this.ctx) {
-            const AudioCtx = window.AudioContext || window.webkitAudioContext;
-            if (AudioCtx) this.ctx = new AudioCtx();
+    /** Sound files only (guideline D.4): silent in replays and fast replay, repeats throttled. */
+    play(id) {
+        if (this.muted || !this.bga) return;
+        try {
+            const g = this.bga.gameui;
+            if (g?.isReplayMode?.() || g?.instantaneousMode) return;
+            const now = Date.now();
+            if (now - (this.last[id] || 0) < 120) return;
+            this.last[id] = now;
+            this.bga.sounds.play(id);
+        } catch (e) {
+            // sounds are optional
         }
     }
 
-    playSlide() {
-        try {
-            this.init();
-            if (!this.ctx) return;
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(220, this.ctx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(140, this.ctx.currentTime + 0.12);
-            gain.gain.setValueAtTime(0.09, this.ctx.currentTime);
-            gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start();
-            osc.stop(this.ctx.currentTime + 0.12);
-        } catch (e) {}
-    }
-
-    playThud() {
-        try {
-            this.init();
-            if (!this.ctx) return;
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(160, this.ctx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(45, this.ctx.currentTime + 0.18);
-            gain.gain.setValueAtTime(0.18, this.ctx.currentTime);
-            gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.18);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start();
-            osc.stop(this.ctx.currentTime + 0.18);
-        } catch (e) {}
-    }
-
-    playAnchor() {
-        try {
-            this.init();
-            if (!this.ctx) return;
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(587.33, this.ctx.currentTime); // D5
-            gain.gain.setValueAtTime(0.11, this.ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.35);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start();
-            osc.stop(this.ctx.currentTime + 0.35);
-        } catch (e) {}
-    }
-
-    playWin() {
-        try {
-            this.init();
-            if (!this.ctx) return;
-            const notes = [261.63, 329.63, 392.00, 523.25]; // C-E-G-C
-            notes.forEach((freq, idx) => {
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'triangle';
-                osc.frequency.value = freq;
-                gain.gain.setValueAtTime(0.14, this.ctx.currentTime + idx * 0.12);
-                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + idx * 0.12 + 0.35);
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start(this.ctx.currentTime + idx * 0.12);
-                osc.stop(this.ctx.currentTime + idx * 0.12 + 0.35);
-            });
-        } catch (e) {}
-    }
-
-    playShock() {
-        try {
-            this.init();
-            if (!this.ctx) return;
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(360, this.ctx.currentTime);
-            osc.frequency.setValueAtTime(440, this.ctx.currentTime + 0.08);
-            osc.frequency.setValueAtTime(340, this.ctx.currentTime + 0.16);
-            osc.frequency.setValueAtTime(460, this.ctx.currentTime + 0.24);
-            gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.35);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start();
-            osc.stop(this.ctx.currentTime + 0.35);
-        } catch (e) {}
-    }
-
-    playFalling() {
-        try {
-            this.init();
-            if (!this.ctx) return;
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(520, this.ctx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(70, this.ctx.currentTime + 0.52);
-            gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
-            gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.52);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start();
-            osc.stop(this.ctx.currentTime + 0.52);
-        } catch (e) {}
-    }
+    playSlide() { this.play('pf_slide'); }
+    playThud() { this.play('pf_thud'); }
+    playAnchor() { this.play('pf_anchor'); }
+    playWin() { this.play('pf_win'); }
+    playShock() { this.play('pf_shock'); }
+    playFalling() { this.play('pf_falling'); }
 }
 
 const sounds = new SoundController();
@@ -211,6 +117,8 @@ class PlayerTurn {
 export class Game {
     constructor(bga) {
         this.bga = bga;
+        sounds.bga = bga;
+        sounds.muted = Number(bga?.userPreferences?.get?.(101) ?? 1) === 0;
         this.selectedPieceId = null;
         this.currentArgs = null;
         this.currentSetupArgs = null;
@@ -310,7 +218,7 @@ export class Game {
         const icon = document.createElement('div');
         icon.className = 'pft-piece-icon';
         if (p.piece_type === 'king') {
-            icon.innerHTML = `<span class="piece-symbol">♚</span>`;
+            icon.innerHTML = `<svg class="piece-symbol" viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true"><path d="M3 18h18l-1.5-10-4.5 4-3-7-3 7-4.5-4z" fill="currentColor"/></svg>`;
         } else {
             icon.innerHTML = `<span class="piece-symbol">●</span>`;
         }
@@ -431,13 +339,13 @@ export class Game {
             // All 5 pieces placed: show confirmation and reset options only (3 buttons)
             if (args.can_confirm) {
                 this.bga.statusBar.addActionButton(
-                    _('✓ Confirm Placement'),
+                    _('Confirm Placement'),
                     () => this.bga.actions.performAction('actConfirmPlacement'),
                     { color: 'primary' }
                 );
             }
             this.bga.statusBar.addActionButton(
-                _('⚡ Standard Preset'),
+                _('Standard Preset'),
                 () => this.bga.actions.performAction('actStandardPreset'),
                 { color: 'secondary' }
             );
@@ -467,7 +375,7 @@ export class Game {
             );
 
             this.bga.statusBar.addActionButton(
-                _('⚡ Standard Preset'),
+                _('Standard Preset'),
                 () => this.bga.actions.performAction('actStandardPreset'),
                 { color: 'secondary' }
             );
@@ -1008,7 +916,7 @@ export class Game {
         const banner = document.createElement('div');
         banner.className = 'pft-victory-banner';
         banner.innerHTML = `
-            <h2>🏆 ${args.winner_name || _('Winner')} WINS!</h2>
+            <h2>${args.winner_name || _('Winner')} WINS!</h2>
             <p style="margin: 6px 0 0 0; font-size: 14px;">${_('Piece pushed off the board — Skirmish decided!')}</p>
         `;
         const container = document.getElementById('pft_container') || this.bga.gameArea.getElement();
