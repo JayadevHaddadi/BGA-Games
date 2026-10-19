@@ -7,193 +7,39 @@
  *------
  */
 
-class RetroAudioController {
-    constructor() {
-        this.ctx = null;
-        this.muted = false;
+class GpSoundController {
+    constructor(bga) {
+        this.bga = bga;
+        this.muted = false; // preference 102 "Sound effects" (2 = off), set in Game.setup
+        this.last = {};
     }
 
-    init() {
-        if (!this.ctx && typeof (window.AudioContext || window.webkitAudioContext) !== 'undefined') {
-            const AudioCtx = window.AudioContext || window.webkitAudioContext;
-            this.ctx = new AudioCtx();
+    /** Sound files only (guideline D.4): silent in replays and fast replay, repeats throttled. */
+    play(id) {
+        if (this.muted || !this.bga) return;
+        try {
+            const g = this.bga.gameui;
+            if (g?.isReplayMode?.() || g?.instantaneousMode) return;
+            const now = Date.now();
+            if (now - (this.last[id] || 0) < 120) return;
+            this.last[id] = now;
+            this.bga.sounds.play(id);
+        } catch (e) {
+            // sounds are optional
         }
     }
 
-    playTone(freq, type = 'sine', duration = 0.08, gainVal = 0.035) {
-        if (this.muted) return;
-        try {
-            this.init();
-            if (!this.ctx) return;
-            const now = this.ctx.currentTime;
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.type = type;
-            osc.frequency.setValueAtTime(freq, now);
-            gain.gain.setValueAtTime(0.001, now);
-            gain.gain.linearRampToValueAtTime(gainVal, now + 0.005);
-            gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start(now);
-            osc.stop(now + duration);
-        } catch (e) {}
-    }
-
-    playRoll() {
-        // Cute, soft two-tone arcade bubble chime (plink-pop)
-        this.playTone(523.25, 'sine', 0.045, 0.022); // C5
-        setTimeout(() => this.playTone(783.99, 'sine', 0.055, 0.020), 38); // G5
-    }
-
-    playEngineRev() {
-        if (this.muted) return;
-        try {
-            this.init();
-            if (!this.ctx) return;
-            const now = this.ctx.currentTime;
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(110, now);
-            osc.frequency.exponentialRampToValueAtTime(260, now + 0.18);
-            gain.gain.setValueAtTime(0.001, now);
-            gain.gain.linearRampToValueAtTime(0.035, now + 0.02);
-            gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.20);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start(now);
-            osc.stop(now + 0.22);
-        } catch (e) {}
-    }
-
-    playDriveStep(stepIdx, totalSteps) {
-        if (this.muted) return;
-        // Ascending subtle throttle purr as car traverses spaces
-        const baseFreq = 130;
-        const freq = Math.min(280, baseFreq + (stepIdx * 8));
-        this.playTone(freq, 'sawtooth', 0.045, 0.02);
-    }
-
-    playTireChirp() {
-        if (this.muted) return;
-        // Chirpy corner squeak
-        try {
-            this.init();
-            if (!this.ctx) return;
-            const now = this.ctx.currentTime;
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(680, now);
-            osc.frequency.exponentialRampToValueAtTime(920, now + 0.06);
-            gain.gain.setValueAtTime(0.001, now);
-            gain.gain.linearRampToValueAtTime(0.025, now + 0.01);
-            gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.08);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start(now);
-            osc.stop(now + 0.09);
-        } catch (e) {}
-    }
-
-    playBrake() {
-        if (this.muted) return;
-        try {
-            this.init();
-            if (!this.ctx) return;
-            const now = this.ctx.currentTime;
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(240, now);
-            osc.frequency.exponentialRampToValueAtTime(90, now + 0.12);
-            gain.gain.setValueAtTime(0.001, now);
-            gain.gain.linearRampToValueAtTime(0.03, now + 0.01);
-            gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.13);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start(now);
-            osc.stop(now + 0.14);
-        } catch (e) {}
-    }
-
-    playBump() {
-        if (this.muted) return;
-        try {
-            this.init();
-            if (!this.ctx) return;
-            const now = this.ctx.currentTime;
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(300, now);
-            osc.frequency.exponentialRampToValueAtTime(460, now + 0.08);
-            gain.gain.setValueAtTime(0.001, now);
-            gain.gain.linearRampToValueAtTime(0.04, now + 0.01);
-            gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start(now);
-            osc.stop(now + 0.13);
-        } catch (e) {}
-    }
-
-    playScreech() {
-        this.playTone(850, 'sawtooth', 0.12, 0.035);
-    }
-
-    playCrash() {
-        if (this.muted) return;
-        try {
-            this.init();
-            if (!this.ctx) return;
-            const now = this.ctx.currentTime;
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(180, now);
-            osc.frequency.exponentialRampToValueAtTime(45, now + 0.25);
-            gain.gain.setValueAtTime(0.001, now);
-            gain.gain.linearRampToValueAtTime(0.05, now + 0.01);
-            gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.26);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start(now);
-            osc.stop(now + 0.28);
-        } catch (e) {}
-    }
-
-    playLapFanfare() {
-        const notes = [523.25, 659.25, 783.99, 1046.50];
-        notes.forEach((freq, idx) => {
-            setTimeout(() => this.playTone(freq, 'triangle', 0.12, 0.04), idx * 80);
-        });
-    }
-
-    playChime() {
-        if (this.muted) return;
-        try {
-            const notes = [659.25, 880.00];
-            notes.forEach((freq, idx) => {
-                setTimeout(() => this.playTone(freq, 'sine', 0.14, 0.04), idx * 80);
-            });
-        } catch (e) {}
-    }
-
-    playSadBust() {
-        const notes = [
-            { f: 330, d: 0.14 },
-            { f: 311, d: 0.14 },
-            { f: 293, d: 0.14 },
-            { f: 260, d: 0.35 }
-        ];
-        let delay = 0;
-        notes.forEach(({ f, d }) => {
-            setTimeout(() => this.playTone(f, 'sawtooth', d, 0.035), delay);
-            delay += Math.round(d * 1000) + 20;
-        });
-    }
+    playRoll() { this.play('gp_roll'); }
+    playEngineRev() { this.play('gp_engine'); }
+    playDriveStep() { this.play('gp_step'); }
+    playTireChirp() { this.play('gp_chirp'); }
+    playBrake() { this.play('gp_brake'); }
+    playBump() { this.play('gp_bump'); }
+    playScreech() { this.play('gp_chirp'); }
+    playCrash() { this.play('gp_crash'); }
+    playLapFanfare() { this.play('gp_fanfare'); }
+    playChime() { this.play('gp_chime'); }
+    playSadBust() { this.play('gp_bust'); }
 }
 
 class QualifyingTurnState {
@@ -421,7 +267,7 @@ class PlayerTurnState {
 export class Game {
     constructor(bga) {
         this.bga = bga;
-        this.sound = new RetroAudioController();
+        this.sound = new GpSoundController(bga);
         this.currentArgs = null;
 
         this.BOARD_WIDTH = 988;
