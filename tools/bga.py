@@ -46,7 +46,6 @@ FAIL_PATTERNS = [
     (r'[\U0001F300-\U0001FAFF\u2600-\u27BF]', 'guideline C.3: no emoji in UI text or labels', ['js', 'css', 'php']),
 ]
 FAIL_PATTERNS += [
-    (r'animation[^;{}]*\binfinite\b|iteration-count\s*:\s*infinite', 'guideline C.3: no looping animation', ['css', 'js']),
     (r"performAction\(\s*'[^']*'[^)]*\);\s*this\.bga\.statusBar\.removeActionButtons", 'keep the buttons until the server accepts (clear them when the state changes)', ['js']),
 ]
 WARN_PATTERNS = [
@@ -661,7 +660,10 @@ def cmd_check(args):
     wiki = bga / 'GAMEHELP.wiki'
     if wiki.exists():
         text = wiki.read_text(encoding='utf-8')
-        md = [n for n, line in enumerate(text.splitlines(), 1) if re.match(r'^#{1,6} ', line) or line.startswith('**')]
+        # MediaWiki uses '#' (numbered list) and '**' (nested bullet) at line start, so only real Markdown counts:
+        # **bold**, [text](url) links and ``` fences.
+        md = [n for n, line in enumerate(text.splitlines(), 1)
+              if re.search(r'\*\*[^*\s][^*]*\*\*|\[[^\]]+\]\(https?://|```', line)]
         (rep.add('FAIL', 'GAMEHELP.wiki is MediaWiki', f'Markdown on lines {md[:5]}') if md else rep.add('PASS', 'GAMEHELP.wiki is MediaWiki'))
         (rep.add('PASS', 'GAMEHELP.wiki has headings') if '==' in text else rep.add('FAIL', 'GAMEHELP.wiki has headings'))
 
@@ -865,6 +867,17 @@ def contract_checks(rep, folder, bga, js_text, sound_ids):
     dup = {k: v for k, v in ids.items() if len(v) > 1}
     (rep.add('PASS', 'state ids are unique') if not dup
      else rep.add('FAIL', 'state ids are unique', '; '.join(f'id {k}: {", ".join(v)}' for k, v in dup.items())))
+
+    # Looping animation: forbidden, except a marker on the current player's own piece during their turn (guarded by
+    # prefers-reduced-motion), which the reviewer allows
+    for css in files_under(bga, ['css']):
+        text = css.read_text(encoding='utf-8')
+        loops = [n for n, line in enumerate(text.splitlines(), 1)
+                 if re.search(r'animation[^;{}]*\binfinite\b|iteration-count\s*:\s*infinite', line)]
+        if loops and 'prefers-reduced-motion' in text:
+            rep.add('WARN', 'looping animation', f'{css.name} lines {loops[:4]}: allowed only on your own piece during your turn')
+        elif loops:
+            rep.add('FAIL', 'guideline C.3: no looping animation', f'{css.name} lines {loops[:4]} (no prefers-reduced-motion guard)')
 
     # :hover only inside @media (hover: hover), so it does not stick on touch screens
     loose = []
