@@ -39,7 +39,7 @@ stop conditions in phase 0. Collect rule questions in `PLAN.md` and report them 
 | 10. Ship | Commit, `git pull --rebase origin main`, push to `main`. The push deploys every changed game to Studio. | The Actions run is green, or `python tools/sync.py <slug>` was run. |
 | 11. Report | Section 0 format. List what was verified (tests, harness numbers, check result), the open rule decisions from `PLAN.md`, and what still needs a live Studio table. | |
 
-Live-table tests are automated by `tools/e2e/studio_play.py` (status and setup: `reports/e2e_setup.md`); a game needs `debug_playToEnd()` in `Game.php` and an entry in `tools/e2e/games.json`.
+Live-table tests are automated by `tools/e2e/studio_play.py` (setup: `reports/e2e_setup.md`). **Read and update `reports/e2e_status.md`** (per-game results, shared with the other agents). A game is tested nightly once its slug is in `tools/e2e/games.json`; no per-game code is needed (Studio's own debug panel plays to the end).
 
 A live Studio table is the only test of the PHP inside the framework. Nothing here runs it, so say so in the report.
 After the first deploy, the user (or an agent with a browser) plays one game at 2 players and at the maximum player
