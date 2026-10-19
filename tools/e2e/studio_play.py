@@ -283,19 +283,41 @@ class Runner:
             raise StepFailed(f'Express start through the API failed (see the notes in this report); table {tid}')
         return tid
 
+    def probe_js(self, name):
+        """List the endpoints mentioning "express" in the scripts the Studio pages load (find the real Express start call)."""
+        urls = self.page.evaluate("() => [...new Set(performance.getEntriesByType('resource').filter(r => r.initiatorType === 'script' || /\\.js(\\?|$)/.test(r.name)).map(r => r.name))]")
+        rows = [f'{len(urls)} scripts loaded']
+        for u in urls[:80]:
+            try:
+                hits = self.page.evaluate("""async (u) => {
+                    try {
+                        const t = await (await fetch(u, {credentials: 'omit'})).text();
+                        const out = [];
+                        const re = /.{0,90}express.{0,110}/gi; let m;
+                        while ((m = re.exec(t)) && out.length < 6) out.push(m[0].replace(/\\s+/g, ' '));
+                        return out;
+                    } catch (e) { return []; }
+                }""", u)
+            except Exception:
+                hits = []
+            if hits:
+                rows.append(f'== {u[:150]}')
+                rows += ['   ' + h for h in hits]
+        (self.out / f'{name}_express_js.txt').write_text('\n'.join(rows), encoding='utf-8')
+
     def probe_tables(self):
-        """First live run: create and start a table through the API, open it, and dump the page layout and debug menu."""
-        tid = self.create_started_table()
-        time.sleep(6)
+        """First live run: create a table through the API and find out how the Studio starts it with test players."""
+        gid = self.game_id()
+        res = self.api('/table/table/createnew.html', {'game': str(gid), 'mode': '1'})
+        tid = str(res['data']['table'])
+        self.console.append(f'note: created table {tid}')
+        self.api('/table/table/changeWantedPlayers.html', {'table': tid, 'minp': str(self.players), 'maxp': str(self.players)})
         self.page.goto(f'{STUDIO}/table?table={tid}', wait_until='domcontentloaded', timeout=60000)
-        self.table_id = tid
-        try:
-            self.wait_ready(90000)
-        except Exception as e:
-            self.console.append(f'note: table page not ready: {str(e)[:100]}')
-        self.snap('probe_table')
-        self.dump_dom('probe_table')
-        self.dump_debug('probe_table')
+        time.sleep(6)
+        self.console.append(f'note: table page url {self.page.url}')
+        self.snap('probe_table_waiting')
+        self.dump_dom('probe_table_waiting')
+        self.probe_js('probe')
 
     def dropdown(self, label_re):
         return self.page.locator('button.bga-dropdown-button', has_text=label_re).first
