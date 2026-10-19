@@ -43,8 +43,8 @@ const FLOWER_SYMBOLS = {
     yellow: '▲',
     orange: '◆',
     purple: '■',
-    red: '★',
-    green: '✚',
+    red: '▼',
+    green: '+',
 };
 
 export class SelectMartian {

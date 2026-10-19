@@ -8,8 +8,8 @@ $this->flower_colors = [
     'yellow' => ['id' => 2, 'name' => clienttranslate('Yellow'), 'hex' => '#FFD600', 'symbol' => '▲'],
     'orange' => ['id' => 3, 'name' => clienttranslate('Orange'), 'hex' => '#FF6D00', 'symbol' => '◆'],
     'purple' => ['id' => 4, 'name' => clienttranslate('Purple'), 'hex' => '#8E24AA', 'symbol' => '■'],
-    'red' => ['id' => 5, 'name' => clienttranslate('Red'), 'hex' => '#D50000', 'symbol' => '★'],
-    'green' => ['id' => 6, 'name' => clienttranslate('Green'), 'hex' => '#00C853', 'symbol' => '✚'],
+    'red' => ['id' => 5, 'name' => clienttranslate('Red'), 'hex' => '#D50000', 'symbol' => '▼'],
+    'green' => ['id' => 6, 'name' => clienttranslate('Green'), 'hex' => '#00C853', 'symbol' => '+'],
 ];
 
 $this->martian_types = [
