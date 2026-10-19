@@ -91,6 +91,8 @@ class Runner:
         page.on('console', self._on_console)
         page.on('pageerror', lambda e: self.console.append(f'pageerror: {e}'))
         self.net = []
+        self.posts = []
+        page.on('request', lambda rq: self.posts.append(f'{rq.url[:140]} :: {(rq.post_data or "")[:200]}') if (rq.method == 'POST' and not re.search(r'account|login|auth', rq.url)) else None)
         page.on('response', lambda r: self.net.append(f'{r.status} {r.request.method} {r.url[:140]}') if (r.status >= 400 or re.search(r'account|login|auth', r.url)) else None)
         page.on('dialog', lambda d: (self.console.append(f'js dialog: {d.message}'), d.accept()))
 
@@ -233,6 +235,68 @@ class Runner:
         self.snap('login_failed')
         self.dump_dom('login_failed')
         raise StepFailed('login failed (' + ' | '.join(summary) + ')')
+
+    def api(self, path, form):
+        """POST a form to a Studio endpoint from inside the logged-in page. Returns status codes and data only."""
+        return self.page.evaluate("""async ([path, form]) => {
+            const token = (typeof bgaConfig !== 'undefined') ? bgaConfig.requestToken : '';
+            const r = await fetch(path, {method: 'POST', credentials: 'same-origin', headers: {
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-Requested-With': 'XMLHttpRequest',
+                'X-Request-Token': token}, body: new URLSearchParams(form)});
+            const t = await r.text(); let j = null; try { j = JSON.parse(t); } catch (e) {}
+            return {http: r.status, status: j ? j.status : null, data: j ? j.data : null,
+                    error: j ? (j.error || j.exception || null) : null, raw: j ? null : t.slice(0, 160)};
+        }""", [path, form])
+
+    def game_id(self):
+        self.page.goto(f'{STUDIO}/gamepanel?game={self.game}', wait_until='domcontentloaded', timeout=60000)
+        return self.page.evaluate("""async (g) => {
+            const t = await (await fetch('/gamepanel?game=' + g, {credentials: 'same-origin'})).text();
+            const m = t.match(/id=\\"game_id\\"[^>]*>(\\d+)</) || t.match(/id=.game_id.[^>]*>(\\d+)</);
+            return m ? m[1] : null;
+        }""", self.game)
+
+    def probe_tables(self):
+        """First live run: log what the panel posts, then try the table API used by tools/studio_table.py."""
+        p = self.page
+        p.goto(f'{STUDIO}/gamepanel?game={self.game}', wait_until='domcontentloaded', timeout=60000)
+        time.sleep(4)
+        for _ in range(3):
+            try:
+                p.get_by_text(re.compile(r'^\s*cancel\s*$', re.I)).first.click(timeout=2500)
+                time.sleep(3)
+            except Exception:
+                break
+        self.snap('panel_idle')
+        self.posts.append('--- panel: choosing 3 players and pressing Start ---')
+        self.players = 3
+        self.select_players()
+        try:
+            p.get_by_text(re.compile(r'search for players', re.I)).first.click(timeout=8000)
+        except Exception as e:
+            self.console.append(f'note: Start not clickable: {str(e)[:80]}')
+        time.sleep(10)
+        self.snap('panel_after_start')
+        self.dump_dom('panel_after_start')
+        self.posts.append('--- api: createnew + startgame ---')
+        gid = self.game_id()
+        self.console.append(f'note: game id {gid}')
+        res = self.api('/table/table/createnew.html', {'game': str(gid), 'mode': '1'})
+        self.console.append(f'note: createnew {json.dumps(res, default=str)[:300]}')
+        tid = res.get('data', {}).get('table') if isinstance(res.get('data'), dict) else None
+        if tid:
+            res2 = self.api('/table/table/startgame.html', {'table': str(tid)})
+            self.console.append(f'note: startgame {json.dumps(res2, default=str)[:300]}')
+            time.sleep(6)
+            p.goto(f'{STUDIO}/table?table={tid}', wait_until='domcontentloaded', timeout=60000)
+            self.table_id = str(tid)
+            try:
+                self.wait_ready(60000)
+            except Exception as e:
+                self.console.append(f'note: table page not ready: {str(e)[:100]}')
+            self.snap('probe_table')
+            self.dump_dom('probe_table')
+            self.dump_debug('probe_table')
 
     def dropdown(self, label_re):
         return self.page.locator('button.bga-dropdown-button', has_text=label_re).first
@@ -435,6 +499,8 @@ class Runner:
         overall = 'pass' if all(r['status'] != 'fail' for r in self.results) else 'fail'
         report = dict(meta, overall=overall, table_id=self.table_id, results=self.results,
                       screenshots=self.shots, console_errors=self.console[:50])
+        if self.posts:
+            (self.out / 'posts.txt').write_text('\n'.join(self.posts[-80:]), encoding='utf-8')
         (self.out / 'report.json').write_text(json.dumps(report, indent=2), encoding='utf-8')
         lines = [f'## E2E {overall.upper()}: {self.game} at {self.players} players',
                  f'Table: {self.table_id or "not created"}  |  Time: {meta["finished"]}', '',
@@ -518,6 +584,12 @@ def main():
         r = Runner(page, out, a.game, players)
         try:
             r.login(*creds)
+            if a.probe:
+                r.probe_tables()
+                r.write_reports(dict(meta, finished=datetime.datetime.utcnow().isoformat()))
+                print('probe done, see', out)
+                browser.close()
+                return 0
             r.open_table()
         except Exception as e:
             r.snap('setup_failed')
