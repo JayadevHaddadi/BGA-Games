@@ -87,6 +87,7 @@ class Runner:
         self.page, self.out, self.game, self.players = page, Path(out_dir), game, players
         self.out.mkdir(parents=True, exist_ok=True)
         self.shots, self.console, self.results, self.n = [], [], [], 0
+        self.notes = []
         self.table_id = None
         page.on('console', self._on_console)
         page.on('pageerror', lambda e: self.console.append(f'pageerror: {e}'))
@@ -102,6 +103,10 @@ class Runner:
         text = msg.text
         if not any(p.search(text) for p in IGNORED_CONSOLE):
             self.console.append(f'console.error: {text}')
+
+    def note(self, text):
+        self.notes.append(text)
+        print('note:', text)
 
     def snap(self, name):
         self.n += 1
@@ -234,7 +239,7 @@ class Runner:
             p.goto(STUDIO + '/', wait_until='domcontentloaded', timeout=60000)
             res = self.login_api(u, password)
             summary.append(f'{u}: http={res["http"]} status={res["status"]} error={res["error"]} token={res["hasToken"]}')
-            self.console.append('note: login ' + summary[-1])
+            self.note('login ' + summary[-1])
             p.goto(STUDIO + '/', wait_until='domcontentloaded', timeout=60000)
             time.sleep(2)
             logged_out = p.get_by_text(LOGIN_BUTTON_TEXT).first
@@ -285,7 +290,7 @@ class Runner:
         if str(res.get('status')) != '1':
             raise StepFailed(f'could not set {self.players} players on table {tid}: {res.get("error") or res.get("raw")}')
         res = self.api('/tablemanager/tablemanager/expressStart.html', {'table': tid})
-        self.console.append(f'note: expressStart table {tid}: http={res.get("http")} status={res.get("status")} error={res.get("error")}')
+        self.note(f'expressStart table {tid}: http={res.get("http")} status={res.get("status")} error={res.get("error")}')
         if res.get('http') != 200 or str(res.get('status')) != '1':
             raise StepFailed(f'Express start failed for table {tid}: {res.get("error") or res.get("raw")}')
         return tid
@@ -324,7 +329,7 @@ class Runner:
             self.snap('probe_debug_open')
             self.dump_dom('probe_debug_open')
         except Exception as e:
-            self.console.append(f'note: no debug control to click: {str(e)[:100]}')
+            self.note(f'no debug control to click: {str(e)[:100]}')
 
     def open_table(self):
         tid = self.create_started_table()
@@ -388,10 +393,10 @@ class Runner:
                 time.sleep(1)
             if gf.locator('#debug_playToEnd').count():
                 gf.locator('#debug_playToEnd').click(timeout=8000)
-                self.console.append('note: autoplay via the game\'s debug_playToEnd')
+                self.note('autoplay via the game\'s debug_playToEnd')
             else:
                 gf.locator('#debug_play_moves').dblclick(timeout=8000)
-                self.console.append('note: autoplay via the built-in zombie play button (double click)')
+                self.note('autoplay via the built-in zombie play button (double click)')
         except Exception as e:
             self.snap('debug_menu_missing')
             self.dump_dom('debug_menu_missing')
@@ -473,19 +478,27 @@ class Runner:
         self.snap('after_quit')
 
     def s_replay(self):
-        try:
-            self.click_text(REPLAY_TEXT, timeout=10000)
-        except Exception:
+        """Every game-log line has a replay link (#replay_notif_N). Replay from a move in the middle of the game."""
+        gf = self.game_frame()
+        links = gf.locator('a[id^="replay_notif_"]')
+        n = links.count()
+        if n == 0:
+            self.snap('replay_missing')
             self.dump_dom('replay_missing')
-            raise StepFailed('no replay link found after game end (unverified UI path)')
+            raise StepFailed('no replay links (#replay_notif_N) in the game log')
+        self.note(f'{n} replay links in the log; replaying from the middle one')
+        links.nth(n // 2).click(force=True, timeout=8000)
         time.sleep(8)
+        self.wait_ready(90000)
         self.check('in replay')
         self.snap('replay')
+        if not re.search(r'replay|review', self.all_text(), re.I):
+            self.note('replay view did not mention "replay" in its text (not necessarily a failure)')
 
     def write_reports(self, meta):
         overall = 'pass' if all(r['status'] != 'fail' for r in self.results) else 'fail'
         report = dict(meta, overall=overall, table_id=self.table_id, results=self.results,
-                      screenshots=self.shots, console_errors=self.console[:50])
+                      screenshots=self.shots, console_errors=self.console[:50], notes=self.notes)
         if self.posts:
             (self.out / 'posts.txt').write_text('\n'.join(self.posts[-80:]), encoding='utf-8')
         (self.out / 'report.json').write_text(json.dumps(report, indent=2), encoding='utf-8')
@@ -494,6 +507,8 @@ class Runner:
                  '| Scenario | Result | Detail |', '|---|---|---|']
         for r in self.results:
             lines.append(f'| {r["scenario"]} | {r["status"]} | {r["detail"].replace("|", "/")[:300]} |')
+        if self.notes:
+            lines += ['', '**Notes:**'] + [f'- {n[:300]}' for n in self.notes]
         if self.console:
             lines += ['', '**JS errors (first 10):**'] + [f'- `{c[:300]}`' for c in self.console[:10]]
         (self.out / 'report.md').write_text('\n'.join(lines) + '\n', encoding='utf-8')
