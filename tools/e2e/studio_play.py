@@ -218,6 +218,19 @@ class Runner:
         time.sleep(2)
         self.snap('gamepanel')
         self.dump_dom('gamepanel')
+        leftover = p.get_by_text(re.compile(r'^\s*go to game\s*$', re.I)).first
+        try:
+            has_leftover = leftover.is_visible(timeout=2000)
+        except Exception:
+            has_leftover = False
+        if has_leftover:
+            # A table of this account is already ready (e.g. left over from an earlier run): play that one.
+            self.console.append('note: reusing the table that was already ready on the game panel')
+            leftover.click(timeout=10000)
+            p.wait_for_url(re.compile(r'table=\d+'), timeout=60000)
+            self.table_id = re.search(r'table=(\d+)', p.url).group(1)
+            self.wait_ready()
+            return
         self.select_players()
         try:
             p.get_by_text(re.compile(r'search for players', re.I)).first.click(timeout=10000)
