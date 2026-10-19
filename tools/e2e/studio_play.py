@@ -63,6 +63,10 @@ class StepFailed(Exception):
     pass
 
 
+class StepSkipped(Exception):
+    pass
+
+
 def load_creds():
     password = os.environ.get('BGA_STUDIO_PASSWORD')
     if not password:
@@ -425,6 +429,8 @@ class Runner:
             fresh = self.console[before:]
             if fresh:
                 status, detail = 'fail', f'{len(fresh)} JS error(s): ' + ' | '.join(fresh[:3])
+        except StepSkipped as e:
+            status, detail = 'skip', str(e)
         except StepFailed as e:
             status, detail = 'fail', str(e)
             self.snap(f'{name}_failed')
@@ -518,6 +524,8 @@ class Runner:
                 self.page.goto(game_url, wait_until='domcontentloaded', timeout=60000)
                 self.wait_ready()
                 continue
+            if missing:
+                raise StepSkipped('Studio did not write the game archive (Studio limitation, not a game bug)')
             self.check('in replay')
             self.snap('replay')
             return
