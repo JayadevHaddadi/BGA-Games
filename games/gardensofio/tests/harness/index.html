@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gardens of Io harness</title>
+<link rel="stylesheet" href="../../bga/gardensofio.css">
+<style>
+  body { margin: 0; font-family: sans-serif; background: #fff; }
+  #game_play_area { padding: 0; }
+  #out { white-space: pre-wrap; font: 12px monospace; padding: 8px; }
+</style>
+</head>
+<body data-done="0">
+<div id="page-content">
+  <div id="statusbar"></div>
+  <div id="game_play_area"></div>
+</div>
+<div id="player_panels"></div>
+<pre id="out">running</pre>
+
+<script>
+window._ = (s) => s;
+window.g_gamethemeurl = '../../bga/';
+window.errors = [];
+window.addEventListener('error', (e) => window.errors.push(String(e.message)));
+window.addEventListener('unhandledrejection', (e) => window.errors.push(String(e.reason)));
+</script>
+<script type="module">
+import { Game } from '../../bga/modules/js/Game.js';
+
+const calls = [];
+const buttons = [];
+let title = '';
+const bga = {
+  states: { register() {} },
+  gameArea: { getElement: () => document.getElementById('game_play_area') },
+  notifications: { setupPromiseNotifications() {} },
+  userPreferences: { get: () => 1 },
+  sounds: { play() {} },
+  statusBar: {
+    setTitle(text, args) {
+      title = text;
+      if (args) Object.keys(args).forEach((k) => { title = title.replace('${' + k + '}', args[k]); });
+    },
+    addActionButton(label, fn, opts) { buttons.push({ label, fn, opts: opts || {} }); },
+    removeActionButtons() { buttons.length = 0; },
+  },
+  players: {
+    getCurrentPlayerId: () => 1,
+    isCurrentPlayerActive: () => true,
+    getActivePlayerId: () => 1,
+  },
+  playerPanels: {
+    getElement: (pid) => {
+      let el = document.getElementById('panel_' + pid);
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'panel_' + pid;
+        document.getElementById('player_panels').appendChild(el);
+      }
+      return el;
+    },
+    getScoreCounter: () => ({ toValue() {} }),
+  },
+  actions: {
+    performAction(name, args) { calls.push({ name, args }); return Promise.resolve(); },
+  },
+};
+
+function fixture() {
+  const COLOURS = ['blue', 'yellow', 'orange', 'purple', 'red', 'green'];
+  const cells = [
+    { row: 2, col: 2, kind: 't' },
+    { row: 4, col: 4, kind: 't' },
+    { row: 6, col: 6, kind: 't' },
+    { row: 2, col: 3, kind: 'f', color: 'blue', owner: 1 },
+    { row: 3, col: 3, kind: 'f', color: 'red', owner: 2 },
+  ];
+  const ring = [];
+  for (let p = 0; p < 40; p++) {
+    if (p < 10) ring.push([0, p]);
+    else if (p < 20) ring.push([p - 10, 10]);
+    else if (p < 30) ring.push([10, 30 - p]);
+    else ring.push([40 - p, 0]);
+  }
+  return {
+    players: {
+      1: { id: 1, name: 'Alice', color: '4caf50' },
+      2: { id: 2, name: 'Bob', color: 'e91e63' },
+    },
+    martians: {
+      1: { type: 'bot', dist: 4, specials_used: 0 },
+      2: { type: 'ali', dist: 8, specials_used: 0 },
+    },
+    cells,
+    reserves: {
+      1: { blue: 2, yellow: 2, orange: 2, purple: 2, red: 1, green: 2 },
+      2: { blue: 2, yellow: 2, orange: 2, purple: 2, red: 2, green: 1 },
+    },
+    board_counts: { blue: 1, yellow: 0, orange: 0, purple: 0, red: 1, green: 0 },
+    colour_totals: { blue: 5, yellow: 4, orange: 4, purple: 4, red: 4, green: 3 },
+    specials: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+    special_users: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+    special_limit: 2,
+    special_names: { 1: 'swap_tree_flower', 2: 'swap_flowers', 3: 'move_flower', 4: 'move_tree', 5: 'move_martian' },
+    colors: COLOURS,
+    martian_types: ['bot', 'ali', 'marty', 'bob', 'robby'],
+    ring,
+    is_coop: false,
+    lap_option: false,
+  };
+}
+
+try {
+  const game = new Game(bga);
+  game.setup(fixture());
+
+  // Enter turn state
+  const turnArgs = {
+    track: 4,
+    laps: 0,
+    candidates: [[2, 4], [3, 4]],
+    reserve: { blue: 2, yellow: 2, orange: 2, purple: 2, red: 1, green: 2 },
+    specials_available: { 1: true, 2: true, 3: true, 4: true, 5: true },
+    specials_left_for_player: 2,
+    special_taken_this_turn: false,
+  };
+  game.enterTurn(turnArgs, true);
+
+  setTimeout(() => {
+    const board = document.querySelector('#gio_board') || document.querySelector('#gio_table');
+    const boardRect = board ? board.getBoundingClientRect() : { width: 0, left: 0 };
+    const vp = window.innerWidth;
+    const horizontalOverflow = Math.max(0, document.documentElement.scrollWidth - vp);
+
+    // Measure tap target size of cells
+    const circles = document.querySelectorAll('.gio_cell_g');
+    let minSize = 999;
+    circles.forEach(c => {
+      const r = c.getBoundingClientRect();
+      const s = Math.min(r.width, r.height);
+      if (s > 0 && s < minSize) minSize = s;
+    });
+
+    const report = {
+      viewport: vp,
+      boardWidth: Math.round(boardRect.width),
+      horizontalOverflow: Math.round(horizontalOverflow),
+      cellTargetMin: minSize === 999 ? 0 : Math.round(minSize),
+      jsErrors: window.errors,
+      ok: window.errors.length === 0 && horizontalOverflow === 0,
+    };
+
+    document.getElementById('out').textContent = JSON.stringify(report, null, 2);
+    document.body.dataset.done = '1';
+  }, 200);
+
+} catch (err) {
+  window.errors.push(err.stack || err.message);
+  document.getElementById('out').textContent = JSON.stringify({ ok: false, error: String(err) }, null, 2);
+  document.body.dataset.done = '1';
+}
+</script>
+</body>
+</html>
