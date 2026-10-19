@@ -35,5 +35,4 @@ __pycache__/
 scratch/
 
 # E2E test credentials and output
-tools/bga_web.json
 tools/e2e/out/

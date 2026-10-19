@@ -10,8 +10,9 @@ Scenarios (default: all): load, refresh, autoplay, zombie, replay.
 Output (default tools/e2e/out/<game>-<players>p/): report.json, report.md, numbered screenshots, DOM dumps on failure.
 Exit code: 0 all passed, 1 a scenario failed, 2 no credentials / setup problem.
 
-Credentials (never committed): env BGA_STUDIO_PASSWORD (+ optional BGA_STUDIO_USERNAME, default JayadevHaddadi0),
-or the git-ignored file tools/bga_web.json: {"username": "JayadevHaddadi0", "password": "..."}.
+Credentials: env BGA_STUDIO_PASSWORD only (+ optional BGA_STUDIO_USERNAME, default JayadevHaddadi0). GitHub Actions sets it
+from the repo secret. There is deliberately no password file and no fallback to the SFTP credentials: never paste the
+password into a chat or a file.
 
 STATUS: written from the BGA documentation, not yet run against Studio. Every page-structure guess is in SELECTORS
 or the *_TEXT lists below, so the first live run (--probe) only needs those adjusted. See reports/e2e_setup.md.
@@ -61,14 +62,10 @@ class StepFailed(Exception):
 
 
 def load_creds():
-    user = os.environ.get('BGA_STUDIO_USERNAME') or 'JayadevHaddadi0'
-    if os.environ.get('BGA_STUDIO_PASSWORD'):
-        return user, os.environ['BGA_STUDIO_PASSWORD']
-    cfg = REPO / 'tools' / 'bga_web.json'
-    if cfg.exists():
-        data = json.loads(cfg.read_text(encoding='utf-8'))
-        return data.get('username') or user, data['password']
-    return None
+    password = os.environ.get('BGA_STUDIO_PASSWORD')
+    if not password:
+        return None
+    return os.environ.get('BGA_STUDIO_USERNAME') or 'JayadevHaddadi0', password
 
 
 def game_players(game):
@@ -395,7 +392,7 @@ def main():
         return 2
     creds = load_creds()
     if not creds:
-        print('No credentials: set BGA_STUDIO_PASSWORD or create tools/bga_web.json (git-ignored). See reports/e2e_setup.md.')
+        print('BGA_STUDIO_PASSWORD is not set. This runner is meant for GitHub Actions (repo secret BGA_STUDIO_PASSWORD); for a local run export that env var yourself. Stopping.')
         return 2
 
     from playwright.sync_api import sync_playwright

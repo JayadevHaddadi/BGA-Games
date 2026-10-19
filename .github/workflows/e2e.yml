@@ -17,6 +17,10 @@ on:
         description: 'Game slug, or "all" for every enabled game'
         required: true
         default: 'all'
+      probe:
+        description: 'Probe only: log in, open one table, dump the page structure (no assertions, no issues)'
+        type: boolean
+        default: false
 
 # The Studio test accounts are shared: never run two tables at once.
 concurrency:
@@ -81,9 +85,14 @@ jobs:
           pip install playwright
           playwright install --with-deps chromium
 
+      - name: Probe the Studio page structure
+        if: steps.secret.outputs.ready == 'true' && github.event.inputs.probe == 'true'
+        run: |
+          for g in ${{ steps.pick.outputs.games }}; do python3 tools/e2e/studio_play.py "$g" --probe --players 2 || true; break; done
+
       - name: Play the games
         id: play
-        if: steps.secret.outputs.ready == 'true'
+        if: steps.secret.outputs.ready == 'true' && github.event.inputs.probe != 'true'
         run: |
           failed=""
           for g in ${{ steps.pick.outputs.games }}; do
@@ -102,7 +111,7 @@ jobs:
           retention-days: 30
 
       - name: Open or update failure issues
-        if: always() && steps.secret.outputs.ready == 'true'
+        if: always() && steps.secret.outputs.ready == 'true' && github.event.inputs.probe != 'true'
         run: |
           gh label create e2e-failure --color B60205 --description "Studio end-to-end test failed" 2>/dev/null || true
           run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
