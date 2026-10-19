@@ -37,7 +37,7 @@ SELECTORS = {
     'play_area': '#game_play_area',
 }
 LOGIN_BUTTON_TEXT = re.compile(r'^(log ?in|sign ?in)$', re.I)
-USERNAME_PLACEHOLDER = re.compile(r'email or username', re.I)
+DEFAULT_USER = 'JayadevHaddadi0'
 EXPRESS_START_TEXT = re.compile(r'express start', re.I)
 DEBUG_MENU_TEXT = re.compile(r'^debug$', re.I)
 QUIT_TEXT = re.compile(r'(quit|leave) (the )?game', re.I)
@@ -66,7 +66,7 @@ def load_creds():
     password = os.environ.get('BGA_STUDIO_PASSWORD')
     if not password:
         return None
-    return os.environ.get('BGA_STUDIO_USERNAME') or 'JayadevHaddadi0', password
+    return os.environ.get('BGA_STUDIO_USERNAME') or DEFAULT_USER, password
 
 
 def game_players(game):
@@ -166,65 +166,44 @@ class Runner:
         loc.click()
 
     # ---- shared steps ------------------------------------------------------------------------------
+    def login_api(self, user, password):
+        """Post to BGA's own login endpoint from inside the page (the modal login form is fragile in headless runs).
+        Returns a summary with only status codes and a short error string: never the password or the response body."""
+        return self.page.evaluate("""async ([user, pw]) => {
+            const token = (typeof bgaConfig !== 'undefined') ? bgaConfig.requestToken : '';
+            const body = new URLSearchParams({email: user, password: pw, rememberme: 'on', redirect: 'join',
+                request_token: token, form_id: 'loginform', 'dojo.preventCache': String(Date.now())});
+            const r = await fetch('/account/auth/loginUserWithPassword.html', {method: 'POST', credentials: 'same-origin',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-Request-Token': token}, body});
+            let j = null;
+            try { j = JSON.parse(await r.text()); } catch (e) {}
+            const err = j && (j.error || (j.data && (j.data.error || j.data.message)) || j.exception || null);
+            return {http: r.status, hasToken: !!token, status: j ? j.status : null, error: err ? String(err).slice(0, 120) : null,
+                    json: !!j};
+        }""", [user, password])
+
     def login(self, user, password):
-        """Studio login is a two-step modal: "Email or username" + Next, then the password."""
         p = self.page
-        p.goto(STUDIO + '/', wait_until='domcontentloaded', timeout=60000)
-        user_box = p.get_by_placeholder(USERNAME_PLACEHOLDER).first
-        pass_box = p.locator(SELECTORS['password']).first
-        try:
-            user_box.wait_for(state='visible', timeout=15000)
-        except Exception:
+        users = [user] + ([DEFAULT_USER] if user != DEFAULT_USER else [])
+        summary = []
+        for u in users:
+            p.goto(STUDIO + '/', wait_until='domcontentloaded', timeout=60000)
+            res = self.login_api(u, password)
+            summary.append(f'{u}: http={res["http"]} status={res["status"]} error={res["error"]} token={res["hasToken"]}')
+            self.console.append('note: login ' + summary[-1])
+            p.goto(STUDIO + '/', wait_until='domcontentloaded', timeout=60000)
+            time.sleep(2)
+            logged_out = p.get_by_text(LOGIN_BUTTON_TEXT).first
             try:
-                p.get_by_text(LOGIN_BUTTON_TEXT).first.click(timeout=5000)
-                user_box.wait_for(state='visible', timeout=15000)
+                still_out = logged_out.is_visible(timeout=3000)
             except Exception:
-                self.snap('login_form_missing')
-                self.dump_dom('login_form_missing')
-                raise StepFailed('no "Email or username" field found on the Studio page (adjust USERNAME_PLACEHOLDER)')
-        user_box.click()
-        user_box.press_sequentially(user, delay=40)   # the form validates the name asynchronously; fill() is too fast
-        time.sleep(2)
-        shown = False
-        modal_next = p.locator('a.bga-button:visible', has_text=re.compile(r'^\s*next\s*$', re.I)).first
-        for attempt, how in enumerate(('click', 'enter', 'force', 'js')):
-            try:
-                if how == 'click':
-                    p.get_by_text(re.compile(r'^next$', re.I)).first.click(timeout=8000)
-                elif how == 'enter':
-                    user_box.press('Enter')
-                elif how == 'force':
-                    modal_next.click(force=True, timeout=8000)
-                else:
-                    modal_next.evaluate('e => e.click()')
-            except Exception as e:
-                self.console.append(f'note: Next via {how} failed: {str(e)[:80]}')
-            try:
-                pass_box.wait_for(state='visible', timeout=8000)
-                shown = True
-                self.console.append(f'note: password step appeared after Next via {how}')
-                break
-            except Exception:
-                self.snap(f'login_next_{how}')
-        if not shown:
-            self.dump_dom('login_no_password_step')
-            self.dump_inputs('login_no_password_step')
-            try:
-                info = p.evaluate("() => ({hasBgaConfig: typeof bgaConfig !== 'undefined', keys: typeof bgaConfig !== 'undefined' ? Object.keys(bgaConfig).slice(0, 40) : [], tokenInHtml: document.documentElement.outerHTML.includes('requestToken')})")
-                (self.out / 'login_page_config.json').write_text(json.dumps(info, indent=2), encoding='utf-8')
-            except Exception as e:
-                self.console.append(f'config probe failed: {e}')
-            raise StepFailed('no password field after "Next" (unknown username, captcha, or changed flow)')
-        pass_box.fill(password)
-        p.keyboard.press('Enter')
-        try:
-            pass_box.wait_for(state='hidden', timeout=30000)
-        except Exception:
-            self.snap('login_failed')
-            self.dump_dom('login_failed')
-            raise StepFailed('login did not complete (wrong password, captcha, or changed flow)')
-        p.wait_for_load_state('domcontentloaded')
-        self.snap('logged_in')
+                still_out = False
+            if not still_out:
+                self.snap('logged_in')
+                return
+        self.snap('login_failed')
+        self.dump_dom('login_failed')
+        raise StepFailed('login failed (' + ' | '.join(summary) + ')')
 
     def open_table(self):
         p = self.page
