@@ -178,7 +178,7 @@ class SkirmishResolution extends \Bga\GameFramework\States\GameState
                 'new_score' => $newScore,
             ];
 
-            $doubledText = $r['doubled'] ? clienttranslate(' [🔥 Bloodline Doubled!]') : '';
+            $doubledText = $r['doubled'] ? clienttranslate(' [Bloodline Doubled!]') : '';
             $suppList = [];
             foreach ($pClaimed as $s) {
                 $bonus = $s['bonus'] ? clienttranslate(' (Cochrane bonus)') : '';

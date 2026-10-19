@@ -347,7 +347,7 @@ export class Game {
             if (viPlayer) {
                 const pName = viPlayer.player_name || viPlayer.name || '';
                 const pColor = viPlayer.player_color || viPlayer.color || 'ffffff';
-                el.innerHTML = `<span style="color: #${pColor}; font-weight: bold;">👑 ${pName}</span>`;
+                el.innerHTML = `<span style="color: #${pColor}; font-weight: bold;">${pName}</span>`;
             } else {
                 el.innerHTML = '';
             }
@@ -364,7 +364,7 @@ export class Game {
                     const badge = document.createElement('span');
                     badge.className = 'los-crown-badge';
                     badge.title = _('Victor’s Initiative');
-                    badge.textContent = '👑 Initiative';
+                    badge.textContent = 'Initiative';
                     titleEl.appendChild(badge);
                 }
             }
@@ -529,7 +529,7 @@ export class Game {
             el.classList.add('los-card-back');
             el.innerHTML = `
                 <div class="los-card-back-pattern">
-                    <div class="los-back-shield">⚔️</div>
+                    <div class="los-back-shield"></div>
                     <div class="los-back-text">Lords of Scotland</div>
                 </div>
             `;
@@ -544,26 +544,26 @@ export class Game {
 
         let badgeHtml = '';
         if (isSecretToOthers) {
-            badgeHtml = '<div class="los-hidden-badge" title="Hidden from opponents until revealed">🙈 Hidden</div>';
+            badgeHtml = '<div class="los-hidden-badge" title="Hidden from opponents until revealed">Hidden</div>';
         } else if (context === 'army') {
             const powerActive = Number(card.power_activated) === 1;
             const endOfSkirmishClans = ['cochrane', 'macdonnell', 'bruce'];
             const effectiveClan = card.copied_clan || card.clan;
             if (powerActive && endOfSkirmishClans.includes(effectiveClan) && !isPersisted) {
-                let label = '⚡ Power Active';
-                if (effectiveClan === 'cochrane') label = '⚡ 2 Supporters';
-                else if (effectiveClan === 'macdonnell') label = '⚡ Persists';
-                else if (effectiveClan === 'bruce') label = '⚡ Wild';
+                let label = 'Power Active';
+                if (effectiveClan === 'cochrane') label = '2 Supporters';
+                else if (effectiveClan === 'macdonnell') label = 'Persists';
+                else if (effectiveClan === 'bruce') label = 'Wild';
                 badgeHtml = `<div class="los-active-power-badge">${label}</div>`;
             } else if (isPersisted) {
-                badgeHtml = '<div class="los-persisted-badge-top">🛡️ Persisted</div>';
+                badgeHtml = '<div class="los-persisted-badge-top">Persisted</div>';
             }
         }
 
         el.innerHTML = `
             ${badgeHtml}
             <div class="los-card-corner-top">
-                <span class="los-card-strength">${isBruce ? '★' : card.strength}</span>
+                <span class="los-card-strength">${isBruce ? '*' : card.strength}</span>
                 <span class="los-card-clan-name">${clanInfo.name}</span>
             </div>
             <div class="los-card-crest">
@@ -575,7 +575,7 @@ export class Game {
                 ${card.copied_clan ? `<div class="los-copied-badge">Copied: ${card.copied_clan}</div>` : ''}
             </div>
             <div class="los-card-corner-bottom">
-                <span class="los-card-strength-small">${isBruce ? '★' : card.strength}</span>
+                <span class="los-card-strength-small">${isBruce ? '*' : card.strength}</span>
             </div>
         `;
 
@@ -584,7 +584,7 @@ export class Game {
             el.dataset.canPower = canPower ? '1' : '0';
             const powerBadge = document.createElement('div');
             powerBadge.className = `los-power-status-badge ${canPower ? 'power-ready' : 'power-dormant'}`;
-            powerBadge.textContent = canPower ? '⚡ Power Active' : 'Normal Play';
+            powerBadge.textContent = canPower ? 'Power Active' : 'Normal Play';
             el.appendChild(powerBadge);
 
             el.addEventListener('click', () => this.onHandCardClick(card));
@@ -595,17 +595,17 @@ export class Game {
 
     getClanIcon(clan) {
         const icons = {
-            makgill: '🏹',
-            fergusson: '🔄',
-            wemyss: '🗡️',
-            scott: '🎭',
-            forsyth: '📜',
-            cockburn: '🤝',
-            cochrane: '🏆',
-            macdonnell: '🛡️',
-            bruce: '👑',
+            makgill: 'Mk',
+            fergusson: 'Fe',
+            wemyss: 'We',
+            scott: 'Sc',
+            forsyth: 'Fo',
+            cockburn: 'Ck',
+            cochrane: 'Ch',
+            macdonnell: 'Md',
+            bruce: 'Br',
         };
-        return icons[clan] || '⚔️';
+        return icons[clan] || '';
     }
 
     // FLIP-style travel animation: el is already in its final DOM position;
@@ -792,13 +792,13 @@ export class Game {
         const clanInfo = this.gamedatas.clans[card.clan] || { name: card.clan, power: '' };
         const canPower = Boolean(card.can_activate_power) && (face_up === 1);
         const modeLabel = (face_up === 1)
-            ? (canPower ? `${clanInfo.name} (${card.strength}) — ⚡ ${clanInfo.power}` : `${clanInfo.name} (${card.strength})`)
+            ? (canPower ? `${clanInfo.name} (${card.strength}) — ${clanInfo.power}` : `${clanInfo.name} (${card.strength})`)
             : _('Face-Down (Hidden)');
 
         this.bga.statusBar.setTitle(_('Confirm muster: ${mode}?').replace('${mode}', modeLabel));
 
         this.bga.statusBar.addActionButton(
-            _('✓ Confirm Muster'),
+            _('Confirm Muster'),
             () => this.confirmStagedMuster(),
             { color: 'primary' }
         );
@@ -892,7 +892,7 @@ export class Game {
                     const badge = el.querySelector('.los-power-status-badge');
                     if (badge) {
                         badge.className = `los-power-status-badge ${canPower ? 'power-ready' : 'power-dormant'}`;
-                        badge.textContent = canPower ? '⚡ Power Active' : 'Normal Play';
+                        badge.textContent = canPower ? 'Power Active' : 'Normal Play';
                     }
                 }
             });
@@ -925,7 +925,7 @@ export class Game {
                     this.bga.statusBar.setTitle(_('Discard ${desc} from the army?').replace('${desc}', desc));
 
                     this.bga.statusBar.addActionButton(
-                        _('✓ Confirm Discard'),
+                        _('Confirm Discard'),
                         () => {
                             this.clearActionButtons();
                             this.bga.actions.performAction('actChooseDiscard', { target_card_id: cardId });
@@ -964,7 +964,7 @@ export class Game {
                     this.bga.statusBar.setTitle(_('Swap your Fergusson with card from ${player}\'s army?').replace('${player}', targetName));
 
                     this.bga.statusBar.addActionButton(
-                        _('✓ Confirm Swap'),
+                        _('Confirm Swap'),
                         () => {
                             this.clearActionButtons();
                             this.bga.actions.performAction('actChooseSwap', { target_card_id: cardId });
@@ -1002,7 +1002,7 @@ export class Game {
                     this.bga.statusBar.setTitle(_('Copy power of ${clan} (${power})?').replace('${clan}', clanInfo.name).replace('${power}', clanInfo.power));
 
                     this.bga.statusBar.addActionButton(
-                        _('✓ Confirm Copy'),
+                        _('Confirm Copy'),
                         () => {
                             this.clearActionButtons();
                             this.bga.actions.performAction('actChooseCopy', { target_card_id: cardId });
@@ -1039,7 +1039,7 @@ export class Game {
                 this.bga.statusBar.setTitle(_('Swap your Cockburn with ${clan} (${strength} pts)?').replace('${clan}', clanInfo.name).replace('${strength}', strength));
 
                 this.bga.statusBar.addActionButton(
-                    _('✓ Confirm Swap'),
+                    _('Confirm Swap'),
                     () => {
                         this.clearActionButtons();
                         this.bga.actions.performAction('actChooseSupporterSwap', { supporter_card_id: cardId });
@@ -1271,7 +1271,7 @@ export class Game {
                 }
                 const strengthEl = document.getElementById(`army-strength-${r.player_id}`);
                 if (strengthEl) {
-                    strengthEl.innerHTML = `Army Strength: <strong id="army-strength-val-${r.player_id}">${r.total}</strong>${r.doubled ? ' <span class="los-doubled-badge">🔥 Doubled!</span>' : ''}`;
+                    strengthEl.innerHTML = `Army Strength: <strong id="army-strength-val-${r.player_id}">${r.total}</strong>${r.doubled ? ' <span class="los-doubled-badge">Doubled!</span>' : ''}`;
                 }
             });
         }
@@ -1423,9 +1423,9 @@ export class Game {
                     activeBadge.className = 'los-active-power-badge';
                     cardEl.prepend(activeBadge);
                 }
-                if (copied_clan === 'cochrane') activeBadge.textContent = '⚡ 2 Supporters';
-                else if (copied_clan === 'macdonnell') activeBadge.textContent = '⚡ Persists';
-                else if (copied_clan === 'bruce') activeBadge.textContent = '⚡ Wild';
+                if (copied_clan === 'cochrane') activeBadge.textContent = '2 Supporters';
+                else if (copied_clan === 'macdonnell') activeBadge.textContent = 'Persists';
+                else if (copied_clan === 'bruce') activeBadge.textContent = 'Wild';
             }
         }
         this.updateAllArmyStrengths();
@@ -1560,7 +1560,7 @@ export class Game {
                 }
             }
 
-            strengthEl.innerHTML = `Army Strength: <strong id="army-strength-val-${pId}">${sum}</strong>${doubled ? ' <span class="los-doubled-badge">🔥 Doubled!</span>' : ''}`;
+            strengthEl.innerHTML = `Army Strength: <strong id="army-strength-val-${pId}">${sum}</strong>${doubled ? ' <span class="los-doubled-badge">Doubled!</span>' : ''}`;
         } else {
             let visibleSum = 0;
             let hiddenCount = 0;
@@ -1589,7 +1589,7 @@ export class Game {
                         visibleSum *= 2;
                     }
                 }
-                strengthEl.innerHTML = `Army Strength: <strong id="army-strength-val-${pId}">${visibleSum}</strong>${doubled ? ' <span class="los-doubled-badge">🔥 Doubled!</span>' : ''}`;
+                strengthEl.innerHTML = `Army Strength: <strong id="army-strength-val-${pId}">${visibleSum}</strong>${doubled ? ' <span class="los-doubled-badge">Doubled!</span>' : ''}`;
             }
         }
     }
@@ -1631,7 +1631,7 @@ export class Game {
             }
 
             const strengthText = row.doubled
-                ? `<strong>${row.total}</strong> pts <span class="los-doubled-badge">🔥 Doubled (${row.raw_total} × 2)</span>`
+                ? `<strong>${row.total}</strong> pts <span class="los-doubled-badge">Doubled (${row.raw_total} × 2)</span>`
                 : `<strong>${row.total}</strong> pts`;
 
             rowsHtml += `
@@ -1641,7 +1641,7 @@ export class Game {
                         <div class="los-modal-player">
                             <span class="los-player-dot" style="background-color: #${playerColor};"></span>
                             <span style="color: #${playerColor};">${row.name}</span>
-                            ${isWinner ? '<span class="los-crown-badge">👑 Victor</span>' : ''}
+                            ${isWinner ? '<span class="los-crown-badge">Victor</span>' : ''}
                             ${isMe ? '<span class="los-you-badge">(You)</span>' : ''}
                         </div>
                     </td>
@@ -1662,13 +1662,13 @@ export class Game {
             <div class="los-skirmish-modal" role="dialog" aria-modal="true">
                 <div class="los-modal-header">
                     <div class="los-modal-title">
-                        <span>⚔️ Skirmish #${skirmishNum} Complete</span>
+                        <span>Skirmish #${skirmishNum} Complete</span>
                     </div>
-                    <button class="los-modal-close-icon" id="btn-close-skirmish-modal" title="${_('Close')}">✕</button>
+                    <button class="los-modal-close-icon" id="btn-close-skirmish-modal" title="${_('Close')}">×</button>
                 </div>
                 <div class="los-modal-body">
                     <div class="los-modal-winner-banner">
-                        👑 <strong>${winnerName || _('Victor')}</strong> won the skirmish and holds <strong>Victor's Initiative</strong>!
+                        <strong>${winnerName || _('Victor')}</strong> won the skirmish and holds <strong>Victor's Initiative</strong>!
                     </div>
                     <table class="los-modal-results-table">
                         <tbody>
