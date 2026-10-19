@@ -186,20 +186,34 @@ class Runner:
         user_box.press_sequentially(user, delay=40)   # the form validates the name asynchronously; fill() is too fast
         time.sleep(2)
         shown = False
-        for attempt in range(4):
+        modal_next = p.locator('a.bga-button:visible', has_text=re.compile(r'^\s*next\s*$', re.I)).first
+        for attempt, how in enumerate(('click', 'enter', 'force', 'js')):
             try:
-                p.get_by_text(re.compile(r'^next$', re.I)).first.click(timeout=8000)
-            except Exception:
-                p.keyboard.press('Enter')
+                if how == 'click':
+                    p.get_by_text(re.compile(r'^next$', re.I)).first.click(timeout=8000)
+                elif how == 'enter':
+                    user_box.press('Enter')
+                elif how == 'force':
+                    modal_next.click(force=True, timeout=8000)
+                else:
+                    modal_next.evaluate('e => e.click()')
+            except Exception as e:
+                self.console.append(f'note: Next via {how} failed: {str(e)[:80]}')
             try:
                 pass_box.wait_for(state='visible', timeout=8000)
                 shown = True
+                self.console.append(f'note: password step appeared after Next via {how}')
                 break
             except Exception:
-                self.snap(f'login_next_attempt_{attempt + 1}')
+                self.snap(f'login_next_{how}')
         if not shown:
             self.dump_dom('login_no_password_step')
             self.dump_inputs('login_no_password_step')
+            try:
+                info = p.evaluate("() => ({hasBgaConfig: typeof bgaConfig !== 'undefined', keys: typeof bgaConfig !== 'undefined' ? Object.keys(bgaConfig).slice(0, 40) : [], tokenInHtml: document.documentElement.outerHTML.includes('requestToken')})")
+                (self.out / 'login_page_config.json').write_text(json.dumps(info, indent=2), encoding='utf-8')
+            except Exception as e:
+                self.console.append(f'config probe failed: {e}')
             raise StepFailed('no password field after "Next" (unknown username, captcha, or changed flow)')
         pass_box.fill(password)
         p.keyboard.press('Enter')
