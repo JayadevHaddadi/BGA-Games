@@ -220,14 +220,19 @@ class Runner:
         self.dump_dom('gamepanel')
         self.select_players()
         try:
-            self.dropdown(re.compile(r'^\s*play\s*$', re.I)).click(timeout=10000)
-            time.sleep(1)
-            self.snap('play_dropdown')
-            self.dump_dom('play_dropdown')
-            self.click_text(EXPRESS_START_TEXT, timeout=8000)
+            p.get_by_text(re.compile(r'search for players', re.I)).first.click(timeout=10000)
         except Exception:
-            self.dump_dom('no_express_start')
-            raise StepFailed('no "Express start" entry in the PLAY dropdown of the game panel (see play_dropdown dumps)')
+            self.dump_dom('no_start_button')
+            raise StepFailed('no "Start / Search for players" button on the game panel')
+        time.sleep(4)
+        self.snap('after_start')
+        self.dump_dom('after_start')
+        if not re.search(r'[?&]table=\d+', p.url) or EXPRESS_START_TEXT.search(p.evaluate('document.body.innerText')):
+            try:
+                self.click_text(EXPRESS_START_TEXT, timeout=15000)
+            except Exception:
+                self.dump_dom('no_express_start')
+                raise StepFailed('no "Express start" control after Start (see after_start dumps)')
         try:
             p.wait_for_url(re.compile(r'[?&]table=\d+'), timeout=90000)
         except Exception:
