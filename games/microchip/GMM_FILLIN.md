@@ -64,4 +64,4 @@ Build the most valuable microchip you can: each connection in your microchip sco
 
 * `python3 tools/bga.py check microchip` has no FAIL lines.
 * Screenshots at 375 px and 1280 px pass the layout checks (`tests/harness`).
-* The GMM warnings about licence and tags can be ignored for Private Alpha (AGENTS.md 5.C).
+* The GMM warnings about licence and tags can be ignored for Private Alpha (BGA_REFERENCE.md section 6).

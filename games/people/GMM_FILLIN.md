@@ -66,4 +66,4 @@ A tribute to Soylent Green. The game is for 2 to 4 players. The game area shrink
 
 * `python3 tools/bga.py check people` has no FAIL lines.
 * Screenshots at 375 px and 1280 px pass the layout checks (`tests/harness`).
-* The GMM warnings about licence and tags can be ignored for Private Alpha (AGENTS.md 5.C).
+* The GMM warnings about licence and tags can be ignored for Private Alpha (BGA_REFERENCE.md section 6).

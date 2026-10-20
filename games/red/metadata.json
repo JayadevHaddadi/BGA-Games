@@ -1,7 +1,7 @@
 {
   "_comment": "Single source for the Control Panel (Game Metadata Manager). Run: python3 tools/bga.py gmm <slug>",
   "slug": "red",
-  "studio_project": "red",
+  "studio_project": "redd",
   "game_name": "Red",
   "bgg_id": 112118,
   "bgg_url": "https://boardgamegeek.com/boardgame/112118",
@@ -14,10 +14,7 @@
     "website": ""
   },
   "designers": [
-    {
-      "name": "Néstor Romeral Andrés",
-      "bgg_id": 9976
-    }
+    "Néstor Romeral Andrés"
   ],
   "artists": [],
   "rules_edits": [],

@@ -66,4 +66,4 @@ At the end of the game each player's reserve is read as a hand: the number of fl
 
 * `python3 tools/bga.py check gardensofenceladus` has no FAIL lines.
 * Screenshots at 375 px and 1280 px pass the layout checks (`tests/harness`).
-* The GMM warnings about licence and tags can be ignored for Private Alpha (AGENTS.md 5.C).
+* The GMM warnings about licence and tags can be ignored for Private Alpha (BGA_REFERENCE.md section 6).
