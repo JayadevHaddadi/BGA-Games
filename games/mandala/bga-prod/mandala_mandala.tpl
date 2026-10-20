@@ -24,6 +24,7 @@
                     <div id="mdl_river_3_{OPPONENT_ID}" class="mdl_card_ph mdl_op_river_3"></div>
                     <div id="mdl_river_2_{OPPONENT_ID}" class="mdl_card_ph mdl_op_river_2"></div>
                     <div id="mdl_river_1_{OPPONENT_ID}" class="mdl_card_ph mdl_op_river_1"></div>
+                    <div id="mdl_river_missing_{OPPONENT_ID}" class="mdl_mandala_missing mdl_river_missing mdl_missing_right"></div>
                 </div>
                 <div id="mdl_mandalas" class="mdl_mandalas">
                     <div id="mdl_mandala_1" class="mdl_mandala">
@@ -40,6 +41,7 @@
                     </div>
                 </div>
                 <div id="mdl_river_{PLAYER_ID}" class="mdl_river mdl_my_river">
+                    <div id="mdl_river_missing_{PLAYER_ID}" class="mdl_mandala_missing mdl_river_missing mdl_missing_left"></div>
                     <div id="mdl_river_1_{PLAYER_ID}" class="mdl_card_ph mdl_my_river_1"></div>
                     <div id="mdl_river_2_{PLAYER_ID}" class="mdl_card_ph mdl_my_river_2"></div>
                     <div id="mdl_river_3_{PLAYER_ID}" class="mdl_card_ph mdl_my_river_3"></div>
@@ -49,7 +51,7 @@
                     <div id="mdl_cup_{PLAYER_ID}" class="mdl_card_ph mdl_my_cup">
                         <div class="player-name mdl_player_name"><span id="mdl_{PLAYER_ID}_cup_name"></span></div>
                         <span id="p{PLAYER_ID}_cup_nbr" class="mdl_cup_counter"></span>
-                    </div>                
+                    </div>
                 </div>
             </div>
             <div id="mdl_player_area" class="whiteblock">

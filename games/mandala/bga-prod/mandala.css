@@ -59,6 +59,35 @@
     }
 }
 @media (max-width: 988px) {
+    #mdl_table {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+    }
+
+    #mdl_game_area {
+        width: 100% !important;
+        max-width: calc(994px * var(--mdlScale)) !important;
+        display: block !important;
+        padding: 0 !important;
+        margin: 0 auto !important;
+    }
+
+    #mdl_play_area {
+        width: 100% !important;
+        max-width: calc(994px * var(--mdlScale)) !important;
+        padding: 0 !important;
+        margin: 0 auto !important;
+    }
+
+    #mdl_player_area.whiteblock {
+        margin: calc(6px * var(--mdlScale)) 0 !important;
+        padding: calc(6px * var(--mdlScale)) 0 !important;
+        border-radius: 0 !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
     .mdl_player_panel_row .mdl_card {
         width: 28px;
         height: 28px;
@@ -67,10 +96,6 @@
     .mdl_player_panel_row.mdl_panel_cards {
         grid-template-columns: repeat(3, 1fr);
     }
-
-    /* .mdl_player_panel_row.mdl_panel_cards {
-        grid-template-columns: repeat(6, 1fr);
-    } */
 
     #player_boards .mdl_panel_card .mdl_card_counter {
         padding-top: 0px;
@@ -97,11 +122,19 @@
 }
 
 #mdl_game_area.mdl_decks_in_panel {
-    width: calc(1114px * var(--mdlScale));
+    width: 100%;
+    max-width: calc(994px * var(--mdlScale));
     display: block;
-    padding-left: calc(60px * var(--mdlScale));
-    padding-right: calc(60px * var(--mdlScale));
+    padding: 0;
+    margin: 0 auto;
     box-sizing: border-box;
+}
+
+#mdl_game_area.mdl_decks_in_panel #mdl_play_area {
+    width: 100%;
+    max-width: calc(994px * var(--mdlScale));
+    padding: 0;
+    margin: 0 auto;
 }
 
 #mdl_play_area {
@@ -117,6 +150,7 @@
     background-size: contain;
     height: calc(640px * var(--mdlScale));
     position: relative;
+    margin: 0 auto;
 }
 #mdl_playmat.reverted {
     background-image: url("img/Mandala_Gameboard_reverted.jpg");
@@ -792,6 +826,25 @@
     font-size: 13px;
     font-weight: 600;
     color: #333;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.mdl_rb_slot_badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    color: #4a5568;
+    background: rgba(0, 0, 0, 0.06);
+    padding: 1px 6px;
+    border-radius: 4px;
+    margin-right: 2px;
+}
+
+.mdl_rb_scoring .mdl_rb_slot_badge {
+    background: rgba(212, 175, 55, 0.3);
+    color: #744210;
 }
 
 .mdl_rb_scoring .mdl_rb_formula {
@@ -810,17 +863,63 @@
     font-weight: 800;
 }
 
+.mdl_rb_unplaced_header {
+    display: flex;
+    align-items: center;
+    margin-top: 6px;
+    margin-bottom: 2px;
+    padding-top: 4px;
+    border-top: 1px dashed rgba(0, 0, 0, 0.15);
+}
+
+.mdl_rb_unplaced_title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #8c5d1e;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
 .mdl_rb_row.mdl_rb_unplaced {
-    background: rgba(0, 0, 0, 0.02);
-    border: 1px dashed rgba(0, 0, 0, 0.18);
+    background: rgba(120, 120, 120, 0.05);
+    border: 1.5px dashed rgba(140, 140, 140, 0.45);
+    opacity: 0.88;
 }
 
-.mdl_rb_row.mdl_rb_unplaced .mdl_rb_formula {
-    color: #666;
+.mdl_card.mdl_rb_unplaced_card {
+    opacity: 0.6 !important;
+    filter: saturate(50%) brightness(0.95);
+    border: 1.5px dashed rgba(100, 100, 100, 0.7) !important;
+    box-shadow: none !important;
 }
 
-.mdl_rb_row.mdl_rb_unplaced .mdl_rb_pts {
+.mdl_rb_unplaced_badge {
+    position: absolute;
+    bottom: -3px;
+    right: -3px;
+    width: 15px;
+    height: 15px;
+    background: #e53e3e;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+.mdl_rb_unplaced_text {
     color: #888;
+    font-style: italic;
+    font-size: 12px;
+}
+
+.mdl_rb_pts_zero {
+    color: #a0aec0 !important;
+    font-weight: 600 !important;
 }
 
 /* Score display: End of game mode - simple per-color card counts, no points/formulas */
@@ -864,6 +963,46 @@
     transition: opacity 0.2s ease;
 }
 
+.mdl_my_river .mdl_river_missing {
+    left: calc(4px * var(--mdlScale));
+    top: calc(7px * var(--mdlScale));
+    height: calc(98px * var(--mdlScale));
+    right: auto;
+    margin-right: 0;
+    transform: none;
+    box-sizing: border-box;
+    padding: calc(3px * var(--mdlScale)) calc(3px * var(--mdlScale));
+    max-width: calc(70px * var(--mdlScale));
+}
+
+.mdl_op_river .mdl_river_missing {
+    right: calc(4px * var(--mdlScale));
+    top: calc(45px * var(--mdlScale));
+    height: calc(98px * var(--mdlScale));
+    left: auto;
+    margin-left: 0;
+    transform: none;
+    box-sizing: border-box;
+    padding: calc(3px * var(--mdlScale)) calc(3px * var(--mdlScale));
+    max-width: calc(70px * var(--mdlScale));
+}
+
+.mdl_river_missing .mdl_missing_title {
+    font-size: calc(8px * var(--mdlScale));
+    letter-spacing: 0.5px;
+}
+
+.mdl_river_missing .mdl_missing_cards {
+    gap: calc(2px * var(--mdlScale));
+}
+
+.mdl_river_missing .mdl_card.mdl_missing_card {
+    width: calc(22px * var(--mdlScale)) !important;
+    height: calc(22px * var(--mdlScale)) !important;
+    min-width: calc(16px * var(--mdlScale));
+    min-height: calc(16px * var(--mdlScale));
+}
+
 .mdl_missing_left {
     right: 100%;
     margin-right: calc(2px * var(--mdlScale));
@@ -900,20 +1039,24 @@
 }
 
 .mdl_missing_cards {
-    display: flex;
-    flex-direction: column;
-    gap: calc(4px * var(--mdlScale));
+    display: grid;
+    grid-template-columns: auto;
+    gap: calc(2px * var(--mdlScale));
     align-items: center;
     justify-content: center;
 }
 
+.mdl_missing_cards.mdl_missing_two_cols {
+    grid-template-columns: repeat(2, auto);
+}
+
 .mdl_card.mdl_missing_card {
     position: relative !important;
-    width: calc(32px * var(--mdlScale)) !important;
-    height: calc(32px * var(--mdlScale)) !important;
-    min-width: calc(20px * var(--mdlScale));
-    min-height: calc(20px * var(--mdlScale));
-    border-radius: calc(4px * var(--mdlScale));
+    width: calc(26px * var(--mdlScale)) !important;
+    height: calc(26px * var(--mdlScale)) !important;
+    min-width: calc(18px * var(--mdlScale));
+    min-height: calc(18px * var(--mdlScale));
+    border-radius: calc(3px * var(--mdlScale));
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22);
     display: block;
     flex-shrink: 0;

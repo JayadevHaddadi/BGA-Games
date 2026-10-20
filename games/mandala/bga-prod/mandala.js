@@ -224,6 +224,11 @@ function (dojo, declare, bgaHelp) {
                 // breakdown/hidden-VP badge on scoreDisplayMode. Gating the call itself here would
                 // leave the cup panel unrendered on first load in "End of game" mode.
                 this.updateLiveScores();
+                if (this.bga && this.bga.userPreferences) {
+                    this.bga.userPreferences.onChange = (prefId, value) => {
+                        this.onPreferenceChange(prefId, value);
+                    };
+                }
                 if (this.bga.userPreferences.get(103) == 1) {
                     this.updateMissingColors();
                 } else {
@@ -671,28 +676,49 @@ function (dojo, declare, bgaHelp) {
             this.playerHand.resizeItems(this.cardSize,this.cardSize,this.cardSize * 8,this.cardSize);
         },
 
+        fitContainerToScreen: function() {
+            var root = $('mdl_table');
+            if (!root) return;
+            root.style.width = '';
+            root.style.marginLeft = '';
+            if (window.innerWidth >= 980) return;
+            var viewportW = document.documentElement.clientWidth || window.innerWidth;
+            root.style.width = viewportW + 'px';
+            var left = root.getBoundingClientRect().left;
+            if (Math.abs(left) > 0.5) {
+                root.style.marginLeft = (-left) + 'px';
+            }
+        },
+
         setScale: function() {
             try {
-                var overallDiv = $('mdl_overall');
-                if (!overallDiv) {
-                    return;
-                }
+                this.fitContainerToScreen();
 
-                var usableWidth = overallDiv.clientWidth;
-                if (usableWidth <= 0) {
+                var tableDiv = $('mdl_table');
+                var overallDiv = $('mdl_overall');
+                var usableWidth = 0;
+
+                if (window.innerWidth < 980) {
+                    usableWidth = document.documentElement.clientWidth || window.innerWidth;
+                } else if (overallDiv && overallDiv.clientWidth > 0) {
+                    usableWidth = overallDiv.clientWidth;
+                } else if (tableDiv && tableDiv.clientWidth > 0) {
+                    usableWidth = tableDiv.clientWidth;
+                } else {
                     usableWidth = window.innerWidth;
                 }
 
-                var baseWidth = 1220;
-                var scale = Math.min(1.0, usableWidth / baseWidth);
-                scale = Math.max(0.25, Math.round(scale * 100) / 100);
+                var isMobile = window.innerWidth < 980;
+                var baseWidth = isMobile ? 994 : 1220;
+                var scale = Math.min(1.0, Math.floor((usableWidth / baseWidth) * 1000) / 1000);
+                scale = Math.max(0.25, scale);
 
                 this.mdlScale = scale;
                 document.documentElement.style.setProperty('--mdlScale', scale);
 
                 this.cardSize = 98 * scale;
 
-                if (usableWidth < 980) {
+                if (isMobile) {
                     this.currentDeckTarget = 'player_boards';
                 } else {
                     this.currentDeckTarget = 'mdl_decks_area';
@@ -1836,21 +1862,27 @@ function (dojo, declare, bgaHelp) {
                             // Ongoing mode: full river-ordered point breakdown
                             breakdown.forEach((item) => {
                                 var colorCap = item.color.charAt(0).toUpperCase() + item.color.slice(1);
-                                var rowClass = 'mdl_rb_row mdl_rb_slot_' + item.slot;
+                                var isScoring = item.count > 0;
+                                var rowClass = 'mdl_rb_row mdl_rb_slot_' + item.slot + (isScoring ? ' mdl_rb_scoring' : '');
                                 rbHtml += '<div class="' + rowClass + '" title="' + _(colorCap) + '">';
                                 rbHtml += '<div class="mdl_card shadow mdl_' + item.color + '_card mdl_rb_card"></div>';
-                                rbHtml += '<span class="mdl_rb_formula">' + item.count + ' x River ' + item.multiplier + ' = <span class="mdl_rb_pts">' + item.pts + '</span></span>';
+                                rbHtml += '<span class="mdl_rb_formula">' + item.count + ' × <span class="mdl_rb_slot_badge">River ' + item.multiplier + '</span> = <span class="mdl_rb_pts">' + item.pts + '</span></span>';
                                 rbHtml += '</div>';
                             });
 
                             // Render cards in cup not in river yet (for ourselves)
-                            unplaced.forEach((item) => {
-                                var colorCap = item.color.charAt(0).toUpperCase() + item.color.slice(1);
-                                rbHtml += '<div class="mdl_rb_row mdl_rb_unplaced" title="' + _(colorCap) + ' (' + _('not in river yet') + ')">';
-                                rbHtml += '<div class="mdl_card shadow mdl_' + item.color + '_card mdl_rb_card"></div>';
-                                rbHtml += '<span class="mdl_rb_formula">' + item.count + ' x ' + _('not in river') + ' = <span class="mdl_rb_pts">0</span></span>';
-                                rbHtml += '</div>';
-                            });
+                            if (unplaced.length > 0) {
+                                rbHtml += '<div class="mdl_rb_unplaced_header"><span class="mdl_rb_unplaced_title">' + _('Unplaced in River') + '</span></div>';
+                                unplaced.forEach((item) => {
+                                    var colorCap = item.color.charAt(0).toUpperCase() + item.color.slice(1);
+                                    rbHtml += '<div class="mdl_rb_row mdl_rb_unplaced" title="' + _(colorCap) + ' (' + _('not in river yet') + ')">';
+                                    rbHtml += '<div class="mdl_card shadow mdl_' + item.color + '_card mdl_rb_card mdl_rb_unplaced_card">';
+                                    rbHtml += '<span class="mdl_rb_unplaced_badge" title="' + _('Not in river') + '">✕</span>';
+                                    rbHtml += '</div>';
+                                    rbHtml += '<span class="mdl_rb_formula">' + item.count + ' × <span class="mdl_rb_unplaced_text">' + _('not in river') + '</span> = <span class="mdl_rb_pts mdl_rb_pts_zero">0</span></span>';
+                                    rbHtml += '</div>';
+                                });
+                            }
                         } else if (isMe) {
                             // End of game mode, own cup only: simple per-color card count, no
                             // points/formulas — matches the original pre-live-score panel. Real
@@ -1922,6 +1954,7 @@ function (dojo, declare, bgaHelp) {
                     return found;
                 };
 
+                // 1. Mandala missing colors (Mandalas 1 & 2)
                 for (var m = 1; m <= 2; m++) {
                     var container = $('mdl_mandala_' + m + '_missing');
                     if (!container) continue;
@@ -1949,7 +1982,7 @@ function (dojo, declare, bgaHelp) {
                         html = '<div class="mdl_missing_complete">✓ ' + _('Complete!') + '</div>';
                     } else {
                         html = '<span class="mdl_missing_title">' + _('Missing colors') + '</span>';
-                        html += '<div class="mdl_missing_cards">';
+                        html += '<div class="mdl_missing_cards' + (missing.length >= 3 ? ' mdl_missing_two_cols' : '') + '">';
                         missing.forEach((col) => {
                             var colorCap = col.charAt(0).toUpperCase() + col.slice(1);
                             html += '<div class="mdl_card shadow mdl_' + col + '_card mdl_missing_card" title="' + _(colorCap) + '"></div>';
@@ -1960,8 +1993,64 @@ function (dojo, declare, bgaHelp) {
                     container.innerHTML = html;
                     container.style.display = 'flex';
                 }
+
+                // 2. River missing colors (for each player)
+                var allPlayerIds = this.gamedatas && this.gamedatas.players ? Object.keys(this.gamedatas.players) : [];
+                if (this.isSoloMode && this.isSoloMode() && this.masterYoga) {
+                    allPlayerIds.push(this.masterYoga.id.toString());
+                }
+                allPlayerIds.forEach((pId) => {
+                    var rContainer = $('mdl_river_missing_' + pId);
+                    if (!rContainer) return;
+
+                    var riverColors = {};
+                    if (this.riverSlots && this.riverSlots[pId]) {
+                        for (var slot in this.riverSlots[pId]) {
+                            var col = resolveColor(this.riverSlots[pId][slot]);
+                            if (col) riverColors[col] = true;
+                        }
+                    }
+                    // DOM fallback
+                    for (var s = 1; s <= 6; s++) {
+                        var slotEl = $('mdl_river_' + s + '_' + pId);
+                        if (slotEl && slotEl.children.length > 0) {
+                            allColors.forEach((col) => {
+                                if (slotEl.querySelector('.mdl_' + col + '_card') || dojo.hasClass(slotEl.firstChild, 'mdl_' + col + '_card')) {
+                                    riverColors[col] = true;
+                                }
+                            });
+                        }
+                    }
+
+                    var missingRiver = allColors.filter(c => !riverColors[c]);
+                    var rHtml = '';
+                    if (missingRiver.length === 0) {
+                        rHtml = '<div class="mdl_missing_complete">✓ ' + _('Complete!') + '</div>';
+                    } else {
+                        rHtml = '<span class="mdl_missing_title">' + _('Missing colors') + '</span>';
+                        rHtml += '<div class="mdl_missing_cards' + (missingRiver.length >= 3 ? ' mdl_missing_two_cols' : '') + '">';
+                        missingRiver.forEach((col) => {
+                            var colorCap = col.charAt(0).toUpperCase() + col.slice(1);
+                            rHtml += '<div class="mdl_card shadow mdl_' + col + '_card mdl_missing_card" title="' + _(colorCap) + '"></div>';
+                        });
+                        rHtml += '</div>';
+                    }
+
+                    rContainer.innerHTML = rHtml;
+                    rContainer.style.display = 'flex';
+                });
             } catch (e) {
                 console.error("Error in updateMissingColors:", e);
+            }
+        },
+
+        onPreferenceChange: function(prefId, prefValue) {
+            if (prefId == 103) {
+                if (prefValue == 1) {
+                    this.updateMissingColors();
+                } else {
+                    dojo.query('.mdl_mandala_missing').style('display', 'none');
+                }
             }
         },
    });
