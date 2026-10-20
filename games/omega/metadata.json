@@ -1,0 +1,44 @@
+{
+  "_comment": "Single source for the BGA Control Panel (Game Metadata Manager) and the Studio pages. Run: python3 tools/bga.py gmm omega.",
+  "slug": "omega",
+  "studio_project": "omega",
+  "game_name": "Omega",
+  "bgg_id": 81588,
+  "bgg_url": "https://boardgamegeek.com/boardgame/81588/omega",
+  "year_published": 2010,
+  "players": "2 to 4",
+  "estimated_duration_minutes": 20,
+  "publisher": {
+    "name": "nestorgames",
+    "bgg_id": 9976,
+    "website": "https://nestorgames.com"
+  },
+  "designers": ["Néstor Romeral Andrés"],
+  "artists": [],
+  "rules_edits": [],
+  "rules_url": "https://nestorgames.com/rulebooks/OMEGA_EN.pdf",
+  "description": "Omega is a combinatorial abstract strategy game for 2 to 4 players played on a hexagonal board of hexagonal cells.\n\nOn your turn, you place one stone of each color in play onto empty cells of the board. The game ends when a full round cannot be completed. At game end, each player's score is calculated by multiplying the sizes of all connected groups of stones of their color. The player with the highest score wins.",
+  "zombie_mode_level": 1,
+  "tags": ["Abstract Strategy", "Combinatorial", "Hexagonal grid", "Connection"],
+  "tags_note": "PROPOSAL: pick from BGA's tag list in the Control Panel.",
+  "characteristics": {
+    "complexity": 2,
+    "luck": 1,
+    "strategy": 5,
+    "diplomacy": 1,
+    "note": "PROPOSAL: sliders 1 to 5 in the Control Panel only (not in gameinfos.jsonc)."
+  },
+  "licence": {
+    "status": "CONFIRMED",
+    "note": "Approved by Néstor Romeral Andrés"
+  },
+  "assets": {
+    "box": "metadata_assets/box_280x280.png",
+    "icon": "metadata_assets/icon_50x50.png",
+    "icon_hi": "metadata_assets/icon_500x500.png",
+    "banner": "metadata_assets/banner_1386x400.jpg",
+    "title": "metadata_assets/title_2000x2000.png",
+    "publisher": "metadata_assets/publisher_280x280.png",
+    "display": ["metadata_assets/display_1.jpg", "metadata_assets/display_2.jpg"]
+  }
+}
