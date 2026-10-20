@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Bga\Games\redd;
+namespace Bga\Games\red;
 
 /**
  * Pure rules of Red (no framework calls). Coordinates are absolute: the first tile sits at (0, 0), x grows to the

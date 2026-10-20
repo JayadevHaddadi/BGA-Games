@@ -49,7 +49,7 @@ TARGET_MAP = {
     "gardensofmarstest": ("games/gardensofmars/bga", "gardensofmars"),
     "gardensofio": ("games/gardensofio/bga", "gardensofio"),
     "gardensofenceladus": ("games/gardensofenceladus/bga", "gardensofenceladus"),
-    "redd": ("games/redd/bga", "redd"),
+    "red": ("games/red/bga", "red"),
     "microchip": ("games/microchip/bga", "microchip"),
     "people": ("games/people/bga", "people"),
     "hipposandcrocodiles": ("games/hipposandcrocodiles/bga", "hipposandcrocodiles"),

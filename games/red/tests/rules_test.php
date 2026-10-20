@@ -2,12 +2,12 @@
 
 /**
  * Command-line checks for the pure rules of Red.
- * Run: php games/redd/tests/rules_test.php
+ * Run: php games/red/tests/rules_test.php
  */
 
 declare(strict_types=1);
 
-namespace Bga\Games\redd;
+namespace Bga\Games\red;
 
 require __DIR__ . '/../bga/modules/php/Rules.php';
 

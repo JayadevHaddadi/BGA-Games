@@ -16,7 +16,7 @@ Not covered: real clicks, look and feel, phone layout, rules correctness. Those 
 | gardensofenceladus | Antigravity | 2-5 | yes | PASS 2p, 5p (replay skipped: no Studio archive) | 2026-10-19 | |
 | people | Antigravity | 2-4 | yes | PASS 2p (all), 4p (replay skipped) | 2026-10-19 | |
 | microchip | Antigravity | 2-5 | yes | PASS 2p, 5p, all scenarios | 2026-10-19 | |
-| redd | Antigravity | 2-3 | yes | PASS 3p (all), 2p (replay skipped) | 2026-10-19 | |
+| red | Antigravity | 2-3 | yes | PASS 3p (all), 2p (replay skipped) | 2026-10-19 | |
 | hipposandcrocodiles | Antigravity | 2 | yes | PASS 2p, all scenarios incl. replay | 2026-10-19 | replay load error fixed by Antigravity |
 | all other games | | | no | not run | | add the slug to `tools/e2e/games.json` to enable |
 

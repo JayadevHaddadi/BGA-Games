@@ -49,6 +49,6 @@ def get_game_id(game_name):
 if __name__ == '__main__':
     token = get_token()
     print(f"Session token: {token}")
-    for g in ['people', 'microchip', 'gardensofenceladus', 'redd']:
+    for g in ['people', 'microchip', 'gardensofenceladus', 'red']:
         gid = get_game_id(g)
         print(f"{g}: ID = {gid}")

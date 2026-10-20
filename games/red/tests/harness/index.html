@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Red harness</title>
-<link rel="stylesheet" href="../../bga/redd.css">
+<link rel="stylesheet" href="../../bga/red.css">
 <style>
   body { margin: 0; font-family: sans-serif; background: #fff; }
   #game_play_area { padding: 0; }
@@ -116,13 +116,13 @@ try {
   game.enterTurn(turnArgs, true);
 
   setTimeout(() => {
-    const board = document.querySelector('#redd_board') || document.querySelector('#redd_board_wrap');
+    const board = document.querySelector('#red_board') || document.querySelector('#red_board_wrap');
     const boardRect = board ? board.getBoundingClientRect() : { width: 0, left: 0 };
     const vp = window.innerWidth;
     const horizontalOverflow = Math.max(0, document.documentElement.scrollWidth - vp);
 
     // Measure pool tiles
-    const poolTiles = document.querySelectorAll('.redd_pool_tile');
+    const poolTiles = document.querySelectorAll('.red_pool_tile');
     let minPoolSize = 999;
     poolTiles.forEach(c => {
       const r = c.getBoundingClientRect();

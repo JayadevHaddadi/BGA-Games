@@ -11,10 +11,10 @@
 
 declare(strict_types=1);
 
-namespace Bga\Games\redd;
+namespace Bga\Games\red;
 
 use Bga\GameFramework\UserException;
-use Bga\Games\redd\States\PlayerTurn;
+use Bga\Games\red\States\PlayerTurn;
 
 class Game extends \Bga\GameFramework\Table
 {

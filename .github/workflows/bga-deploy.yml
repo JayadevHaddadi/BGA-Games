@@ -31,7 +31,7 @@ on:
           - gardensofenceladus
           - microchip
           - people
-          - redd
+          - red
           - hipposandcrocodiles
           # <bga:options>  (tools/bga.py register inserts new games above this line)
 

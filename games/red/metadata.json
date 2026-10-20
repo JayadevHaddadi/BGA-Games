@@ -1,7 +1,7 @@
 {
   "_comment": "Single source for the Control Panel (Game Metadata Manager). Run: python3 tools/bga.py gmm <slug>",
-  "slug": "redd",
-  "studio_project": "redd",
+  "slug": "red",
+  "studio_project": "red",
   "game_name": "Red",
   "bgg_id": 112118,
   "bgg_url": "https://boardgamegeek.com/boardgame/112118",

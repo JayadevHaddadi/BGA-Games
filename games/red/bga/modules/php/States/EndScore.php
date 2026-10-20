@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Bga\Games\redd\States;
+namespace Bga\Games\red\States;
 
 use Bga\GameFramework\StateType;
 use Bga\GameFramework\States\GameState;
-use Bga\Games\redd\Game;
-use Bga\Games\redd\Rules;
+use Bga\Games\red\Game;
+use Bga\Games\red\Rules;
 
 const ST_END_GAME = 99;
 

@@ -72,5 +72,5 @@ This document defines the unified testing strategy across development agents and
 1. **People** (`people`): Passed Level 1, 2, 3. Ready for Studio live session.
 2. **Microchip** (`microchip`): Passed Level 1, 2, 3. Ready for Studio live session.
 3. **Gardens of Enceladus** (`gardensofenceladus`): Passed Level 1, 2, 3. Ready for Studio live session.
-4. **Red** (`redd`): Passed Level 1, 2, 3. Ready for Studio live session.
+4. **Red** (`red`): Passed Level 1, 2, 3. Ready for Studio live session.
 5. **Hippos & Crocodiles** (`hipposandcrocodiles`): Original assets in hand (`hc.zip`). Ready for implementation.

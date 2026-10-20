@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Bga\Games\redd\States;
+namespace Bga\Games\red\States;
 
 use Bga\GameFramework\StateType;
 use Bga\GameFramework\States\GameState;
-use Bga\Games\redd\Game;
+use Bga\Games\red\Game;
 
 /** Between turns: the game ends when the pool is empty or no tile in it can be placed anywhere. */
 class NextPlayer extends GameState

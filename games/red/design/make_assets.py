@@ -1,6 +1,6 @@
 """Builds the Red art: board and sprite crops here, metadata images via tools/bga_assets.py.
 
-Run: python3 tools/bga.py assets redd
+Run: python3 tools/bga.py assets red
 """
 from pathlib import Path
 import sys

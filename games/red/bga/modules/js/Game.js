@@ -8,19 +8,19 @@
  *------
  */
 
-const REDD_HEX = { white: '#f1ede3', black: '#1e1d1b', red: '#d6281e' };
-const REDD_SHAPE = { white: 'plus', black: 'square', red: 'triangle' };
-const REDD_CELL = 100;
-const REDD_GAP = 6;
-const REDD_LABEL = 70;
-const REDD_MAT = '#d8cfbd';
-const REDD_INK = '#1e1d1b';
+const RED_HEX = { white: '#f1ede3', black: '#1e1d1b', red: '#d6281e' };
+const RED_SHAPE = { white: 'plus', black: 'square', red: 'triangle' };
+const RED_CELL = 100;
+const RED_GAP = 6;
+const RED_LABEL = 70;
+const RED_MAT = '#d8cfbd';
+const RED_INK = '#1e1d1b';
 
-const reddContrast = (colour) => (colour === 'white' ? REDD_INK : REDD_HEX.white);
+const redContrast = (colour) => (colour === 'white' ? RED_INK : RED_HEX.white);
 
 /** Colourblind symbol: one distinct silhouette per colour. Drawn only when the colourblind preference is on. */
-function reddShape(colour, cx, cy, s, fill) {
-    const kind = REDD_SHAPE[colour];
+function redShape(colour, cx, cy, s, fill) {
+    const kind = RED_SHAPE[colour];
     if (kind === 'square') {
         return `<rect x="${cx - s / 2}" y="${cy - s / 2}" width="${s}" height="${s}" fill="${fill}"/>`;
     }
@@ -34,19 +34,19 @@ function reddShape(colour, cx, cy, s, fill) {
 }
 
 /** One tile as SVG with its top-left cell at (x, y) in cell units. */
-function reddTileSvg(size, bg, circle, x, y) {
-    const side = size * REDD_CELL - REDD_GAP * 2;
-    const ox = x * REDD_CELL + REDD_GAP;
-    const oy = y * REDD_CELL + REDD_GAP;
+function redTileSvg(size, bg, circle, x, y) {
+    const side = size * RED_CELL - RED_GAP * 2;
+    const ox = x * RED_CELL + RED_GAP;
+    const oy = y * RED_CELL + RED_GAP;
     const cx = ox + side / 2;
     const cy = oy + side / 2;
     const r = side * 0.36;
     const corner = 20;
-    return `<g class="redd_tile">`
-        + `<rect x="${ox}" y="${oy}" width="${side}" height="${side}" fill="${REDD_HEX[bg]}"/>`
-        + `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${REDD_HEX[circle]}"/>`
-        + `<g class="redd_glyph">${reddShape(circle, cx, cy, r * 0.9, reddContrast(circle))}</g>`
-        + `<g class="redd_glyph">${reddShape(bg, ox + corner, oy + corner, corner, reddContrast(bg))}</g>`
+    return `<g class="red_tile">`
+        + `<rect x="${ox}" y="${oy}" width="${side}" height="${side}" fill="${RED_HEX[bg]}"/>`
+        + `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${RED_HEX[circle]}"/>`
+        + `<g class="red_glyph">${redShape(circle, cx, cy, r * 0.9, redContrast(circle))}</g>`
+        + `<g class="red_glyph">${redShape(bg, ox + corner, oy + corner, corner, redContrast(bg))}</g>`
         + `</g>`;
 }
 
@@ -85,16 +85,16 @@ export class Game {
         this.variant = !!gamedatas.variant;
 
         const root = document.createElement('div');
-        root.id = 'redd_root';
+        root.id = 'red_root';
         root.innerHTML = `
-            <div id="redd_board_wrap">
-                <svg id="redd_board" viewBox="0 0 100 100" role="img" aria-label="${_('Tile board. Tap a highlighted square to place the chosen tile.')}"></svg>
+            <div id="red_board_wrap">
+                <svg id="red_board" viewBox="0 0 100 100" role="img" aria-label="${_('Tile board. Tap a highlighted square to place the chosen tile.')}"></svg>
             </div>
-            <div id="redd_pool" role="group" aria-label="${_('Tile pool')}"></div>`;
+            <div id="red_pool" role="group" aria-label="${_('Tile pool')}"></div>`;
         this.bga.gameArea.getElement().appendChild(root);
-        document.body.classList.add('redd_page_bg');
+        document.body.classList.add('red_page_bg');
 
-        document.getElementById('redd_board').addEventListener('click', (e) => this.onBoardTap(e));
+        document.getElementById('red_board').addEventListener('click', (e) => this.onBoardTap(e));
         this.renderPanels();
         this.fitContainerToScreen(root);
         window.addEventListener('resize', () => this.fitContainerToScreen(root));
@@ -121,13 +121,13 @@ export class Game {
     renderPanels() {
         Object.keys(this.colours).forEach((pid) => {
             const el = this.bga.playerPanels.getElement(pid);
-            if (!el || el.querySelector('.redd_panel')) return;
+            if (!el || el.querySelector('.red_panel')) return;
             const colour = this.colours[pid];
             const panel = document.createElement('div');
-            panel.className = 'redd_panel';
+            panel.className = 'red_panel';
             panel.innerHTML = `<svg viewBox="0 0 40 40" width="18" height="18" aria-hidden="true">`
-                + `<rect x="1" y="1" width="38" height="38" fill="${REDD_HEX[colour]}" stroke="${REDD_INK}" stroke-width="2"/>`
-                + `<g class="redd_glyph">${reddShape(colour, 20, 20, 20, reddContrast(colour))}</g></svg>`
+                + `<rect x="1" y="1" width="38" height="38" fill="${RED_HEX[colour]}" stroke="${RED_INK}" stroke-width="2"/>`
+                + `<g class="red_glyph">${redShape(colour, 20, 20, 20, redContrast(colour))}</g></svg>`
                 + `<span>${this.colourLabel(colour)}</span>`;
             el.appendChild(panel);
         });
@@ -161,10 +161,10 @@ export class Game {
         this.bga.statusBar.removeActionButtons();
         if (!isActive) return;
         if (this.stage) {
-            this.bga.statusBar.addActionButton('redd_confirm_btn', _('Place tile'), () => this.confirm(), { color: 'primary' });
+            this.bga.statusBar.addActionButton('red_confirm_btn', _('Place tile'), () => this.confirm(), { color: 'primary' });
         }
         if (this.selectedKey) {
-            this.bga.statusBar.addActionButton('redd_cancel_btn', _('Cancel'), () => this.cancelChoice(), { color: 'alert' });
+            this.bga.statusBar.addActionButton('red_cancel_btn', _('Cancel'), () => this.cancelChoice(), { color: 'alert' });
         }
     }
 
@@ -199,13 +199,13 @@ export class Game {
 
     /** Which legal square a tap means. A large tile is staged by tapping any of its four cells. */
     anchorAt(clientX, clientY) {
-        const svg = document.getElementById('redd_board');
+        const svg = document.getElementById('red_board');
         const pt = svg.createSVGPoint();
         pt.x = clientX;
         pt.y = clientY;
         const p = pt.matrixTransform(svg.getScreenCTM().inverse());
-        const cx = p.x / REDD_CELL;
-        const cy = p.y / REDD_CELL;
+        const cx = p.x / RED_CELL;
+        const cy = p.y / RED_CELL;
         const size = this.selectedTile().size;
         let best = null;
         let bestDist = Infinity;
@@ -258,7 +258,7 @@ export class Game {
     }
 
     renderBoard() {
-        const svg = document.getElementById('redd_board');
+        const svg = document.getElementById('red_board');
         if (!svg) return;
         const cand = this.candidates();
         const size = this.selectedTile() ? this.selectedTile().size : 1;
@@ -279,14 +279,14 @@ export class Game {
         const y0 = minY - 1;
         const x1 = maxX + 1;
         const y1 = maxY + 1;
-        const C = REDD_CELL;
-        const vbX = x0 * C - REDD_LABEL;
-        const vbY = y0 * C - REDD_LABEL;
-        const vbW = (x1 - x0) * C + REDD_LABEL + 10;
-        const vbH = (y1 - y0) * C + REDD_LABEL + 10;
+        const C = RED_CELL;
+        const vbX = x0 * C - RED_LABEL;
+        const vbY = y0 * C - RED_LABEL;
+        const vbW = (x1 - x0) * C + RED_LABEL + 10;
+        const vbH = (y1 - y0) * C + RED_LABEL + 10;
         svg.setAttribute('viewBox', `${vbX} ${vbY} ${vbW} ${vbH}`);
 
-        let html = `<rect x="${x0 * C}" y="${y0 * C}" width="${(x1 - x0) * C}" height="${(y1 - y0) * C}" fill="${REDD_MAT}"/>`;
+        let html = `<rect x="${x0 * C}" y="${y0 * C}" width="${(x1 - x0) * C}" height="${(y1 - y0) * C}" fill="${RED_MAT}"/>`;
         for (let x = x0; x <= x1; x++) {
             html += `<line x1="${x * C}" y1="${y0 * C}" x2="${x * C}" y2="${y1 * C}" stroke="#bfb5a0" stroke-width="2"/>`;
         }
@@ -294,42 +294,42 @@ export class Game {
             html += `<line x1="${x0 * C}" y1="${y * C}" x2="${x1 * C}" y2="${y * C}" stroke="#bfb5a0" stroke-width="2"/>`;
         }
         for (let x = x0; x < x1; x++) {
-            html += `<text class="redd_label" x="${x * C + C / 2}" y="${y0 * C - 16}" text-anchor="middle">${x}</text>`;
+            html += `<text class="red_label" x="${x * C + C / 2}" y="${y0 * C - 16}" text-anchor="middle">${x}</text>`;
         }
         for (let y = y0; y < y1; y++) {
-            html += `<text class="redd_label" x="${x0 * C - 16}" y="${y * C + C / 2 + 12}" text-anchor="end">${y}</text>`;
+            html += `<text class="red_label" x="${x0 * C - 16}" y="${y * C + C / 2 + 12}" text-anchor="end">${y}</text>`;
         }
 
         this.tiles.forEach((t) => {
-            html += reddTileSvg(t.size, t.bg, t.circle, t.x, t.y);
+            html += redTileSvg(t.size, t.bg, t.circle, t.x, t.y);
         });
 
         const lastTile = this.tiles.find((t) => t.id === this.last);
         if (lastTile) {
-            const side = lastTile.size * C - REDD_GAP * 2;
-            const ox = lastTile.x * C + REDD_GAP;
-            const oy = lastTile.y * C + REDD_GAP;
-            html += `<rect class="redd_last" x="${ox - 3}" y="${oy - 3}" width="${side + 6}" height="${side + 6}" fill="none" stroke="${REDD_INK}" stroke-width="7"/>`;
-            html += `<rect class="redd_last" x="${ox + 2}" y="${oy + 2}" width="${side - 4}" height="${side - 4}" fill="none" stroke="#ffffff" stroke-width="3"/>`;
+            const side = lastTile.size * C - RED_GAP * 2;
+            const ox = lastTile.x * C + RED_GAP;
+            const oy = lastTile.y * C + RED_GAP;
+            html += `<rect class="red_last" x="${ox - 3}" y="${oy - 3}" width="${side + 6}" height="${side + 6}" fill="none" stroke="${RED_INK}" stroke-width="7"/>`;
+            html += `<rect class="red_last" x="${ox + 2}" y="${oy + 2}" width="${side - 4}" height="${side - 4}" fill="none" stroke="#ffffff" stroke-width="3"/>`;
         }
 
         cand.forEach(([x, y]) => {
-            const side = size * C - REDD_GAP * 2;
-            html += `<rect class="redd_candidate" x="${x * C + REDD_GAP}" y="${y * C + REDD_GAP}" width="${side}" height="${side}" fill="#ffffff" fill-opacity="0.35" stroke="${REDD_INK}" stroke-width="5" stroke-dasharray="16 10"/>`;
+            const side = size * C - RED_GAP * 2;
+            html += `<rect class="red_candidate" x="${x * C + RED_GAP}" y="${y * C + RED_GAP}" width="${side}" height="${side}" fill="#ffffff" fill-opacity="0.35" stroke="${RED_INK}" stroke-width="5" stroke-dasharray="16 10"/>`;
         });
 
         if (this.stage) {
             const s = this.stage;
-            const side = s.size * C - REDD_GAP * 2;
-            html += `<g class="redd_ghost" opacity="0.7">${reddTileSvg(s.size, s.bg, s.circle, s.x, s.y)}</g>`;
-            html += `<rect x="${s.x * C + REDD_GAP}" y="${s.y * C + REDD_GAP}" width="${side}" height="${side}" fill="none" stroke="${REDD_INK}" stroke-width="7"/>`;
+            const side = s.size * C - RED_GAP * 2;
+            html += `<g class="red_ghost" opacity="0.7">${redTileSvg(s.size, s.bg, s.circle, s.x, s.y)}</g>`;
+            html += `<rect x="${s.x * C + RED_GAP}" y="${s.y * C + RED_GAP}" width="${side}" height="${side}" fill="none" stroke="${RED_INK}" stroke-width="7"/>`;
         }
 
         svg.innerHTML = html;
     }
 
     renderPool() {
-        const host = document.getElementById('redd_pool');
+        const host = document.getElementById('red_pool');
         if (!host) return;
         const anchors = (this.args && this.args.anchors) || {};
         const counts = {};
@@ -344,15 +344,15 @@ export class Game {
             const box = p.size === 2 ? 92 : 44;
             const name = `${p.size === 2 ? _('Large') : _('Small')} ${this.colourLabel(p.bg)} ${_('background')}, ${this.colourLabel(p.circle)} ${_('circle')}`;
             const title = !this.isActive ? name : (p.count === 0 ? _('None left') : (available ? name : _('Cannot be placed now')));
-            return `<div class="redd_pool_item${p.size === 2 ? ' redd_large' : ''}">`
-                + `<button type="button" class="redd_pool_btn" data-key="${key}" aria-label="${name}" title="${title}"`
+            return `<div class="red_pool_item${p.size === 2 ? ' red_large' : ''}">`
+                + `<button type="button" class="red_pool_btn" data-key="${key}" aria-label="${name}" title="${title}"`
                 + ` aria-pressed="${pressed}" ${available ? '' : 'disabled'} style="width:${box}px;height:${box}px">`
                 + `<svg viewBox="0 0 ${p.size * 100} ${p.size * 100}" width="${box}" height="${box}" aria-hidden="true">`
-                + reddTileSvg(p.size, p.bg, p.circle, 0, 0)
+                + redTileSvg(p.size, p.bg, p.circle, 0, 0)
                 + `</svg></button>`
-                + `<span class="redd_count">${p.count === 0 ? '' : `x${p.count}`}</span></div>`;
+                + `<span class="red_count">${p.count === 0 ? '' : `x${p.count}`}</span></div>`;
         }).join('');
-        host.querySelectorAll('.redd_pool_btn').forEach((btn) => {
+        host.querySelectorAll('.red_pool_btn').forEach((btn) => {
             btn.addEventListener('click', () => this.selectType(btn.dataset.key));
         });
     }
@@ -405,12 +405,12 @@ export class Game {
         this.stage = null;
         this.pending = false;
         this.renderAll();
-        this.sfx('redd_place');
+        this.sfx('red_place');
     }
 
     notif_scoring(notif) {}
 
     notif_gameEndTriggered(notif) {
-        this.sfx('redd_end');
+        this.sfx('red_end');
     }
 }

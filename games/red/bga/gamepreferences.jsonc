@@ -1,0 +1,27 @@
+{
+  // user preference ids should be between 100 and 199
+  "100": {
+    "name": "Colorblind support (symbols on tiles)",
+    "values": {
+      "1": { "name": "On", "cssPref": "red_cb_on" },
+      "0": { "name": "Off", "cssPref": "red_cb_off" }
+    },
+    "default": 1
+  },
+  "101": {
+    "name": "Sound effects",
+    "values": {
+      "1": { "name": "On", "cssPref": "red_sound_on" },
+      "0": { "name": "Off", "cssPref": "red_sound_off" }
+    },
+    "default": 1
+  },
+  "102": {
+    "name": "Confirm placement (touch screens)",
+    "values": {
+      "1": { "name": "Ask me first (tap, then Confirm)", "cssPref": "red_confirm_on" },
+      "0": { "name": "Place on tap", "cssPref": "red_confirm_off" }
+    },
+    "default": 1
+  }
+}

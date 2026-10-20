@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Bga\Games\redd\States;
+namespace Bga\Games\red\States;
 
 use Bga\GameFramework\StateType;
 use Bga\GameFramework\States\GameState;
 use Bga\GameFramework\States\PossibleAction;
-use Bga\Games\redd\Game;
-use Bga\Games\redd\Rules;
+use Bga\Games\red\Game;
+use Bga\Games\red\Rules;
 
 /** The active player places one tile from the pool. The move is validated against Rules and the variant. */
 class PlayerTurn extends GameState

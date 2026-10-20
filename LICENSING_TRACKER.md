@@ -17,7 +17,7 @@ This document tracks publisher/designer permissions, communications, contact inf
 | **Gardens of Enceladus** | Néstor Romeral Andrés | nestorgames | ⚠️ **NOT CONFIRMED: not on BGA's licence list; ask Nestor to add it at gamepublishers** | Implemented, on Studio (`gardensofenceladus`) |
 | **Microchip** | Néstor Romeral Andrés | nestorgames | ⚠️ **NOT CONFIRMED: not on BGA's licence list; ask Nestor to add it at gamepublishers** | Implemented, on Studio (`microchip`) |
 | **People** | Néstor Romeral Andrés | nestorgames | ⚠️ **NOT CONFIRMED: not on BGA's licence list; ask Nestor to add it at gamepublishers** | Implemented, on Studio (`people`) |
-| **Red** | Néstor Romeral Andrés | nestorgames | ⚠️ **NOT CONFIRMED: not on BGA's licence list; ask Nestor to add it at gamepublishers** | Implemented 19 Oct (`redd`; verify bgg_id 112118) |
+| **Red** | Néstor Romeral Andrés | nestorgames | ⚠️ **NOT CONFIRMED: not on BGA's licence list; ask Nestor to add it at gamepublishers** | Implemented 19 Oct (`red`; verify bgg_id 112118) |
 | **Hippos and Crocodiles** | Néstor Romeral Andrés | nestorgames | ⚠️ **NOT CONFIRMED: not on BGA's licence list; ask Nestor to add it at gamepublishers** | Not started; rulebook unpacked (`hipposandcrocodiles`) |
 | **Omega** | Néstor Romeral Andrés | Eclipse Editorial / nestorgames | ✅ **BGA License Granted (2024-07-24)** | Ready for Testing (`omega`) |
 | **Seven** | Néstor Romeral Andrés | Eclipse Editorial / nestorgames | ✅ **BGA License Granted (2024-07-24)** | Scaffolding / Assets In Hand |

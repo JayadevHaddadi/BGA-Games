@@ -1,7 +1,7 @@
 # Red: rules, decisions and task list
 
 Designer: Néstor Romeral Andrés (nestorgames), 2011. Revisions by Nathan Morse. Rulebook: `RED_EN.pdf`. BGG: https://boardgamegeek.com/boardgame/112118/red
-BGA project: `redd` (the Studio name `red` is taken). Local files: `games/redd/bga/`.
+BGA project: `red`. Local files: `games/red/bga/`.
 
 ## 1. Rules as implemented
 
@@ -58,7 +58,7 @@ BGA project: `redd` (the Studio name `red` is taken). Local files: `games/redd/b
 
 ## 4. Task list
 
-- [x] Scaffold (`tools/bga.py new redd`, sync target and deploy block)
+- [x] Scaffold (`tools/bga.py new red`, sync target and deploy block)
 - [x] Rules as pure PHP (`bga/modules/php/Rules.php`) with CLI tests (`tests/rules_test.php`)
 - [x] Server: setup, PlayerTurn (place), NextPlayer, EndScore, notifications, stats
 - [x] Client: SVG board fitted to the width, tap-to-stage, Confirm and Cancel, pool, colourblind symbols, sounds
@@ -66,5 +66,5 @@ BGA project: `redd` (the Studio name `red` is taken). Local files: `games/redd/b
 - [ ] Browser harness at 375 px and desktop, centring and tap sizes
 - [ ] Artwork: metadata images (box, icon, banner, publisher, display, title)
 - [ ] GAMEHELP.wiki (MediaWiki)
-- [ ] `python3 tools/bga.py check redd` with no FAIL
+- [ ] `python3 tools/bga.py check red` with no FAIL
 - [ ] Licence row in `LICENSING_TRACKER.md`, AGENTS.md mapping row

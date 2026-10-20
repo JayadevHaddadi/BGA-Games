@@ -65,7 +65,7 @@ def start_game(table_id):
         return {'error': str(e)}
 
 if __name__ == '__main__':
-    games = sys.argv[1:] if len(sys.argv) > 1 else ['people', 'microchip', 'gardensofenceladus', 'redd']
+    games = sys.argv[1:] if len(sys.argv) > 1 else ['people', 'microchip', 'gardensofenceladus', 'red']
     for g in games:
         print(f"\n--- Testing Live Studio Table for {g} ---")
         gid = get_game_id(g)
