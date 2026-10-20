@@ -676,49 +676,28 @@ function (dojo, declare, bgaHelp) {
             this.playerHand.resizeItems(this.cardSize,this.cardSize,this.cardSize * 8,this.cardSize);
         },
 
-        fitContainerToScreen: function() {
-            var root = $('mdl_table');
-            if (!root) return;
-            root.style.width = '';
-            root.style.marginLeft = '';
-            if (window.innerWidth >= 980) return;
-            var viewportW = document.documentElement.clientWidth || window.innerWidth;
-            root.style.width = viewportW + 'px';
-            var left = root.getBoundingClientRect().left;
-            if (Math.abs(left) > 0.5) {
-                root.style.marginLeft = (-left) + 'px';
-            }
-        },
-
         setScale: function() {
             try {
-                this.fitContainerToScreen();
-
-                var tableDiv = $('mdl_table');
                 var overallDiv = $('mdl_overall');
-                var usableWidth = 0;
+                if (!overallDiv) {
+                    return;
+                }
 
-                if (window.innerWidth < 980) {
-                    usableWidth = document.documentElement.clientWidth || window.innerWidth;
-                } else if (overallDiv && overallDiv.clientWidth > 0) {
-                    usableWidth = overallDiv.clientWidth;
-                } else if (tableDiv && tableDiv.clientWidth > 0) {
-                    usableWidth = tableDiv.clientWidth;
-                } else {
+                var usableWidth = overallDiv.clientWidth;
+                if (usableWidth <= 0) {
                     usableWidth = window.innerWidth;
                 }
 
-                var isMobile = window.innerWidth < 980;
-                var baseWidth = isMobile ? 994 : 1220;
-                var scale = Math.min(1.0, Math.floor((usableWidth / baseWidth) * 1000) / 1000);
-                scale = Math.max(0.25, scale);
+                var baseWidth = 1220;
+                var scale = Math.min(1.0, usableWidth / baseWidth);
+                scale = Math.max(0.25, Math.round(scale * 100) / 100);
 
                 this.mdlScale = scale;
                 document.documentElement.style.setProperty('--mdlScale', scale);
 
                 this.cardSize = 98 * scale;
 
-                if (isMobile) {
+                if (usableWidth < 980) {
                     this.currentDeckTarget = 'player_boards';
                 } else {
                     this.currentDeckTarget = 'mdl_decks_area';

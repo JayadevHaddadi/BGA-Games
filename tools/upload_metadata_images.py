@@ -20,10 +20,21 @@ from playwright.sync_api import sync_playwright
 ROOT = Path(__file__).resolve().parent.parent
 
 PROJECT_MAP = {
+    'pushfight': 'pushfight',
+    'lordsofscotland': 'lordsofscotland',
+    'omega': 'omega',
+    'yavalath': 'yavalath',
+    'kiln': 'kiln',
+    'sugargliders': 'sugargliders',
+    'gardensofuranus': 'gardensofuranus',
+    'nestorgamesgp': 'nestorgamesgp',
+    'microforge': 'microforge',
+    'gardensofmars': 'gardensofmars',
+    'gardensofio': 'gardensofio',
     'gardensofenceladus': 'gardensofenceladus',
+    'red': 'redd',
     'microchip': 'microchip',
     'people': 'people',
-    'red': 'redd',
     'hipposandcrocodiles': 'hipposandcrocodiles',
 }
 
@@ -108,7 +119,8 @@ def navigate_to_media(page, project_slug):
 
 def upload_game_media(page, slug):
     project_slug = PROJECT_MAP.get(slug, slug)
-    meta_dir = ROOT / 'games' / slug / 'bga' / 'metadata_assets'
+    game_folder = 'KILN' if slug.lower() == 'kiln' else slug
+    meta_dir = ROOT / 'games' / game_folder / 'bga' / 'metadata_assets'
 
     print(f"\n=======================================================")
     print(f"Processing media upload for: {slug} (project: {project_slug})")

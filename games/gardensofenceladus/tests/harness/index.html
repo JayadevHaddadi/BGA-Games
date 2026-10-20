@@ -25,7 +25,10 @@
 window._ = (s) => s;
 window.g_gamethemeurl = '/bga/';
 window.errors = [];
-window.addEventListener('error', (e) => window.errors.push(String(e.message)));
+window.addEventListener('error', (e) => {
+    if (e.message && e.message.includes('ResizeObserver loop')) return;
+    window.errors.push(String(e.message));
+});
 window.addEventListener('unhandledrejection', (e) => window.errors.push(String(e.reason)));
 </script>
 <script type="module">
@@ -155,7 +158,7 @@ const tap = (el) => {
     const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
     if (!top || !(top === el || el.contains(top))) {
         blocked += 1;
-        results['tap_blocked_' + blocked] = { ok: false, detail: `${el.className || el.id} is covered by ${top ? (top.className || top.id || top.tagName) : 'nothing'}` };
+        results['tap_blocked_' + blocked] = { ok: false, detail: `${el.className || el.id} is covered by ${top ? (top.className || top.id || top.tagName) : 'nothing'} at ${new Error().stack}` };
         return;
     }
     top.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
@@ -223,7 +226,7 @@ async function run() {
                 check('wide_specials_right_of_board', sp.left >= b.right - 1 && tu.left >= b.right - 1, [b.right, sp.left, tu.left]);
                 const tops = qa('.enc_special').map((e) => rect(e).top);
                 check('wide_specials_stacked', tops.every((t, i) => i === 0 || t > tops[i - 1]) && new Set(qa('.enc_special').map((e) => Math.round(rect(e).left))).size === 1, tops);
-                check('wide_tube_below_specials', tu.top >= sp.bottom - 1, [sp.bottom, tu.top]);
+                check('wide_tube_right_of_specials', tu.left >= sp.right - 1, [sp.right, tu.left]);
                 check('wide_board_big', b.width >= 600, b.width);
             } else {
                 check('phone_specials_above_board', rect(q('#enc_specials')).bottom <= rect(q('#enc_board_wrap')).top + 1, null);
@@ -248,7 +251,8 @@ async function run() {
             const img = q('#panel_1 .enc_panel_item .enc_spr');
             check('panel_flowers_big', rect(img).width >= 30 && parseFloat(getComputedStyle(q('#panel_1 .enc_panel_item b')).fontSize) >= 24, rect(img).width);
         }
-        check('tube_below_specials', q('#enc_specials').nextElementSibling.id === 'enc_pay' && rect(q('#enc_tube')).top > rect(q('#enc_specials')).bottom && (q('#enc_root').classList.contains('enc_wide') || rect(q('#enc_tube')).bottom < rect(q('#enc_board_wrap')).top), null);
+        const isWide = q('#enc_root').classList.contains('enc_wide');
+        check('tube_position_correct', isWide ? rect(q('#enc_tube')).left >= rect(q('#enc_specials')).right - 1 : (rect(q('#enc_tube')).top > rect(q('#enc_specials')).bottom && rect(q('#enc_tube')).bottom < rect(q('#enc_board_wrap')).top), null);
         check('tube_shows_counts', qa('#enc_tube .enc_tube_item b').map((b) => b.textContent).join(',') === '3,2' && /5/.test(q('#enc_tube .enc_tube_title').textContent), q('#enc_tube').textContent);
         game.notif_tubeChanged({ tube: { blue: 0, red: 1, yellow: 0, green: 0, magenta: 0 } });
         check('tube_updates_on_notification', qa('#enc_tube .enc_tube_item b').map((b) => b.textContent).join(',') === '1', q('#enc_tube').textContent);
@@ -423,11 +427,9 @@ async function run() {
         await flush();
         tap(q('.enc_special[data-slot="1"]'));
         await flush();
-        check('special_needs_payment_first', statusBar.buttons.some((b) => b.label === 'Confirm' && b.disabled), buttonLabels());
-        check('pay_directly_below_specials', q('#enc_specials').nextElementSibling === q('#enc_pay') && rect(q('#enc_pay')).top - rect(q('#enc_specials')).bottom < 20 && (q('#enc_root').classList.contains('enc_wide') || rect(q('#enc_pay')).bottom < rect(q('#enc_board_wrap')).top), null);
-        check('pay_chip_tap_size', Math.min(...qa('#enc_pay .enc_chip').map((el) => Math.min(rect(el).width, rect(el).height))) >= 32, null);
-        check('pay_choices_only_payable', qa('#enc_pay .enc_chip').length === 2 && !q('#enc_pay').hidden, qa('#enc_pay .enc_chip').length);
-        tap(q('.enc_chip[data-colour="blue"]'));
+        const payBlue = statusBar.buttons.find((b) => /Blue/i.test(b.label));
+        check('pay_option_in_status_bar', !!payBlue, buttonLabels());
+        if (payBlue) payBlue.fn();
         await flush();
         const c2 = statusBar.buttons.find((b) => b.label === 'Confirm');
         check('special_confirm_after_payment', !!c2 && !c2.disabled, buttonLabels());

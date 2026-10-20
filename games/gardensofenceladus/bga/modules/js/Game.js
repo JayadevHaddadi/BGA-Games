@@ -98,9 +98,11 @@ export class Game {
                 <p id="enc_hint" aria-live="polite"></p>
                 <div id="enc_main">
                     <div id="enc_side">
-                        <div id="enc_specials" role="group" aria-label="${_('Special actions')}"></div>
-                        <div id="enc_pay" role="group" aria-label="${_('Pay with')}" hidden></div>
-                        <p id="enc_info" aria-live="polite" hidden></p>
+                        <div id="enc_actions_wrap">
+                            <div id="enc_specials" role="group" aria-label="${_('Special actions')}"></div>
+                            <div id="enc_pay" role="group" aria-label="${_('Pay with')}" hidden></div>
+                            <p id="enc_info" aria-live="polite" hidden></p>
+                        </div>
                         <div id="enc_tube" role="group" aria-label="${_('Tube')}"></div>
                     </div>
                     <div id="enc_board_wrap">
@@ -353,7 +355,7 @@ export class Game {
             const cover = used && user ? `<span class="enc_cover" style="--tc:${this.playerColour(user)}">${this.martianImg(user)}</span>` : '';
             html += `<button type="button" id="enc_special_${slot}" class="enc_special${used ? ' enc_used' : ''}" data-slot="${slot}"
                 ${title} aria-label="${label}" aria-pressed="false">
-                ${icon}<span class="enc_special_label">${this.specialTitle(slot)}</span>${cover}
+                ${icon}<span class="enc_special_label">${this.specialName(slot)}</span>${cover}
             </button>`;
         }
         host.innerHTML = html;
@@ -461,20 +463,36 @@ export class Game {
         const host = document.getElementById('enc_pay');
         if (!host) return;
         const st = this.stage;
-        const show = this.isActive && st && st.type === 'special' && !st.colour && this.myPayable().length > 1;
+        const payable = this.myPayable();
+        const show = this.isActive && st && st.type === 'special' && !st.colour && payable.length > 4;
         host.hidden = !show;
         if (!show) {
             host.innerHTML = '';
+            host.classList.remove('enc_pay_popup');
+            host.removeAttribute('style');
             return;
         }
+        host.classList.add('enc_pay_popup');
         const mine = this.reserves[this.myId] || {};
-        const chips = this.myPayable().map((col) => `<button type="button" class="enc_chip enc_payable" data-colour="${col}"
+        const chips = payable.map((col) => `<button type="button" class="enc_chip enc_payable" data-colour="${col}"
             aria-label="${this.colourLabel(col)}: ${mine[col] || 0}" title="${this.colourLabel(col)}: ${mine[col] || 0}">
             ${encSpr('f', col)}<b>${mine[col] || 0}</b></button>`).join('');
-        host.innerHTML = `<span class="enc_reserve_title">${_('Pay 3 flowers of which colour?')}</span>${chips}`;
+        host.innerHTML = `<span class="enc_reserve_title">${_('Pay 3 flowers:')}</span><div class="enc_pay_chips">${chips}</div>`;
         host.querySelectorAll('.enc_chip').forEach((el) => {
             el.addEventListener('click', () => this.onChipClick(el.dataset.colour));
         });
+
+        const btn = document.getElementById(`enc_special_${st.slot}`);
+        if (btn) {
+            const side = document.getElementById('enc_side');
+            if (side && window.getComputedStyle(side).position === 'static') {
+                side.style.position = 'relative';
+            }
+            const btnRect = btn.getBoundingClientRect();
+            const parentRect = host.offsetParent ? host.offsetParent.getBoundingClientRect() : { top: 0, left: 0 };
+            host.style.top = `${btnRect.bottom - parentRect.top + 4}px`;
+            host.style.left = `${btnRect.left - parentRect.left}px`;
+        }
     }
 
     /** Compact reserve for the status bar: flower icon and count per colour. */
@@ -682,6 +700,18 @@ export class Game {
         }
         if (this.stateName === 'PlayerTurn') {
             if (this.stage) {
+                if (this.stage.type === 'special' && !this.stage.colour && this.myPayable().length <= 4) {
+                    const mine = this.reserves[this.myId] || {};
+                    this.myPayable().forEach((col) => {
+                        this.bga.statusBar.addActionButton(
+                            `${this.colourLabel(col)} (${mine[col] || 0})`,
+                            () => this.onChipClick(col),
+                            { color: 'secondary' }
+                        );
+                    });
+                    this.bga.statusBar.addActionButton(_('Undo'), clear, { color: 'alert' });
+                    return;
+                }
                 confirm(() => this.confirmStage(), this.readyToConfirm());
                 this.bga.statusBar.addActionButton(_('Undo'), clear, { color: 'alert' });
                 return;

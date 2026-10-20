@@ -59,35 +59,6 @@
     }
 }
 @media (max-width: 988px) {
-    #mdl_table {
-        margin: 0 !important;
-        padding: 0 !important;
-        width: 100% !important;
-    }
-
-    #mdl_game_area {
-        width: 100% !important;
-        max-width: calc(994px * var(--mdlScale)) !important;
-        display: block !important;
-        padding: 0 !important;
-        margin: 0 auto !important;
-    }
-
-    #mdl_play_area {
-        width: 100% !important;
-        max-width: calc(994px * var(--mdlScale)) !important;
-        padding: 0 !important;
-        margin: 0 auto !important;
-    }
-
-    #mdl_player_area.whiteblock {
-        margin: calc(6px * var(--mdlScale)) 0 !important;
-        padding: calc(6px * var(--mdlScale)) 0 !important;
-        border-radius: 0 !important;
-        width: 100% !important;
-        box-sizing: border-box !important;
-    }
-
     .mdl_player_panel_row .mdl_card {
         width: 28px;
         height: 28px;
@@ -122,19 +93,11 @@
 }
 
 #mdl_game_area.mdl_decks_in_panel {
-    width: 100%;
-    max-width: calc(994px * var(--mdlScale));
+    width: calc(1114px * var(--mdlScale));
     display: block;
-    padding: 0;
-    margin: 0 auto;
+    padding-left: calc(60px * var(--mdlScale));
+    padding-right: calc(60px * var(--mdlScale));
     box-sizing: border-box;
-}
-
-#mdl_game_area.mdl_decks_in_panel #mdl_play_area {
-    width: 100%;
-    max-width: calc(994px * var(--mdlScale));
-    padding: 0;
-    margin: 0 auto;
 }
 
 #mdl_play_area {
@@ -150,7 +113,6 @@
     background-size: contain;
     height: calc(640px * var(--mdlScale));
     position: relative;
-    margin: 0 auto;
 }
 #mdl_playmat.reverted {
     background-image: url("img/Mandala_Gameboard_reverted.jpg");
