@@ -12,6 +12,8 @@
 const ENC_COLOURS = ['blue', 'red', 'yellow', 'green', 'magenta'];
 const ENC_MARTIAN_TYPES = ['bot', 'ali', 'marty', 'bob', 'robby'];
 const ENC_MARTIAN_SPECIALS = [2, 3, 5];
+// The white Martian types (the others are black): each is drawn on a disc of the opposite tone so it always reads
+const ENC_WHITE_TYPES = ['bot', 'marty'];
 // The squares each special asks for, in the order they are tapped
 const ENC_STEPS = { 1: [], 2: ['target'], 3: ['target'], 4: ['flower'], 5: ['target'], 6: ['peak', 'flower'], 7: ['flower', 'flower'], 8: ['flower', 'empty'], 9: ['peak', 'empty'], 10: [] };
 // Layout: the side start squares take this much of a cell, so the 10 x 10 garden keeps a usable tap size on phones
@@ -73,6 +75,7 @@ export class Game {
         this.martians = gamedatas.martians;
         this.reserves = gamedatas.reserves;
         this.tube = gamedatas.tube;
+        this.lastMoves = gamedatas.last_moves || [];
         this.specials = gamedatas.specials;
         this.coop = !!gamedatas.coop;
         this.martiansPer = gamedatas.martians_per;
@@ -155,14 +158,28 @@ export class Game {
             const g = this.bga?.gameui;
             if (g?.isReplayMode?.() || g?.instantaneousMode) return;
             if (Number(this.bga?.userPreferences?.get?.(101) ?? 1) === 0) return;
-            const now = Date.now();
-            this.lastSound = this.lastSound || {};
-            if (now - (this.lastSound[id] || 0) < 300) return;
-            this.lastSound[id] = now;
+            // One notification burst (move, pick, soliflowers) must not play on top of each other: queue them 220 ms apart
+            this.sfxQueue = this.sfxQueue || [];
+            if (this.sfxQueue.includes(id)) return;
+            this.sfxQueue.push(id);
+            if (!this.sfxTimer) this.drainSfx();
+        } catch (e) {
+            // sounds are optional
+        }
+    }
+
+    drainSfx() {
+        const id = (this.sfxQueue || []).shift();
+        if (!id) {
+            this.sfxTimer = null;
+            return;
+        }
+        try {
             this.bga.sounds.play(id);
         } catch (e) {
             // sounds are optional
         }
+        this.sfxTimer = setTimeout(() => this.drainSfx(), 220);
     }
 
     /* ------------------------------------------------------------------------ layout */
@@ -181,6 +198,7 @@ export class Game {
         board.style.width = `${cell * 10}px`;
         board.style.height = `${cell * 10}px`;
         board.style.setProperty('--enc-cell', `${cell}px`);
+        board.classList.toggle('enc_sides', sideFraction > 0);
         wrap.style.paddingLeft = `${side}px`;
         wrap.style.paddingRight = `${side}px`;
         wrap.style.paddingBottom = `${side}px`;
@@ -225,8 +243,8 @@ export class Game {
         // Start squares outside the garden (left, right and bottom sides). Only shown while Martians are placed.
         const slots = typeof ENC_START_SLOTS !== 'undefined' ? ENC_START_SLOTS : [];
         slots.forEach(([r, c]) => {
-            const pos = this.pieceOffset(r, c);
-            html += `<button type="button" class="enc_slot" data-r="${r}" data-c="${c}" style="left:${pos.x}%;top:${pos.y}%"
+            const side = c < 0 ? 'l' : c > 9 ? 'r' : 'b';
+            html += `<button type="button" class="enc_slot enc_side_${side}" data-r="${r}" data-c="${c}" style="${this.slotBox(r, c)}"
                 aria-label="${_('Start square')} ${encCoord(r, c)}" title="${_('Start square')}"></button>`;
         });
         host.innerHTML = html;
@@ -257,17 +275,22 @@ export class Game {
         });
         this.renderPieces();
         this.highlightTargets();
+        this.markLastMoves();
     }
 
     /** Martians, on the garden and on the start squares outside it. */
     renderPieces() {
         const host = document.getElementById('enc_pieces');
+        // Whose turn it is: their Martians get a ring in their colour (solid for you, dashed for the others)
+        const turnPid = this.stateName === 'PlayerTurn' ? Number(this.getActivePlayerId()) : 0;
         host.innerHTML = this.martians.map((m) => {
             const pos = this.pieceOffset(m.r, m.c);
             const mine = m.pid === this.myId ? ' enc_mine' : '';
             const selected = this.stage && this.stage.type === 'move' && this.stage.martian === m.id ? ' enc_selected' : '';
-            return `<button type="button" class="enc_martian${mine}${selected}" data-id="${m.id}"
-                style="left:${pos.x}%;top:${pos.y}%" title="${this.martianLabel(m)}" aria-label="${this.martianLabel(m)}">
+            const white = ENC_WHITE_TYPES.includes(m.type) ? ' enc_white_type' : '';
+            const turn = turnPid && m.pid === turnPid ? (m.pid === this.myId && this.isActive ? ' enc_turn' : ' enc_turn_other') : '';
+            return `<button type="button" class="enc_martian${mine}${selected}${white}${turn}" data-id="${m.id}"
+                style="left:${pos.x}%;top:${pos.y}%;--pc:${this.playerColour(m.pid)}" title="${this.martianLabel(m)}" aria-label="${this.martianLabel(m)}">
                 <img src="${encImg(`martian_${m.type}.png`)}" alt="">
             </button>`;
         }).join('');
@@ -280,8 +303,16 @@ export class Game {
     }
 
     pieceOffset(r, c) {
-        // Positions in percent of the board. Side squares sit just outside the 10 x 10 garden.
-        return { x: c * 10, y: r * 10 };
+        // Positions in percent of the board. A Martian on a start square is centred on its tile, which sits in the
+        // side margin (7% of the board wide): the tile centre is 3.5% outside the garden edge.
+        return { x: c < 0 ? -8.5 : c > 9 ? 98.5 : c * 10, y: r > 9 ? 98.5 : r * 10 };
+    }
+
+    /** Position and size of a start square tile: it fills the side margin (7% of the board) and nothing more. */
+    slotBox(r, c) {
+        if (c < 0) return `left:-7%;top:${r * 10}%;width:7%;height:10%`;
+        if (c > 9) return `left:100%;top:${r * 10}%;width:7%;height:10%`;
+        return `left:${c * 10}%;top:100%;width:10%;height:7%`;
     }
 
     martianLabel(m) {
@@ -349,23 +380,29 @@ export class Game {
         }[slot];
     }
 
-    /** Why the current player cannot use this special now, or null if they can. Checked on the client from what every player sees. */
+    /**
+     * Why the current player cannot use this special now, or null if they can. The reason comes from the server
+     * (Rules::specialBlocker, sent in the state args): the client keeps no copy of the conditions, so what is shown
+     * faded is exactly what the server would refuse.
+     */
     specialBlocker(slot) {
         const info = (this.specials || {})[slot];
         if (info && info.used) return _('Already used in this game.');
         if (!this.isActive || this.stateName !== 'PlayerTurn' || !this.args) return _('It is not your turn.');
-        if (this.myPayable().length === 0) return _('You have no colour with 3 flowers to pay.');
-        if (slot === 1 && Object.values(this.tube).reduce((a, b) => a + b, 0) < 3) return _('The tube has fewer than 3 flowers.');
-        if (ENC_MARTIAN_SPECIALS.includes(slot)) {
-            const own = this.martians.filter((m) => m.pid === this.myId && (!this.args.turn_martian || m.id === this.args.turn_martian));
-            if (!own.some((m) => encIsGrid(m.r, m.c))) return _('Your Martian is not in the garden yet.');
-        }
         const a = (this.args.specials || {})[slot];
-        if (!a || !a.available) return _('There is nothing it can act on right now.');
-        return null;
+        if (a && a.available) return null;
+        return {
+            used: _('Already used in this game.'),
+            no_pay: _('You have no colour with 3 flowers to pay.'),
+            tube: _('The tube has fewer than 3 flowers.'),
+            outside: _('Your Martian is not in the garden yet.'),
+            no_target: _('There is nothing it can act on right now.'),
+        }[a?.reason] || _('There is nothing it can act on right now.');
     }
 
     myPayable() {
+        // On the player's turn the server list is the truth (it is refreshed with every state change)
+        if (this.isActive && this.args && Array.isArray(this.args.payable)) return ENC_COLOURS.filter((col) => this.args.payable.includes(col));
         const mine = this.reserves[this.myId] || {};
         return ENC_COLOURS.filter((col) => (mine[col] || 0) >= 3);
     }
@@ -845,7 +882,8 @@ export class Game {
     /* ------------------------------------------------------------------------ highlights */
 
     clearHighlights() {
-        document.querySelectorAll('#enc_board [data-r]').forEach((el) => el.classList.remove('enc_target', 'enc_next', 'enc_candidate'));
+        document.querySelectorAll('#enc_board [data-r]').forEach((el) => el.classList.remove('enc_target', 'enc_next', 'enc_next_adj', 'enc_candidate'));
+        document.querySelectorAll('#enc_board .enc_ghost').forEach((el) => el.remove());
         document.querySelectorAll('.enc_martian').forEach((el) => el.classList.remove('enc_can_move'));
     }
 
@@ -880,9 +918,11 @@ export class Game {
             if (!st.target) {
                 (mv ? mv.targets : []).forEach(([r, c]) => mark(r, c, 'enc_target'));
             } else {
+                // landing square: solid blue with the Martian silhouette; adjacent pick: dashed ring (different shape, not only colour)
                 mark(st.target[0], st.target[1], 'enc_next');
+                this.addGhost(st.target[0], st.target[1], st.martian);
                 if (!st.adj) this.adjacentFlowers(st.target[0], st.target[1]).forEach(([r, c]) => mark(r, c, 'enc_candidate'));
-                else mark(st.adj[0], st.adj[1], 'enc_next');
+                else mark(st.adj[0], st.adj[1], 'enc_next_adj');
             }
             return;
         }
@@ -896,6 +936,35 @@ export class Game {
                 }
             }
         }
+    }
+
+    /** The Martian's silhouette on the square it would land on. */
+    addGhost(r, c, martianId) {
+        const m = this.martians.find((x) => x.id === martianId);
+        const cell = document.querySelector(`#enc_board .enc_cell[data-r="${r}"][data-c="${c}"]`);
+        if (!m || !cell) return;
+        const img = document.createElement('img');
+        img.className = 'enc_ghost';
+        img.alt = '';
+        img.src = encImg(`martian_${m.type}.png`);
+        cell.appendChild(img);
+    }
+
+    /** Last-move marks: landing square (tint + double ring) and adjacent pick (small dashed ring). Newest solid, older dashed. */
+    markLastMoves() {
+        document.querySelectorAll('#enc_board .enc_cell').forEach((el) => el.classList.remove('enc_last_land', 'enc_last_adj', 'enc_old'));
+        const moves = this.lastMoves || [];
+        moves.forEach((mv, i) => {
+            const old = i < moves.length - 1;
+            const mark = (r, c, cls) => {
+                const el = document.querySelector(`#enc_board .enc_cell[data-r="${r}"][data-c="${c}"]`);
+                if (!el) return;
+                el.classList.add(cls);
+                if (old) el.classList.add('enc_old');
+            };
+            mark(mv.r, mv.c, 'enc_last_land');
+            if (mv.ar >= 0) mark(mv.ar, mv.ac, 'enc_last_adj');
+        });
     }
 
     jumpOrDiagonalTargets(st) {
@@ -971,7 +1040,9 @@ export class Game {
         this.sfx('enc_pick');
     }
 
-    notif_martianMoved() {
+    notif_martianMoved(args) {
+        this.lastMoves = args.last_moves || [];
+        this.markLastMoves();
         this.sfx('enc_move');
     }
 

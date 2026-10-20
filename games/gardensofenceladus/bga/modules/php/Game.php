@@ -298,21 +298,26 @@ class Game extends \Bga\GameFramework\Table
         return array_sum($this->getTube());
     }
 
+    /** Why the special action in $slot cannot be used now by this player (see Rules::specialBlocker), null if it can. */
+    public function specialBlocker(int $slot, int $pid, array $board, array $martians): ?string
+    {
+        $used = $this->getSpecialSlots()[$slot]['used'];
+        return Rules::specialBlocker(
+            $slot,
+            $used,
+            count($this->payableColours($pid)),
+            $this->tubeTotal(),
+            $board,
+            $martians,
+            $this->usableMartianIndexes($pid, $martians),
+            true // slot 10: its cover above already tells whether the wildflower is still on its icon
+        );
+    }
+
     /** Whether the special action in $slot can be used now by this player (cover, target and payment checks). */
     public function specialAvailable(int $slot, int $pid, array $board, array $martians): bool
     {
-        $slots = $this->getSpecialSlots();
-        if ($slots[$slot]['used']) {
-            return false;
-        }
-        if (count($this->payableColours($pid)) === 0) {
-            return false;
-        }
-        if ($slot === 1) {
-            return $this->tubeTotal() >= self::TUBE_DRAW_MIN;
-        }
-        // Slot 10 is the wildflower: its cover above already tells whether it is still on the board.
-        return Rules::specialUsable($slot, $board, $martians, $this->usableMartianIndexes($pid, $martians), true);
+        return $this->specialBlocker($slot, $pid, $board, $martians) === null;
     }
 
     public function anySpecialAvailable(int $pid): bool
@@ -335,6 +340,26 @@ class Game extends \Bga\GameFramework\Table
     /* ---------------------------------------------------------------------------------------------- */
     /* Flags and order                                                                                 */
     /* ---------------------------------------------------------------------------------------------- */
+
+    /**
+     * Remembers a move for the last-move marks: landing square and the adjacent pick (-1 when none). With 3+
+     * players the last (players - 1) moves are kept, so each player sees everything since their own turn.
+     */
+    public function pushLastMove(int $pid, int $r, int $c, int $adjR, int $adjC): array
+    {
+        $moves = $this->getLastMoves();
+        $moves[] = ['pid' => $pid, 'r' => $r, 'c' => $c, 'ar' => $adjR, 'ac' => $adjC];
+        $keep = max(1, count($this->playerOrder()) - 1);
+        $moves = array_slice($moves, -$keep);
+        $this->globals->set('last_moves', json_encode($moves));
+        return $moves;
+    }
+
+    public function getLastMoves(): array
+    {
+        $raw = json_decode((string) $this->globals->get('last_moves', '[]'), true);
+        return is_array($raw) ? array_values($raw) : [];
+    }
 
     public function flag(string $name): int
     {
@@ -445,6 +470,7 @@ class Game extends \Bga\GameFramework\Table
             'special_kinds' => Rules::SPECIALS,
             'player_order' => $this->playerOrder(),
             'turn_martian' => $this->flag('turn_martian'),
+            'last_moves' => $this->getLastMoves(),
         ];
     }
 

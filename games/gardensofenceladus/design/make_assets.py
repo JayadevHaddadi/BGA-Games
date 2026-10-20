@@ -126,8 +126,25 @@ def peak_and_counter():
     counter.save(IMG / 'counter.png', optimize=True)
 
 
+TABLE = (178, 200, 217)  # pale Enceladus ice: light enough that black Martians and the start squares read (designer: "too dark")
+
+
 def table_background():
-    texture((1600, 1000), seed=7, base=BG, spread=6, stars=260).save(IMG / 'table.jpg', quality=84)
+    """Icy table: soft blue-grey noise with a few faint hairline cracks. Low contrast, never a flat colour."""
+    im = texture((1600, 1000), seed=7, base=TABLE, spread=7)
+    rnd = np.random.default_rng(21)
+    d = ImageDraw.Draw(im, 'RGBA')
+    for _ in range(26):
+        x, y = float(rnd.integers(0, 1600)), float(rnd.integers(0, 1000))
+        ang = rnd.uniform(0, 6.28)
+        for _seg in range(int(rnd.integers(4, 9))):
+            ang += rnd.normal(0, 0.45)
+            ln = rnd.uniform(25, 70)
+            nx, ny = x + ln * np.cos(ang), y + ln * np.sin(ang)
+            d.line((x, y, nx, ny), fill=(255, 255, 255, 70), width=2)
+            d.line((x + 1, y + 2, nx + 1, ny + 2), fill=(120, 150, 175, 55), width=1)
+            x, y = nx, ny
+    im.save(IMG / 'table.jpg', quality=84)
 
 
 def metadata_images():

@@ -68,10 +68,12 @@ class PlayerTurn extends GameState
         $payable = $this->game->payableColours($pid);
         foreach (array_keys(Rules::SPECIALS) as $slot) {
             $info = $this->game->getSpecialSlots()[$slot];
+            $reason = $this->game->specialBlocker($slot, $pid, $board, $martians);
             $specials[$slot] = [
+                'reason' => $reason,
                 'kind' => Rules::SPECIALS[$slot],
                 'used' => $info['used'],
-                'available' => $this->game->specialAvailable($slot, $pid, $board, $martians),
+                'available' => $reason === null,
                 'martian' => in_array($slot, self::MARTIAN_SPECIALS, true),
                 'cells' => self::CELLS[$slot],
             ];
@@ -179,6 +181,8 @@ class PlayerTurn extends GameState
         }
 
         $this->collect($pid, $drawn);
+        // The payment changed the reserve even when nothing was picked (swaps, moves): always tell the clients
+        $this->notifyReserve($pid);
         if (count($drawn) > 0) {
             $this->game->notifyAllPlayers('specialPicked', clienttranslate('${player_name} adds ${picked} to the reserve.'), [
                 'player_id' => $pid,
@@ -273,6 +277,9 @@ class PlayerTurn extends GameState
 
         $name = $this->game->getPlayerNameById($pid);
         $picked = array_map(fn($p) => $this->game->colourName($p[2]), $picks);
+        $adjR = isset($picks[1]) ? $picks[1][0] : -1;
+        $adjC = isset($picks[1]) ? $picks[1][1] : -1;
+        $lastMoves = $this->game->pushLastMove($pid, $r, $c, $adjR, $adjC);
         $this->game->notifyAllPlayers('martianMoved', clienttranslate('${player_name} moves the ${martian_name} Martian to ${coord} and picks ${picked}.'), [
             'player_id' => $pid,
             'player_name' => $name,
@@ -283,6 +290,9 @@ class PlayerTurn extends GameState
             'coord' => $this->game->coordLabel($r, $c),
             'picked' => implode(', ', $picked),
             'i18n' => ['picked'],
+            'adj_r' => $adjR,
+            'adj_c' => $adjC,
+            'last_moves' => $lastMoves,
         ]);
         $this->game->notifyAllPlayers('boardChanged', '', [
             'changes' => $changes,

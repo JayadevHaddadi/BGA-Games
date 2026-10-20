@@ -184,6 +184,44 @@ check(!Rules::specialUsable(4, $empty, $none, [], false), 'pick any flower is un
 check(!Rules::specialUsable(10, $empty, $none, [], false), 'wildflower is unusable once taken');
 check(Rules::specialUsable(10, $empty, $none, [], true), 'wildflower is usable while it lies on its icon');
 
+// 8b. Why a special is blocked (Rules::specialBlocker): every condition, one by one.
+$rich = board(['bPb.......', '..........', '..........', '..........', '..........', '..........', '..........', '..........', '..........', '..........']);
+$inside = [martian(1, 0, 0)];
+$outside = [martian(1, 10, 4)];
+$blk = fn(int $slot, bool $used = false, int $pay = 1, int $tube = 0, ?array $b = null, ?array $m = null, ?array $idx = null, bool $wild = true) =>
+    Rules::specialBlocker($slot, $used, $pay, $tube, $b ?? $rich, $m ?? $inside, $idx ?? [0], $wild);
+check($blk(4) === null, 'pick any: available with a payable colour and a flower on the board');
+check($blk(4, true) === 'used', 'a used action is blocked as used');
+check($blk(4, false, 0) === 'no_pay', 'no colour with 3 flowers: blocked as no_pay (the wildflower never pays)');
+check($blk(1, false, 1, 3) === null && $blk(1, false, 1, 2) === 'tube', 'tube needs at least 3 flowers inside');
+check($blk(1, false, 0, 9) === 'no_pay', 'tube still needs a payment');
+check($blk(2) === null, 'jump over the adjacent peak is available');
+check($blk(2, false, 1, 0, null, $outside) === 'outside', 'jump: the Martian on a start square is outside');
+check($blk(3) === null && $blk(3, false, 1, 0, null, $outside) === 'outside', 'diagonal needs the Martian inside the garden');
+check($blk(5) === null && $blk(5, false, 1, 0, null, $outside) === 'outside', 'swap Martian needs the Martian inside the garden');
+check($blk(4, false, 1, 0, null, $outside) === null, 'pick any flower does not need the Martian in the garden');
+check($blk(6, false, 1, 0, null, $outside) === null && $blk(7, false, 1, 0, null, $outside) === null, 'swaps of peaks and flowers do not need a Martian');
+$full = board(array_fill(0, 10, 'bbbbbbbbbb'));
+$full[0][1] = Rules::PEAK;
+check($blk(8, false, 1, 0, $full, $outside) === 'no_target' && $blk(9, false, 1, 0, $full, $outside) === 'no_target', 'move flower and move peak: no empty square on a full board');
+$gap = board(['bP........', '..........', '..........', '..........', '..........', '..........', '..........', '..........', '..........', '..........']);
+check($blk(8, false, 1, 0, $gap) === null && $blk(9, false, 1, 0, $gap) === null, 'move flower and peak are available once an empty square exists');
+check($blk(2, false, 1, 0, $gap, [martian(1, 5, 5)]) === 'no_target', 'jump with no peak next to the Martian is blocked as no_target');
+check($blk(10, false, 1, 0, null, null, null, false) === 'used', 'wildflower taken: blocked as used');
+check($blk(10) === null, 'wildflower available while on its icon');
+$twoMartians = [martian(1, 10, 4), martian(2, 0, 0)];
+check($blk(2, false, 1, 0, null, $twoMartians, [0, 1]) === null, '2 Martians: one inside the garden is enough');
+check($blk(2, false, 1, 0, null, $twoMartians, [0]) === 'outside', '2 Martians: locked to the one outside, the jump is blocked');
+check($blk(2, false, 1, 0, null, $twoMartians, [1]) === null, '2 Martians: locked to the one inside, the jump stays available');
+// Another special used in the same turn changes the board: the check uses the board passed in, never a cached one.
+$afterSwap = board(['b.b.......', '..........', '..........', '..........', '..........', '..........', '..........', '..........', '..........', '..........']);
+check($blk(2, false, 1, 0, $afterSwap) === 'no_target', 'availability follows the board after an earlier special removed the peak');
+// A swap_peak_flower needs a flower no Martian stands on
+$onFlower = board(['P.........', '..........', '..........', '..........', '..........', '..........', '..........', '..........', '..........', '..........']);
+$onFlower[5][5] = 'blue';
+check($blk(6, false, 1, 0, $onFlower, [martian(1, 5, 5)]) === 'no_target', 'swap peak and flower: the only flower has a Martian on it');
+check($blk(6, false, 1, 0, $onFlower, [martian(1, 0, 1)]) === null, 'swap peak and flower: free flower available');
+
 // 9. Scoring: the 5-colour hand, sorted ascending. The rulebook's example "04556" is a low hand.
 $h = Rules::hand(['blue' => 0, 'red' => 4, 'yellow' => 5, 'green' => 5, 'magenta' => 6], 0);
 check($h['sorted'] === [0, 4, 5, 5, 6] && $h['key'] === Rules::keyOf([0, 4, 5, 5, 6]), 'a missing colour counts as zero');

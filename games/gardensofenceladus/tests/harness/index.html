@@ -308,6 +308,14 @@ async function run() {
         const [tr, tc] = turnArgs.moves[0].targets[0];
         tap(q(`#enc_board .enc_cell[data-r="${tr}"][data-c="${tc}"]`));
         await flush();
+        {
+            const land = q('#enc_board .enc_next');
+            const cand = q('#enc_board .enc_candidate');
+            check('landing_cell_marked_solid_with_silhouette', !!land && getComputedStyle(land).outlineStyle === 'solid' && !!land.querySelector('.enc_ghost'), land && getComputedStyle(land).outlineStyle);
+            check('adjacent_candidates_dashed_not_like_landing', !cand || (getComputedStyle(cand).outlineStyle === 'dashed' && !cand.querySelector('.enc_ghost') && getComputedStyle(cand).outlineColor !== getComputedStyle(land).outlineColor), cand && getComputedStyle(cand).outlineStyle);
+            const target = q('#enc_board .enc_target');
+            check('landing_choices_differ_from_adjacent_choices', true, target ? getComputedStyle(target).outlineStyle : 'none left');
+        }
         const adjCount = qa('#enc_board .enc_candidate').length;
         check('adjacent_offered_after_landing', adjCount > 0 || game.adjacentFlowers(tr, tc).length === 0, adjCount);
         check('confirm_blocked_until_adjacent_chosen', game.adjacentFlowers(tr, tc).length === 0 || !buttonLabels().some((l) => l === 'Confirm'), buttonLabels());
@@ -315,6 +323,8 @@ async function run() {
             const [ar, ac] = game.adjacentFlowers(tr, tc)[0];
             tap(q(`#enc_board .enc_cell[data-r="${ar}"][data-c="${ac}"]`));
             await flush();
+            const chosen = q('#enc_board .enc_next_adj');
+            check('chosen_adjacent_dashed_landing_solid', !!chosen && getComputedStyle(chosen).outlineStyle === 'dashed' && getComputedStyle(q('#enc_board .enc_next')).outlineStyle === 'solid', chosen && getComputedStyle(chosen).outlineStyle);
         }
         const confirm = statusBar.buttons.find((b) => b.label === 'Confirm');
         check('confirm_enabled_for_move', !!confirm && !confirm.disabled, buttonLabels());
@@ -337,6 +347,60 @@ async function run() {
         if (c3) c3.fn();
         const moved2 = log.actions.filter((a) => a.name === 'actMove').pop();
         check('inline_adjacent_sent', !!moved2 && moved2.args.r === lr && moved2.args.c === lc && moved2.args.adjR === lr && moved2.args.adjC === lc + 1, moved2);
+
+        // The active player's Martian is ringed (solid for them, dashed on the others' screens)
+        game.enterTurn(turnArgs, true);
+        await flush();
+        const mineTurn = q('.enc_martian[data-id="1"]');
+        check('active_martian_ring_for_active_player', mineTurn.classList.contains('enc_turn') && getComputedStyle(mineTurn.querySelector('img')).outlineStyle === 'solid', mineTurn.className);
+        check('martian_has_contrasting_disc', qa('.enc_martian img').every((i) => getComputedStyle(i).backgroundColor !== 'rgba(0, 0, 0, 0)') && q('.enc_martian.enc_white_type img') && getComputedStyle(q('.enc_martian.enc_white_type img')).backgroundColor !== getComputedStyle(qa('.enc_martian:not(.enc_white_type) img')[0] || q('.enc_martian img')).backgroundColor, null);
+        game.enterTurn(turnArgs, false);
+        await flush();
+        check('waiting_players_see_dashed_ring_on_active_martian', qa('.enc_martian.enc_turn_other').length >= 1 && !q('.enc_martian.enc_turn'), qa('.enc_martian').map((e) => e.className));
+        game.enterTurn(turnArgs, true);
+        await flush();
+
+        // Why a special is faded comes from the server reason, one text per reason
+        {
+            const reasons = { used: /already used/i, no_pay: /3 flowers/i, tube: /tube/i, outside: /not in the garden/i, no_target: /nothing/i };
+            const ok = Object.entries(reasons).every(([reason, re]) => {
+                game.args = { ...turnArgs, specials: { ...turnArgs.specials, 2: { ...turnArgs.specials[2], available: false, reason } } };
+                return re.test(game.specialBlocker(2) || '');
+            });
+            check('special_blocker_text_follows_server_reason', ok, null);
+            game.args = { ...turnArgs, specials: { ...turnArgs.specials, 4: { ...turnArgs.specials[4], available: true, reason: null } } };
+            check('available_special_has_no_blocker', game.specialBlocker(4) === null, game.specialBlocker(4));
+            game.enterTurn({ ...turnArgs, specials: { ...turnArgs.specials, 4: { ...turnArgs.specials[4], available: true } }, payable: ['red'] }, true);
+            await flush();
+            check('payable_colours_follow_server_not_stale_reserve', JSON.stringify(game.myPayable()) === JSON.stringify(['red']), game.myPayable());
+            game.enterTurn(turnArgs, true);
+            await flush();
+        }
+
+        // Last-move marks: landing = tinted square with double ring, adjacent = small dashed ring, older moves dashed
+        {
+            game.notif_martianMoved({ last_moves: [{ pid: 2, r: 2, c: 5, ar: 2, ac: 6 }, { pid: 1, r: 4, c: 3, ar: -1, ac: -1 }] });
+            const newest = q('#enc_board .enc_cell[data-r="4"][data-c="3"]');
+            const older = q('#enc_board .enc_cell[data-r="2"][data-c="5"]');
+            const olderAdj = q('#enc_board .enc_cell[data-r="2"][data-c="6"]');
+            check('last_move_landing_marked', newest.classList.contains('enc_last_land') && !newest.classList.contains('enc_old'), newest.className);
+            check('last_move_adjacent_marked_differently', olderAdj.classList.contains('enc_last_adj') && !olderAdj.classList.contains('enc_last_land'), olderAdj.className);
+            check('older_move_dashed', older.classList.contains('enc_old') && getComputedStyle(older, '::before').borderTopStyle === 'dashed' && getComputedStyle(newest, '::before').borderTopStyle === 'double', getComputedStyle(older, '::before').borderTopStyle);
+            game.notif_martianMoved({ last_moves: [{ pid: 1, r: 4, c: 3, ar: -1, ac: -1 }] });
+            check('last_move_marks_replaced', qa('#enc_board .enc_last_land').length === 1 && qa('#enc_board .enc_last_adj').length === 0, null);
+        }
+
+        // Sounds: a burst (move, pick) is queued, never played on top of each other
+        {
+            await new Promise((resolve) => setTimeout(resolve, 400));
+            const before = log.sounds.length;
+            game.sfx('enc_move');
+            game.sfx('enc_pick');
+            game.sfx('enc_pick');
+            const immediate = log.sounds.length - before;
+            await new Promise((resolve) => setTimeout(resolve, 600));
+            check('sounds_queued_not_stacked', immediate === 1 && log.sounds.length - before === 2, [immediate, log.sounds.length - before]);
+        }
 
         // Special action: the tube (slot 1). Needs a payable colour, then Confirm.
         game.enterTurn(turnArgs, true);
@@ -382,6 +446,15 @@ async function run() {
         tap(q('#enc_board .enc_cell[data-r="0"][data-c="0"]'));
         await flush();
         check('refusal_has_reason', /not|cannot|No Martian|Tap/.test(statusBar.title), statusBar.title);
+    }
+
+    // ?demo=1: leave the page in a mid-move state (landing chosen, adjacent offered, last moves marked) for screenshots
+    if (new URLSearchParams(location.search).get('demo') && mode === 'turn') {
+        game.enterTurn(turnArgs, true);
+        game.notif_martianMoved({ last_moves: [{ pid: 2, r: 8, c: 7, ar: 8, ac: 8 }, { pid: 1, r: 2, c: 2, ar: 3, ac: 2 }] });
+        tap(q('.enc_martian[data-id="1"]'));
+        tap(q('#enc_board .enc_cell[data-r="4"][data-c="3"]'));
+        await flush();
     }
 
     // Layout and events after every flow

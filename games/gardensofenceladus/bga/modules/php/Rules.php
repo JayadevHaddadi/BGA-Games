@@ -365,7 +365,13 @@ final class Rules
                 }
                 return false;
             case 'swap_peak_flower':
-                return count($peaks) > 0 && count($flowers) > 0;
+                // the flower must be free of Martians (a swap_martian can leave one standing on a flower)
+                foreach ($flowers as [$r, $c]) {
+                    if (count($peaks) > 0 && self::martianIndexAt($martians, $r, $c) === null) {
+                        return true;
+                    }
+                }
+                return false;
             case 'swap_flowers':
                 return count($flowers) >= 2;
             case 'move_flower':
@@ -376,6 +382,36 @@ final class Rules
                 return $wildAvailable;
         }
         return false;
+    }
+
+    /**
+     * Why a special action cannot be used now, or null when it can. One place for every condition, so the server
+     * args and the client explain the same thing:
+     *  'used'      the action is already covered (slot 10: the wildflower has been taken, $wildAvailable false)
+     *  'no_pay'    the player has no colour with 3 flowers (the wildflower never pays)
+     *  'tube'      the tube holds fewer than 3 flowers (slot 1)
+     *  'outside'   a Martian special (2, 3, 5) and no usable Martian stands in the garden
+     *  'no_target' nothing on the board for the action to act on
+     * $martianIndexes are the Martians the player may use this turn (all of theirs, or only the one already used).
+     */
+    public static function specialBlocker(int $slot, bool $used, int $payableColours, int $tubeTotal, array $board, array $martians, array $martianIndexes, bool $wildAvailable = true): ?string
+    {
+        if ($used || ($slot === 10 && !$wildAvailable)) {
+            return 'used';
+        }
+        if ($payableColours <= 0) {
+            return 'no_pay';
+        }
+        if ($slot === 1) {
+            return $tubeTotal >= self::TUBE_DRAW ? null : 'tube';
+        }
+        if (in_array($slot, [2, 3, 5], true)) {
+            $inside = array_filter($martianIndexes, fn($i) => self::inGrid($martians[$i]['r'], $martians[$i]['c']));
+            if (count($inside) === 0) {
+                return 'outside';
+            }
+        }
+        return self::specialUsable($slot, $board, $martians, $martianIndexes, $wildAvailable) ? null : 'no_target';
     }
 
     /**
