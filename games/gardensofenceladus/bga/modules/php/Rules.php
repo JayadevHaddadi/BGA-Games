@@ -488,6 +488,21 @@ final class Rules
         return ['sorted' => $best, 'key' => self::keyOf($best), 'declared' => $bestColour];
     }
 
+    /**
+     * A hand as players read it: the sorted counts as digits ("00122", "34566"). If any count is 10 or more, every count
+     * is separated by a dash so it stays readable ("3-4-5-10-12").
+     */
+    public static function handText(array $sorted): string
+    {
+        $big = false;
+        foreach ($sorted as $n) {
+            if ((int) $n >= 10) {
+                $big = true;
+            }
+        }
+        return implode($big ? '-' : '', array_map('intval', $sorted));
+    }
+
     public static function keyOf(array $sorted): int
     {
         $key = 0;

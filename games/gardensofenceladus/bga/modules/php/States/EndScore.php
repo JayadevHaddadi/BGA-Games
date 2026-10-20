@@ -54,6 +54,7 @@ class EndScore extends GameState
                 $row['individual_key'] = $row['key'];
                 $row['key'] = $lowest['key'];
                 $row['sorted'] = $lowest['sorted'];
+                $row['hand'] = $lowest['hand'];
             }
             unset($row);
             foreach ($rows as $row) {

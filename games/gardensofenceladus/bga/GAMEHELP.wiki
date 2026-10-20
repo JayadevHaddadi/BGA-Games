@@ -49,12 +49,13 @@ Pay 3 flowers of one colour. The paid flowers go into the carrying tube. The ico
 | 10 || '''Wildflower''': take the grey wildflower into your reserve. It is not covered with a counter: once it is taken, this action is no longer available.
 |}
 
-After a special action is used, it is covered with a grey counter. A Martian still standing outside the garden cannot use the actions that move a Martian (jump, diagonal and swap Martian). It enters the garden with its first move.
+After a special action is used, it is covered with a disc in the colour of the player who used it, showing that player's Martian. The tube under the strip shows how many flowers of each colour are inside it (payments are public). A Martian still standing outside the garden cannot use the actions that move a Martian (jump, diagonal and swap Martian). It enters the garden with its first move.
 
 ==Scoring your hand==
 
 * Count the flowers of each colour in your reserve, including zeros, and sort the five numbers from lowest to highest.
 * The grey wildflower counts as any one colour. It is declared automatically as the colour that gives the best hand.
+* The score (VP) on the player panel is the hand written as five digits, for example '''00122''' or '''34566'''. If a colour has 10 or more flowers, the counts are separated by dashes so they stay readable, for example '''3-4-5-10-12'''.
 * Example: 0, 4, 5, 5, 6 is written '''04556''' and is a low hand. 3, 4, 5, 5, 6 is a better hand because its lowest colour is higher.
 * The highest hand wins. Two equal hands share the win.
 

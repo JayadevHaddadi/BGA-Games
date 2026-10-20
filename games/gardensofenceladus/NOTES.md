@@ -20,3 +20,14 @@ Everything else: OK.
 - 6 done: payment choice strip shows only colours with 3+ flowers; one colour is auto-selected.
 - 7 done: status bar shows the own reserve (flower icons with counts) on your turn.
 - 8 done: panel shows "Hand: 3-4-5-5-6" (the numeric score counter is hidden by CSS); end breakdown and end log line show the sorted hands. The integer key is unchanged. Not changeable: BGA's own end-of-game score table still shows the integer.
+
+## Round 2 (2026-10-20)
+Owner feedback after round 1, all in `Game.js`, the CSS, `Rules::handText` and the harness.
+1. Full width on mobile: done. The side squares (start squares outside the garden) only take room while a Martian stands outside the garden (placement, and until each Martian's first move); after that the garden is 10 cells wide, 98.7% of a 375 px screen. Table padding is 0 on phones; `fitContainerToScreen` pulls the root to the screen edge. Harness checks the 95% share. Not done: while a Martian is still outside, the board keeps its side margins (the start squares must be visible).
+2. VP back as the hand in digits ("00122", "34566"): done. Rule: digits glued together; if any count is 10 or more, all counts are separated by dashes ("3-4-5-10-12"). Shown in the panel next to the BGA star, in the end breakdown and in the end log line (`Rules::handText`, tested). The integer key still feeds BGA's score. BGA's own end-of-game ranking table still shows the integer.
+3. Reserve ascending (panel and status bar): done.
+4. Wildflower on its own row (panel always, status bar when held): done.
+5. Flowers and numbers twice as big (panel 32 px / 24 px font, status bar 36 px / 28 px): done. Panel items stack flower over number so five colours fit the panel width.
+6. Tube below the special actions with per-colour counts, updated by `tubeChanged`: done.
+7. Payment choice directly below the special actions (above the info box and the tube): done.
+8. Used special actions covered by a disc in the user's colour with their Martian, as in Gardens of Io: done (`used_by` was already stored and sent; `counter.png` is no longer used).

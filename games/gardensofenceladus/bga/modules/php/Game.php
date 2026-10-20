@@ -380,10 +380,10 @@ class Game extends \Bga\GameFramework\Table
         }
     }
 
-    /** A hand as shown to players: the sorted counts, lowest to highest ("3-4-5-5-6"). */
+    /** A hand as shown to players: the sorted counts, lowest to highest ("34556", or "3-4-5-10-12" from 10 up). */
     public static function handText(array $sorted): string
     {
-        return implode('-', $sorted);
+        return Rules::handText($sorted);
     }
 
     public function colourName(string $colour): string

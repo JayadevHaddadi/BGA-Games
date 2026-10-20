@@ -16,10 +16,14 @@ const ENC_MARTIAN_SPECIALS = [2, 3, 5];
 const ENC_STEPS = { 1: [], 2: ['target'], 3: ['target'], 4: ['flower'], 5: ['target'], 6: ['peak', 'flower'], 7: ['flower', 'flower'], 8: ['flower', 'empty'], 9: ['peak', 'empty'], 10: [] };
 // Layout: the side start squares take this much of a cell, so the 10 x 10 garden keeps a usable tap size on phones
 const ENC_SIDE = 0.7;
+// Player colours if the framework does not give one
+const ENC_PLAYER_COLOURS = ['#e53935', '#43a047', '#1e88e5', '#fb8c00', '#d81b60'];
 
 const encKey = (r, c) => `${r},${c}`;
 const encCoord = (r, c) => `${String.fromCharCode(65 + c)}${r + 1}`;
 const encImg = (name) => `${typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : ''}img/${name}`;
+/** A hand as written on the player panel: sorted counts as digits ("00122"); dashes between them from a count of 10 up ("3-4-5-10-12"). */
+const encHandString = (sorted) => sorted.join(sorted.some((n) => n >= 10) ? '-' : '');
 const encIsGrid = (r, c) => r >= 0 && r < 10 && c >= 0 && c < 10;
 // The 30 start squares: left and right sides (rows 0 to 9) and bottom (columns 0 to 9). The top side is the special strip.
 const ENC_START_SLOTS = [];
@@ -80,15 +84,15 @@ export class Game {
             <div id="enc_table">
                 <p id="enc_hint" aria-live="polite"></p>
                 <div id="enc_specials" role="group" aria-label="${_('Special actions')}"></div>
+                <div id="enc_pay" role="group" aria-label="${_('Pay with')}" hidden></div>
                 <p id="enc_info" aria-live="polite" hidden></p>
+                <div id="enc_tube" role="group" aria-label="${_('Tube')}"></div>
                 <div id="enc_board_wrap">
                     <div id="enc_board" role="grid" aria-label="${_('Garden: 10 by 10 squares. Columns A to J, rows 1 to 10.')}">
                         <div id="enc_cells"></div>
                         <div id="enc_pieces"></div>
                     </div>
                 </div>
-                <div id="enc_pay" role="group" aria-label="${_('Pay with')}" hidden></div>
-                <div id="enc_tube"></div>
                 <div id="enc_final" hidden></div>
             </div>`;
         this.bga.gameArea.getElement().appendChild(root);
@@ -169,8 +173,10 @@ export class Game {
         if (!wrap) return;
         this.fitContainerToScreen(document.getElementById('enc_root'));
         const width = Math.max(200, wrap.clientWidth);
-        const cell = Math.min(64, Math.floor(width / (10 + 2 * ENC_SIDE)));
-        const side = Math.round(cell * ENC_SIDE);
+        // The side squares only take room while Martians stand outside the garden (placement, and until their first move)
+        const sideFraction = this.needsSideRoom() ? ENC_SIDE : 0;
+        const cell = Math.min(64, Math.floor(width / (10 + 2 * sideFraction)));
+        const side = Math.round(cell * sideFraction);
         const board = document.getElementById('enc_board');
         board.style.width = `${cell * 10}px`;
         board.style.height = `${cell * 10}px`;
@@ -183,18 +189,25 @@ export class Game {
         specials.style.setProperty('--enc-cols', cell >= 40 ? '10' : '5');
     }
 
+    /** True while the start squares outside the garden are needed: placement, or any Martian that has not entered yet. */
+    needsSideRoom() {
+        return this.stateName === 'PlaceMartian' || (this.martians || []).some((m) => !encIsGrid(m.r, m.c));
+    }
+
     /**
      * On phones, BGA wraps the play area in padded containers. Widen our root to the viewport and pull it back to the
      * left edge, so the garden can use the full screen width (Yavalath uses the same approach).
      */
     fitContainerToScreen(root) {
+        if (!root) return;
         root.style.width = '';
         root.style.marginLeft = '';
-        if (!root || window.innerWidth > 800) return;
+        if (window.innerWidth > 800) return;
         const viewportW = document.documentElement.clientWidth || window.innerWidth;
         root.style.width = `${viewportW}px`;
+        // Pull the root to the left edge of the screen, whatever padding the BGA wrappers add
         const left = root.getBoundingClientRect().left;
-        root.style.marginLeft = `${-left}px`;
+        if (Math.abs(left) > 0.5) root.style.marginLeft = `${-left}px`;
     }
 
     /* ------------------------------------------------------------------------ rendering */
@@ -284,11 +297,14 @@ export class Game {
         for (let slot = 1; slot <= 10; slot++) {
             const img = slot === 10 ? 'flower_wild.png' : `special_${slot}.png`;
             const used = this.specials[slot] && this.specials[slot].used;
-            const title = this.bga.gameui?.addTooltip ? '' : ` title="${this.specialTitle(slot)}"`;
+            const user = used ? this.specials[slot].by : 0;
+            const label = this.specialTitle(slot) + (used && user ? ` (${_('used by')} ${this.playerName(user)})` : '');
+            const title = this.bga.gameui?.addTooltip ? '' : ` title="${label}"`;
+            // A used action is covered by a disc in the colour of the player who used it, with their Martian (as in Gardens of Io)
+            const cover = used && user ? `<span class="enc_cover" style="--tc:${this.playerColour(user)}">${this.martianImg(user)}</span>` : '';
             html += `<button type="button" id="enc_special_${slot}" class="enc_special${used ? ' enc_used' : ''}" data-slot="${slot}"
-                ${title} aria-label="${this.specialTitle(slot)}" aria-pressed="false">
-                <img src="${encImg(img)}" alt="">
-                ${used ? `<img class="enc_counter" src="${encImg('counter.png')}" alt="">` : ''}
+                ${title} aria-label="${label}" aria-pressed="false">
+                <img src="${encImg(img)}" alt="">${cover}
             </button>`;
         }
         host.innerHTML = html;
@@ -297,6 +313,18 @@ export class Game {
             // BGA tooltip for desktop hover (native title as the fallback); the tap explanation is the info box
             if (this.bga.gameui?.addTooltip) this.bga.gameui.addTooltip(el.id, this.specialTitle(Number(el.dataset.slot)), '');
         });
+    }
+
+    playerColour(pid) {
+        const p = this.gamedatas.players ? this.gamedatas.players[pid] : null;
+        if (p && /^[0-9a-fA-F]{6}$/.test(String(p.color || ''))) return `#${p.color}`;
+        const idx = (this.gamedatas.player_order || []).indexOf(Number(pid));
+        return ENC_PLAYER_COLOURS[(idx < 0 ? 0 : idx) % ENC_PLAYER_COLOURS.length];
+    }
+
+    martianImg(pid) {
+        const m = this.martians.find((x) => x.pid === Number(pid));
+        return m ? `<img src="${encImg(`martian_${m.type}.png`)}" alt="">` : '';
     }
 
     specialName(slot) {
@@ -398,8 +426,15 @@ export class Game {
     reserveHtml() {
         const mine = this.reserves[this.myId];
         if (!mine) return '';
-        const cols = ENC_COLOURS.concat(mine.wild ? ['wild'] : []);
-        return cols.map((col) => `<span class="enc_sb_item"><img src="${encImg(`flower_${col}.png`)}" alt="${this.colourLabel(col)}"><b>${mine[col] || 0}</b></span>`).join('');
+        const item = (col) => `<span class="enc_sb_item"><img src="${encImg(`flower_${col}.png`)}" alt="${this.colourLabel(col)}"><b>${mine[col] || 0}</b></span>`;
+        const wild = mine.wild ? `<span class="enc_sb_row">${item('wild')}</span>` : '';
+        return `<span class="enc_sb_row">${this.coloursAscending(mine).map(item).join('')}</span>${wild}`;
+    }
+
+    /** The five colours, fewest flowers first (ties keep the usual colour order). */
+    coloursAscending(res) {
+        return ENC_COLOURS.map((col, i) => ({ col, i, n: (res || {})[col] || 0 }))
+            .sort((a, b) => a.n - b.n || a.i - b.i).map((x) => x.col);
     }
 
     /** The hand as players read it: counts sorted from lowest to highest, the wildflower counted as the best colour. */
@@ -430,13 +465,15 @@ export class Game {
                 if (this.compareHands(h, hand) < 0) hand = h;
             });
         }
-        return hand.join('-');
+        return encHandString(hand);
     }
 
     renderTube() {
         const host = document.getElementById('enc_tube');
         const total = Object.values(this.tube).reduce((a, b) => a + b, 0);
-        host.textContent = `${_('Tube')}: ${total}`;
+        const items = ENC_COLOURS.map((col) => `<span class="enc_tube_item${(this.tube[col] || 0) === 0 ? ' enc_zero' : ''}" title="${this.colourLabel(col)}">
+            <img src="${encImg(`flower_${col}.png`)}" alt="${this.colourLabel(col)}"><b>${this.tube[col] || 0}</b></span>`).join('');
+        host.innerHTML = `<span class="enc_tube_title">${_('Tube')}: ${total}</span>${items}`;
         host.title = _('Flowers paid for special actions. The tube action draws 3 at random from here.');
     }
 
@@ -451,22 +488,25 @@ export class Game {
                 el.appendChild(line);
             }
             line.innerHTML = this.panelLine(pid);
-            let hand = el.querySelector('.enc_panel_hand');
-            if (!hand) {
-                hand = document.createElement('div');
-                hand.className = 'enc_panel_hand';
-                el.insertBefore(hand, line);
+            // The victory points: the hand written as digits ("00122"), next to the framework's score star
+            let vp = el.querySelector('.enc_vp');
+            if (!vp) {
+                vp = document.createElement('span');
+                vp.className = 'enc_vp';
+                const value = el.querySelector('.player_score_value');
+                if (value && value.parentNode) value.parentNode.insertBefore(vp, value);
+                else el.insertBefore(vp, line);
             }
-            hand.title = _('Hand: flowers of each colour, sorted from lowest to highest');
-            hand.textContent = `${_('Hand')}: ${this.handText(pid)}`;
+            vp.title = _('Hand: flowers of each colour, sorted from lowest to highest');
+            vp.textContent = this.handText(pid);
         });
     }
 
     panelLine(pid) {
         const res = this.reserves[pid] || {};
-        return ENC_COLOURS.map((col) => `<span class="enc_panel_item" title="${this.colourLabel(col)}">
-            <img src="${encImg(`flower_${col}.png`)}" alt="${this.colourLabel(col)}"><b>${res[col] || 0}</b></span>`).join('')
-            + `<span class="enc_panel_item" title="${_('Grey wildflower')}"><img src="${encImg('flower_wild.png')}" alt="${_('Grey wildflower')}"><b>${res.wild || 0}</b></span>`;
+        const item = (col) => `<span class="enc_panel_item" title="${this.colourLabel(col)}">
+            <img src="${encImg(`flower_${col}.png`)}" alt="${this.colourLabel(col)}"><b>${res[col] || 0}</b></span>`;
+        return `<div class="enc_panel_row">${this.coloursAscending(res).map(item).join('')}</div><div class="enc_panel_row">${item('wild')}</div>`;
     }
 
     playerName(pid) {
@@ -486,6 +526,7 @@ export class Game {
         this.args = args;
         this.isActive = isActive;
         this.stage = null;
+        this.fitLayout();
         this.showInfo('');
         this.setStatus(isActive ? this.placementHint() : _('Other players are placing their Martians.'));
         this.renderPieces();
@@ -504,6 +545,7 @@ export class Game {
         this.args = args;
         this.isActive = isActive;
         this.stage = null;
+        this.fitLayout();
         this.showInfo('');
         this.renderPay();
         this.renderPieces();
@@ -518,6 +560,7 @@ export class Game {
         this.stage = null;
         this.args = null;
         this.stateName = null;
+        this.fitLayout();
         this.renderPay();
         this.clearHighlights();
     }
@@ -889,6 +932,7 @@ export class Game {
     notif_martianPlaced(args) {
         const m = { id: args.martian_id, pid: args.player_id, type: args.martian_type, r: args.r, c: args.c };
         if (!this.martians.some((x) => x.id === m.id)) this.martians.push(m);
+        this.fitLayout();
         this.renderPieces();
         this.highlightTargets();
         this.sfx('enc_move');
@@ -897,6 +941,7 @@ export class Game {
     notif_boardChanged(args) {
         (args.changes || []).forEach(([r, c, content]) => { this.board[r][c] = content; });
         if (args.martians) this.martians = args.martians;
+        this.fitLayout();
         this.renderBoard();
         this.renderPieces();
     }
@@ -941,7 +986,7 @@ export class Game {
             ? _('Team score: the lowest hand')
             : _('Final hands: flowers of each colour, sorted from lowest to highest');
         const body = rows.map((row) => {
-            const counts = `<span class="enc_hand_text">${row.sorted.join('-')}</span>`;
+            const counts = `<span class="enc_hand_text">${encHandString(row.sorted)}</span>`;
             const declared = row.declared ? ` (${_('wildflower')}: ${row.declared})` : '';
             return `<tr><th scope="row">${row.player_name}</th><td>${counts}</td><td>${declared}</td></tr>`;
         }).join('');

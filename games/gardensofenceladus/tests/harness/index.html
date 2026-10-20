@@ -86,7 +86,7 @@ const gamedatas = {
         1: { blue: 3, red: 1, yellow: 0, green: 3, magenta: 0, wild: 0 },
         2: { blue: 0, red: 0, yellow: 1, green: 1, magenta: 4, wild: 1 },
     },
-    tube: { blue: 3, red: 0, yellow: 0, green: 0, magenta: 0 },
+    tube: { blue: 3, red: 0, yellow: 2, green: 0, magenta: 0 },
     specials: Object.fromEntries([1,2,3,4,5,6,7,8,9,10].map((s) => [s, { used: false, by: 0 }])),
     coop: false,
     martians_per: 1,
@@ -94,7 +94,7 @@ const gamedatas = {
     martian_types: ['bot', 'ali', 'marty', 'bob', 'robby'],
     special_kinds: {},
     player_order: [1, 2],
-    players: { 1: { name: 'Ann' }, 2: { name: 'Ben' } },
+    players: { 1: { name: 'Ann', color: 'ff0000' }, 2: { name: 'Ben', color: '0000ff' } },
     turn_martian: 0,
 };
 
@@ -217,7 +217,33 @@ async function run() {
         check('single_martian_targets_live', qa('#enc_board .enc_target').length === turnArgs.moves[0].targets.length, qa('#enc_board .enc_target').length);
         check('no_reserve_below_board', !q('#enc_reserve'), null);
         check('status_shows_reserve', /enc_sb_item/.test(statusBar.title) && statusBar.title.includes('<b>3</b>'), statusBar.title);
-        check('panel_shows_sorted_hand', q('#panel_1 .enc_panel_hand').textContent.includes('0-0-1-3-3') , q('#panel_1 .enc_panel_hand').textContent);
+        check('panel_shows_vp_as_digits', q('#panel_1 .enc_vp').textContent === '00133' && q('#panel_2 .enc_vp').textContent === '01114', q('#panel_1 .enc_vp').textContent + ' ' + q('#panel_2 .enc_vp').textContent);
+        {
+            const order = (sel) => qa(sel).map((el) => el.querySelector('img').alt);
+            const rows = qa('#panel_1 .enc_panel_row');
+            const nums = Array.from(rows[0].querySelectorAll('b')).map((b) => Number(b.textContent));
+            check('panel_reserve_ascending', nums.length === 5 && nums.every((n, i) => i === 0 || nums[i - 1] <= n), nums);
+            check('panel_wild_own_row', rows.length === 2 && rows[1].querySelectorAll('.enc_panel_item').length === 1 && /wild/i.test(rows[1].querySelector('img').alt), rows.length);
+            const sbRows = qa('.enc_sb_row');
+            const sbHost = document.createElement('div');
+            sbHost.innerHTML = statusBar.title;
+            const sbNums = Array.from(sbHost.querySelector('.enc_sb_row').querySelectorAll('b')).map((b) => Number(b.textContent));
+            check('status_reserve_ascending', sbNums.length === 5 && sbNums.every((n, i) => i === 0 || sbNums[i - 1] <= n), sbNums);
+            const img = q('#panel_1 .enc_panel_item img');
+            check('panel_flowers_big', rect(img).width >= 30 && parseFloat(getComputedStyle(q('#panel_1 .enc_panel_item b')).fontSize) >= 24, rect(img).width);
+        }
+        check('tube_below_specials', q('#enc_specials').nextElementSibling.id === 'enc_pay' && rect(q('#enc_tube')).top > rect(q('#enc_specials')).bottom && rect(q('#enc_tube')).bottom < rect(q('#enc_board_wrap')).top, null);
+        check('tube_shows_counts', qa('#enc_tube .enc_tube_item b').map((b) => b.textContent).join(',') === '3,0,2,0,0' && /5/.test(q('#enc_tube .enc_tube_title').textContent), q('#enc_tube').textContent);
+        game.notif_tubeChanged({ tube: { blue: 0, red: 1, yellow: 0, green: 0, magenta: 0 } });
+        check('tube_updates_on_notification', qa('#enc_tube .enc_tube_item b').map((b) => b.textContent).join(',') === '0,1,0,0,0', q('#enc_tube').textContent);
+        game.notif_tubeChanged({ tube: gamedatas.tube });
+        game.notif_specialUsed({ slot: 6, player_id: 2 });
+        {
+            const cover = q('#enc_special_6 .enc_cover');
+            check('used_special_disc_in_player_colour', !!cover && cover.style.getPropertyValue('--tc') === '#0000ff' && !!cover.querySelector('img'), cover && cover.outerHTML);
+            game.specials[6] = { used: false, by: 0 };
+            game.renderSpecials();
+        }
         {
             // tap a live target with no Martian selected first
             const [fr, fc] = turnArgs.moves[0].targets[0];
@@ -251,6 +277,21 @@ async function run() {
             await flush();
         }
         check('own_martian_outline', !!q('.enc_martian.enc_mine'), null);
+        {
+            // Once every Martian is in the garden the board takes the whole phone width (no side margins)
+            const saved = game.martians;
+            game.martians = [{ id: 1, pid: 1, type: 'bot', r: 4, c: 0 }, { id: 2, pid: 2, type: 'ali', r: 0, c: 8 }];
+            game.fitLayout();
+            await flush();
+            const full = rect(q('#enc_board')).width / (W || innerWidth);
+            results.board_width_share = { value: Math.round(full * 1000) / 1000 };
+            if ((W || innerWidth) <= 500) check('board_uses_95pct_of_width_on_phone', full >= 0.95, full);
+            check('cell_tap_size_without_side', rect(q('#enc_board .enc_cell')).width >= 32, rect(q('#enc_board .enc_cell')).width);
+            check('no_horizontal_scroll_full_width', document.documentElement.scrollWidth <= (W || innerWidth), document.documentElement.scrollWidth);
+            game.martians = saved;
+            game.fitLayout();
+            await flush();
+        }
         // Tap the Martian: the flowers on its row light up
         tap(q('.enc_martian[data-id="1"]'));
         await flush();
@@ -303,6 +344,7 @@ async function run() {
         tap(q('.enc_special[data-slot="1"]'));
         await flush();
         check('special_needs_payment_first', statusBar.buttons.some((b) => b.label === 'Confirm' && b.disabled), buttonLabels());
+        check('pay_directly_below_specials', q('#enc_specials').nextElementSibling === q('#enc_pay') && rect(q('#enc_pay')).top - rect(q('#enc_specials')).bottom < 20 && rect(q('#enc_pay')).bottom < rect(q('#enc_board_wrap')).top, null);
         check('pay_chip_tap_size', Math.min(...qa('#enc_pay .enc_chip').map((el) => Math.min(rect(el).width, rect(el).height))) >= 32, null);
         check('pay_choices_only_payable', qa('#enc_pay .enc_chip').length === 2 && !q('#enc_pay').hidden, qa('#enc_pay .enc_chip').length);
         tap(q('.enc_chip[data-colour="blue"]'));

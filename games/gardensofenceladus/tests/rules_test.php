@@ -199,6 +199,11 @@ $big = Rules::hand(['blue' => 12, 'red' => 3, 'yellow' => 3, 'green' => 3, 'mage
 $nines = Rules::hand(['blue' => 9, 'red' => 9, 'yellow' => 9, 'green' => 9, 'magenta' => 9], 0);
 check(Rules::compareSorted($big['sorted'], $nines['sorted']) < 0 && $big['key'] < $nines['key'], 'a smallest colour of 3 ranks below five 9s');
 
+// Hand text: digits, dashes only when a count reaches 10.
+check(Rules::handText([0, 0, 1, 2, 2]) === '00122', 'hand text 00122');
+check(Rules::handText([3, 4, 5, 6, 6]) === '34566', 'hand text 34566');
+check(Rules::handText([3, 4, 5, 10, 12]) === '3-4-5-10-12', 'hand text with two-digit counts is dashed');
+
 // 10. Random garden: 95 flowers (19 per colour), 5 peaks, no fenced section.
 for ($t = 0; $t < 20; $t++) {
     $g = Rules::randomGarden();
