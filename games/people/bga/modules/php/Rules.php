@@ -191,17 +191,18 @@ final class Rules
         return $humans;
     }
 
-    /** The humans the bulldozer takes from its district: no more than 5. */
-    public static function sweepTake(array $humans, int $r, int $c): int
+    /** The most humans the bulldozer can take from its district: the humans there, no more than 5. 0 when empty. */
+    public static function sweepMax(array $humans, int $r, int $c): int
     {
         return min(self::SWEEP_MAX, $humans[$r][$c]);
     }
 
     /**
      * The path of a straight sweep from (r, c) to (tr, tc): each district on it, in order, ending at the target.
-     * Null when the target is not straight ahead, too far for the humans taken, outside the area or behind a roadblock.
+     * Null when the target is not straight ahead, farther than $count districts (every district on the way needs a
+     * human), outside the area or behind a roadblock.
      */
-    public static function sweepPath(string $area, array $edges, array $humans, int $r, int $c, int $tr, int $tc): ?array
+    public static function sweepPath(string $area, array $edges, int $r, int $c, int $tr, int $tc, int $count): ?array
     {
         $dr = $tr <=> $r;
         $dc = $tc <=> $c;
@@ -209,7 +210,7 @@ final class Rules
             return null;
         }
         $distance = max(abs($tr - $r), abs($tc - $c));
-        if ($distance < 1 || $distance > self::sweepTake($humans, $r, $c)) {
+        if ($distance < 1 || $distance > $count) {
             return null;
         }
         $path = [];
@@ -227,15 +228,16 @@ final class Rules
         return $path;
     }
 
-    /** Destinations the bulldozer can reach, each as [r, c]. */
+    /** Destinations the bulldozer can reach with some count (1 to the most it can take), each as [r, c]. */
     public static function sweepTargets(string $area, array $edges, array $humans, int $r, int $c): array
     {
         $out = [];
+        $max = self::sweepMax($humans, $r, $c);
         foreach ([[-1, 0], [1, 0], [0, -1], [0, 1]] as [$dr, $dc]) {
-            for ($k = 1; $k <= self::sweepTake($humans, $r, $c); $k++) {
+            for ($k = 1; $k <= $max; $k++) {
                 $tr = $r + $dr * $k;
                 $tc = $c + $dc * $k;
-                if (self::sweepPath($area, $edges, $humans, $r, $c, $tr, $tc) === null) {
+                if (self::sweepPath($area, $edges, $r, $c, $tr, $tc, $max) === null) {
                     break;
                 }
                 $out[] = [$tr, $tc];
@@ -244,16 +246,78 @@ final class Rules
         return $out;
     }
 
-    /** Humans after the sweep. Each district on the path gets one; the rest go to the last district. */
-    public static function applySweep(array $humans, int $r, int $c, array $path): array
+    /** The default drops: one per district on the path, the rest on the last one. */
+    public static function defaultDrops(int $count, int $districts): array
     {
-        $take = self::sweepTake($humans, $r, $c);
-        $humans[$r][$c] -= $take;
-        foreach ($path as [$pr, $pc]) {
-            $humans[$pr][$pc] += 1;
+        $drops = array_fill(0, $districts, 1);
+        $drops[$districts - 1] += $count - $districts;
+        return $drops;
+    }
+
+    /** Every way to drop $count humans on $districts districts, at least one each (compositions of $count). */
+    public static function allDrops(int $count, int $districts): array
+    {
+        if ($districts === 1) {
+            return $count >= 1 ? [[$count]] : [];
         }
-        [$lr, $lc] = $path[count($path) - 1];
-        $humans[$lr][$lc] += $take - count($path);
+        $out = [];
+        for ($first = 1; $first <= $count - ($districts - 1); $first++) {
+            foreach (self::allDrops($count - $first, $districts - 1) as $rest) {
+                $out[] = array_merge([$first], $rest);
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * Validates a bulldozer move: it takes $count humans (1 to the most it can), drives straight to (tr, tc) and drops
+     * $drops (one number per district on the path, each at least 1, summing to $count). Returns the path, or null.
+     */
+    public static function sweepCheck(string $area, array $edges, array $humans, int $r, int $c, int $count, int $tr, int $tc, array $drops): ?array
+    {
+        if ($count < 1 || $count > self::sweepMax($humans, $r, $c)) {
+            return null;
+        }
+        $path = self::sweepPath($area, $edges, $r, $c, $tr, $tc, $count);
+        if ($path === null || count($drops) !== count($path) || array_sum($drops) !== $count) {
+            return null;
+        }
+        foreach ($drops as $d) {
+            if (!is_int($d) || $d < 1) {
+                return null;
+            }
+        }
+        return $path;
+    }
+
+    /** All legal bulldozer moves as [count, tr, tc, drops]. For tests and the zombie. */
+    public static function sweepMoves(string $area, array $edges, array $humans, int $r, int $c): array
+    {
+        $out = [];
+        for ($count = 1; $count <= self::sweepMax($humans, $r, $c); $count++) {
+            foreach ([[-1, 0], [1, 0], [0, -1], [0, 1]] as [$dr, $dc]) {
+                for ($k = 1; $k <= $count; $k++) {
+                    $tr = $r + $dr * $k;
+                    $tc = $c + $dc * $k;
+                    if (self::sweepPath($area, $edges, $r, $c, $tr, $tc, $count) === null) {
+                        break;
+                    }
+                    foreach (self::allDrops($count, $k) as $drops) {
+                        $out[] = [$count, $tr, $tc, $drops];
+                    }
+                }
+            }
+        }
+        return $out;
+    }
+
+    /** Humans after the sweep: $count leave the source and $drops land on the path districts. */
+    public static function applySweep(array $humans, int $r, int $c, array $path, array $drops): array
+    {
+        $humans[$r][$c] -= array_sum($drops);
+        foreach ($path as $i => [$pr, $pc]) {
+            $humans[$pr][$pc] += $drops[$i];
+        }
         return $humans;
     }
 

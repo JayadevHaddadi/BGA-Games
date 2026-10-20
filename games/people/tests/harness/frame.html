@@ -15,7 +15,7 @@
 const params = new URLSearchParams(location.search);
 const w = Number(params.get('w') || 375);
 const players = params.get('players') || '4';
-const mode = params.get('mode') || 'factory';
+const mode = params.get('mode') || 'script';
 const f = document.getElementById('f');
 f.width = String(w);
 f.src = `index.html?players=${players}&mode=${mode}`;

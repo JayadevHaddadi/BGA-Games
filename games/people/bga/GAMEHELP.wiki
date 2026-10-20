@@ -40,7 +40,7 @@ Choose a bribe with its button. Tap the targets on the board, then press '''Conf
 |-
 | '''Police''' || Tap a district with humans, other than the bulldozer's district. The shield moves there. One human goes to each open neighbour (no roadblock between them). If there are fewer humans than open neighbours, you choose which neighbours get one.
 |-
-| '''Bulldozer''' || The bulldozer takes up to 5 humans from its own district, then drives straight up, down, left or right to a district it can reach. Each district it drives into gets one human. The rest of the humans go to the last district. It stops before a roadblock or the edge of the game area.
+| '''Bulldozer''' || Choose how many humans it takes from its own district: 1 to 5, no more than are there. Then tap a district it can reach by driving straight up, down, left or right. It stops before a roadblock or the edge of the game area, and it cannot drive through more districts than the humans it took. Finally choose how many humans to drop on each district it drives through: at least one on every district, and all the humans it took are dropped. By default each district gets one and the last gets the rest; use the plus and minus buttons to change that.
 |-
 | '''Roadblock''' || Place one roadblock from the supply on an empty edge between two districts of the game area.
 |-
@@ -58,7 +58,7 @@ The highest total wins. Equal totals share the win.
 
 ==Notes on the rules==
 
-* The bulldozer always takes the most it can, up to 5 humans. Taking fewer never helps it reach further.
-* Humans are never held between turns. A bulldozer sweep always empties the bulldozer.
+* You choose how many humans the bulldozer takes and how many it drops on each district (designer ruling).
+* Humans are never held between turns. All the humans the bulldozer took are dropped during its move.
 * The shield has no effect on play. It only marks the last district the police visited.
 * The rulebook says "play again" for a tie. Here equal totals share the win.

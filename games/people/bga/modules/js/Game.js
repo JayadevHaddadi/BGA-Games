@@ -56,6 +56,7 @@ export class Game {
         this.bga = bga;
         this.stage = null; // the active player's staged choice
         this.mode = null; // the chosen bribe in the Bribe state
+        this.sweepCount = null; // humans the bulldozer takes (null: the most)
         this.args = null;
         this.isActive = false;
         this.stateName = null;
@@ -85,6 +86,7 @@ export class Game {
         root.id = 'pp_root';
         root.innerHTML = `
             <div id="pp_bribes" role="group" aria-label="${_('Bribes')}" hidden></div>
+            <div id="pp_sweep" role="group" aria-label="${_('Bulldozer')}" hidden></div>
             <div id="pp_board_wrap">
                 <div id="pp_board" role="grid" aria-label="${_('Board: 6 by 6 districts. Columns A to F, rows 1 to 6.')}"></div>
             </div>
@@ -96,6 +98,7 @@ export class Game {
 
         this.buildBoard();
         document.getElementById('pp_board').style.backgroundImage = `url("${ppImg('board.jpg')}")`;
+        document.getElementById('pp_sweep').addEventListener('click', (e) => this.onSweepPanelTap(e));
         this.fitContainerToScreen(root);
         window.addEventListener('resize', () => this.fitContainerToScreen(root));
         this.refresh();
@@ -161,7 +164,7 @@ export class Game {
                 html += `<div class="pp_dist${this.inArea(r, c) ? '' : ' pp_out'}" data-r="${r}" data-c="${c}" role="gridcell"
                     style="left:${ppOff(c)}%;top:${ppOff(r)}%;width:${PP_DIST}%;height:${PP_DIST}%"
                     aria-label="${ppCoord(r, c)}">
-                    <span class="pp_count"></span><span class="pp_bull" hidden></span><span class="pp_shield" hidden></span>
+                    <span class="pp_count"></span><span class="pp_drop" hidden></span><span class="pp_bull" hidden></span><span class="pp_shield" hidden></span>
                 </div>`;
             }
         }
@@ -200,6 +203,7 @@ export class Game {
     refresh() {
         this.renderBoard();
         this.renderBribeBar();
+        this.renderSweepPanel();
         this.renderPanels();
         this.renderInfo();
     }
@@ -218,6 +222,11 @@ export class Game {
             el.classList.toggle('pp_recipient', !!stage && stage.kind === 'police' && stage.recipients.some((p) => ppSame(p, [r, c])));
             el.classList.toggle('pp_selected', !!stage && this.stageDistrict(stage, r, c));
             el.classList.toggle('pp_source', this.isBulldozer(r, c) && this.mode === 'sweep');
+
+            const dropIdx = stage && stage.kind === 'sweep' ? stage.path.findIndex((p) => ppSame(p, [r, c])) : -1;
+            const drop = el.querySelector('.pp_drop');
+            drop.hidden = dropIdx < 0;
+            drop.textContent = dropIdx < 0 ? '' : `+${stage.drops[dropIdx]}`;
 
             const bull = el.querySelector('.pp_bull');
             bull.hidden = !this.isBulldozer(r, c);
@@ -264,7 +273,7 @@ export class Game {
 
     stageDistrict(stage, r, c) {
         if (stage.kind === 'police') return stage.r === r && stage.c === c;
-        if (stage.kind === 'sweep') return stage.tr === r && stage.tc === c;
+        if (stage.kind === 'sweep') return stage.path.some((p) => ppSame(p, [r, c]));
         return false;
     }
 
@@ -293,7 +302,7 @@ export class Game {
                 this.stage.open.forEach(([r, c]) => out.dists.add(`${r},${c}`));
             }
         } else if (this.mode === 'sweep') {
-            opts.sweep.forEach(([r, c]) => out.dists.add(`${r},${c}`));
+            opts.sweep.filter((p) => this.sweepDistance(p) <= this.sweepTake()).forEach(([r, c]) => out.dists.add(`${r},${c}`));
         } else if (this.mode === 'roadblock') {
             opts.roadblock.forEach((k) => out.edges.add(k));
         } else if (this.mode === 'more') {
@@ -338,9 +347,87 @@ export class Game {
         if (this.stateName !== 'Bribe' || !this.mode) return;
         if (this.mode === 'police') {
             this.tapPolice(r, c);
-        } else if (this.mode === 'sweep' && this.args.options.sweep.some((p) => ppSame(p, [r, c]))) {
-            this.stage = { kind: 'sweep', tr: r, tc: c };
+        } else if (this.mode === 'sweep' && this.args.options.sweep.some((p) => ppSame(p, [r, c])) && this.sweepDistance([r, c]) <= this.sweepTake()) {
+            this.stage = this.sweepStage(r, c);
         }
+    }
+
+    /* ------------------------------------------------------------------------ bulldozer: how many, where, how they are dropped */
+
+    /** The most humans the bulldozer can take: those in its district, up to 5. */
+    sweepMax() {
+        return this.bulldozer ? Math.min(5, this.humans[this.bulldozer[0]][this.bulldozer[1]]) : 0;
+    }
+
+    /** The count chosen by the player (default: the most). */
+    sweepTake() {
+        return Math.min(this.sweepCount || this.sweepMax(), this.sweepMax());
+    }
+
+    sweepDistance([r, c]) {
+        return Math.abs(r - this.bulldozer[0]) + Math.abs(c - this.bulldozer[1]);
+    }
+
+    /** Staged sweep: the districts on the path and the default drops (one each, the rest on the last district). */
+    sweepStage(tr, tc) {
+        const dr = Math.sign(tr - this.bulldozer[0]);
+        const dc = Math.sign(tc - this.bulldozer[1]);
+        const k = this.sweepDistance([tr, tc]);
+        const path = [];
+        for (let i = 1; i <= k; i++) path.push([this.bulldozer[0] + dr * i, this.bulldozer[1] + dc * i]);
+        const drops = path.map(() => 1);
+        drops[k - 1] += this.sweepTake() - k;
+        return { kind: 'sweep', tr, tc, path, drops };
+    }
+
+    sweepLeft() {
+        const st = this.stage;
+        return this.sweepTake() - st.drops.reduce((a, b) => a + b, 0);
+    }
+
+    renderSweepPanel() {
+        const host = document.getElementById('pp_sweep');
+        const show = this.isActive && this.stateName === 'Bribe' && this.mode === 'sweep' && this.args && this.sweepMax() > 0;
+        host.hidden = !show;
+        if (!show) {
+            host.innerHTML = '';
+            return;
+        }
+        const take = this.sweepTake();
+        let html = `<div class="pp_sweep_row"><span>${_('Humans to take')}</span>`;
+        for (let n = 1; n <= this.sweepMax(); n++) {
+            html += `<button type="button" class="pp_step" data-take="${n}" aria-pressed="${n === take}">${n}</button>`;
+        }
+        html += '</div>';
+        const st = this.stage;
+        if (st && st.kind === 'sweep') {
+            st.path.forEach(([r, c], i) => {
+                html += `<div class="pp_sweep_row"><span class="pp_sweep_name">${ppCoord(r, c)}</span>
+                    <button type="button" class="pp_step" data-drop="${i}" data-delta="-1" aria-label="${_('Fewer')}" ${st.drops[i] <= 1 ? 'disabled' : ''}>-</button>
+                    <b class="pp_sweep_n">${st.drops[i]}</b>
+                    <button type="button" class="pp_step" data-drop="${i}" data-delta="1" aria-label="${_('More')}" ${this.sweepLeft() <= 0 ? 'disabled' : ''}>+</button></div>`;
+            });
+        }
+        host.innerHTML = html;
+    }
+
+    onSweepPanelTap(e) {
+        const el = e.target.closest('button');
+        if (!el || el.disabled || !this.isActive || this.mode !== 'sweep') return;
+        if (el.dataset.take) {
+            this.sweepCount = Number(el.dataset.take);
+            const st = this.stage;
+            // A longer path than humans taken is not possible: choose the destination again
+            this.stage = st && this.sweepDistance([st.tr, st.tc]) <= this.sweepTake() ? this.sweepStage(st.tr, st.tc) : null;
+        } else if (el.dataset.drop !== undefined && this.stage) {
+            const i = Number(el.dataset.drop);
+            const delta = Number(el.dataset.delta);
+            const st = this.stage;
+            if (st.drops[i] + delta >= 1 && (delta < 0 || this.sweepLeft() > 0)) st.drops[i] += delta;
+        }
+        this.refresh();
+        this.updateButtons(this.args, this.isActive);
+        this.setStatus(this.stageHint());
     }
 
     /** Police: tap the district with humans, then the open neighbours that receive one each (when there is a choice). */
@@ -376,6 +463,7 @@ export class Game {
 
     stageReady() {
         const st = this.stage;
+        if (st && st.kind === 'sweep') return this.sweepLeft() === 0;
         return !!st && (st.kind !== 'police' || st.recipients.length === st.need);
     }
 
@@ -397,7 +485,10 @@ export class Game {
             return _('Confirm the police, or tap another district.');
         }
         if (this.mode === 'sweep') {
-            return st ? _('Confirm the bulldozer sweep, or tap another district.') : _('Bulldozer: tap a district it can reach straight ahead.');
+            if (!st) return _('Bulldozer: choose how many humans to take, then tap a district it can reach straight ahead.');
+            return this.sweepLeft() === 0
+                ? _('Confirm the bulldozer, or change the humans dropped on each district.')
+                : _('Bulldozer: ${n} more human(s) to drop. Every district on the way gets at least one.').replace('${n}', String(this.sweepLeft()));
         }
         if (this.mode === 'roadblock') {
             return st ? _('Confirm the roadblock, or tap another edge.') : _('Roadblock: tap an empty edge between two districts.');
@@ -446,6 +537,7 @@ export class Game {
 
     chooseMode(mode) {
         this.mode = this.mode === mode ? null : mode;
+        this.sweepCount = null;
         this.stage = null;
         this.refresh();
         this.updateButtons(this.args, this.isActive);
@@ -494,6 +586,7 @@ export class Game {
         this.isActive = isActive;
         this.stage = null;
         this.mode = null;
+        this.sweepCount = null;
         this.refresh();
         this.updateButtons(args, isActive);
         this.setStatus(this.stageHint());
@@ -505,6 +598,7 @@ export class Game {
         this.isActive = isActive;
         this.stage = null;
         this.mode = null;
+        this.sweepCount = null;
         this.refresh();
         this.updateButtons(args, isActive);
         this.setStatus(this.stageHint());
@@ -562,7 +656,7 @@ export class Game {
             this.bga.actions.performAction('actPolice', { r: st.r, c: st.c, to });
         } else if (st.kind === 'sweep') {
             this.bga.actions.performAction('actSweep', {
-                r: this.bulldozer[0], c: this.bulldozer[1], tr: st.tr, tc: st.tc,
+                r: this.bulldozer[0], c: this.bulldozer[1], count: this.sweepTake(), tr: st.tr, tc: st.tc, drops: st.drops.join(','),
             });
         } else if (st.kind === 'roadblock') {
             this.bga.actions.performAction('actRoadblock', { edge: st.edge });

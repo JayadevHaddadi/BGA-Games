@@ -83,8 +83,9 @@ class Bribe extends GameState
         return $this->game->endTurn();
     }
 
+    /** $drops lists the humans dropped on each district of the path, in order ("2,1,1"). */
     #[PossibleAction]
-    public function actSweep(int $r, int $c, int $tr, int $tc): string
+    public function actSweep(int $r, int $c, int $count, int $tr, int $tc, string $drops): string
     {
         $pid = $this->payingPlayer();
         $area = $this->game->area();
@@ -96,22 +97,45 @@ class Bribe extends GameState
         if ($r !== $br || $c !== $bc) {
             throw new UserException(clienttranslate('The bulldozer sweeps from its own district.'));
         }
-        $path = Rules::sweepPath($area, $edges, $before, $r, $c, $tr, $tc);
+        if ($count < 1 || $count > Rules::sweepMax($before, $r, $c)) {
+            throw new UserException(clienttranslate('The bulldozer takes 1 to 5 humans, no more than there are in its district.'));
+        }
+        $path = Rules::sweepPath($area, $edges, $r, $c, $tr, $tc, $count);
         if ($path === null) {
-            throw new UserException(clienttranslate('The bulldozer cannot reach that district.'));
+            throw new UserException(clienttranslate('The bulldozer cannot reach that district with that many humans.'));
+        }
+        $list = [];
+        foreach ($drops === '' ? [] : explode(',', $drops) as $part) {
+            if (!preg_match('/^\d+$/', $part)) {
+                throw new UserException(clienttranslate('Choose how many humans to drop on each district.'));
+            }
+            $list[] = (int) $part;
+        }
+        if (count($list) !== count($path)) {
+            throw new UserException(clienttranslate('Drop humans on every district the bulldozer drives through.'));
+        }
+        if (min($list) < 1) {
+            throw new UserException(clienttranslate('Every district on the way gets at least one human.'));
+        }
+        if (array_sum($list) !== $count) {
+            throw new UserException(clienttranslate('Drop exactly as many humans as the bulldozer took.'));
         }
 
-        $taken = Rules::sweepTake($before, $r, $c);
-        $after = Rules::applySweep($before, $r, $c, $path);
+        $after = Rules::applySweep($before, $r, $c, $path, $list);
         $changes = $this->game->saveHumans($before, $after);
         $this->game->setFlag('bull_r', $tr);
         $this->game->setFlag('bull_c', $tc);
 
+        $detail = [];
+        foreach ($path as $i => [$pr, $pc]) {
+            $detail[] = $this->game->coordLabel($pr, $pc) . ': ' . $list[$i];
+        }
         $this->spend($pid);
-        $this->notifyBribe($pid, 'sweep', $changes, clienttranslate('${player_name} spends a bitcoin on the bulldozer: ${from} to ${to}, ${taken} humans swept.'), [
+        $this->notifyBribe($pid, 'sweep', $changes, clienttranslate('${player_name} bulldozes ${taken} humans from ${from} to ${to} (${detail}).'), [
             'from' => $this->game->coordLabel($r, $c),
             'to' => $this->game->coordLabel($tr, $tc),
-            'taken' => $taken,
+            'taken' => $count,
+            'detail' => implode(', ', $detail),
         ]);
         return $this->game->endTurn();
     }

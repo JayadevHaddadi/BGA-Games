@@ -43,6 +43,7 @@ const AREAS = { 2: [1, 5, 0, 4], 3: [1, 5, 0, 5], 4: [0, 5, 0, 5] };
 const bounds = AREAS[players];
 const inArea = (r, c) => r >= bounds[0] && r <= bounds[1] && c >= bounds[2] && c <= bounds[3];
 const humans = Array.from({ length: 6 }, (_, r) => Array.from({ length: 6 }, (_, c) => (inArea(r, c) ? 1 + ((r * 7 + c * 3) % 4) : 0)));
+humans[2][2] = 7; // the bulldozer's district: it can take 1 to 5
 
 const edges = [];
 const fence = [];
@@ -95,7 +96,12 @@ for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) {
 const bribeArgs = {
     options: {
         police,
-        sweep: [[2, 2], [2, 3], [2, 4]].filter(([r, c]) => inArea(r, c)),
+        // destinations reachable with the most humans (5): up to 5 districts straight ahead, no roadblock on the way
+        sweep: [[-1, 0], [1, 0], [0, -1], [0, 1]].flatMap(([dr, dc]) => {
+            const out = [];
+            for (let k = 1; k <= 5 && inArea(2 + dr * k, 2 + dc * k); k++) out.push([2 + dr * k, 2 + dc * k]);
+            return out;
+        }),
         roadblock: free.slice(0, 6),
         more: anchors.slice(0, 6),
     },
@@ -164,11 +170,13 @@ if (mode === 'bribe') {
     game.enterFactory({ free, factories_left: 14 }, active);
 }
 
+const rect = (el) => el.getBoundingClientRect();
 // Scripted player: taps the board as a player would and presses the buttons the page offers.
 const tap = (el) => el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 const press = (label) => { const b = log.buttons.find((x) => x.label === label); if (b && !b.disabled) log.fns[label](); return !!b; };
 const enabled = (label) => log.buttons.some((x) => x.label === label && !x.disabled);
 const script = {};
+const stepSizes = () => [...document.querySelectorAll('.pp_step')].map((el) => Math.min(rect(el).width, rect(el).height));
 if (mode === 'script') {
     game.enterFactory({ free, factories_left: 14 }, true);
     tap(document.querySelector('.pp_edge.pp_target'));
@@ -184,9 +192,45 @@ if (mode === 'script') {
     script.policeConfirmEnabled = enabled('Confirm');
     press('Confirm');
     script.policeAction = log.actions.slice(-1)[0];
+
+    // Bulldozer: take 4, drive 2 districts right, adjust the drops, confirm
+    game.enterBribe(bribeArgs, true);
+    document.querySelector('.pp_bribe[data-mode="sweep"]').click();
+    const lit = () => [...document.querySelectorAll('.pp_dist.pp_target')].map((el) => `${el.dataset.r}${el.dataset.c}`).sort().join(',');
+    const sweepBtn = (sel) => document.querySelector(`#pp_sweep ${sel}`);
+    script.sweepTakeButtons = document.querySelectorAll('#pp_sweep [data-take]').length;
+    script.sweepLitMax = lit();
+    sweepBtn('[data-take="2"]').click();
+    script.sweepLitTake2 = lit();
+    sweepBtn('[data-take="4"]').click();
+    tap(document.querySelector('.pp_dist[data-r="2"][data-c="4"]'));
+    const rows = () => [...document.querySelectorAll('#pp_sweep .pp_sweep_n')].map((el) => el.textContent).join(',');
+    script.sweepDefaultDrops = rows();
+    script.sweepBadges = [...document.querySelectorAll('.pp_drop:not([hidden])')].map((el) => el.textContent).join(',');
+    script.sweepStepMin = Math.round(Math.min(...stepSizes()));
+    script.sweepConfirmDefault = enabled('Confirm');
+    sweepBtn('[data-drop="1"][data-delta="-1"]').click();
+    script.sweepAfterMinus = rows();
+    script.sweepConfirmAfterMinus = enabled('Confirm');
+    script.sweepPlusEnabledWhenFull = !sweepBtn('[data-drop="0"][data-delta="1"]').disabled;
+    sweepBtn('[data-drop="0"][data-delta="1"]').click();
+    script.sweepAfterPlus = rows();
+    script.sweepMinusDisabledAtOne = false;
+    sweepBtn('[data-drop="1"][data-delta="-1"]').click();
+    sweepBtn('[data-drop="1"][data-delta="-1"]').click();
+    script.sweepMinusDisabledAtOne = sweepBtn('[data-drop="1"][data-delta="-1"]').disabled;
+    script.sweepRowsAfterFloor = rows();
+    // shorter take than the path clears the destination
+    sweepBtn('[data-take="1"]').click();
+    script.sweepStageClearedByTake1 = document.querySelectorAll('#pp_sweep .pp_sweep_n').length === 0;
+    sweepBtn('[data-take="4"]').click();
+    tap(document.querySelector('.pp_dist[data-r="2"][data-c="4"]'));
+    sweepBtn('[data-drop="1"][data-delta="-1"]').click();
+    sweepBtn('[data-drop="0"][data-delta="1"]').click();
+    press('Confirm');
+    script.sweepAction = log.actions.slice(-1)[0];
 }
 
-const rect = (el) => el.getBoundingClientRect();
 const inAreaEl = (el) => !el.classList.contains('pp_inactive');
 const edgeSizes = [...document.querySelectorAll('.pp_edge')].filter(inAreaEl).map((el) => {
     const b = rect(el);
@@ -210,6 +254,21 @@ const report = {
     statusTitle: log.title,
     errors: window.errors,
     script: mode === 'script' ? script : undefined,
+    checks: mode === 'script' ? {
+        takeButtons: { ok: script.sweepTakeButtons === 5 },
+        litAtMax: { ok: script.sweepLitMax.includes('24') && script.sweepLitMax.includes('23') },
+        litAtTake2: { ok: script.sweepLitTake2.split(',').every((k) => Math.abs(k[0] - 2) + Math.abs(k[1] - 2) <= 2) && script.sweepLitTake2.includes('24') && !script.sweepLitTake2.includes('25') },
+        defaultDrops: { ok: script.sweepDefaultDrops === '1,3' && script.sweepBadges === '+1,+3' },
+        stepTargets: { ok: script.sweepStepMin >= 32 },
+        confirmDefault: { ok: script.sweepConfirmDefault === true },
+        minusLeavesRemainder: { ok: script.sweepAfterMinus === '1,2' && script.sweepConfirmAfterMinus === false },
+        plusRefills: { ok: script.sweepAfterPlus === '2,2' && script.sweepPlusEnabledWhenFull === true },
+        floorAtOne: { ok: script.sweepMinusDisabledAtOne === true },
+        shortTakeClearsStage: { ok: script.sweepStageClearedByTake1 === true },
+        sweepAction: { ok: !!script.sweepAction && script.sweepAction.name === 'actSweep' && JSON.stringify(script.sweepAction.args) === JSON.stringify({ r: 2, c: 2, count: 4, tr: 2, tc: 4, drops: '2,2' }) },
+        factoryAction: { ok: !!script.factoryAction && script.factoryAction.name === 'actPlaceFactory' },
+        policeAction: { ok: !!script.policeAction && script.policeAction.name === 'actPolice' },
+    } : undefined,
 };
 out.textContent = JSON.stringify(report, null, 2);
 out.dataset.done = '1';

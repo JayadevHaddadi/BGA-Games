@@ -24,7 +24,7 @@ BGA project: `people` (local: `games/people/bga/`).
 1. **Place a factory** (mandatory). Tap a free edge between two area districts (no factory, no roadblock). Confirm to place.
 2. **Bribe** (optional, once per turn, costs 1 bitcoin). Four options, or skip:
    - **Police (shield)**: pick an area district with humans, not the bulldozer's. It sends 1 human to each open adjacent district (no roadblock on the edge). If the district has fewer humans than open neighbours, the player picks which neighbours receive one.
-   - **Sweep (bulldozer)**: the bulldozer takes `min(5, humans there)` humans from its district, then moves straight (up, down, left or right) `k >= 1` districts, stopping before a roadblock or the area edge. Each district it enters receives one human. The remaining humans go to the last district (the destination). The sweep needs `k <= humans taken`.
+   - **Sweep (bulldozer)**: the player chooses how many humans the bulldozer takes (1 to 5, at most the humans in its district), then moves straight (up, down, left or right) `k >= 1` districts, `k <= humans taken`, stopping before a roadblock or the area edge. The player chooses how many humans to drop on each district it drives through, at least 1 each, all the taken humans dropped.
    - **Roadblock**: place one roadblock from the supply on a free edge between two area districts.
    - **More people**: pick the top-left district of a 2 x 2 block inside the area. Each of the four districts receives one human from the pool. Needs at least 4 humans in the pool.
 3. **End of turn**: the next player starts.
@@ -38,10 +38,10 @@ BGA project: `people` (local: `games/people/bga/`).
 | # | Topic | Decision | Confidence |
 |---|---|---|---|
 | D1 | Game-area position | Bottom-left for small and medium, read from the setup figure (the grey outside row and column) | High |
-| D2 | Bulldozer collects | Always `min(5, humans there)`. The rulebook says "no more than 5", and taking fewer never helps reach. Asked to the designer | Medium |
-| D3 | Bulldozer drops | Each district entered gets 1, the rest go to the last district (matches the example: 1 then 2) | Medium |
-| D4 | Bulldozer must move | `k >= 1`. A sweep without moving is not a sweep | Medium |
-| D5 | Bulldozer carry between turns | Each sweep empties the bulldozer, so "cannot move when empty" never triggers. Pending humans are not kept | Medium |
+| D2 | Bulldozer collects | The player chooses 1 to 5, at most the humans in its district. Designer ruling (Néstor, 2026-10-20) | High |
+| D3 | Bulldozer drops | The player chooses how many to drop on each district driven through, at least 1 on every one, summing to the count taken. Designer ruling 2026-10-20. The UI default is 1 each and the rest on the last | High |
+| D4 | Bulldozer must move | `k >= 1`, and `k <= count taken` (every district on the way needs a human). Designer ruling 2026-10-20 | High |
+| D5 | Bulldozer carry between turns | All collected humans are dropped; none are carried. Designer ruling 2026-10-20 | High |
 | D6 | Shield target | Any district with humans except the bulldozer's (the rulebook does not forbid the current district) | Medium |
 | D7 | Shield with fewer humans | The player chooses which open neighbours receive one human | High (rule text) |
 | D8 | Bribe once a turn | After any bribe the turn ends; "skip" ends it too | High |
@@ -80,7 +80,7 @@ BGA project: `people` (local: `games/people/bga/`).
 
 ## 4. Open items
 
-- **D2** (bulldozer takes min(5, humans)): still open with the designer. Implemented as the plan says.
+- **D2-D5** (bulldozer): settled by the designer on 2026-10-20 (player chooses the count and the drops). Zombie turns skip the bribe.
 - **bgg_id 467193** is PROVISIONAL: from a BGG-sourced aggregator (BoardMatch), not checked on boardgamegeek.com.
 - **Licence**: NOT CONFIRMED in LICENSING_TRACKER.md.
 - Start player is random and a player with no factory (or no empty edge) ends the game, as planned.
