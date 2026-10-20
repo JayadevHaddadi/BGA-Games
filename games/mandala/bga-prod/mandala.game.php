@@ -50,8 +50,10 @@ define("DESTROY_MANDALA","destroy_mandala");
 define("TRIGGER_END","trigger_end");
 define("LAST_PLAYER","last_player");
 
+define("INITIAL_CUP","initial_cup");
+
 // Score display game option (id 100 in gameoptions.json): 1 = End of game, 2 = Ongoing (live)
-define("SCORE_DISPLAY_MODE","score_display_mode");
+// define("SCORE_DISPLAY_MODE","score_display_mode");
 
 // Statistics
 define("TURNS_NUMBER","turns_number");
@@ -101,7 +103,7 @@ class Mandala extends Table
             LAST_PLAYER => 12,
             MASTER_YOGA_TURN => 13,
             MASTER_YOGA_CLAIMED_CARDS => 14,
-            SCORE_DISPLAY_MODE => 15
+            // SCORE_DISPLAY_MODE => 15
         ) );
 
         $this->cards = $this->bga->deckFactory->createDeck( "card" );
@@ -139,8 +141,8 @@ class Mandala extends Table
 
         // Init global values with their initial values
         // Score display: a table-wide game option (chosen at table creation), not a per-player
-        // preference — both players see the same mode. Default 2 (Ongoing/live).
-        self::setGameStateInitialValue(SCORE_DISPLAY_MODE,(int) ($options[100] ?? 2));
+        // preference — both players see the same mode. Default 1 (Standard), as ongoing games should not have it.
+        // self::setGameStateInitialValue(SCORE_DISPLAY_MODE,(int) ($options[100] ?? 1));
         self::setGameStateInitialValue(DESTROY_MANDALA,0);
         self::setGameStateInitialValue(TRIGGER_END,0);
         self::setGameStateInitialValue(LAST_PLAYER,0);
@@ -195,15 +197,13 @@ class Mandala extends Table
             }
         }
         // For each player pick 6 cards and put 2 in the player Cup
-        // FIX 2: Mandala Missing Colors Indicator - Track initial cup cards
-        $this->ensureInitialCupTable();
         $players = self::loadPlayersBasicInfos();
+        $initialCup = array();
         foreach ($players as $playerId => $playerInfo) {
             $this->cards->pickCards(6,DECK,$playerId);
             $cupCards = $this->cards->pickCardsForLocation(2,DECK,CUP,$playerId);
-            foreach ($cupCards as $c) {
-                self::DbQuery("INSERT IGNORE INTO initial_cup (card_id, player_id) VALUES ('{$c['id']}', '$playerId')");
-            }
+            $initialCup[$playerId] = array_column($cupCards, 'id');
+
             $this->bga->notify->player($playerId, "dummy", clienttranslate( 'Two cards are added to your Cup ${mdlCardsIconsArray}'), array(
                 'player_id' => $playerId,
                 'mdlCardsIconsArray' => array($cupCards[0]["type"],$cupCards[1]["type"])
@@ -215,13 +215,12 @@ class Mandala extends Table
         } else {
             $this->bga->notify->all("dummy",clienttranslate('You receive 6 cards in your hand and 2 for your Cup'), array());
             // Get initial Master Yoga cards
-            // FIX 2: Mandala Missing Colors Indicator - Track Master Yoga initial cup cards
             $myCupCards = $this->cards->pickCardsForLocation(2,DECK,CUP,MASTER_YOGA_ID);
-            foreach ($myCupCards as $c) {
-                self::DbQuery("INSERT IGNORE INTO initial_cup (card_id, player_id) VALUES ('{$c['id']}', '" . MASTER_YOGA_ID . "')");
-            }
+            $initialCup[MASTER_YOGA_ID] = array_column($myCupCards, 'id');
             $this->bga->notify->all("dummy",clienttranslate('Master Yoga only receives 2 cards for his Cup'), array());
         }
+
+        $this->globals->set(INITIAL_CUP, $initialCup);
 
         // Activate first player (which is in general a good idea :) )
         $this->activeNextPlayer();
@@ -284,9 +283,7 @@ class Mandala extends Table
             $result['players'][$currentPlayerId][CUP] = $this->cards->getCardsInLocation(CUP, $currentPlayerId );
         }
 
-        // FIX 1: Live Score Tracker & River Breakdown - Calculate live scores for display
-        // FIX 2: Mandala Missing Colors Indicator - Get opponent's claimed cup cards for color tracking
-        $result['score_display_mode'] = (int) self::getGameStateValue(SCORE_DISPLAY_MODE);
+        $result['score_display_mode'] = (int) ($this->bga->tableOptions->get(100) ?? 1);
         $result['trigger_end'] = (int) self::getGameStateValue(TRIGGER_END);
         $result['live_scores'] = $this->getLiveScores($currentPlayerId);
         foreach ($players as $playerId => $playerInfo) {
@@ -360,64 +357,26 @@ class Mandala extends Table
         return $this->gamestate->getCurrentMainState()->name;
     }
 
-    public function ensureInitialCupTable() {
-        self::DbQuery("CREATE TABLE IF NOT EXISTS `initial_cup` (
-            `card_id` int(10) unsigned NOT NULL,
-            `player_id` int(11) NOT NULL,
-            PRIMARY KEY (`card_id`),
-            KEY `player_id_idx` (`player_id`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8");
-    }
-
     public function getInitialCupCardIds(int $playerId): array {
-        $this->ensureInitialCupTable();
-        $ids = self::getObjectListFromDb("SELECT card_id FROM initial_cup WHERE player_id = '$playerId'", true);
-        if (count($ids) < 2) {
-            // Auto-heal for existing games: determine initial 2 cards
-            $cupCards = $this->cards->getCardsInLocation(CUP, $playerId);
-            if (count($cupCards) <= 2) {
-                foreach ($cupCards as $c) {
-                    self::DbQuery("INSERT IGNORE INTO initial_cup (card_id, player_id) VALUES ('{$c['id']}', '$playerId')");
-                }
-                $ids = array_column($cupCards, 'id');
-            } else {
-                $claimedCardIds = [];
-                $logs = self::getObjectListFromDb("SELECT gamelog_notification FROM gamelog WHERE gamelog_notification LIKE '%cardsToCup%'", true);
-                if (!empty($logs)) {
-                    foreach ($logs as $logJson) {
-                        $notif = json_decode($logJson, true);
-                        if (isset($notif['data']['cardsToCup'])) {
-                            foreach ($notif['data']['cardsToCup'] as $claimedCard) {
-                                $claimedCardIds[] = (int)$claimedCard['id'];
-                            }
-                        }
-                    }
-                }
-                foreach ($cupCards as $c) {
-                    if (!in_array((int)$c['id'], $claimedCardIds)) {
-                        self::DbQuery("INSERT IGNORE INTO initial_cup (card_id, player_id) VALUES ('{$c['id']}', '$playerId')");
-                        $ids[] = (int)$c['id'];
-                    }
-                }
-            }
-        }
+        $cupData = $this->globals->get(INITIAL_CUP) ?? [];
+        $ids = $cupData[$playerId] ?? [];
         return array_map('intval', $ids);
     }
 
-    // FIX 1: Live Score Tracker & River Breakdown - Get claimed cup cards (not initial ones)
     public function getPublicClaimedCupCards(int $playerId): array {
-        $initialIds = $this->getInitialCupCardIds($playerId);
-        $allCupCards = $this->cards->getCardsInLocation(CUP, $playerId);
         $claimed = [];
-        foreach ($allCupCards as $c) {
-            if (!in_array((int)$c['id'], $initialIds)) {
-                $claimed[] = $c;
+        if (($this->bga->tableOptions->get(100) ?? 1) == 2) {
+            $initialIds = $this->getInitialCupCardIds($playerId);
+            $allCupCards = $this->cards->getCardsInLocation(CUP, $playerId);
+            foreach ($allCupCards as $c) {
+                if (!in_array((int)$c['id'], $initialIds)) {
+                    $claimed[] = $c;
+                }
             }
         }
         return $claimed;
     }
 
-    // FIX 1: Live Score Tracker & River Breakdown - Calculate live scores with river multipliers
     public function getLiveScores(int $currentPlayerId): array {
         $players = self::loadPlayersBasicInfos();
         if ($this->isSoloMode()) {
@@ -602,7 +561,6 @@ class Mandala extends Table
                         if ($cardCnt > 0) {
                             $score[$playerId][$space]['color'] = $notRiverColor;
                             $score[$playerId][$space]['nbr'] = $cardCnt;
-                            // $score[$playerId][$space]['riverScore'] = 0;
                             $space++;
                         }
                     }
@@ -983,7 +941,6 @@ class Mandala extends Table
 
         $this->claimCardsForPlayer($mountainId,$cardIds,$playerId);
 
-        // if (!$this->isSoloMode() || $playerId == MASTER_YOGA_ID) {
         if (!$this->isSoloMode()) {
             $checkPlayerId = $playerId != MASTER_YOGA_ID ? $this->getPlayerAfter($playerId) : self::getActivePlayerId(); 
             // Check if there is only one card color in the mountain. In that case claim them for the other player
@@ -1011,7 +968,6 @@ class Mandala extends Table
         $this->bga->notify->all( "claimCards", clienttranslate( '${player_name} claims ${nbr} ${cardsColor} card(s) ${mdlCardsIcons}' ), array(
             'player_id' => $playerId,
             'player_name' => $playerName,
-            // 'player_name' => self::getPlayerNameById($playerId),
             'nbr' => count($cardIds),
             'cardsColor' => $this->colorTranslations[$cardsColor],
             'mdlCardsIcons' => $cardsColor,
@@ -1037,7 +993,6 @@ class Mandala extends Table
                     $this->bga->notify->all( "cardToRiver", clienttranslate( '${player_name} adds one ${cardColor} card to the River ${mdlCardsIcons}' ), array(
                         'player_id' => $playerId,
                         'player_name' => $playerName,
-                        // 'player_name' => self::getPlayerNameById($playerId),
                         'cardColor' => $this->colorTranslations[$cardsColor],
                         'mountain' => 'mountain_' . $mountainId,
                         'riverSpace' => $riverSpace,
@@ -1054,12 +1009,10 @@ class Mandala extends Table
                         $this->bga->notify->all( "dummy", clienttranslate('${player_name} has completed all spaces in the River'), array(
                             'player_id' => $playerId,
                             'player_name' => $playerName,
-                            // 'player_name' => self::getPlayerNameById($playerId),
                         ));
                         $this->bga->notify->all( "triggerEnd", clienttranslate('The game will end after claiming all cards in this Mandala'), array(
                             'player_id' => $playerId,
                             'player_name' => $playerName,
-                            // 'player_name' => self::getPlayerNameById($playerId),
                         ));
                     }
             
@@ -1074,7 +1027,6 @@ class Mandala extends Table
                 $this->bga->notify->all( "cardsToCup", clienttranslate( '${player_name} adds ${nbr} ${cardsColor} card(s) to the Cup ${mdlCardsIcons}'), array(
                     'player_id' => $playerId,
                     'player_name' => $playerName,
-                    // 'player_name' => self::getPlayerNameById($playerId),
                     'cardsColor' => $this->colorTranslations[$cardsColor],
                     'nbr' => count($cardIds),
                     'mountain' => 'mountain_' . $mountainId,
@@ -1093,7 +1045,6 @@ class Mandala extends Table
             $this->bga->notify->all( "discard", clienttranslate('${player_name} does not have cards in the Field and discards ${nbr} ${cardsColor} card(s)' ), array(
                 'player_id' => $playerId,
                 'player_name' => $playerName,
-                // 'player_name' => self::getPlayerNameById($playerId),
                 'cardsColor' => $this->colorTranslations[$cardsColor],
                 'nbr' => count($cardIds),
                 'from' => 'mountain_' . $mountainId,
@@ -1128,18 +1079,6 @@ class Mandala extends Table
         $playerIds =  array_keys($this->loadPlayersBasicInfos());
         foreach($playerIds as $discardPlayerId) {
             $this->discardFieldCardsForPlayer($field,$discardPlayerId);
-            // $cardsToDiscard = array_values($this->cards->getCardsInLocation($field,$discardPlayerId));
-            // $this->bga->notify->all( 'simplePause', '', [ 'time' => 500] );
-            // $this->bga->notify->all( "discard", "", array(
-            //     'player_id' => $discardPlayerId,
-            //     'from' => $field,
-            //     'cardsToDiscard' => $cardsToDiscard
-            // ) );
-            // // Move the card in the field to the discard pile
-            // // Need to do it one by one to keep the order in the discard pile
-            // foreach($cardsToDiscard as $discardedCard) {
-            //     $this->cards->insertCardOnExtremePosition($discardedCard["id"],DISCARD,true);
-            // }
         }
         if ($this->isSoloMode()) {
             $this->discardFieldCardsForPlayer($field,MASTER_YOGA_ID);
@@ -1187,16 +1126,6 @@ class Mandala extends Table
                 self::setGameStateValue(DESTROY_MANDALA,$mandala);
                 break;
             }
-            // $sql = "SELECT COUNT(DISTINCT card_type_arg)";
-            // $sql .= " FROM card";
-            // $sql .= " WHERE card_location IN ('mountain_$mandala','field_$mandala')";
-            
-            // $result = self::getUniqueValueFromDB($sql);
-            // // If all types are present, then the mandala is completed
-            // if ($result == 6) {
-            //     self::setGameStateValue(DESTROY_MANDALA,$mandala);
-            //     break;
-            // }
         }
 
         $mandalaCompleted = self::getGameStateValue(DESTROY_MANDALA);
@@ -1360,7 +1289,6 @@ class Mandala extends Table
         foreach($players as $playerId => $playerInfo ) {
             $finalScore = !$this->isSoloMode() ? $score[$playerId]['total'] : $score[$playerId]['total'] - $score[MASTER_YOGA_ID]['total'];
             self::DbQuery("UPDATE player SET player_score='" . $finalScore . "' WHERE player_id='$playerId'");
-            // self::DbQuery("UPDATE player SET player_score='" . $score[$playerId]['total'] . "' WHERE player_id='$playerId'");
 
             // Set stats of cards in Cup for each River space
             for($i=1; $i<=6; $i++) {

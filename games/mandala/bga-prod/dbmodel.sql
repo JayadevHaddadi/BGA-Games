@@ -23,11 +23,3 @@ CREATE TABLE IF NOT EXISTS `user_preferences` (
   `pref_value` int(10) NOT NULL,
   PRIMARY KEY (`player_id`, `pref_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
--- FIX 2: Mandala Missing Colors Indicator - Track which cup cards were initially dealt to each player
-CREATE TABLE IF NOT EXISTS `initial_cup` (
-  `card_id` int(10) unsigned NOT NULL,
-  `player_id` int(11) NOT NULL,
-  PRIMARY KEY (`card_id`),
-  KEY `player_id_idx` (`player_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;

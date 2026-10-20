@@ -2,6 +2,7 @@
  *------
  * BGA framework: © Gregory Isabelli <gisabelli@boardgamearena.com> & Emmanuel Colin <ecolin@boardgamearena.com>
  * Mandala implementation : © Sergio Cabrera sergiocabrera0904@gmail.com
+ * Improvements September 2026: Undo, Missing colors and Live score tracker courtesy of @jayadevhaddadi
  * Helper functions and modules:
  * core_patch_tooltip_position.js and core_patch_tooltip_show.js from cacaoimprovements implementation by yannsnow
  * bga-help.js from Thoun's boilerplate
@@ -50,7 +51,7 @@ function (dojo, declare, bgaHelp) {
             this.deckCounter;
             this.discardPileCounter;
 
-            // FIX 1: Live Score Tracker & River Breakdown - Track river multipliers and cup cards
+            // Live Score Tracker & River Breakdown
             this.riverMultipliers = {};
             this.riverSlots = {};
             this.cupCardsCounts = {};
@@ -60,7 +61,7 @@ function (dojo, declare, bgaHelp) {
             // To show the card facedown or not
             this.showBack = false;
 
-            // FIX 3: Undo button - Store pending move for confirmation before sending to server
+            // Undo button
             this.pendingMove = null;
 
             // To consider showing the playmat for the second player in reverted order
@@ -99,7 +100,7 @@ function (dojo, declare, bgaHelp) {
 
             // Score display: table-wide game option, sent directly in gamedatas (not a
             // per-player preference — see gameoptions.json id 100). 1 = End of game, 2 = Ongoing.
-            this.scoreDisplayMode = gamedatas.score_display_mode || 2;
+            this.scoreDisplayMode = gamedatas.score_display_mode || 1;
 
             // Setting scale
             this.resizeListener = dojo.connect(window, 'resize', () => {
@@ -124,8 +125,8 @@ function (dojo, declare, bgaHelp) {
                 this.mountains[mountain].setSelectionAppearance("class");
                 this.mountains[mountain].onItemCreate = dojo.hitch(this,'setSelectedStock');
                 this.mountains[mountain].use_vertical_overlap_as_offset = false;
-                this.mountains[mountain].vertical_overlap = 0; // rows never wrap, see fitStockRow
-                this.mountains[mountain].resizeItems(this.cardSize,this.cardSize,this.cardSize * 8,this.cardSize); this.fitStockRow(this.mountains[mountain]);
+                this.mountains[mountain].vertical_overlap = 75; // overlap
+                this.mountains[mountain].resizeItems(this.cardSize,this.cardSize,this.cardSize * 8,this.cardSize);
             }
 
             // Fields stocks
@@ -153,11 +154,7 @@ function (dojo, declare, bgaHelp) {
 
             // Adding card types to all stocks
             for (var i in this.colors) {
-                // this.mountains['mountain_1'].addItemType(i, i, g_gamethemeurl + 'img/mandala_cards'+this.cb+'.png', i);
-                // this.mountains['mountain_2'].addItemType(i, i, g_gamethemeurl + 'img/mandala_cards'+this.cb+'.png', i);
-                // Item type is the colour index, so weight by colour keeps same colours next to each other;
-                // cards of one colour keep play order because they are inserted in location_arg order
-                var weight = i;
+                var weight = !this.isSoloMode() ? i : 0;
                 this.mountains['mountain_1'].addItemType(i, weight, g_gamethemeurl + 'img/mandala_cards'+this.cb+'.png', i);
                 this.mountains['mountain_2'].addItemType(i, weight, g_gamethemeurl + 'img/mandala_cards'+this.cb+'.png', i);
                 this.playerHand.addItemType(i, i, g_gamethemeurl + 'img/mandala_cards'+this.cb+'.png', i);
@@ -174,11 +171,19 @@ function (dojo, declare, bgaHelp) {
             // Placing cards in the stocks
 
             // Mountains
-            Object.values(gamedatas.mountain_1).sort((a, b) => a.location_arg - b.location_arg).forEach((elem) => {
+            Object.values(gamedatas.mountain_1).forEach((elem) => {
+                if (this.isSoloMode()) {
+                    var objectWeight = { [elem.type_arg]: elem.location_arg };
+                    this.mountains['mountain_1'].changeItemsWeight(objectWeight);
+                }
                 this.mountains['mountain_1'].addToStockWithId(elem.type_arg,elem.id);
             });
             this.mountains['mountain_1'].horizontal_overlap = this.getOverlap(this.mountains['mountain_1']);
-            Object.values(gamedatas.mountain_2).sort((a, b) => a.location_arg - b.location_arg).forEach((elem) => {
+            Object.values(gamedatas.mountain_2).forEach((elem) => {
+                if (this.isSoloMode()) {
+                    var objectWeight = { [elem.type_arg]: elem.location_arg };
+                    this.mountains['mountain_2'].changeItemsWeight(objectWeight);
+                }
                 this.mountains['mountain_2'].addToStockWithId(elem.type_arg,elem.id);
             });
             this.mountains['mountain_2'].horizontal_overlap = this.getOverlap(this.mountains['mountain_2']);
@@ -204,7 +209,6 @@ function (dojo, declare, bgaHelp) {
                     new BgaHelpPopinButton({
                         title: _("Player Aid"),
                         html: this.format_block('jstpl_help_tooltip', {})
-                        // buttonBackground: 'red'
                     })
                 ],
             });
@@ -212,18 +216,6 @@ function (dojo, declare, bgaHelp) {
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();
 
-            // FIX 1: Live Score Tracker & River Breakdown - Initial live score calculation
-            // FIX 2: Mandala Missing Colors Indicator - Initial missing colors update
-            // this.updateLiveScores();
-            // this.updateMissingColors();
-            // setTimeout(() => {
-            //     this.updateLiveScores();
-            //     this.updateMissingColors();
-            // }, 250);
-            // setTimeout(() => {
-            //     this.updateLiveScores();
-            //     this.updateMissingColors();
-            // }, 1000);
             requestAnimationFrame(() => {
                 // Score display is now a table-wide game option (gamedatas.score_display_mode),
                 // not per-player preference 102 — everyone at the table sees the same mode.
@@ -236,14 +228,14 @@ function (dojo, declare, bgaHelp) {
                     this.updateMissingColors();
                 } else {
                     // Hide containers if preference is disabled
-                    dojo.query('.mdl_missing_panel').style('display', 'none');
+                    dojo.query('.mdl_mandala_missing').style('display', 'none');
                 }
             });
 
             if (gamedatas.trigger_end >= 1) {
                 // Restore the persistent banner on page load/reload/reconnect - we don't have
                 // the original triggering message stored server-side, so fall back to a generic one.
-                this.showLastRoundBanner();
+                this.bga.gameArea.addLastTurnBanner(_("This is the last Mandala - The game is about to end"));
             }
 
             if (gamedatas.finalScore != null) {
@@ -381,11 +373,9 @@ function (dojo, declare, bgaHelp) {
                 return Math.max(300, Math.floor(pbRect.left - tableLeft - 15));
             }
 
-            // Stacked layout (mobile): size from the parent, not the table's own offset, which
-            // shifts with the scale and would make the board shrink on every setScale call.
-            var parentEl = tableEl ? tableEl.parentNode : null;
-            var parentWidth = (parentEl && parentEl.clientWidth) || (document.body ? document.body.clientWidth : 0) || window.innerWidth;
-            return Math.max(300, Math.floor(parentWidth - 20));
+            // Otherwise, player boards are stacked below the table (mobile / narrow layout)
+            var bodyWidth = (document.body ? document.body.clientWidth : 0) || window.innerWidth;
+            return Math.max(300, Math.floor(bodyWidth - tableLeft - 20));
         },
 
         /* @Override */
@@ -495,8 +485,8 @@ function (dojo, declare, bgaHelp) {
                 this.fields[field][playerId].setSelectionMode(0);
                 this.fields[field][playerId].onItemCreate = dojo.hitch(this,'setSelectedStock');
                 this.fields[field][playerId].use_vertical_overlap_as_offset = false;
-                this.fields[field][playerId].vertical_overlap = 0; // rows never wrap, see fitStockRow   
-                this.fields[field][playerId].resizeItems(this.cardSize,this.cardSize,this.cardSize * 8,this.cardSize); this.fitStockRow(this.fields[field][playerId]);
+                this.fields[field][playerId].vertical_overlap = 75; // overlap    
+                this.fields[field][playerId].resizeItems(this.cardSize,this.cardSize,this.cardSize * 8,this.cardSize);
             }
         },
         setupPlayerBoard: function(playerData,playerId) {
@@ -516,7 +506,6 @@ function (dojo, declare, bgaHelp) {
             this.fields['field_2'][playerId].horizontal_overlap = this.getOverlap(this.fields['field_2'][playerId]);
 
             // Player river
-            // FIX 1: Live Score Tracker & River Breakdown - Track which colors are in each river slot
             this.riverMultipliers[playerId] = {};
             this.riverSlots[playerId] = {};
             for (let i=1;i<=6;i++) {
@@ -532,7 +521,6 @@ function (dojo, declare, bgaHelp) {
 
             // Player cup
             if (playerId == this.player_id) {
-                // FIX 1: Live Score Tracker & River Breakdown - Track all cup cards for current player
                 this.cupCardsCounts[playerId] = { red: 0, orange: 0, green: 0, yellow: 0, purple: 0, black: 0 };
                 var pos = 0;
                 Object.values(playerData.cup || {}).forEach((elem) => {
@@ -541,8 +529,6 @@ function (dojo, declare, bgaHelp) {
                 });
                 this.createCupTooltip();
             } else {
-                // FIX 1: Live Score Tracker & River Breakdown - Track opponent's claimed cup cards
-                // FIX 2: Mandala Missing Colors Indicator - Count hidden vs revealed opponent cup cards
                 this.claimedCupCardsCounts[playerId] = { red: 0, orange: 0, green: 0, yellow: 0, purple: 0, black: 0 };
                 var claimedCards = Object.values(playerData.claimedCup || {});
                 claimedCards.forEach((elem) => {
@@ -574,6 +560,9 @@ function (dojo, declare, bgaHelp) {
                         cupTitle: playerName + "'s cup",
                         id: playerId
                     }), target);
+                    if (this.scoreDisplayMode != 2) {
+                        $('mdl_p' + playerId + '_cup_title').style.display = 'none';
+                    }
                 }
 
                 // Add (+2 ❓) next to standard BGA player score
@@ -665,39 +654,55 @@ function (dojo, declare, bgaHelp) {
         sleep: function (ms) {
             return new Promise(resolve => setTimeout(resolve, ms));
         },
+        setScale2: function() {           
+            this.mdlScale = getComputedStyle(document.body).getPropertyValue('--mdlScale');
+            this.cardSize = 98 * this.mdlScale;
+
+            this.placeDecks();
+
+            for(var mountain in this.mountains) {
+                this.mountains[mountain].resizeItems(this.cardSize,this.cardSize,this.cardSize * 8,this.cardSize);
+            }            
+            for( var playerId in this.gamedatas.players ) {
+                for(var field in this.fields) {
+                    this.fields[field][playerId].resizeItems(this.cardSize,this.cardSize,this.cardSize * 8,this.cardSize);
+                }
+            }
+            this.playerHand.resizeItems(this.cardSize,this.cardSize,this.cardSize * 8,this.cardSize);
+        },
+
         setScale: function() {
             try {
-                var usableWidth = this.getAvailableWidth();
-
-                var currentTarget = this.currentDeckTarget || 'mdl_decks_area';
-                var target = currentTarget;
-                if (usableWidth < 980) {
-                    target = 'player_boards';
-                } else if (usableWidth >= 1020) {
-                    target = 'mdl_decks_area';
+                var overallDiv = $('mdl_overall');
+                if (!overallDiv) {
+                    return;
                 }
-                this.currentDeckTarget = target;
 
-                // Stacked (mobile) layout: the playmat alone is the board, so it scales to the full width
-                var baseWidth = (target == 'mdl_decks_area') ? 1220 : 994;
+                var usableWidth = overallDiv.clientWidth;
+                if (usableWidth <= 0) {
+                    usableWidth = window.innerWidth;
+                }
 
+                var baseWidth = 1220;
                 var scale = Math.min(1.0, usableWidth / baseWidth);
                 scale = Math.max(0.25, Math.round(scale * 100) / 100);
 
                 this.mdlScale = scale;
                 document.documentElement.style.setProperty('--mdlScale', scale);
-                if (document.body) {
-                    document.body.style.setProperty('--mdlScale', scale);
-                }
 
                 this.cardSize = 98 * scale;
 
-                this.placeDecks(target);
+                if (usableWidth < 980) {
+                    this.currentDeckTarget = 'player_boards';
+                } else {
+                    this.currentDeckTarget = 'mdl_decks_area';
+                }
+                this.placeDecks(this.currentDeckTarget);
 
                 if (this.mountains) {
                     for (var mountain in this.mountains) {
                         if (this.mountains[mountain] && this.mountains[mountain].resizeItems) {
-                            this.mountains[mountain].resizeItems(this.cardSize,this.cardSize,this.cardSize * 8,this.cardSize); this.fitStockRow(this.mountains[mountain]);
+                            this.mountains[mountain].resizeItems(this.cardSize, this.cardSize, this.cardSize * 8, this.cardSize);
                         }
                     }
                 }            
@@ -705,13 +710,13 @@ function (dojo, declare, bgaHelp) {
                     for (var playerId in this.gamedatas.players) {
                         for (var field in this.fields) {
                             if (this.fields[field] && this.fields[field][playerId] && this.fields[field][playerId].resizeItems) {
-                                this.fields[field][playerId].resizeItems(this.cardSize,this.cardSize,this.cardSize * 8,this.cardSize); this.fitStockRow(this.fields[field][playerId]);
+                                this.fields[field][playerId].resizeItems(this.cardSize, this.cardSize, this.cardSize * 8, this.cardSize);
                             }
                         }
                     }
                 }
                 if (this.playerHand && this.playerHand.resizeItems) {
-                    this.playerHand.resizeItems(this.cardSize,this.cardSize,this.cardSize * 8,this.cardSize);
+                    this.playerHand.resizeItems(this.cardSize, this.cardSize, this.cardSize * 8, this.cardSize);
                 }
             } catch (e) {
                 console.error("Error in setScale:", e);
@@ -842,36 +847,18 @@ function (dojo, declare, bgaHelp) {
                     break;
             }
         },
-        // One-line stock row: the container is wide enough that items never wrap, and the overlap
-        // is sized from the mandala's real width so the row fits inside it
-        fitStockRow: function(stockObj) {
-            if (!stockObj || !stockObj.container_div) return;
-            stockObj.autowidth = false;
-            stockObj.container_div.style.width = (this.cardSize * 16) + 'px';
-            stockObj.setOverlap(this.getOverlap(stockObj), 0);
-            // The clickable layer must stay inside its own mandala, or it covers the neighbouring mandala's cards
-            var host = stockObj.container_div.parentNode;
-            var clickable = $(stockObj.control_name + '_stock');
-            if (clickable && host && host.clientWidth > 0) {
-                clickable.style.width = host.clientWidth + 'px';
-            }
-        },
         getOverlap(stockObj) {
-            // Measure the real stock width so a row never runs past its mandala
-            var host = stockObj.container_div ? stockObj.container_div.parentNode : null;
-            var measured = host ? host.clientWidth : 0;
-            var areaWidth = measured > 0 ? measured : 375 * this.mdlScale;
-            var gap = 5;
-            var cardsNbr = stockObj.count();
-            // Row fits with normal spacing: no overlap
-            if (cardsNbr < 2 || cardsNbr * this.cardSize + gap * (cardsNbr - 1) <= areaWidth) {
-                stockObj.item_margin = gap;
+            var areaWidth = 375 * this.mdlScale;
+            var cardsNbr = stockObj.count(); 
+            if (cardsNbr < 5) {
+                stockObj.item_margin = 5;
                 return 0;
+            } else {
+                stockObj.item_margin = 0;
+                var visiblePx = areaWidth / (cardsNbr - 1);
+                var visiblePct = (visiblePx / this.cardSize) * 100;
+                return visiblePct;
             }
-            // Too many cards: each card overlaps the one on its left, showing only its left shoulder
-            stockObj.item_margin = 0;
-            var visiblePx = (areaWidth - this.cardSize) / (cardsNbr - 1);
-            return (visiblePx / this.cardSize) * 100;
         },
         setSelectedStock: function( card_div, card_type_id, card_id ) {
             var objIdSplit = card_id.split('_');
@@ -921,7 +908,6 @@ function (dojo, declare, bgaHelp) {
         ///////////////////////////////////////////////////
         //// Player's action
 
-        // FIX 3: Undo button - Clear the pending move confirmation state
         clearPendingMove: function(destroyPendingCards = false) {
             if (this.pendingMove) {
                 if (this.pendingMove.domWrapperId && $(this.pendingMove.domWrapperId)) {
@@ -944,7 +930,6 @@ function (dojo, declare, bgaHelp) {
             }
         },
 
-        // FIX 3: Undo button - Undo the pending move and return cards to player's hand
         onUndoPendingMove: function() {
             if (!this.pendingMove) {
                 return;
@@ -1024,7 +1009,6 @@ function (dojo, declare, bgaHelp) {
             this.updateMissingColors();
         },
 
-        // FIX 3: Undo button - Confirm the pending move and send action to server
         onConfirmPendingMove: function() {
             if (!this.pendingMove) {
                 return;
@@ -1115,7 +1099,6 @@ function (dojo, declare, bgaHelp) {
                                 mountainId: mountainId
                             }, this, function(result) {});
                         } else {
-                            // FIX 3: Undo button - Show preview and wait for confirmation
                             var cardDivId = this.playerHand.getItemDivId(card.id);
                             this.mountains['mountain_' + mountainId].addToStockWithId(card.type, card.id, cardDivId);
                             this.playerHand.removeFromStockById(card.id);
@@ -1165,7 +1148,6 @@ function (dojo, declare, bgaHelp) {
                                 fieldId: fieldId
                             }, this, function(result) {});
                         } else {
-                            // FIX 3: Undo button - Show preview and wait for confirmation
                             var targetFieldStock = this.fields['field_' + fieldId][this.player_id];
                             cardsCopy.forEach(c => {
                                 var cardDivId = this.playerHand.getItemDivId(c.id);
@@ -1225,7 +1207,6 @@ function (dojo, declare, bgaHelp) {
                                 cardIds: cardIds
                             }, this, function(result) {});
                         } else {
-                            // FIX 3: Undo button - Show preview and wait for confirmation
                             cardsCopy.forEach(c => {
                                 var cardDivId = this.playerHand.getItemDivId(c.id);
                                 var colorName = this.colors[c.type];
@@ -1364,8 +1345,8 @@ function (dojo, declare, bgaHelp) {
                 this.fields[field][playerId].setSelectionMode(0);
                 this.fields[field][playerId].onItemCreate = dojo.hitch(this,'setSelectedStock');
                 this.fields[field][playerId].use_vertical_overlap_as_offset = false;
-                this.fields[field][playerId].vertical_overlap = 0; // rows never wrap, see fitStockRow   
-                this.fields[field][playerId].resizeItems(this.cardSize,this.cardSize,this.cardSize * 8,this.cardSize); this.fitStockRow(this.fields[field][playerId]);
+                this.fields[field][playerId].vertical_overlap = 75; // overlap    
+                this.fields[field][playerId].resizeItems(this.cardSize,this.cardSize,this.cardSize * 8,this.cardSize);
             }
         },
 
@@ -1459,6 +1440,10 @@ function (dojo, declare, bgaHelp) {
                 // If it's the opponent who played we need to create the card to show it
                 var origin = playerId != this.masterYoga.id ? 'overall_player_board_' + playerId : 'mdl_draw_deck';
                 this.mountains[notif.args.mountain].addToStockWithId(cardPlayed.type_arg,cardPlayed.id,origin);
+            }
+            if (this.isSoloMode()) {
+                var objectWeight = { [cardPlayed.type_arg]: cardPlayed.location_arg };
+                this.mountains[notif.args.mountain].changeItemsWeight(objectWeight);
             }
             this.selectedStock = this.mountains[notif.args.mountain];
             this.updateStockOverlap();
@@ -1567,7 +1552,6 @@ function (dojo, declare, bgaHelp) {
                 this.selectedStock = this.mountains[notif.args.mountain];
                 this.updateStockOverlap();
 
-                // FIX 1: Live Score Tracker & River Breakdown - Update river multiplier when card placed
                 var spaceNum = parseInt(notif.args.riverSpace.replace('river_', ''), 10);
                 if (!this.riverMultipliers[playerId]) this.riverMultipliers[playerId] = {};
                 if (!this.riverSlots[playerId]) this.riverSlots[playerId] = {};
@@ -1600,8 +1584,6 @@ function (dojo, declare, bgaHelp) {
                     if (this.cupsColorCounter[playerId] && this.cupsColorCounter[playerId][card.type]) {
                         this.cupsColorCounter[playerId][card.type].incValue(1);
                     }
-                    // FIX 1: Live Score Tracker & River Breakdown - Track cup cards for live score
-                    // FIX 2: Mandala Missing Colors Indicator - Update claimed cup cards count
                     if (this.player_id == playerId) {
                         if (!this.cupCardsCounts[playerId]) this.cupCardsCounts[playerId] = {};
                         this.cupCardsCounts[playerId][card.type] = (this.cupCardsCounts[playerId][card.type] || 0) + 1;
@@ -1646,8 +1628,12 @@ function (dojo, declare, bgaHelp) {
         {
             // Add new cards to the mountain
             this.showBack = true;
-            notif.args.newCards.slice().sort((a, b) => a.location_arg - b.location_arg).forEach((card) => {
+            notif.args.newCards.forEach((card) => {
                 this.mountains[notif.args.mountain].addToStockWithId(card.type_arg,card.id,'mdl_draw_deck');
+                if (this.isSoloMode()) {
+                    var objectWeight = { [card.type_arg]: card.location_arg };
+                    this.mountains[notif.args.mountain].changeItemsWeight(objectWeight);
+                }
             });
             this.showBack = false;
             
@@ -1720,20 +1706,7 @@ function (dojo, declare, bgaHelp) {
         notif_triggerEnd: function( notif )
         {
             var message = _(this.format_string_recursive(notif.log,notif.args));
-            this.showMessage(message,'warning');
-            this.showLastRoundBanner(message);
-        },
-
-        // Shows a persistent red banner announcing the last round, unlike the transient
-        // showMessage toast which fades and is easy to miss. Stays up until the page reloads.
-        showLastRoundBanner: function( message )
-        {
-            var elem = $('mdl_last_round_banner');
-            if (!elem) {
-                return;
-            }
-            elem.innerHTML = message || _("This is the last Mandala - the game is about to end");
-            dojo.addClass(elem,'visible');
+            this.bga.gameArea.addLastTurnBanner(message);
         },
 
         notif_finalScore: function( notif )
@@ -1780,6 +1753,7 @@ function (dojo, declare, bgaHelp) {
 
                     // Update cup title: "<Player>'s cup (X cards)" or "<Player>'s cup (X cards + 2 hidden)"
                     var titleEl = $('mdl_p' + playerId + '_cup_title');
+                    // Using titleEl as Master Yoga doesn't have a cup title element and can cause null pointer exceptions
                     if (titleEl) {
                         var cardStr = totalCards + ' ' + (totalCards === 1 ? _('card') : _('cards'));
                         if (isMe || hiddenCount <= 0) {
@@ -1907,9 +1881,7 @@ function (dojo, declare, bgaHelp) {
         ///////////////////////////////////////////////////
         //// Mandala Missing Colors Indicator methods
 
-        // Colors missing panels: one per player's river, one per mandala (mountain + fields)
         updateMissingColors: function() {
-            // Early return if the preference is disabled (panels are hidden in setup/onPreferenceChange)
             if (this.bga.userPreferences.get(103) != 1) {
                 return;
             }
@@ -1950,67 +1922,43 @@ function (dojo, declare, bgaHelp) {
                     return found;
                 };
 
-                // River cards carry their colour in the class name, e.g. "mdl_red_card"
-                var getRiverColors = (playerId) => {
-                    var found = {};
-                    for (var i = 1; i <= 6; i++) {
-                        var slot = $('mdl_river_' + i + '_' + playerId);
-                        if (!slot) continue;
-                        dojo.query('.mdl_card', slot).forEach((card) => {
-                            var match = /(?:^|\s)mdl_(\w+)_card(?:\s|$)/.exec(card.className);
-                            if (match && allColors.includes(match[1])) {
-                                found[match[1]] = true;
-                            }
-                        });
-                    }
-                    return found;
-                };
-
-                var renderPanel = (container, missing) => {
-                    if (missing.length === 0) {
-                        container.innerHTML = '<span class="mdl_missing_title">' + _('Complete!') + '</span>';
-                        container.classList.add('mdl_missing_complete');
-                        container.title = _('Complete!');
-                    } else {
-                        var html = '<span class="mdl_missing_title">' + _('Missing colors') + '</span>';
-                        html += '<div class="mdl_missing_cards' + (missing.length >= 3 ? ' mdl_missing_two_cols' : '') + '">';
-                        missing.forEach((col) => {
-                            var colorCap = col.charAt(0).toUpperCase() + col.slice(1);
-                            html += '<div class="mdl_card mdl_' + col + '_card mdl_missing_card" title="' + _(colorCap) + '"></div>';
-                        });
-                        html += '</div>';
-                        container.innerHTML = html;
-                        container.classList.remove('mdl_missing_complete');
-                        container.title = _('Missing colors');
-                    }
-                    container.style.display = 'flex';
-                };
-
-                // Rivers
-                Object.keys(this.gamedatas.players).forEach((playerId) => {
-                    var container = $('mdl_river_missing_' + playerId);
-                    if (!container) return;
-                    var inRiver = getRiverColors(playerId);
-                    renderPanel(container, allColors.filter((c) => !inRiver[c]));
-                });
-
-                // Mandalas
                 for (var m = 1; m <= 2; m++) {
-                    var mContainer = $('mdl_mandala_' + m + '_missing');
-                    if (!mContainer) continue;
+                    var container = $('mdl_mandala_' + m + '_missing');
+                    if (!container) continue;
 
                     var colorsInMandala = {};
+
+                    // Check mountain
                     if (this.mountains && this.mountains['mountain_' + m]) {
                         var mColors = getStockColors(this.mountains['mountain_' + m]);
                         for (var c in mColors) colorsInMandala[c] = true;
                     }
+
+                    // Check fields for all players
                     if (this.fields && this.fields['field_' + m]) {
                         for (var pId in this.fields['field_' + m]) {
                             var fColors = getStockColors(this.fields['field_' + m][pId]);
-                            for (var fc in fColors) colorsInMandala[fc] = true;
+                            for (var c in fColors) colorsInMandala[c] = true;
                         }
                     }
-                    renderPanel(mContainer, allColors.filter((c) => !colorsInMandala[c]));
+
+                    var missing = allColors.filter(c => !colorsInMandala[c]);
+
+                    var html = '';
+                    if (missing.length === 0) {
+                        html = '<div class="mdl_missing_complete">✓ ' + _('Complete!') + '</div>';
+                    } else {
+                        html = '<span class="mdl_missing_title">' + _('Missing colors') + '</span>';
+                        html += '<div class="mdl_missing_cards">';
+                        missing.forEach((col) => {
+                            var colorCap = col.charAt(0).toUpperCase() + col.slice(1);
+                            html += '<div class="mdl_card shadow mdl_' + col + '_card mdl_missing_card" title="' + _(colorCap) + '"></div>';
+                        });
+                        html += '</div>';
+                    }
+
+                    container.innerHTML = html;
+                    container.style.display = 'flex';
                 }
             } catch (e) {
                 console.error("Error in updateMissingColors:", e);

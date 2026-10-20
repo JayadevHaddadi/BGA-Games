@@ -48,44 +48,6 @@
     --mdlScale: 1;
 }
 
-@media (max-width: 1500px) {
-    :root {
-        --mdlScale: 0.9;
-    }
-}
-@media (max-width: 1380px) {
-    :root {
-        --mdlScale: 0.8;
-    }
-    .mdl_mandala .mdl_mountain {
-        margin-top: 9px;
-    }    
-}
-@media (max-width: 1260px) {
-    :root {
-        --mdlScale: 0.7;
-    }
-    .mdl_mandala .mdl_mountain {
-        margin-top: calc(10px * var(--mdlScale));
-    }    
-}
-@media (max-width: 1140px) {
-    :root {
-        --mdlScale: 0.6;
-    }
-    .mdl_mandala .mdl_mountain {
-        margin-top: calc(10px * var(--mdlScale));
-    }    
-}
-@media (max-width: 1020px) {
-    :root {
-        --mdlScale: 0.55;
-    }
-    .mdl_mandala .mdl_mountain {
-        margin-top: calc(10px * var(--mdlScale));
-    }    
-}
-
 @media (min-width: 989px) {
     .mdl_player_panel_row .mdl_card {
         width: 36px;
@@ -115,20 +77,6 @@
     }
 }
 
-@media (max-height: 740px) {
-    :root {
-        --mdlScale: 0.75;
-    }
-}
-@media (max-height: 450px) {
-    :root {
-        --mdlScale: 0.4;
-    }
-    .mdl_mandalas .mdl_mandala .mdl_mountain {
-        margin-top: 2px;
-    }    
-}
-
 /* Playmat */
 
 #mdl_table {
@@ -149,9 +97,10 @@
 }
 
 #mdl_game_area.mdl_decks_in_panel {
-    width: calc(994px * var(--mdlScale));
+    width: calc(1114px * var(--mdlScale));
     display: block;
-    padding: 0;
+    padding-left: calc(60px * var(--mdlScale));
+    padding-right: calc(60px * var(--mdlScale));
     box-sizing: border-box;
 }
 
@@ -245,7 +194,6 @@
     height: calc(338px * var(--mdlScale));
     display: flex;
     max-width: 100%;
-    padding: 0 calc(76px * var(--mdlScale));
 }
 
 .mdl_mandala {
@@ -279,7 +227,6 @@
     box-shadow: 1px 1px 7px 3px green;
 }
 
-/* FIX 3: Undo button - Style for pending move destination preview */
 .mdl_pending_destination {
     border: calc(3px * var(--mdlScale)) solid #00c0ff !important;
     -moz-box-shadow: 0 0 14px 4px #00c0ff !important;
@@ -289,11 +236,6 @@
 }
 .mdl_pending_destination .stockitem_unselectable {
     cursor: default !important;
-}
-
-/* A mountain or field is always one row: overlapping cards are narrower than their boxes, so never wrap */
-.mdl_mountain, .mdl_field {
-    white-space: nowrap;
 }
 
 .mdl_mountain {
@@ -668,28 +610,6 @@
     background-color: orange;
  }
 
-/* Persistent "last round" banner - stays visible (unlike the transient head_warning toast)
-   so players who miss the initial notification still know the game is ending soon. */
-.mdl_last_round_banner {
-    display: none;
-    position: sticky;
-    top: 0;
-    z-index: 150;
-    background-color: #c0392b;
-    color: #fff;
-    font-weight: bold;
-    font-size: 16px;
-    text-align: center;
-    padding: 10px 16px;
-    margin-bottom: 10px;
-    border-radius: 4px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-}
-
-.mdl_last_round_banner.visible {
-    display: block;
-}
-
 /* Score table */
 .tableWindow th {
     text-align: center;
@@ -817,7 +737,6 @@
     overflow: auto;
   }
 
-/* FIX 1: Live Score Tracker & River Breakdown - Display live scores and river multiplier breakdown */
 .mdl_score_hidden_vp {
     font-size: 12px;
     font-weight: bold;
@@ -929,81 +848,95 @@
     color: #333;
 }
 
-/* Colors missing panels: two per river row (yours, opponent's) and one per mandala/mountain.
-   River panels sit in the empty end margins of the river row; mandala panels sit in the gutter beside each mandala. */
-.mdl_missing_panel {
+.mdl_mandala_missing {
     position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
     z-index: 5;
-    width: auto;
-    box-sizing: border-box;
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid rgba(0, 0, 0, 0.16);
+    border-radius: calc(6px * var(--mdlScale));
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14);
+    padding: calc(6px * var(--mdlScale)) calc(5px * var(--mdlScale));
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: calc(4px * var(--mdlScale));
-    padding: calc(2px * var(--mdlScale));
-    background: rgba(255, 255, 255, 0.85);
-    border: calc(1px * var(--mdlScale)) solid rgba(0, 0, 0, 0.25);
-    border-radius: 3px;
-}
-.mdl_missing_panel.mdl_missing_left {
-    flex-direction: row;
-}
-.mdl_missing_panel.mdl_missing_right {
-    flex-direction: row-reverse;
-}
-.mdl_missing_panel.mdl_missing_complete {
-    border: calc(2px * var(--mdlScale)) solid #27ae60;
+    transition: opacity 0.2s ease;
 }
 
-.mdl_my_river .mdl_missing_panel {
-    left: calc(4px * var(--mdlScale));
-    top: calc(7px * var(--mdlScale));
-    height: calc(98px * var(--mdlScale));
+.mdl_missing_left {
+    right: 100%;
+    margin-right: calc(2px * var(--mdlScale));
+    flex-direction: row;
+    gap: calc(5px * var(--mdlScale));
 }
-.mdl_op_river .mdl_missing_panel {
-    right: calc(4px * var(--mdlScale));
-    top: calc(45px * var(--mdlScale));
-    height: calc(98px * var(--mdlScale));
-}
-.mdl_mandala .mdl_missing_panel {
-    top: 50%;
-    transform: translateY(-50%);
-    height: calc(99px * var(--mdlScale));
-}
-.mdl_mandala .mdl_missing_panel.mdl_missing_left {
-    left: calc(-72px * var(--mdlScale));
-}
-.mdl_mandala .mdl_missing_panel.mdl_missing_right {
-    right: calc(-72px * var(--mdlScale));
+
+.mdl_missing_right {
+    left: 100%;
+    margin-left: calc(2px * var(--mdlScale));
+    flex-direction: row-reverse;
+    gap: calc(5px * var(--mdlScale));
 }
 
 .mdl_missing_title {
-    writing-mode: vertical-rl;
-    font-size: calc(9px * var(--mdlScale));
+    font-size: calc(10px * var(--mdlScale));
     font-weight: 700;
-    color: #555;
+    color: #666;
     text-transform: uppercase;
-    letter-spacing: calc(0.5px * var(--mdlScale));
+    letter-spacing: calc(1px * var(--mdlScale));
     white-space: nowrap;
     user-select: none;
 }
+
 .mdl_missing_left .mdl_missing_title {
+    -webkit-writing-mode: vertical-rl;
+    writing-mode: vertical-rl;
     transform: rotate(180deg);
 }
 
-.mdl_missing_cards {
-    display: grid;
-    grid-template-columns: auto;
-    gap: calc(2px * var(--mdlScale));
+.mdl_missing_right .mdl_missing_title {
+    -webkit-writing-mode: vertical-rl;
+    writing-mode: vertical-rl;
 }
-/* Three or more missing colours: two columns */
-.mdl_missing_cards.mdl_missing_two_cols {
-    grid-template-columns: repeat(2, auto);
+
+.mdl_missing_cards {
+    display: flex;
+    flex-direction: column;
+    gap: calc(4px * var(--mdlScale));
+    align-items: center;
+    justify-content: center;
 }
 
 .mdl_card.mdl_missing_card {
     position: relative !important;
-    width: calc(26px * var(--mdlScale)) !important;
-    height: calc(26px * var(--mdlScale)) !important;
-    background-size: 800% 100%;
+    width: calc(32px * var(--mdlScale)) !important;
+    height: calc(32px * var(--mdlScale)) !important;
+    min-width: calc(20px * var(--mdlScale));
+    min-height: calc(20px * var(--mdlScale));
+    border-radius: calc(4px * var(--mdlScale));
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22);
+    display: block;
+    flex-shrink: 0;
+}
+
+.mdl_missing_complete {
+    color: #27ae60;
+    font-weight: 800;
+    font-size: calc(11px * var(--mdlScale));
+    text-transform: uppercase;
+    letter-spacing: calc(1px * var(--mdlScale));
+    white-space: nowrap;
+    user-select: none;
+    padding: calc(4px * var(--mdlScale)) calc(2px * var(--mdlScale));
+}
+
+.mdl_missing_left .mdl_missing_complete {
+    -webkit-writing-mode: vertical-rl;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+}
+
+.mdl_missing_right .mdl_missing_complete {
+    -webkit-writing-mode: vertical-rl;
+    writing-mode: vertical-rl;
 }
