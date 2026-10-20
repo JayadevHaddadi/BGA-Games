@@ -515,8 +515,9 @@ body.enceladus_page_bg #game_play_area_background {
     object-fit: contain;
 }
 
-.enc_tube_item.enc_zero {
-    opacity: 0.45;
+.enc_tube_empty {
+    font-size: 16px;
+    font-style: italic;
 }
 
 /* "Score: 2-3-3-4-5" on its own row in the player panel; the framework star shows the rank points */

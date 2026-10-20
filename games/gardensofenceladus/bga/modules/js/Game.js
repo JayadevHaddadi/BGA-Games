@@ -519,8 +519,12 @@ export class Game {
     renderTube() {
         const host = document.getElementById('enc_tube');
         const total = Object.values(this.tube).reduce((a, b) => a + b, 0);
-        const items = ENC_COLOURS.map((col) => `<span class="enc_tube_item${(this.tube[col] || 0) === 0 ? ' enc_zero' : ''}" title="${this.colourLabel(col)}">
-            <img src="${encImg(`flower_${col}.png`)}" alt="${this.colourLabel(col)}"><b>${this.tube[col] || 0}</b></span>`).join('');
+        // Only the colours actually inside the tube; an empty tube says so
+        const inside = ENC_COLOURS.filter((col) => (this.tube[col] || 0) > 0);
+        const items = inside.length
+            ? inside.map((col) => `<span class="enc_tube_item" title="${this.colourLabel(col)}">
+            <img src="${encImg(`flower_${col}.png`)}" alt="${this.colourLabel(col)}"><b>${this.tube[col]}</b></span>`).join('')
+            : `<span class="enc_tube_empty">${_('Empty')}</span>`;
         host.innerHTML = `<span class="enc_tube_title">${_('Tube')}: ${total}</span>${items}`;
         host.title = _('Flowers paid for special actions. The tube action draws 3 at random from here.');
     }

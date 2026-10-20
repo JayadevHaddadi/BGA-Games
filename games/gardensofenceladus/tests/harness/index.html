@@ -249,9 +249,9 @@ async function run() {
             check('panel_flowers_big', rect(img).width >= 30 && parseFloat(getComputedStyle(q('#panel_1 .enc_panel_item b')).fontSize) >= 24, rect(img).width);
         }
         check('tube_below_specials', q('#enc_specials').nextElementSibling.id === 'enc_pay' && rect(q('#enc_tube')).top > rect(q('#enc_specials')).bottom && (q('#enc_root').classList.contains('enc_wide') || rect(q('#enc_tube')).bottom < rect(q('#enc_board_wrap')).top), null);
-        check('tube_shows_counts', qa('#enc_tube .enc_tube_item b').map((b) => b.textContent).join(',') === '3,0,2,0,0' && /5/.test(q('#enc_tube .enc_tube_title').textContent), q('#enc_tube').textContent);
+        check('tube_shows_counts', qa('#enc_tube .enc_tube_item b').map((b) => b.textContent).join(',') === '3,2' && /5/.test(q('#enc_tube .enc_tube_title').textContent), q('#enc_tube').textContent);
         game.notif_tubeChanged({ tube: { blue: 0, red: 1, yellow: 0, green: 0, magenta: 0 } });
-        check('tube_updates_on_notification', qa('#enc_tube .enc_tube_item b').map((b) => b.textContent).join(',') === '0,1,0,0,0', q('#enc_tube').textContent);
+        check('tube_updates_on_notification', qa('#enc_tube .enc_tube_item b').map((b) => b.textContent).join(',') === '1', q('#enc_tube').textContent);
         game.notif_tubeChanged({ tube: gamedatas.tube });
         game.notif_specialUsed({ slot: 6, player_id: 2 });
         {
