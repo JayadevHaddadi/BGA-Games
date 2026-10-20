@@ -24,7 +24,11 @@
   "rules_url": null,
   "description": "Red is an abstract tile-placement game by Néstor Romeral Andrés played with 36 tiles across three colours: black, white, and red. On each turn, players draft tiles showing contrasting backgrounds and inner circles, placing them adjacent on an expanding shared grid. Points are scored at game end by multiplying the size of your largest connected border group by your largest connected circle group.",
   "zombie_mode_level": 1,
-  "tags": [],
+  "tags": [
+    "Abstract Strategy",
+    "Tile Placement",
+    "Combinatorial"
+  ],
   "tags_note": "PROPOSAL: pick from BGA's tag list in the Control Panel.",
   "characteristics": {
     "complexity": 3,

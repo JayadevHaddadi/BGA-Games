@@ -262,10 +262,12 @@ Table lifecycle: JS, CSS and PHP changes need F5; `dbmodel.sql` or setup changes
 
 Open `https://boardgamearena.com/controlpanelgames?game=<game>` (not `studio.../gamemetadatamanager`). Paste from
 `GMM_FILLIN.md`:
-* **Blocking**: Description (1 to 2 English paragraphs) and Zombie mode level (Level 1).
-* Characteristics (complexity, luck, strategy, diplomacy) and tags: Control Panel only, never in `gameinfos.jsonc`.
-* BGG id: read from `gameinfos.jsonc` `bgg_id`, not editable in the panel.
-* Safe to ignore for Private Alpha: "no registered licence linked to the BGG id", "the game has 1 tags set".
+* **Blocking & mandatory**: Description (1 to 2 English paragraphs) and Zombie mode level (Level 1).
+* **Characteristics sliders (1 to 5)**: complexity, luck, strategy, diplomacy (Control Panel only, never in `gameinfos.jsonc`).
+* **Tags**: Add at least 2 relevant tags (e.g. "Abstract Strategy", "Grid") to avoid BGA's "The game has 1 tags set" warning.
+* **BGG id**: Read from `gameinfos.jsonc` `bgg_id`, not editable in the panel.
+* **Metadata images on Studio**: During Studio builds, BGA flags *"Missing metadata images: game box, game icon, game banner, game title image"*. It is **NOT necessary** to upload metadata images to Studio during development—check `Ignore` on the Studio build page. Upload them once to production when deployed/requesting Alpha, then click **Sync metadata from production** on Studio.
+* **Asset rule**: While Studio image upload is deferred, **all metadata image assets MUST always be generated and ready in `bga/metadata_assets/`** so they are available immediately when needed.
 * Then Manage game → Request PRIVATE ALPHA. Only after [BGA_REVIEWER_FEEDBACK.md](BGA_REVIEWER_FEEDBACK.md) passes.
 
 ### Metadata images (`bga/metadata_assets/`, produced by `tools/bga_assets.py`)

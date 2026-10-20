@@ -459,7 +459,7 @@ TEMPLATE_METADATA = {
     "rules_url": None,
     "description": "TODO: 1 to 2 paragraphs in English about the theme, the components and the objective.",
     "zombie_mode_level": 1,
-    "tags": [],
+    "tags": ["Abstract Strategy", "Combinatorial"],
     "tags_note": "PROPOSAL: pick from BGA's tag list in the Control Panel.",
     "characteristics": {"complexity": 3, "luck": 2, "strategy": 3, "diplomacy": 1,
                         "note": "PROPOSAL: sliders 1 to 5 in the Control Panel only."},

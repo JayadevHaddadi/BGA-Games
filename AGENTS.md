@@ -34,7 +34,7 @@ stop conditions in phase 0. Collect rule questions in `PLAN.md` and report them 
 | 5. Client | `modules/js/Game.js` + `<slug>.css`. Tap-to-stage with Confirm/Undo, highlights of legal targets from the state args, one `notif_<name>` per notification that changes the board, log lines that say who did what, an end-of-game scoring breakdown. | Works for the active player, the other players and a spectator. |
 | 6. Look and feel | The game's own art and palette (crop it in `design/make_assets.py`), a themed table background on the whole page, colour-blind symbols (pref 100), sounds from confirmed events only (pref 101). Read [BGA_REVIEWER_FEEDBACK.md](BGA_REVIEWER_FEEDBACK.md) first. | The checklist in that file passes. |
 | 7. Browser harness | Copy `games/gardensofenceladus/tests/harness/` (mock `bga`, `frame.html` for true phone widths). Script the main flows, the refusals and the layout measurements. Run headless Chrome at 375 and 1280 px. | 0 JS errors, every tap target >= 32 px at 375 px, board centre offset 0 px, no horizontal scroll, every flow passes. |
-| 8. Wiki and metadata | `bga/GAMEHELP.wiki` (MediaWiki markup, not Markdown). `metadata.json` (description, designers, tags marked PROPOSAL), `python3 tools/bga.py assets <slug>` and `gmm <slug>`. Display images are harness screenshots. | `GMM_FILLIN.md` exists; metadata images have the right sizes. |
+| 8. Wiki and metadata | `bga/GAMEHELP.wiki` (MediaWiki markup, not Markdown). `metadata.json` (description, zombieModeLevel=1, >=2 tags, sliders 1-5, designers), `python3 tools/bga.py assets <slug>` and `gmm <slug>`. Uploading metadata images to Studio is not needed (check `Ignore` on Studio builds; images are uploaded once when deploying to production, then synced). All image assets MUST be generated and ready in `bga/metadata_assets/`. | `GMM_FILLIN.md` exists; all metadata images exist in `bga/metadata_assets/` at the right sizes. |
 | 9. Gate | `python3 tools/bga.py check <slug>` | 0 FAIL. Every WARN is fixed or explained in the report. |
 | 10. Ship | Commit, `git pull --rebase origin main`, push to `main`. The push deploys every changed game to Studio. | The Actions run is green, or `python tools/sync.py <slug>` was run. |
 | 11. Report | Section 0 format. List what was verified (tests, harness numbers, check result), the open rule decisions from `PLAN.md`, and what still needs a live Studio table. | |
@@ -119,7 +119,10 @@ board), **Yavalath** (`fitContainerToScreen`).
 **Assets, layout and look** (details: [BGA_REVIEWER_FEEDBACK.md](BGA_REVIEWER_FEEDBACK.md))
 
 17. ✓ `img/` holds gameplay art only (BGA preloads it, keep it small); box, banner, icon, title and displays go in
-    `metadata_assets/`. `bgg_id` is set in `gameinfos.jsonc` (the Control Panel cannot edit it).
+    `metadata_assets/`. `bgg_id` is set in `gameinfos.jsonc` (the Control Panel cannot edit it). Metadata images do
+    not need to be uploaded to Studio (tick `Ignore` on Studio builds; images are uploaded once to production GMM,
+    then synced); but all image files must always exist locally in `metadata_assets/`. The rest of GMM (description,
+    zombieModeLevel=1, >=2 tags, characteristics sliders) must always be set in `metadata.json` / `GMM_FILLIN.md`.
 18. ✓ `gameinfos.jsonc`: `"game_interface_width": { "min": 320 }`; no complexity/luck/strategy/diplomacy keys
     (Control Panel only). Option and preference ids 100 to 199.
 19. ✓ No drop shadows, glow, looping animation, `transition: all`, emoji, pill badges, corners over 3 px, themed fonts
