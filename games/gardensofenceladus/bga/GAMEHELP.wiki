@@ -49,15 +49,16 @@ Pay 3 flowers of one colour. The paid flowers go into the carrying tube. The ico
 | 10 || '''Wildflower''': take the grey wildflower into your reserve. It is not covered with a counter: once it is taken, this action is no longer available.
 |}
 
-After a special action is used, it is covered with a disc in the colour of the player who used it, showing that player's Martian. The tube under the strip shows how many flowers of each colour are inside it (payments are public). A Martian still standing outside the garden cannot use the actions that move a Martian (jump, diagonal and swap Martian). It enters the garden with its first move.
+After a special action is used, it is covered with a disc in the colour of the player who used it, showing that player's Martian. On wide screens the special actions and the tube form a column to the right of the garden; the tube lists how many flowers of each colour are inside it (payments are public). A Martian still standing outside the garden cannot use the actions that move a Martian (jump, diagonal and swap Martian). It enters the garden with its first move.
 
 ==Scoring your hand==
 
 * Count the flowers of each colour in your reserve, including zeros, and sort the five numbers from lowest to highest.
 * The grey wildflower counts as any one colour. It is declared automatically as the colour that gives the best hand.
-* The score (VP) on the player panel is the hand written as five digits, for example '''00122''' or '''34566'''. If a colour has 10 or more flowers, the counts are separated by dashes so they stay readable, for example '''3-4-5-10-12'''.
-* Example: 0, 4, 5, 5, 6 is written '''04556''' and is a low hand. 3, 4, 5, 5, 6 is a better hand because its lowest colour is higher.
+* The player panel shows your hand as '''Score: 2-3-3-4-5''': the five counts sorted from lowest to highest.
+* Example: 0, 4, 5, 5, 6 is shown as '''0-4-5-5-6''' and is a low hand. 3, 4, 5, 5, 6 is a better hand because its lowest colour is higher. Hands are compared by the lowest count first; if equal, by the next, and so on.
 * The highest hand wins. Two equal hands share the win.
+* The score star (and BGA's ranking table) shows '''rank points''': with N players the best hand gets N-1, the next N-2, and so on down to 0. Equal hands share the same (higher) rank points. During the game the star shows the current ranking.
 
 ==Game end==
 
@@ -66,7 +67,7 @@ After a special action is used, it is covered with a disc in the colour of the p
 
 ==Variants (game options)==
 
-* '''Game mode''': Competitive (standard), or Cooperative. In the cooperative game the team score is the lowest hand, and everyone works to make it as high as possible.
+* '''Game mode''': Competitive (standard), or Cooperative. In the cooperative game the team score is the lowest hand (all players get the same score), and everyone works to make it as high as possible.
 * '''Martians per player''': One (standard), or Two for the 2-player variant. Each player places two Martians and can move either one on the turn. All the special actions in a turn must use the Martian you move that turn.
 * '''Tube action''': Available (standard), or not available (purely combinatorial game). With the combinatorial variant, the tube action is covered at the start.
 * Hidden score (reserves behind a screen) is not in this version: reserves are always visible, as the standard rules require.

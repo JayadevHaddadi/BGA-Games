@@ -31,6 +31,7 @@ class EndScore extends GameState
     public function onEnteringState(): int
     {
         $reserves = $this->game->getAllReserves();
+        $table = $this->game->scoreTable();
         $rows = [];
         foreach ($this->game->playerOrder() as $pid) {
             $counts = $reserves[$pid] ?? [];
@@ -41,39 +42,30 @@ class EndScore extends GameState
                 'counts' => array_map(fn($colour) => (int) ($counts[$colour] ?? 0), Rules::COLOURS),
                 'wild' => (int) ($counts[Rules::WILD] ?? 0),
                 'declared' => $hand['declared'] === null ? null : $this->game->colourName($hand['declared']),
-                'sorted' => $hand['sorted'],
-                'hand' => Game::handText($hand['sorted']),
-                'key' => $hand['key'],
+                'sorted' => $table[$pid]['sorted'],
+                'own_sorted' => $hand['sorted'],
+                'hand' => Game::handText($table[$pid]['sorted']),
+                'points' => $table[$pid]['points'],
             ];
+        }
+        // BGA score = rank points (ties share the higher value) or, cooperative, the team score; no tie-breaker.
+        foreach ($rows as $row) {
+            $this->playerScore->set($row['player_id'], $row['points']);
         }
 
         if ($this->game->isCoop() && count($rows) > 0) {
-            usort($rows, fn($a, $b) => $a['key'] <=> $b['key']);
-            $lowest = $rows[0];
-            foreach ($rows as &$row) {
-                $row['individual_key'] = $row['key'];
-                $row['key'] = $lowest['key'];
-                $row['sorted'] = $lowest['sorted'];
-                $row['hand'] = $lowest['hand'];
-            }
-            unset($row);
-            foreach ($rows as $row) {
-                $this->playerScore->set($row['player_id'], $row['key']);
-            }
-            $this->notify->all('finalScoring', clienttranslate('Cooperative game over: the team score is the lowest hand, ${hands}.'), [
-                'hands' => Game::handText($lowest['sorted']),
-                'hand' => Game::handText($lowest['sorted']),
+            $team = Game::handText($rows[0]['sorted']);
+            $this->notify->all('finalScoring', clienttranslate('Cooperative game over. Team score: ${hands}'), [
+                'hands' => $team,
+                'hand' => $team,
                 'rows' => $rows,
                 'is_coop' => true,
                 'i18n' => [],
             ]);
         } else {
-            usort($rows, fn($a, $b) => $b['key'] <=> $a['key']);
-            foreach ($rows as $row) {
-                $this->playerScore->set($row['player_id'], $row['key']);
-            }
-            $handsText = implode('; ', array_map(fn($row) => $row['player_name'] . ': ' . Game::handText($row['sorted']), $rows));
-            $this->notify->all('finalScoring', clienttranslate('The game is over. Hands (flowers of each colour, lowest to highest): ${hands}'), [
+            usort($rows, fn($a, $b) => $b['points'] <=> $a['points']);
+            $handsText = implode('; ', array_map(fn($row) => $row['player_name'] . ': ' . $row['hand'], $rows));
+            $this->notify->all('finalScoring', clienttranslate('The game is over. Score (flowers of each colour, lowest to highest): ${hands}'), [
                 'hands' => $handsText,
                 'rows' => $rows,
                 'is_coop' => false,

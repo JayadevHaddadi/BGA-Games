@@ -237,10 +237,21 @@ $big = Rules::hand(['blue' => 12, 'red' => 3, 'yellow' => 3, 'green' => 3, 'mage
 $nines = Rules::hand(['blue' => 9, 'red' => 9, 'yellow' => 9, 'green' => 9, 'magenta' => 9], 0);
 check(Rules::compareSorted($big['sorted'], $nines['sorted']) < 0 && $big['key'] < $nines['key'], 'a smallest colour of 3 ranks below five 9s');
 
-// Hand text: digits, dashes only when a count reaches 10.
-check(Rules::handText([0, 0, 1, 2, 2]) === '00122', 'hand text 00122');
-check(Rules::handText([3, 4, 5, 6, 6]) === '34566', 'hand text 34566');
-check(Rules::handText([3, 4, 5, 10, 12]) === '3-4-5-10-12', 'hand text with two-digit counts is dashed');
+// Hand text: counts joined by dashes.
+check(Rules::handText([0, 0, 1, 2, 2]) === '0-0-1-2-2', 'hand text 0-0-1-2-2');
+check(Rules::handText([2, 3, 3, 4, 5]) === '2-3-3-4-5', 'hand text 2-3-3-4-5');
+check(Rules::handText([3, 4, 5, 10, 12]) === '3-4-5-10-12', 'hand text with two-digit counts');
+
+// Rank points: N-1 for the best, 0 for the last, ties share the higher value (competition ranking).
+$rp = Rules::rankPoints([1 => [2, 3, 3, 4, 5], 2 => [0, 4, 5, 5, 6], 3 => [1, 1, 1, 1, 1], 4 => [3, 3, 3, 3, 3]]);
+check($rp === [1 => 2, 2 => 0, 3 => 1, 4 => 3], 'rank points 3/2/1/0 by hand order, got ' . json_encode($rp));
+$rp = Rules::rankPoints([1 => [1, 2, 3, 4, 5], 2 => [1, 2, 3, 4, 5]]);
+check($rp === [1 => 1, 2 => 1], '2 players equal share 1 each');
+$rp = Rules::rankPoints([1 => [1, 2, 3, 4, 5], 2 => [0, 2, 3, 4, 5]]);
+check($rp === [1 => 1, 2 => 0], '2 players: 1 and 0');
+$rp = Rules::rankPoints([1 => [3, 3, 3, 3, 3], 2 => [3, 3, 3, 3, 3], 3 => [1, 1, 1, 1, 1], 4 => [2, 2, 2, 2, 2]]);
+check($rp === [1 => 3, 2 => 3, 3 => 0, 4 => 1], 'two tied for first both get N-1, next gets N-3, got ' . json_encode($rp));
+check(Rules::rankPoints([7 => [1, 1, 1, 1, 1]]) === [7 => 0], 'one player gets 0');
 
 // 10. Random garden: 95 flowers (19 per colour), 5 peaks, no fenced section.
 for ($t = 0; $t < 20; $t++) {

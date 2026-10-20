@@ -24,8 +24,11 @@ const ENC_PLAYER_COLOURS = ['#e53935', '#43a047', '#1e88e5', '#fb8c00', '#d81b60
 const encKey = (r, c) => `${r},${c}`;
 const encCoord = (r, c) => `${String.fromCharCode(65 + c)}${r + 1}`;
 const encImg = (name) => `${typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : ''}img/${name}`;
-/** A hand as written on the player panel: sorted counts as digits ("00122"); dashes between them from a count of 10 up ("3-4-5-10-12"). */
-const encHandString = (sorted) => sorted.join(sorted.some((n) => n >= 10) ? '-' : '');
+/** A hand as players read it: the sorted counts joined by dashes ("2-3-3-4-5"). Same text as Rules::handText on the server. */
+/** Game area width from which the side column (special actions + tube) sits to the right of the garden. */
+const ENC_WIDE_MIN = 900;
+
+const encHandString = (sorted) => sorted.join('-');
 const encIsGrid = (r, c) => r >= 0 && r < 10 && c >= 0 && c < 10;
 // The 30 start squares: left and right sides (rows 0 to 9) and bottom (columns 0 to 9). The top side is the special strip.
 const ENC_START_SLOTS = [];
@@ -86,14 +89,18 @@ export class Game {
         root.innerHTML = `
             <div id="enc_table">
                 <p id="enc_hint" aria-live="polite"></p>
-                <div id="enc_specials" role="group" aria-label="${_('Special actions')}"></div>
-                <div id="enc_pay" role="group" aria-label="${_('Pay with')}" hidden></div>
-                <p id="enc_info" aria-live="polite" hidden></p>
-                <div id="enc_tube" role="group" aria-label="${_('Tube')}"></div>
-                <div id="enc_board_wrap">
-                    <div id="enc_board" role="grid" aria-label="${_('Garden: 10 by 10 squares. Columns A to J, rows 1 to 10.')}">
-                        <div id="enc_cells"></div>
-                        <div id="enc_pieces"></div>
+                <div id="enc_main">
+                    <div id="enc_side">
+                        <div id="enc_specials" role="group" aria-label="${_('Special actions')}"></div>
+                        <div id="enc_pay" role="group" aria-label="${_('Pay with')}" hidden></div>
+                        <p id="enc_info" aria-live="polite" hidden></p>
+                        <div id="enc_tube" role="group" aria-label="${_('Tube')}"></div>
+                    </div>
+                    <div id="enc_board_wrap">
+                        <div id="enc_board" role="grid" aria-label="${_('Garden: 10 by 10 squares. Columns A to J, rows 1 to 10.')}">
+                            <div id="enc_cells"></div>
+                            <div id="enc_pieces"></div>
+                        </div>
                     </div>
                 </div>
                 <div id="enc_final" hidden></div>
@@ -189,10 +196,14 @@ export class Game {
         const wrap = document.getElementById('enc_board_wrap');
         if (!wrap) return;
         this.fitContainerToScreen(document.getElementById('enc_root'));
+        // Wide screens: the special actions and the tube form a column to the right of the garden (CSS .enc_wide)
+        const root = document.getElementById('enc_root');
+        const wide = root.clientWidth >= ENC_WIDE_MIN;
+        root.classList.toggle('enc_wide', wide);
         const width = Math.max(200, wrap.clientWidth);
         // The side squares only take room while Martians stand outside the garden (placement, and until their first move)
         const sideFraction = this.needsSideRoom() ? ENC_SIDE : 0;
-        const cell = Math.min(64, Math.floor(width / (10 + 2 * sideFraction)));
+        const cell = Math.min(wide ? 76 : 64, Math.floor(width / (10 + 2 * sideFraction)));
         const side = Math.round(cell * sideFraction);
         const board = document.getElementById('enc_board');
         board.style.width = `${cell * 10}px`;
@@ -203,7 +214,7 @@ export class Game {
         wrap.style.paddingRight = `${side}px`;
         wrap.style.paddingBottom = `${side}px`;
         const specials = document.getElementById('enc_specials');
-        specials.style.width = `${cell * 10}px`;
+        specials.style.width = wide ? '' : `${cell * 10}px`;
         specials.style.setProperty('--enc-cols', cell >= 40 ? '10' : '5');
     }
 
@@ -335,7 +346,7 @@ export class Game {
             const cover = used && user ? `<span class="enc_cover" style="--tc:${this.playerColour(user)}">${this.martianImg(user)}</span>` : '';
             html += `<button type="button" id="enc_special_${slot}" class="enc_special${used ? ' enc_used' : ''}" data-slot="${slot}"
                 ${title} aria-label="${label}" aria-pressed="false">
-                <img src="${encImg(img)}" alt="">${cover}
+                <img src="${encImg(img)}" alt=""><span class="enc_special_label">${this.specialTitle(slot)}</span>${cover}
             </button>`;
         }
         host.innerHTML = html;
@@ -525,17 +536,6 @@ export class Game {
                 el.appendChild(line);
             }
             line.innerHTML = this.panelLine(pid);
-            // The victory points: the hand written as digits ("00122"), next to the framework's score star
-            let vp = el.querySelector('.enc_vp');
-            if (!vp) {
-                vp = document.createElement('span');
-                vp.className = 'enc_vp';
-                const value = el.querySelector('.player_score_value');
-                if (value && value.parentNode) value.parentNode.insertBefore(vp, value);
-                else el.insertBefore(vp, line);
-            }
-            vp.title = _('Hand: flowers of each colour, sorted from lowest to highest');
-            vp.textContent = this.handText(pid);
         });
     }
 
@@ -543,7 +543,8 @@ export class Game {
         const res = this.reserves[pid] || {};
         const item = (col) => `<span class="enc_panel_item" title="${this.colourLabel(col)}">
             <img src="${encImg(`flower_${col}.png`)}" alt="${this.colourLabel(col)}"><b>${res[col] || 0}</b></span>`;
-        return `<div class="enc_panel_row">${this.coloursAscending(res).map(item).join('')}</div><div class="enc_panel_row">${item('wild')}</div>`;
+        const score = `<div class="enc_panel_score" title="${_('Flowers of each colour, sorted from lowest to highest')}">${_('Score')}: <b>${this.handText(pid)}</b></div>`;
+        return `${score}<div class="enc_panel_row">${this.coloursAscending(res).map(item).join('')}</div><div class="enc_panel_row">${item('wild')}</div>`;
     }
 
     playerName(pid) {
@@ -1054,7 +1055,7 @@ export class Game {
         const host = document.getElementById('enc_final');
         const rows = args.rows || [];
         const head = args.is_coop
-            ? _('Team score: the lowest hand')
+            ? _('Team score') + ': ' + encHandString(rows.length ? rows[0].sorted : [])
             : _('Final hands: flowers of each colour, sorted from lowest to highest');
         const body = rows.map((row) => {
             const counts = `<span class="enc_hand_text">${encHandString(row.sorted)}</span>`;

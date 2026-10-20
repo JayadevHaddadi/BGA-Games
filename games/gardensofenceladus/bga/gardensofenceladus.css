@@ -519,16 +519,14 @@ body.enceladus_page_bg #game_play_area_background {
     opacity: 0.45;
 }
 
-/* the score in the player panel is the hand written as digits ("00122"); the framework's own integer is internal */
-.player_score_value {
-    display: none;
+/* "Score: 2-3-3-4-5" on its own row in the player panel; the framework star shows the rank points */
+.enc_panel_score {
+    margin-top: 4px;
+    font-size: 16px;
 }
 
-.enc_vp {
-    font-weight: bold;
-    font-size: 18px;
+.enc_panel_score b {
     letter-spacing: 1px;
-    margin-right: 4px;
 }
 
 .enc_panel_reserve {
@@ -610,6 +608,118 @@ body.enceladus_page_bg #game_play_area_background {
     .enc_special:not(.enc_used):hover {
         border-color: var(--enc-go);
     }
+}
+
+/* ---------- wide screens: special actions and tube in a column to the right of the garden ---------- */
+
+.enc_special_label {
+    display: none;
+}
+
+#enc_main,
+#enc_side {
+    display: contents;
+}
+
+#enc_root.enc_wide #enc_table {
+    max-width: none;
+}
+
+#enc_root.enc_wide #enc_main {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+#enc_root.enc_wide #enc_board_wrap {
+    order: 1;
+    flex: 1 1 0;
+    min-width: 0;
+    margin: 0;
+}
+
+#enc_root.enc_wide #enc_side {
+    order: 2;
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 250px;
+    width: 250px;
+    gap: 6px;
+}
+
+#enc_root.enc_wide #enc_specials {
+    display: flex;
+    flex-direction: column;
+    width: auto;
+    margin: 0;
+    gap: 3px;
+}
+
+#enc_root.enc_wide .enc_special {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 48px;
+    padding: 3px 8px 3px 3px;
+    text-align: left;
+    color: var(--enc-ink);
+    font: inherit;
+}
+
+#enc_root.enc_wide .enc_special > img:first-child {
+    flex: 0 0 42px;
+    width: 42px;
+    margin: 0;
+}
+
+#enc_root.enc_wide .enc_special_label {
+    display: block;
+    flex: 1 1 auto;
+    font-size: 14px;
+}
+
+#enc_root.enc_wide .enc_cover {
+    width: 26px;
+    height: 26px;
+    right: 6px;
+    bottom: auto;
+    top: 50%;
+    margin-top: -13px;
+    border-width: 2px;
+}
+
+#enc_root.enc_wide #enc_pay,
+#enc_root.enc_wide #enc_info,
+#enc_root.enc_wide #enc_final {
+    margin: 0;
+    max-width: none;
+}
+
+#enc_root.enc_wide #enc_info {
+    text-align: left;
+}
+
+/* the tube as a vertical glass tube listing its contents */
+#enc_root.enc_wide #enc_tube {
+    flex-direction: column;
+    align-items: stretch;
+    flex-wrap: nowrap;
+    gap: 4px;
+    margin: 6px 40px 0;
+    padding: 8px 10px 12px;
+    border: 3px solid #3d5470;
+    border-top-width: 8px;
+    border-radius: 3px 3px 22px 22px;
+    background: rgba(255, 255, 255, 0.55);
+}
+
+#enc_root.enc_wide .enc_tube_title {
+    text-align: center;
+}
+
+#enc_root.enc_wide .enc_tube_item {
+    justify-content: space-between;
 }
 
 /* Phones: no side padding, the garden takes the full width of the screen */

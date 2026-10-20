@@ -387,22 +387,43 @@ class Game extends \Bga\GameFramework\Table
         return max(1, $this->flag('martians_per'));
     }
 
-    /** Live score counters: each player's hand (in a cooperative game, every player shows the lowest hand). */
+    /**
+     * Live score counters = rank points from the current hands (best hand N-1 ... last 0, ties share the higher value).
+     * Cooperative: every player gets the team score, the lowest hand's smallest colour count.
+     */
     public function refreshScores(): void
     {
+        foreach ($this->scoreTable() as $pid => $row) {
+            $this->playerScore->set($pid, $row['points']);
+        }
+    }
+
+    /** @return array<int,array{sorted:array,points:int}> player id => hand (the team hand in coop) and the BGA score */
+    public function scoreTable(): array
+    {
         $reserves = $this->getAllReserves();
-        $keys = [];
+        $hands = [];
         foreach ($this->playerOrder() as $pid) {
             $counts = $reserves[$pid] ?? [];
-            $keys[$pid] = Rules::hand($counts, (int) ($counts[Rules::WILD] ?? 0))['key'];
+            $hands[$pid] = Rules::hand($counts, (int) ($counts[Rules::WILD] ?? 0))['sorted'];
         }
-        if ($this->isCoop() && count($keys) > 0) {
-            $lowest = min($keys);
-            $keys = array_fill_keys(array_keys($keys), $lowest);
+        $out = [];
+        if ($this->isCoop() && count($hands) > 0) {
+            $lowest = array_values($hands)[0];
+            foreach ($hands as $h) {
+                if (Rules::compareSorted($h, $lowest) < 0) {
+                    $lowest = $h;
+                }
+            }
+            foreach ($hands as $pid => $h) {
+                $out[$pid] = ['sorted' => $lowest, 'points' => (int) $lowest[0]];
+            }
+            return $out;
         }
-        foreach ($keys as $pid => $key) {
-            $this->playerScore->set($pid, $key);
+        foreach (Rules::rankPoints($hands) as $pid => $points) {
+            $out[$pid] = ['sorted' => $hands[$pid], 'points' => $points];
         }
+        return $out;
     }
 
     /** A hand as shown to players: the sorted counts, lowest to highest ("34556", or "3-4-5-10-12" from 10 up). */

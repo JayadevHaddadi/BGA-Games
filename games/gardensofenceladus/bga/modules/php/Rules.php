@@ -524,19 +524,32 @@ final class Rules
         return ['sorted' => $best, 'key' => self::keyOf($best), 'declared' => $bestColour];
     }
 
-    /**
-     * A hand as players read it: the sorted counts as digits ("00122", "34566"). If any count is 10 or more, every count
-     * is separated by a dash so it stays readable ("3-4-5-10-12").
-     */
+    /** A hand as players read it: the sorted counts joined by dashes ("2-3-3-4-5"). */
     public static function handText(array $sorted): string
     {
-        $big = false;
-        foreach ($sorted as $n) {
-            if ((int) $n >= 10) {
-                $big = true;
+        return implode('-', array_map('intval', $sorted));
+    }
+
+    /**
+     * Rank points for the BGA score: with N players the best hand gets N-1, the next N-2, ... the last 0. Equal hands
+     * share the higher rank points (standard competition ranking). Input: player id => sorted hand.
+     *
+     * @return array<int,int> player id => rank points
+     */
+    public static function rankPoints(array $hands): array
+    {
+        $n = count($hands);
+        $points = [];
+        foreach ($hands as $pid => $hand) {
+            $better = 0;
+            foreach ($hands as $otherHand) {
+                if (self::compareSorted($otherHand, $hand) > 0) {
+                    $better++;
+                }
             }
+            $points[$pid] = $n - 1 - $better;
         }
-        return implode($big ? '-' : '', array_map('intval', $sorted));
+        return $points;
     }
 
     public static function keyOf(array $sorted): int
