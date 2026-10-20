@@ -24,6 +24,13 @@ const ENC_PLAYER_COLOURS = ['#e53935', '#43a047', '#1e88e5', '#fb8c00', '#d81b60
 const encKey = (r, c) => `${r},${c}`;
 const encCoord = (r, c) => `${String.fromCharCode(65 + c)}${r + 1}`;
 const encImg = (name) => `${typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : ''}img/${name}`;
+/** A piece from a CSS sprite sheet (flowers.png, martians.png, specials.png); the position classes live in the CSS file.
+ *  kind: 'f' flower, 'm' martian, 'sp' special/counter/peak. label: spoken name (omit for decoration). */
+const encSpr = (kind, name, label = '', extra = '') => {
+    const sheet = { f: 'flower', m: 'martian', sp: 'special' }[kind];
+    const a11y = label ? ` role="img" aria-label="${label}"` : ' aria-hidden="true"';
+    return `<span class="enc_spr enc_spr_${sheet} enc_${kind}_${name}${extra ? ` ${extra}` : ''}"${a11y}></span>`;
+};
 /** A hand as players read it: the sorted counts joined by dashes ("2-3-3-4-5"). Same text as Rules::handText on the server. */
 /** Game area width from which the side column (special actions + tube) sits to the right of the garden. */
 const ENC_WIDE_MIN = 900;
@@ -274,10 +281,10 @@ export class Game {
             let inner = '';
             if (v === 'P') {
                 el.classList.add('enc_peak');
-                inner = `<img class="enc_piece enc_peak_img" src="${encImg('peak.png')}" alt="${_('Peak')}">`;
+                inner = encSpr('sp', 'peak', _('Peak'), 'enc_piece enc_peak_img');
             } else if (v) {
                 el.classList.add('enc_flower');
-                inner = `<img class="enc_piece" src="${encImg(`flower_${v}.png`)}" alt="${this.colourLabel(v)}">`;
+                inner = encSpr('f', v, this.colourLabel(v), 'enc_piece');
             } else {
                 el.classList.add('enc_empty');
             }
@@ -302,7 +309,7 @@ export class Game {
             const turn = turnPid && m.pid === turnPid ? (m.pid === this.myId && this.isActive ? ' enc_turn' : ' enc_turn_other') : '';
             return `<button type="button" class="enc_martian${mine}${selected}${white}${turn}" data-id="${m.id}"
                 style="left:${pos.x}%;top:${pos.y}%;--pc:${this.playerColour(m.pid)}" title="${this.martianLabel(m)}" aria-label="${this.martianLabel(m)}">
-                <img src="${encImg(`martian_${m.type}.png`)}" alt="">
+                ${encSpr('m', m.type)}
             </button>`;
         }).join('');
         host.querySelectorAll('.enc_martian').forEach((el) => {
@@ -337,7 +344,7 @@ export class Game {
         const kinds = this.gamedatas.special_kinds;
         let html = '';
         for (let slot = 1; slot <= 10; slot++) {
-            const img = slot === 10 ? 'flower_wild.png' : `special_${slot}.png`;
+            const icon = slot === 10 ? encSpr('f', 'wild') : encSpr('sp', slot);
             const used = this.specials[slot] && this.specials[slot].used;
             const user = used ? this.specials[slot].by : 0;
             const label = this.specialTitle(slot) + (used && user ? ` (${_('used by')} ${this.playerName(user)})` : '');
@@ -346,7 +353,7 @@ export class Game {
             const cover = used && user ? `<span class="enc_cover" style="--tc:${this.playerColour(user)}">${this.martianImg(user)}</span>` : '';
             html += `<button type="button" id="enc_special_${slot}" class="enc_special${used ? ' enc_used' : ''}" data-slot="${slot}"
                 ${title} aria-label="${label}" aria-pressed="false">
-                <img src="${encImg(img)}" alt=""><span class="enc_special_label">${this.specialTitle(slot)}</span>${cover}
+                ${icon}<span class="enc_special_label">${this.specialTitle(slot)}</span>${cover}
             </button>`;
         }
         host.innerHTML = html;
@@ -366,7 +373,7 @@ export class Game {
 
     martianImg(pid) {
         const m = this.martians.find((x) => x.pid === Number(pid));
-        return m ? `<img src="${encImg(`martian_${m.type}.png`)}" alt="">` : '';
+        return m ? encSpr('m', m.type) : '';
     }
 
     specialName(slot) {
@@ -463,7 +470,7 @@ export class Game {
         const mine = this.reserves[this.myId] || {};
         const chips = this.myPayable().map((col) => `<button type="button" class="enc_chip enc_payable" data-colour="${col}"
             aria-label="${this.colourLabel(col)}: ${mine[col] || 0}" title="${this.colourLabel(col)}: ${mine[col] || 0}">
-            <img src="${encImg(`flower_${col}.png`)}" alt=""><b>${mine[col] || 0}</b></button>`).join('');
+            ${encSpr('f', col)}<b>${mine[col] || 0}</b></button>`).join('');
         host.innerHTML = `<span class="enc_reserve_title">${_('Pay 3 flowers of which colour?')}</span>${chips}`;
         host.querySelectorAll('.enc_chip').forEach((el) => {
             el.addEventListener('click', () => this.onChipClick(el.dataset.colour));
@@ -474,7 +481,7 @@ export class Game {
     reserveHtml() {
         const mine = this.reserves[this.myId];
         if (!mine) return '';
-        const item = (col) => `<span class="enc_sb_item"><img src="${encImg(`flower_${col}.png`)}" alt="${this.colourLabel(col)}"><b>${mine[col] || 0}</b></span>`;
+        const item = (col) => `<span class="enc_sb_item">${encSpr('f', col, this.colourLabel(col))}<b>${mine[col] || 0}</b></span>`;
         const wild = mine.wild ? `<span class="enc_sb_row">${item('wild')}</span>` : '';
         return `<span class="enc_sb_row">${this.coloursAscending(mine).map(item).join('')}</span>${wild}`;
     }
@@ -523,7 +530,7 @@ export class Game {
         const inside = ENC_COLOURS.filter((col) => (this.tube[col] || 0) > 0);
         const items = inside.length
             ? inside.map((col) => `<span class="enc_tube_item" title="${this.colourLabel(col)}">
-            <img src="${encImg(`flower_${col}.png`)}" alt="${this.colourLabel(col)}"><b>${this.tube[col]}</b></span>`).join('')
+            ${encSpr('f', col, this.colourLabel(col))}<b>${this.tube[col]}</b></span>`).join('')
             : `<span class="enc_tube_empty">${_('Empty')}</span>`;
         host.innerHTML = `<span class="enc_tube_title">${_('Tube')}: ${total}</span>${items}`;
         host.title = _('Flowers paid for special actions. The tube action draws 3 at random from here.');
@@ -546,7 +553,7 @@ export class Game {
     panelLine(pid) {
         const res = this.reserves[pid] || {};
         const item = (col) => `<span class="enc_panel_item" title="${this.colourLabel(col)}">
-            <img src="${encImg(`flower_${col}.png`)}" alt="${this.colourLabel(col)}"><b>${res[col] || 0}</b></span>`;
+            ${encSpr('f', col, this.colourLabel(col))}<b>${res[col] || 0}</b></span>`;
         const score = `<div class="enc_panel_score" title="${_('Flowers of each colour, sorted from lowest to highest')}">${_('Score')}: <b>${this.handText(pid)}</b></div>`;
         return `${score}<div class="enc_panel_row">${this.coloursAscending(res).map(item).join('')}</div><div class="enc_panel_row">${item('wild')}</div>`;
     }
@@ -948,11 +955,10 @@ export class Game {
         const m = this.martians.find((x) => x.id === martianId);
         const cell = document.querySelector(`#enc_board .enc_cell[data-r="${r}"][data-c="${c}"]`);
         if (!m || !cell) return;
-        const img = document.createElement('img');
-        img.className = 'enc_ghost';
-        img.alt = '';
-        img.src = encImg(`martian_${m.type}.png`);
-        cell.appendChild(img);
+        const ghost = document.createElement('span');
+        ghost.className = `enc_spr enc_spr_martian enc_m_${m.type} enc_ghost`;
+        ghost.setAttribute('aria-hidden', 'true');
+        cell.appendChild(ghost);
     }
 
     /** Last-move marks: landing square (tint + double ring) and adjacent pick (small dashed ring). Newest solid, older dashed. */

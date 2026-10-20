@@ -3,6 +3,8 @@
  * Rules we keep to (BGA reviewer feedback, see BGA_REVIEWER_FEEDBACK.md): flat matte pieces, no shadows or glow,
  * no looping animation, no emoji, corners 3px or less, the default BGA font, tap targets of 32px or more.
  * The table texture (img/table.jpg) is set from the script on <body> so it covers the whole page.
+ * Pieces are CSS sprites (img/flowers.png, martians.png, specials.png): one row of square cells each, so a piece is
+ * a square element with background-size N*100% and background-position i/(N-1)*100%. Built by design/make_sprites.py.
  */
 
 /* ---------- page: a textured table behind everything, BGA wrappers transparent ---------- */
@@ -21,6 +23,44 @@ body.enceladus_page_bg #game_play_area,
 body.enceladus_page_bg #game_play_area_background {
     background: transparent;
 }
+
+/* ---------- sprites ---------- */
+
+.enc_spr {
+    display: block;
+    aspect-ratio: 1 / 1;
+    flex: 0 0 auto;
+    background-repeat: no-repeat;
+    background-origin: content-box;
+}
+
+.enc_spr_flower { background-image: url("img/flowers.png"); background-size: 600% 100%; }
+.enc_f_blue { background-position: 0% 0; }
+.enc_f_green { background-position: 20% 0; }
+.enc_f_magenta { background-position: 40% 0; }
+.enc_f_red { background-position: 60% 0; }
+.enc_f_yellow { background-position: 80% 0; }
+.enc_f_wild { background-position: 100% 0; }
+
+.enc_spr_martian { background-image: url("img/martians.png"); background-size: 500% 100%; }
+.enc_m_ali { background-position: 0% 0; }
+.enc_m_bob { background-position: 25% 0; }
+.enc_m_bot { background-position: 50% 0; }
+.enc_m_marty { background-position: 75% 0; }
+.enc_m_robby { background-position: 100% 0; }
+
+.enc_spr_special { background-image: url("img/specials.png"); background-size: 1100% 100%; }
+.enc_sp_1 { background-position: 0% 0; }
+.enc_sp_2 { background-position: 10% 0; }
+.enc_sp_3 { background-position: 20% 0; }
+.enc_sp_4 { background-position: 30% 0; }
+.enc_sp_5 { background-position: 40% 0; }
+.enc_sp_6 { background-position: 50% 0; }
+.enc_sp_7 { background-position: 60% 0; }
+.enc_sp_8 { background-position: 70% 0; }
+.enc_sp_9 { background-position: 80% 0; }
+.enc_sp_counter { background-position: 90% 0; }
+.enc_sp_peak { background-position: 100% 0; }
 
 /* ---------- layout ---------- */
 
@@ -73,10 +113,8 @@ body.enceladus_page_bg #game_play_area_background {
     cursor: pointer;
 }
 
-.enc_special > img:first-child {
-    display: block;
+.enc_special > .enc_spr:first-child {
     width: 84%;
-    height: auto;
     margin: 0 auto;
 }
 
@@ -108,11 +146,11 @@ body.enceladus_page_bg #game_play_area_background {
     pointer-events: none;
 }
 
-.enc_cover img {
-    display: block;
+.enc_cover .enc_spr {
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    aspect-ratio: auto;
+    background-size: 500% 100%;
 }
 
 .enc_special[aria-pressed="true"] {
@@ -174,7 +212,6 @@ body.enceladus_page_bg #game_play_area_background {
 .enc_piece {
     width: 86%;
     height: 86%;
-    object-fit: contain;
     pointer-events: none;
 }
 
@@ -296,7 +333,6 @@ body.enceladus_page_bg #game_play_area_background {
     width: 72%;
     height: 72%;
     margin: -36% 0 0 -36%;
-    object-fit: contain;
     opacity: 0.6;
     pointer-events: none;
 }
@@ -360,29 +396,28 @@ body.enceladus_page_bg #game_play_area_background {
 
 /* Every Martian sits on a round disc that contrasts with it (dark disc behind the white types, pale disc behind the
    black types), ringed in its owner's colour, so it reads on the pale table, on the board and on the start squares. */
-.enc_martian img {
+.enc_martian .enc_spr {
     width: 78%;
     height: 78%;
     box-sizing: border-box;
     padding: 2px;
     border: 3px solid var(--pc, #14233a);
     border-radius: 50%;
-    background: #f7fafc;
-    object-fit: contain;
+    background-color: #f7fafc;
     pointer-events: none;
 }
 
-.enc_martian.enc_white_type img {
-    background: #22344d;
+.enc_martian.enc_white_type .enc_spr {
+    background-color: #22344d;
 }
 
 /* The player whose turn it is: ring in their colour, standing off the disc. Solid and thick for you, dashed for the others. */
-.enc_martian.enc_turn img {
+.enc_martian.enc_turn .enc_spr {
     outline: 3px solid var(--pc, #14233a);
     outline-offset: 2px;
 }
 
-.enc_martian.enc_turn_other img {
+.enc_martian.enc_turn_other .enc_spr {
     outline: 2px dashed var(--pc, #14233a);
     outline-offset: 2px;
 }
@@ -391,7 +426,7 @@ body.enceladus_page_bg #game_play_area_background {
     cursor: pointer;
 }
 
-.enc_martian.enc_selected img {
+.enc_martian.enc_selected .enc_spr {
     outline: 4px solid var(--enc-sel);
     outline-offset: 2px;
 }
@@ -440,10 +475,9 @@ body.enceladus_page_bg #game_play_area_background {
     line-height: 36px;
 }
 
-.enc_sb_item img {
+.enc_sb_item .enc_spr {
     width: 36px;
     height: 36px;
-    object-fit: contain;
 }
 
 .enc_reserve_title {
@@ -467,10 +501,9 @@ body.enceladus_page_bg #game_play_area_background {
     cursor: default;
 }
 
-.enc_chip img {
+.enc_chip .enc_spr {
     width: 28px;
     height: 28px;
-    object-fit: contain;
 }
 
 .enc_chip b {
@@ -509,10 +542,9 @@ body.enceladus_page_bg #game_play_area_background {
     font-size: 16px;
 }
 
-.enc_tube_item img {
+.enc_tube_item .enc_spr {
     width: 26px;
     height: 26px;
-    object-fit: contain;
 }
 
 .enc_tube_empty {
@@ -551,10 +583,9 @@ body.enceladus_page_bg #game_play_area_background {
     line-height: 28px;
 }
 
-.enc_panel_item img {
+.enc_panel_item .enc_spr {
     width: 32px;
     height: 32px;
-    object-fit: contain;
 }
 
 /* ---------- end of game breakdown (in the play area, no popup) ---------- */
@@ -668,7 +699,7 @@ body.enceladus_page_bg #game_play_area_background {
     font: inherit;
 }
 
-#enc_root.enc_wide .enc_special > img:first-child {
+#enc_root.enc_wide .enc_special > .enc_spr:first-child {
     flex: 0 0 42px;
     width: 42px;
     margin: 0;

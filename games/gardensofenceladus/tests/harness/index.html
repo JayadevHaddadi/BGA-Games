@@ -235,17 +235,17 @@ async function run() {
         check('panel_score_row_dashed', q('#panel_1 .enc_panel_score').textContent.replace(/\s+/g, ' ').trim() === 'Score: 0-0-1-3-3' && q('#panel_2 .enc_panel_score').textContent.replace(/\s+/g, ' ').trim() === 'Score: 0-1-1-1-4', q('#panel_1 .enc_panel_score').textContent + ' | ' + q('#panel_2 .enc_panel_score').textContent);
         check('panel_score_on_own_row', !q('#panel_1 .enc_panel_score').closest('.enc_panel_row') && !q('#panel_1 .enc_vp'), null);
         {
-            const order = (sel) => qa(sel).map((el) => el.querySelector('img').alt);
+            const order = (sel) => qa(sel).map((el) => el.querySelector('.enc_spr').getAttribute('aria-label'));
             const rows = qa('#panel_1 .enc_panel_row');
             const nums = Array.from(rows[0].querySelectorAll('b')).map((b) => Number(b.textContent));
             check('panel_reserve_ascending', nums.length === 5 && nums.every((n, i) => i === 0 || nums[i - 1] <= n), nums);
-            check('panel_wild_own_row', rows.length === 2 && rows[1].querySelectorAll('.enc_panel_item').length === 1 && /wild/i.test(rows[1].querySelector('img').alt), rows.length);
+            check('panel_wild_own_row', rows.length === 2 && rows[1].querySelectorAll('.enc_panel_item').length === 1 && /wild/i.test(rows[1].querySelector('.enc_spr').getAttribute('aria-label')), rows.length);
             const sbRows = qa('.enc_sb_row');
             const sbHost = document.createElement('div');
             sbHost.innerHTML = statusBar.title;
             const sbNums = Array.from(sbHost.querySelector('.enc_sb_row').querySelectorAll('b')).map((b) => Number(b.textContent));
             check('status_reserve_ascending', sbNums.length === 5 && sbNums.every((n, i) => i === 0 || sbNums[i - 1] <= n), sbNums);
-            const img = q('#panel_1 .enc_panel_item img');
+            const img = q('#panel_1 .enc_panel_item .enc_spr');
             check('panel_flowers_big', rect(img).width >= 30 && parseFloat(getComputedStyle(q('#panel_1 .enc_panel_item b')).fontSize) >= 24, rect(img).width);
         }
         check('tube_below_specials', q('#enc_specials').nextElementSibling.id === 'enc_pay' && rect(q('#enc_tube')).top > rect(q('#enc_specials')).bottom && (q('#enc_root').classList.contains('enc_wide') || rect(q('#enc_tube')).bottom < rect(q('#enc_board_wrap')).top), null);
@@ -256,7 +256,7 @@ async function run() {
         game.notif_specialUsed({ slot: 6, player_id: 2 });
         {
             const cover = q('#enc_special_6 .enc_cover');
-            check('used_special_disc_in_player_colour', !!cover && cover.style.getPropertyValue('--tc') === '#0000ff' && !!cover.querySelector('img'), cover && cover.outerHTML);
+            check('used_special_disc_in_player_colour', !!cover && cover.style.getPropertyValue('--tc') === '#0000ff' && !!cover.querySelector('.enc_spr'), cover && cover.outerHTML);
             game.specials[6] = { used: false, by: 0 };
             game.renderSpecials();
         }
@@ -368,8 +368,8 @@ async function run() {
         game.enterTurn(turnArgs, true);
         await flush();
         const mineTurn = q('.enc_martian[data-id="1"]');
-        check('active_martian_ring_for_active_player', mineTurn.classList.contains('enc_turn') && getComputedStyle(mineTurn.querySelector('img')).outlineStyle === 'solid', mineTurn.className);
-        check('martian_has_contrasting_disc', qa('.enc_martian img').every((i) => getComputedStyle(i).backgroundColor !== 'rgba(0, 0, 0, 0)') && q('.enc_martian.enc_white_type img') && getComputedStyle(q('.enc_martian.enc_white_type img')).backgroundColor !== getComputedStyle(qa('.enc_martian:not(.enc_white_type) img')[0] || q('.enc_martian img')).backgroundColor, null);
+        check('active_martian_ring_for_active_player', mineTurn.classList.contains('enc_turn') && getComputedStyle(mineTurn.querySelector('.enc_spr')).outlineStyle === 'solid', mineTurn.className);
+        check('martian_has_contrasting_disc', qa('.enc_martian .enc_spr').every((i) => getComputedStyle(i).backgroundColor !== 'rgba(0, 0, 0, 0)') && q('.enc_martian.enc_white_type .enc_spr') && getComputedStyle(q('.enc_martian.enc_white_type .enc_spr')).backgroundColor !== getComputedStyle(qa('.enc_martian:not(.enc_white_type) .enc_spr')[0] || q('.enc_martian .enc_spr')).backgroundColor, null);
         game.enterTurn(turnArgs, false);
         await flush();
         check('waiting_players_see_dashed_ring_on_active_martian', qa('.enc_martian.enc_turn_other').length >= 1 && !q('.enc_martian.enc_turn'), qa('.enc_martian').map((e) => e.className));
@@ -471,6 +471,27 @@ async function run() {
         tap(q('.enc_martian[data-id="1"]'));
         tap(q('#enc_board .enc_cell[data-r="4"][data-c="3"]'));
         await flush();
+    }
+
+    // Sprites: every sprite element has a real sheet, a non-zero size and a position inside the sheet; each sheet loads
+    {
+        const sprites = qa('.enc_spr');
+        const bad = sprites.filter((el) => {
+            const cs = getComputedStyle(el);
+            return !/url\(/.test(cs.backgroundImage) || !/^[0-9.]+(px|%)/.test(cs.backgroundSize) || parseFloat(cs.backgroundSize) <= 0
+                || rect(el).width <= 0 || rect(el).height <= 0
+                || !/ enc_[fm]_| enc_sp_/.test(' ' + el.className);
+        }).map((el) => el.className);
+        check('sprites_have_background', sprites.length > 0 && bad.length === 0, { count: sprites.length, bad });
+        const sheets = ['flowers.png', 'martians.png', 'specials.png'];
+        const loaded = await Promise.all(sheets.map((f) => new Promise((res) => {
+            const im = new Image();
+            im.onload = () => res(im.naturalWidth > 0);
+            im.onerror = () => res(false);
+            im.src = '/bga/img/' + f;
+        })));
+        check('sprite_sheets_load', loaded.every(Boolean), loaded);
+        check('no_img_tags_left', qa('img').length === 0, qa('img').length);
     }
 
     // Layout and events after every flow

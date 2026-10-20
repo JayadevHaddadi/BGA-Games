@@ -25,7 +25,9 @@ from bga_assets import build_metadata, texture  # noqa: E402
 
 MARS = GAME.parent / 'gardensofmars' / 'bga' / 'img'
 IMG = GAME / 'bga' / 'img'
+SRC = GAME / 'design' / 'src'  # single pieces; make_sprites.py packs them into bga/img/ sheets
 IMG.mkdir(parents=True, exist_ok=True)
+SRC.mkdir(parents=True, exist_ok=True)
 
 BG = (20, 26, 38)  # deep space blue, the table colour behind the board
 FLOWER_SRC = {'blue': 'flower_blue.png', 'red': 'flower_red.png', 'yellow': 'flower_yellow.png',
@@ -90,7 +92,7 @@ def action_icons():
         crop = fit_square(crop, 150)
         canvas = Image.new('RGBA', (160, 160), (0, 0, 0, 0))
         canvas.alpha_composite(crop, ((160 - crop.width) // 2, (160 - crop.height) // 2))
-        canvas.save(IMG / f'special_{slot}.png', optimize=True)
+        canvas.save(SRC / f'special_{slot}.png', optimize=True)
 
 
 def fit_square(im, side):
@@ -104,10 +106,10 @@ def flowers_and_martians():
         im = rgba(MARS / name)
         if colour == 'magenta':
             im = hue_to_magenta(im)
-        im.save(IMG / f'flower_{colour}.png', optimize=True)
-    rgba(MARS / 'flower_gray.png').save(IMG / 'flower_wild.png', optimize=True)
+        im.save(SRC / f'flower_{colour}.png', optimize=True)
+    rgba(MARS / 'flower_gray.png').save(SRC / 'flower_wild.png', optimize=True)
     for name in ['bot', 'ali', 'marty', 'bob', 'robby']:
-        rgba(MARS / f'{name}.png').save(IMG / f'martian_{name}.png', optimize=True)
+        rgba(MARS / f'{name}.png').save(SRC / f'martian_{name}.png', optimize=True)
 
 
 def peak_and_counter():
@@ -118,12 +120,12 @@ def peak_and_counter():
     d.ellipse((12, 12, s - 12, s - 12), fill=(72, 78, 90, 255), outline=(22, 25, 32, 255), width=7)
     d.ellipse((58, 58, s - 58, s - 58), fill=(96, 103, 116, 255), outline=(40, 45, 55, 255), width=4)
     d.ellipse((104, 104, s - 104, s - 104), fill=(120, 128, 142, 255))
-    peak.save(IMG / 'peak.png', optimize=True)
+    peak.save(SRC / 'peak.png', optimize=True)
 
     counter = Image.new('RGBA', (s, s), (0, 0, 0, 0))
     d = ImageDraw.Draw(counter)
     d.ellipse((10, 10, s - 10, s - 10), fill=(150, 152, 158, 255), outline=(70, 72, 78, 255), width=8)
-    counter.save(IMG / 'counter.png', optimize=True)
+    counter.save(SRC / 'counter.png', optimize=True)
 
 
 TABLE = (178, 200, 217)  # pale Enceladus ice: light enough that black Martians and the start squares read (designer: "too dark")
@@ -150,8 +152,8 @@ def table_background():
 def metadata_images():
     build_metadata(GAME, {
         'wordmark': 'enceladustitle.png',
-        'flowers': [f'bga/img/flower_{c}.png' for c in ['blue', 'red', 'yellow', 'green', 'magenta']],
-        'peak': 'bga/img/peak.png',
+        'flowers': [f'design/src/flower_{c}.png' for c in ['blue', 'red', 'yellow', 'green', 'magenta']],
+        'peak': 'design/src/peak.png',
         'background': list(BG),
         'publisher_logo': '../Nestor Games Logo.jpg',
         'publisher_tint': [35, 49, 74],
@@ -166,4 +168,6 @@ if __name__ == '__main__':
     peak_and_counter()
     table_background()
     metadata_images()
+    import make_sprites
+    make_sprites.build()
     print('art written to', IMG, 'and', GAME / 'bga' / 'metadata_assets')
