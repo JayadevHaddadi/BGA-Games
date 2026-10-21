@@ -18,6 +18,7 @@ Not covered: real clicks, look and feel, phone layout, rules correctness. Those 
 | microchip | Antigravity | 2-5 | yes | PASS 2p, 5p, all scenarios | 2026-10-19 | |
 | red | Antigravity | 2-3 | yes | PASS 3p (all), 2p (replay skipped) | 2026-10-19 | |
 | hipposandcrocodiles | Antigravity | 2 | yes | PASS 2p, all scenarios incl. replay | 2026-10-19 | replay load error fixed by Antigravity |
+| gardensofio | | 2-5 | yes | PASS 2p, 5p, all scenarios | 2026-10-21 | lap-bonus crash fixed (3f565ed); debug_playToEnd added |
 | all other games | | | no | not run | | add the slug to `tools/e2e/games.json` to enable |
 
 How to update: after reading a CI result, change the row (result, date, one line of notes). If a scenario fails, the

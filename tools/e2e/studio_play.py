@@ -400,8 +400,9 @@ class Runner:
                 gf.locator('#debug_playToEnd').click(timeout=8000)
                 self.note('autoplay via the game\'s debug_playToEnd')
             else:
-                gf.locator('#debug_play_moves').dblclick(timeout=8000)
-                self.note('autoplay via the built-in zombie play button (double click)')
+                # The built-in button's double click sends two concurrent requests, which deadlock in MySQL.
+                raise StepFailed('the game has no debug_playToEnd(): add it to Game.php '
+                                 '($this->debug->playUntil(...), see gardensofenceladus)')
         except Exception as e:
             self.snap('debug_menu_missing')
             self.dump_dom('debug_menu_missing')
