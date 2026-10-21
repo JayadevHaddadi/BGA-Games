@@ -272,10 +272,10 @@ export class Game {
                 glyph.classList.add('pp_roadblock');
                 glyph.title = _('Roadblock');
             }
-            // Where a factory can go: a faint dashed factory outline in the player's colour
+            // Where a factory can go: a plain yellow rectangle on the edge (outline only)
             const buildHere = this.stateName === 'PlaceFactory' && targets.edges.has(key) && !edge;
             if (buildHere) {
-                glyph.classList.add('pp_factory', 'pp_outline', 'pp_ico', `pp_ico_f_${this.myColour()}`, `pp_f_${this.myColour()}`);
+                glyph.classList.add('pp_buildable');
                 glyph.title = _('Build a factory here');
             }
             // Other targets (roadblock) are a short dashed bar in the street
@@ -527,22 +527,22 @@ export class Game {
         if (!this.mode) return _('Factory built. Optional bribe, costs 1 bitcoin: choose one, skip, or undo the factory.');
         const st = this.stage;
         if (this.mode === 'police') {
-            if (!st) return _('Police: tap a district with humans. The shield moves there.');
+            if (!st) return _("Police: tap a district with humans (not the bulldozer's). One human goes to each open neighbour.");
             if (st.recipients.length < st.need) {
                 return _('Police: tap ${n} open neighbour(s) to receive a human.').replace('${n}', String(st.need - st.recipients.length));
             }
             return _('Confirm the police, or tap another district.');
         }
         if (this.mode === 'sweep') {
-            if (!st) return _('Bulldozer: tap a district it can reach straight ahead.');
+            if (!st) return _('Bulldozer: choose how many humans to take, then tap where it drives.');
             return this.sweepLeft() === 0
                 ? _('Confirm the bulldozer, or change the humans dropped on each district.')
                 : _('Bulldozer: ${n} more human(s) to drop. Every district on the way gets at least one.').replace('${n}', String(this.sweepLeft()));
         }
         if (this.mode === 'roadblock') {
-            return st ? _('Confirm the roadblock, or tap another edge.') : _('Roadblock: tap an empty edge between two districts.');
+            return st ? _('Confirm the roadblock, or tap another edge.') : _('Roadblock: tap an empty edge to block it.');
         }
-        return st ? _('Confirm the new humans, or tap another square.') : _('More people: tap the crossing of four districts.');
+        return st ? _('Confirm the new humans, or tap another square.') : _('More people: tap a crossing of four districts; each gets one human from outside.');
     }
 
     waitingText() {
@@ -662,17 +662,17 @@ export class Game {
             return;
         }
         const labels = { police: _('Police'), sweep: _('Bulldozer'), roadblock: _('Roadblock'), more: _('More people') };
-        PP_MODES.forEach((m, i) => {
+        PP_MODES.forEach((m) => {
             const why = this.bribeWhy(m, args);
             bar.addActionButton(labels[m], () => this.chooseMode(m), {
-                color: i % 2 === 0 ? 'primary' : 'secondary',
+                color: 'secondary',
                 disabled: why !== '',
                 tooltip: why || undefined,
                 title: why ? `${labels[m]}: ${why}` : labels[m],
             });
         });
         bar.addActionButton(_('Undo'), () => this.bga.actions.performAction('actUndo', {}), { color: 'alert', tooltip: _('Take back the factory you just built.') });
-        bar.addActionButton(_('Skip bribe'), () => this.bga.actions.performAction('actSkipBribe', {}), { color: 'alert' });
+        bar.addActionButton(_('Skip bribe'), () => this.bga.actions.performAction('actSkipBribe', {}), { color: 'primary' });
     }
 
     /** Why a bribe cannot be used right now (empty string: it can). */
