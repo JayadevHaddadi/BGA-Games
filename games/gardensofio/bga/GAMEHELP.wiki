@@ -5,7 +5,7 @@ Plant flowers, score points and move your Martian around the 40-space track. Whe
 ==Setup==
 
 * Each player draws flowers from the bag: '''2 players 27, 3 players 18, 4 players 14, 5 players 11'''. The rest stay in the bag and are not in play.
-* Players place '''3 trees''' on empty circles, one at a time (2 players: first, second, first).
+* '''3 trees''' go on the garden. By default they are placed at random before the game and never cut the garden into separate areas. With the option ''Players place them'', the players place them on empty circles, one at a time (2 players: first, second, first).
 * Your Martian starts on space 0 (top-left corner).
 
 ==Your turn==
@@ -56,6 +56,7 @@ A coloured disc with a Martian on a counter shows who used it.
 
 ==Options==
 
+* '''Tree placement:''' ''Random'' (default) or ''Players place them'' (rulebook).
 * '''Lap bonus:''' when your Martian crosses the start line, take one flower from the board into your reserve (not of a colour with none left in reserves).
 * '''Cooperative:''' all players together; the score is that of the Martian furthest behind.
 

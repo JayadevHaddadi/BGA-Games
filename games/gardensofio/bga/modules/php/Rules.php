@@ -369,6 +369,70 @@ final class Rules
         return $out;
     }
 
+    /** Fixed trees used if random placement ever fails (never in practice). */
+    public const FALLBACK_TREES = ['2,2', '4,6', '6,3'];
+
+    /**
+     * True when all non-tree circles form ONE region (4-neighbour adjacency, as flowers connect).
+     *
+     * @param array<int,string> $trees keys "r,c"
+     */
+    public static function gardenConnected(array $trees): bool
+    {
+        $blocked = array_flip($trees);
+        $start = null;
+        $open = 0;
+        for ($r = 0; $r < self::SIZE; $r++) {
+            for ($c = 0; $c < self::SIZE; $c++) {
+                if (!isset($blocked[self::key($r, $c)])) {
+                    $open++;
+                    $start ??= [$r, $c];
+                }
+            }
+        }
+        if ($start === null) {
+            return true;
+        }
+        $seen = [self::key($start[0], $start[1]) => true];
+        $queue = [$start];
+        while ($queue) {
+            [$r, $c] = array_pop($queue);
+            foreach ([[1, 0], [-1, 0], [0, 1], [0, -1]] as [$dr, $dc]) {
+                $nr = $r + $dr;
+                $nc = $c + $dc;
+                $k = self::key($nr, $nc);
+                if (self::inside($nr, $nc) && !isset($blocked[$k]) && !isset($seen[$k])) {
+                    $seen[$k] = true;
+                    $queue[] = [$nr, $nc];
+                }
+            }
+        }
+        return count($seen) === $open;
+    }
+
+    /**
+     * Random tree circles (TREES of them) that never cut the garden into separate areas.
+     * Re-draws a bounded number of times, then falls back to a fixed layout.
+     * No circle is reserved at setup: the garden starts empty and Martians start off the garden.
+     *
+     * @return array<int,string> keys "r,c"
+     */
+    public static function randomTrees(): array
+    {
+        for ($try = 0; $try < 200; $try++) {
+            $all = range(0, self::SIZE * self::SIZE - 1);
+            shuffle($all);
+            $trees = [];
+            foreach (array_slice($all, 0, self::TREES) as $i) {
+                $trees[] = self::key(intdiv($i, self::SIZE), $i % self::SIZE);
+            }
+            if (self::gardenConnected($trees)) {
+                return $trees;
+            }
+        }
+        return self::FALLBACK_TREES;
+    }
+
     /** Track space (0..39) of a total distance. */
     public static function norm(int $p): int
     {

@@ -320,6 +320,21 @@ for ($game = 0; $game < $games; $game++) {
     $turnCounts[] = $turn;
 }
 
+// Random tree placement: count, distinct, connected garden (4-neighbour), over many draws.
+for ($seed = 1; $seed <= 500; $seed++) {
+    mt_srand($seed);
+    $t = Rules::randomTrees();
+    check(count($t) === Rules::TREES && count(array_unique($t)) === Rules::TREES, "seed $seed: 3 distinct trees");
+    check(Rules::gardenConnected($t), "seed $seed: garden stays one area");
+    foreach ($t as $k) {
+        check(Rules::inside(...array_map('intval', explode(',', $k))), "seed $seed: tree $k inside");
+    }
+}
+check(Rules::gardenConnected(Rules::FALLBACK_TREES) && count(Rules::FALLBACK_TREES) === Rules::TREES, 'fallback layout valid');
+check(!Rules::gardenConnected(['0,1', '1,0', '5,5']), 'trees sealing a corner are detected');
+check(!Rules::gardenConnected(['0,1', '1,0']), 'two trees sealing a corner are detected');
+check(Rules::gardenConnected([]), 'no trees: connected');
+
 echo "checks: $checks, failures: $failures, games: $games, max turns: $maxTurns, avg turns: "
     . (int) (array_sum($turnCounts) / max(1, count($turnCounts))) . "\n";
 exit($failures > 0 ? 1 : 0);

@@ -26,5 +26,19 @@
       }
     },
     "default": 1
+  },
+  "102": {
+    "name": "Tree placement",
+    "values": {
+      "1": {
+        "name": "Random (default)",
+        "description": "The 3 trees are placed on random circles before the game. They never cut the garden into separate areas."
+      },
+      "2": {
+        "name": "Players place them (Standard)",
+        "description": "As in the rulebook: players take turns placing the 3 trees on empty circles."
+      }
+    },
+    "default": 1
   }
 }

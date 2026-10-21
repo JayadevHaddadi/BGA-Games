@@ -75,10 +75,14 @@ class Game extends \Bga\GameFramework\Table
         $this->globals->set('trees_placed', 0);
 
         // Garden: 81 empty circles
+        // Tree placement option (102): 1 = random (default), 2 = players place them (rulebook).
+        $randomTrees = (int) ($options[102] ?? 1) !== 2;
+        $treeKeys = $randomTrees ? array_flip(Rules::randomTrees()) : [];
+        $this->globals->set('trees_placed', $randomTrees ? Rules::TREES : 0);
         $cells = [];
         for ($r = 0; $r < Rules::SIZE; $r++) {
             for ($c = 0; $c < Rules::SIZE; $c++) {
-                $cells[] = "($r, $c, NULL, NULL, NULL)";
+                $cells[] = isset($treeKeys[Rules::key($r, $c)]) ? "($r, $c, 't', NULL, NULL)" : "($r, $c, NULL, NULL, NULL)";
             }
         }
         static::DbQuery("INSERT INTO `cell` (`r`, `c`, `kind`, `color`, `owner`) VALUES " . implode(',', $cells));
@@ -131,7 +135,7 @@ class Game extends \Bga\GameFramework\Table
         $this->globals->set('setup_order', json_encode($treeOrder));
         $this->globals->set('first_player', $playerIds[0]);
         $this->gamestate->changeActivePlayer($playerIds[0]);
-        return PlaceTree::class;
+        return $randomTrees ? PlayerTurn::class : PlaceTree::class;
     }
 
     /* ---------------------------------------------------------------------------------------------- */
