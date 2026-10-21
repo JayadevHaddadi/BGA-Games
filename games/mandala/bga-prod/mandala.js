@@ -688,16 +688,23 @@ function (dojo, declare, bgaHelp) {
                     usableWidth = window.innerWidth;
                 }
 
-                var baseWidth = 1220;
-                var scale = Math.min(1.0, usableWidth / baseWidth);
-                scale = Math.max(0.25, Math.round(scale * 100) / 100);
+                var decksInPanel = usableWidth < 980;
+                var scale;
+                if (decksInPanel) {
+                    // Narrow screens: the board (994px + 2x4px margin) fills the whole width
+                    scale = Math.min(1.0, usableWidth / 1002);
+                    scale = Math.max(0.25, Math.floor(scale * 1000) / 1000);
+                } else {
+                    scale = Math.min(1.0, usableWidth / 1220);
+                    scale = Math.max(0.25, Math.round(scale * 100) / 100);
+                }
 
                 this.mdlScale = scale;
                 document.documentElement.style.setProperty('--mdlScale', scale);
 
                 this.cardSize = 98 * scale;
 
-                if (usableWidth < 980) {
+                if (decksInPanel) {
                     this.currentDeckTarget = 'player_boards';
                 } else {
                     this.currentDeckTarget = 'mdl_decks_area';
@@ -707,7 +714,9 @@ function (dojo, declare, bgaHelp) {
                 if (this.mountains) {
                     for (var mountain in this.mountains) {
                         if (this.mountains[mountain] && this.mountains[mountain].resizeItems) {
+                            this.mountains[mountain].horizontal_overlap = this.getOverlap(this.mountains[mountain]);
                             this.mountains[mountain].resizeItems(this.cardSize, this.cardSize, this.cardSize * 8, this.cardSize);
+                            this.mountains[mountain].updateDisplay();
                         }
                     }
                 }            
@@ -715,7 +724,9 @@ function (dojo, declare, bgaHelp) {
                     for (var playerId in this.gamedatas.players) {
                         for (var field in this.fields) {
                             if (this.fields[field] && this.fields[field][playerId] && this.fields[field][playerId].resizeItems) {
+                                this.fields[field][playerId].horizontal_overlap = this.getOverlap(this.fields[field][playerId]);
                                 this.fields[field][playerId].resizeItems(this.cardSize, this.cardSize, this.cardSize * 8, this.cardSize);
+                                this.fields[field][playerId].updateDisplay();
                             }
                         }
                     }
@@ -856,7 +867,7 @@ function (dojo, declare, bgaHelp) {
             var areaWidth = 375 * this.mdlScale;
             var cardsNbr = stockObj.count(); 
             if (cardsNbr < 5) {
-                stockObj.item_margin = 5;
+                stockObj.item_margin = Math.round(5 * this.mdlScale);
                 return 0;
             } else {
                 stockObj.item_margin = 0;

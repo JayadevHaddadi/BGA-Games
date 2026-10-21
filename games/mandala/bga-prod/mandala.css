@@ -93,10 +93,11 @@
 }
 
 #mdl_game_area.mdl_decks_in_panel {
-    width: calc(1114px * var(--mdlScale));
+    /* Narrow screens: board (994) + a 4px safety margin on each side, so it uses the full width */
+    width: calc(1002px * var(--mdlScale));
     display: block;
-    padding-left: calc(60px * var(--mdlScale));
-    padding-right: calc(60px * var(--mdlScale));
+    padding-left: calc(4px * var(--mdlScale));
+    padding-right: calc(4px * var(--mdlScale));
     box-sizing: border-box;
 }
 
@@ -196,7 +197,7 @@
     flex: 1;
     height: calc(338px * var(--mdlScale));
     width: 50%;
-    border: 2px solid transparent;
+    border: calc(2px * var(--mdlScale)) solid transparent;
     position: relative;
 }
 
@@ -236,7 +237,7 @@
 
 .mdl_mountain {
     height: calc(99px * var(--mdlScale));
-    margin-top: 10px;
+    margin-top: calc(10px * var(--mdlScale));
     margin-bottom: calc(10px * var(--mdlScale));
     border: calc(2px * var(--mdlScale)) solid transparent;
 }
