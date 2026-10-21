@@ -358,7 +358,7 @@ code{{background:#e7d9b5;padding:0 3px}}</style>
     figs = ''
     for fname, col in FACTIONS:
         for side, fn in (('basic', basic_board), ('advanced', advanced_board)):
-            rel = f'player_board_{fname.lower()}_{side}.svg'
+            rel = f'commander_mat_{fname.lower()}_{side}.svg'
             write(os.path.join(HERE, '..', 'bga', 'img', 'boards', rel), fn(col, fname.upper()))  # the one place mats live
             if fname == 'Purple':
                 figs += f'<figure><img src="../bga/img/boards/{rel}"><figcaption>{fname} {side}</figcaption></figure>'

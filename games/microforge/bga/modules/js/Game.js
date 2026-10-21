@@ -573,7 +573,7 @@ export class Game {
         const base = typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : '';
         const matBox = document.getElementById('mf_matbox');
         if (matBox) {
-            matBox.innerHTML = colour ? `<img class="mf_mat" src="${base}img/boards/player_board_${colour}_${side}.svg" alt="${_('Your commander board')}">` : '';
+            matBox.innerHTML = colour ? `<img class="mf_mat" src="${base}img/boards/commander_mat_${colour}_${side}.svg" alt="${_('Your commander board')}">` : '';
         }
     }
 
