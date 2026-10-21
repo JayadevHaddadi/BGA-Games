@@ -691,8 +691,8 @@ function (dojo, declare, bgaHelp) {
                 var decksInPanel = usableWidth < 980;
                 var scale;
                 if (decksInPanel) {
-                    // Narrow screens: the board (994px + 2x4px margin) fills the whole width
-                    scale = Math.min(1.0, usableWidth / 1002);
+                    // Narrow screens: the board (994px) + 2x86px reserved for the missing-colours panels fills the width
+                    scale = Math.min(1.0, usableWidth / 1166);
                     scale = Math.max(0.25, Math.floor(scale * 1000) / 1000);
                 } else {
                     scale = Math.min(1.0, usableWidth / 1220);

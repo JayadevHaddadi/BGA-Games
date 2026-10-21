@@ -93,11 +93,11 @@
 }
 
 #mdl_game_area.mdl_decks_in_panel {
-    /* Narrow screens: board (994) + a 4px safety margin on each side, so it uses the full width */
-    width: calc(1002px * var(--mdlScale));
+    /* Narrow screens: board (994) + 86px each side reserved for the missing-colours panels */
+    width: calc(1166px * var(--mdlScale));
     display: block;
-    padding-left: calc(4px * var(--mdlScale));
-    padding-right: calc(4px * var(--mdlScale));
+    padding-left: calc(86px * var(--mdlScale));
+    padding-right: calc(86px * var(--mdlScale));
     box-sizing: border-box;
 }
 
