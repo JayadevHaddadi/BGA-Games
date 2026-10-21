@@ -26,7 +26,7 @@ The game area depends on the number of players:
 {| class="wikitable"
 ! # !! Step !! What you do
 |-
-| 1 || '''Build a factory''' (mandatory) || Tap an empty edge between two districts of the game area. Empty edges show a faint dashed factory in your colour. The factory is built the moment you tap: there is no Confirm. An edge can hold a factory or a roadblock, never both.
+| 1 || '''Build a factory''' (mandatory) || Tap an empty edge between two districts of the game area. Empty edges you can build on are outlined in yellow. The factory is built the moment you tap: there is no Confirm. An edge can hold a factory or a roadblock, never both.
 |-
 | 2 || '''Bribe''' (optional) || Spend 1 bitcoin for one of four bribes, or press '''Skip bribe'''. Right after building, the four bribes appear as buttons in the status bar (greyed out when they cannot be used). '''Undo''' takes back the factory you just built, as long as you have not bribed or skipped. You can bribe only once per turn.
 |}

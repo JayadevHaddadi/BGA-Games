@@ -521,7 +521,7 @@ export class Game {
     stageHint() {
         if (!this.isActive) return this.waitingText();
         if (this.stateName === 'PlaceFactory') {
-            return _('Tap an empty edge between two districts of the game area to build a factory.');
+            return _('Build a factory between two districts: it scores the product of the humans in the two districts.');
         }
         if (this.stateName !== 'Bribe') return '';
         if (!this.mode) return _('Factory built. Optional bribe, costs 1 bitcoin: choose one, skip, or undo the factory.');
