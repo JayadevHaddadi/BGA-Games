@@ -13,7 +13,7 @@ use Bga\Games\people\Rules;
 
 /**
  * Step 1 of a turn: build a factory on a free edge between two districts of the game area.
- * After it, the player may spend one bitcoin on a bribe (Bribe state), otherwise the turn ends.
+ * The build is immediate (no confirmation); after it, the player may spend one bitcoin on a bribe (Bribe state), otherwise the turn ends.
  */
 class PlaceFactory extends GameState
 {
@@ -25,11 +25,6 @@ class PlaceFactory extends GameState
             id: 10,
             type: StateType::ACTIVE_PLAYER,
         );
-    }
-
-    public function onEnteringState(): void
-    {
-        $this->game->undoSavepoint();
     }
 
     public function getArgs(): array
@@ -66,6 +61,8 @@ class PlaceFactory extends GameState
 
     private function place(int $pid, string $edge): string
     {
+        // Undo point right before the build: the Bribe step can take the factory back (actUndo)
+        $this->game->undoSavepoint();
         $colour = $this->game->getPlayers()[$pid]['colour'];
         $this->game->addEdge($edge, Rules::FACTORY, $pid);
         $this->game->changeFactories($pid, -1);

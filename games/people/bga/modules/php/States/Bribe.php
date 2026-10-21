@@ -192,6 +192,14 @@ class Bribe extends GameState
         return $this->game->endTurn();
     }
 
+    /** Takes back the factory just built: restores the savepoint made right before the build. */
+    #[PossibleAction]
+    public function actUndo(): string
+    {
+        $this->game->undoRestorePoint();
+        return PlaceFactory::class;
+    }
+
     #[PossibleAction]
     public function actSkipBribe(): string
     {

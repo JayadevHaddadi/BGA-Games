@@ -78,7 +78,6 @@ body.people_page_bg #page-title #pagemaintitle {
 }
 
 /* Paper strips carry the text, so it stays readable over the dark table */
-#pp_bribes,
 #pp_sweep,
 #pp_info,
 #pp_final {
@@ -88,14 +87,6 @@ body.people_page_bg #page-title #pagemaintitle {
     margin: 0;
     padding: 6px 8px;
     font-size: 14px;
-}
-
-#pp_bribes {
-    font-size: 15px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    align-items: center;
 }
 
 #pp_sweep {
@@ -160,33 +151,6 @@ body.people_page_bg #page-title #pagemaintitle {
     pointer-events: none;
 }
 
-.pp_bribe {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    min-height: 44px;
-    min-width: 40px;
-    padding: 6px 12px;
-    border: 2px solid var(--pp-line);
-    background: #fbfaf6;
-    color: var(--pp-ink);
-    font: inherit;
-    font-weight: 600;
-    cursor: pointer;
-    border-radius: 0;
-}
-
-.pp_bribe[disabled] {
-    opacity: 0.45;
-    border-style: dashed;
-    cursor: default;
-}
-
-.pp_bribe[aria-pressed="true"] {
-    background: var(--pp-line);
-    color: #fbfaf6;
-}
-
 /* Board: the scan's grid is the background. Positions are set inline from Game.js (percent of the board). */
 #pp_board_wrap {
     width: 100%;
@@ -248,13 +212,13 @@ body.people_page_bg #page-title #pagemaintitle {
     outline-offset: -6px;
 }
 
-/* Humans: the designer's person icon (50% of a district) with the number big in the middle, a thin light halo keeps it readable on the grey */
+/* Humans: the designer's person icon (55% of a district, black outline built into the sprite) with the number big in the middle, a thin light halo keeps it readable on the grey */
 .pp_hum {
     position: absolute;
     left: 50%;
     top: 50%;
-    width: 50%;
-    height: 50%;
+    width: 55%;
+    height: 55%;
     transform: translate(-50%, -50%);
 }
 
@@ -320,9 +284,9 @@ body.people_page_bg #page-title #pagemaintitle {
 
 /* Factory: the sprite, sitting on the street between its two districts (sized from the board width) */
 .pp_edge .pp_glyph.pp_factory {
-    width: 5.25cqw;
-    height: 5.25cqw;
-    font-size: 5.25cqw;
+    width: 5.775cqw;
+    height: 5.775cqw;
+    font-size: 5.775cqw;
 }
 
 /* Roadblock: a red and white striped barrier laid across the street */
@@ -343,8 +307,10 @@ body.people_page_bg #page-title #pagemaintitle {
     height: 16px;
 }
 
-.pp_glyph.pp_ghost {
-    opacity: 0.6;
+.pp_glyph.pp_outline {
+    opacity: 0.35;
+    outline: 2px dashed var(--c, var(--pp-line));
+    outline-offset: 1px;
 }
 
 .pp_mark {
@@ -458,11 +424,6 @@ body.people_page_bg #page-title #pagemaintitle {
     height: 24px;
 }
 
-.pp_bribe .pp_ico {
-    width: 28px;
-    height: 28px;
-}
-
 /* Icons in the game log */
 #logs .pp_ico,
 .log .pp_ico {
@@ -513,12 +474,12 @@ body.people_page_bg #page-title #pagemaintitle {
 
 /* Hover styles only where a mouse exists, so taps never leave a stuck highlight */
 @media (hover: hover) {
-    .pp_bribe:not([disabled]):hover {
-        background: #e5e1d6;
-    }
-
     .pp_edge.pp_target:hover .pp_glyph.pp_free {
         background: #fff;
+    }
+
+    .pp_edge.pp_target:hover .pp_glyph.pp_outline {
+        opacity: 0.7;
     }
 
     .pp_cross.pp_target:hover {

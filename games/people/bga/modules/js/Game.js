@@ -55,7 +55,8 @@ class BribeState {
 export class Game {
     constructor(bga) {
         this.bga = bga;
-        this.stage = null; // the active player's staged choice
+        this.stage = null; // the active player's staged choice (bribes only)
+        this.sending = false; // a build is on its way to the server
         this.mode = null; // the chosen bribe in the Bribe state
         this.sweepCount = null; // humans the bulldozer takes (null: the most)
         this.askingCount = false; // the "how many" popup is open
@@ -87,7 +88,6 @@ export class Game {
         const root = document.createElement('div');
         root.id = 'pp_root';
         root.innerHTML = `
-            <div id="pp_bribes" role="group" aria-label="${_('Bribes')}" hidden></div>
             <div id="pp_sweep" role="group" aria-label="${_('Bulldozer')}" hidden></div>
             <div id="pp_board_wrap">
                 <div id="pp_board" role="grid" aria-label="${_('Game board: districts in columns and rows, A1 is the top-left district.')}"><div id="pp_grid"></div></div>
@@ -224,7 +224,6 @@ export class Game {
     /** Re-draws everything that depends on the state: districts, edges, crossings, bribe bar and player panels. */
     refresh() {
         this.renderBoard();
-        this.renderBribeBar();
         this.renderSweepPanel();
         this.renderPanels();
         this.renderInfo();
@@ -273,13 +272,16 @@ export class Game {
                 glyph.classList.add('pp_roadblock');
                 glyph.title = _('Roadblock');
             }
-            if (stage && stage.kind === 'factory' && stage.edge === key) {
-                glyph.classList.add('pp_ghost', 'pp_factory', 'pp_ico', `pp_ico_f_${this.myColour()}`);
+            // Where a factory can go: a faint dashed factory outline in the player's colour
+            const buildHere = this.stateName === 'PlaceFactory' && targets.edges.has(key) && !edge;
+            if (buildHere) {
+                glyph.classList.add('pp_factory', 'pp_outline', 'pp_ico', `pp_ico_f_${this.myColour()}`, `pp_f_${this.myColour()}`);
+                glyph.title = _('Build a factory here');
             }
-            // Targets are a short dashed bar in the street, not a box around the districts
-            glyph.classList.toggle('pp_free', targets.edges.has(key) && !(edge));
+            // Other targets (roadblock) are a short dashed bar in the street
+            glyph.classList.toggle('pp_free', targets.edges.has(key) && !edge && !buildHere);
             el.classList.toggle('pp_target', targets.edges.has(key) && !(edge));
-            el.classList.toggle('pp_selected', !!stage && (stage.kind === 'factory' || stage.kind === 'roadblock') && stage.edge === key);
+            el.classList.toggle('pp_selected', !!stage && stage.kind === 'roadblock' && stage.edge === key);
         });
 
         document.querySelectorAll('.pp_cross').forEach((el) => {
@@ -350,7 +352,13 @@ export class Game {
 
     tapEdge(key) {
         if (this.stateName === 'PlaceFactory') {
-            if (this.args.free.includes(key)) this.stage = { kind: 'factory', edge: key };
+            // One tap builds: the server accepts it or refuses it with a reason. Undo comes in the bribe step.
+            if (this.args.free.includes(key) && !this.sending) {
+                this.sending = true;
+                const done = () => { this.sending = false; };
+                const res = this.bga.actions.performAction('actPlaceFactory', { edge: key });
+                if (res && typeof res.then === 'function') res.then(done, done); else done();
+            }
             return;
         }
         if (this.stateName === 'Bribe' && this.mode === 'roadblock' && this.args.options.roadblock.includes(key)) {
@@ -513,12 +521,10 @@ export class Game {
     stageHint() {
         if (!this.isActive) return this.waitingText();
         if (this.stateName === 'PlaceFactory') {
-            return this.stage
-                ? _('Confirm to build the factory here, or tap another edge.')
-                : _('Tap an empty edge between two districts of the game area to build a factory.');
+            return _('Tap an empty edge between two districts of the game area to build a factory.');
         }
         if (this.stateName !== 'Bribe') return '';
-        if (!this.mode) return _('Optional bribe, costs 1 bitcoin: choose one below, or skip.');
+        if (!this.mode) return _('Factory built. Optional bribe, costs 1 bitcoin: choose one, skip, or undo the factory.');
         const st = this.stage;
         if (this.mode === 'police') {
             if (!st) return _('Police: tap a district with humans. The shield moves there.');
@@ -558,26 +564,6 @@ export class Game {
     }
 
     /* ------------------------------------------------------------------------ bribe bar and panels */
-
-    renderBribeBar() {
-        const host = document.getElementById('pp_bribes');
-        const show = this.isActive && this.stateName === 'Bribe' && this.args;
-        host.hidden = !show;
-        if (!show) {
-            host.innerHTML = '';
-            return;
-        }
-        const labels = { police: _('Police'), sweep: _('Bulldozer'), roadblock: _('Roadblock'), more: _('More people') };
-        const icons = { police: 'police', sweep: 'sweep', roadblock: 'roadblock', more: 'human' };
-        host.innerHTML = PP_MODES.map((m) => {
-            const count = this.args.options[m].length;
-            return `<button type="button" class="pp_bribe" data-mode="${m}" aria-pressed="${this.mode === m}"
-                ${count === 0 ? 'disabled' : ''}>${ppIco(icons[m])}<span>${labels[m]}</span></button>`;
-        }).join('');
-        host.querySelectorAll('.pp_bribe').forEach((el) => {
-            el.addEventListener('click', () => this.chooseMode(el.dataset.mode));
-        });
-    }
 
     chooseMode(mode) {
         this.mode = this.mode === mode ? null : mode;
@@ -628,6 +614,7 @@ export class Game {
 
     enterFactory(args, isActive) {
         this.stateName = 'PlaceFactory';
+        this.sending = false;
         this.args = args;
         this.isActive = isActive;
         this.stage = null;
@@ -665,25 +652,40 @@ export class Game {
 
     updateButtons(args, isActive) {
         this.bga.statusBar.removeActionButtons();
-        if (!isActive) return;
-        const clear = () => this.cancelStage();
-        const confirm = (fn, enabled) => this.bga.statusBar.addActionButton(_('Confirm'), fn, { color: 'primary', disabled: !enabled });
-
-        if (this.stateName === 'PlaceFactory') {
-            confirm(() => this.confirmStage(), this.stageReady());
-            if (this.stage) this.bga.statusBar.addActionButton(_('Undo'), clear, { color: 'alert' });
+        if (!isActive || this.stateName !== 'Bribe' || !args) return;
+        const bar = this.bga.statusBar;
+        if (this.mode) {
+            // A bribe is chosen: confirm it, or cancel back to the list
+            bar.addActionButton(_('Confirm'), () => this.confirmStage(), { color: 'primary', disabled: !this.stage || !this.stageReady() });
+            this.addCountButton();
+            bar.addActionButton(_('Cancel'), () => this.chooseMode(null), { color: 'alert' });
             return;
         }
-        if (this.stateName === 'Bribe') {
-            if (this.stage) {
-                confirm(() => this.confirmStage(), this.stageReady());
-                this.addCountButton();
-                this.bga.statusBar.addActionButton(_('Undo'), clear, { color: 'alert' });
-            } else {
-                this.addCountButton();
-                this.bga.statusBar.addActionButton(_('Skip bribe'), () => this.bga.actions.performAction('actSkipBribe', {}), { color: 'alert' });
-            }
-        }
+        const labels = { police: _('Police'), sweep: _('Bulldozer'), roadblock: _('Roadblock'), more: _('More people') };
+        PP_MODES.forEach((m, i) => {
+            const why = this.bribeWhy(m, args);
+            bar.addActionButton(labels[m], () => this.chooseMode(m), {
+                color: i % 2 === 0 ? 'primary' : 'secondary',
+                disabled: why !== '',
+                tooltip: why || undefined,
+                title: why ? `${labels[m]}: ${why}` : labels[m],
+            });
+        });
+        bar.addActionButton(_('Undo'), () => this.bga.actions.performAction('actUndo', {}), { color: 'alert', tooltip: _('Take back the factory you just built.') });
+        bar.addActionButton(_('Skip bribe'), () => this.bga.actions.performAction('actSkipBribe', {}), { color: 'alert' });
+    }
+
+    /** Why a bribe cannot be used right now (empty string: it can). */
+    bribeWhy(mode, args) {
+        const me = this.players[this.myId];
+        if (me && me.bitcoins < 1) return _('You have no bitcoins left.');
+        if (args.options[mode].length > 0) return '';
+        return {
+            police: _('No district with humans where the police can go.'),
+            sweep: _('The bulldozer cannot go anywhere.'),
+            roadblock: _('No roadblock left, or no empty edge.'),
+            more: _('Fewer than 4 humans are outside the game area.'),
+        }[mode];
     }
 
     /** Bulldozer: a side button that shows the humans taken and reopens the popup. */
@@ -703,9 +705,7 @@ export class Game {
     confirmStage() {
         const st = this.stage;
         if (!this.stageReady()) return;
-        if (st.kind === 'factory') {
-            this.bga.actions.performAction('actPlaceFactory', { edge: st.edge });
-        } else if (st.kind === 'police') {
+        if (st.kind === 'police') {
             const to = st.recipients.map(([r, c]) => `${r}:${c}`).join(',');
             this.bga.actions.performAction('actPolice', { r: st.r, c: st.c, to });
         } else if (st.kind === 'sweep') {

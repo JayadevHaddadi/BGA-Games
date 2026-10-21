@@ -132,10 +132,15 @@ def human():
     """The designer's grey person (design/src/person_grey.png), fitted to the cell height, centred, alpha kept."""
     im, _ = blank()
     src = Image.open(SRC_PERSON).convert('RGBA')
-    h = u(112)
+    h = u(106)
     w = round(src.width * h / src.height)
     src = src.resize((w, h), Image.LANCZOS)
-    im.alpha_composite(src, ((W - w) // 2, u(8)))
+    # thin black outline around the silhouette (3 px of the 128 px cell)
+    alpha = Image.new('L', (W, W), 0)
+    alpha.paste(src.getchannel('A'), ((W - w) // 2, u(11)))
+    grown = alpha.filter(ImageFilter.MaxFilter(int(u(3)) * 2 + 1))
+    im.paste(Image.new('RGBA', (W, W), INK), (0, 0), grown)
+    im.alpha_composite(src, ((W - w) // 2, u(11)))
     return im
 
 
