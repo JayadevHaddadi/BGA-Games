@@ -253,8 +253,8 @@ body.people_page_bg #page-title #pagemaintitle {
     position: absolute;
     left: 50%;
     top: 50%;
-    width: 80%;
-    height: 80%;
+    width: 40%;
+    height: 40%;
     transform: translate(-50%, -50%);
 }
 
@@ -265,8 +265,8 @@ body.people_page_bg #page-title #pagemaintitle {
     align-items: center;
     justify-content: center;
     padding-top: 6%;
-    font-size: 24px;
-    font-size: 7.5cqw;
+    font-size: 16px;
+    font-size: max(16px, 3.75cqw);
     font-weight: 800;
     color: var(--pp-ink);
     line-height: 1;
@@ -319,9 +319,9 @@ body.people_page_bg #page-title #pagemaintitle {
 
 /* Factory: the sprite, sitting on the street between its two districts (sized from the board width) */
 .pp_edge .pp_glyph.pp_factory {
-    width: 10.5cqw;
-    height: 10.5cqw;
-    font-size: 10.5cqw;
+    width: 5.25cqw;
+    height: 5.25cqw;
+    font-size: 5.25cqw;
 }
 
 /* Roadblock: a red and white striped barrier laid across the street */

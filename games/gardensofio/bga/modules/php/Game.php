@@ -166,6 +166,9 @@ class Game extends \Bga\GameFramework\Table
     {
         $changes = [];
         $keys = array_unique(array_merge(array_keys($before), array_keys($after)));
+        // Fixed lock order, and UPDATE in place (never DELETE + INSERT of the same primary key in one request:
+        // that takes gap locks and made concurrent requests deadlock on Studio, "mysql_deadlock_restart_transaction").
+        sort($keys);
         foreach ($keys as $key) {
             $old = $before[$key] ?? null;
             $new = $after[$key] ?? null;
@@ -173,11 +176,14 @@ class Game extends \Bga\GameFramework\Table
                 continue;
             }
             [$r, $c] = array_map('intval', explode(',', $key));
-            static::DbQuery("DELETE FROM `cell` WHERE `r` = $r AND `c` = $c");
-            if ($new !== null) {
-                $color = $new['k'] === 'f' ? "'" . $new['c'] . "'" : 'NULL';
-                $owner = $new['k'] === 'f' ? (string) $new['o'] : 'NULL';
-                static::DbQuery("INSERT INTO `cell` (`r`, `c`, `kind`, `color`, `owner`) VALUES ($r, $c, '{$new['k']}', $color, $owner)");
+            $kind = $new === null ? 'NULL' : "'" . $new['k'] . "'";
+            $color = ($new !== null && $new['k'] === 'f') ? "'" . $new['c'] . "'" : 'NULL';
+            $owner = ($new !== null && $new['k'] === 'f') ? (string) (int) $new['o'] : 'NULL';
+            // Setup inserts all 81 circles; a row can be missing only in a game that ran an older version.
+            if ((int) $this->getUniqueValueFromDb("SELECT COUNT(*) FROM `cell` WHERE `r` = $r AND `c` = $c") === 0) {
+                static::DbQuery("INSERT INTO `cell` (`r`, `c`, `kind`, `color`, `owner`) VALUES ($r, $c, $kind, $color, $owner)");
+            } else {
+                static::DbQuery("UPDATE `cell` SET `kind` = $kind, `color` = $color, `owner` = $owner WHERE `r` = $r AND `c` = $c");
             }
             $changes[] = $this->cellPayload($r, $c, $new);
         }
