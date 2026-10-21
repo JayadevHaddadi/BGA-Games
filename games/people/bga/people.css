@@ -97,9 +97,18 @@ body.people_page_bg #page-title #pagemaintitle {
 
 .pp_sweep_row {
     display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
+    flex-wrap: nowrap;
+    gap: 8px;
     align-items: center;
+}
+
+/* One compact row per district: name  [-]  n  [+]  (BGA styles can stretch buttons to full width) */
+.pp_sweep_row .pp_step {
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    font-size: 20px;
 }
 
 .pp_sweep_name {
