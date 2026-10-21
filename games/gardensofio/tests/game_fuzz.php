@@ -223,9 +223,13 @@ namespace Bga\Games\gardensofio\Fuzz {
                     $p = $a[array_rand($a)];
                     $next = $cur->actPlaceTree($p[0], $p[1]);
                 } elseif ($cur instanceof LapBonus) {
-                    $e = $cur->getArgs()['eligible'];
-                    $p = $e[array_rand($e)];
-                    $next = $cur->actTakeLapFlower($p[0], $p[1]);
+                    if (mt_rand(0, 2) === 0) {
+                        $next = $cur->zombie($pid);
+                    } else {
+                        $e = $cur->getArgs()['eligible'];
+                        $p = $e[array_rand($e)];
+                        $next = $cur->actTakeLapFlower($p[0], $p[1]);
+                    }
                 } elseif ($cur instanceof PlayerTurn) {
                     $args = $cur->getArgs();
                     $snap = $g->snapshot();
@@ -266,7 +270,9 @@ namespace Bga\Games\gardensofio\Fuzz {
                             // refused: carry on with a plant
                         }
                     }
-                    if ($args['candidates'] === []) {
+                    if (mt_rand(0, 2) === 0) {
+                        $next = $cur->zombie($pid); // autoplay as playUntil does
+                    } elseif ($args['candidates'] === []) {
                         $next = $cur->actNoPlant();
                     } else {
                         $k = $args['candidates'][array_rand($args['candidates'])];
