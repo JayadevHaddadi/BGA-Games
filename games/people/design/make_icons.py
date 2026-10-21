@@ -1,7 +1,7 @@
 """Draws the People gameplay icons as one sprite sheet: bga/img/icons.png.  Run:  python3 games/people/design/make_icons.py
 
 The shapes copy the physical pieces (see people_small.jpg): factories with a sawtooth roof and a chimney in the four
-player colours, the orange bulldozer, the black riot shield, the grey human, the orange bitcoin disc and a striped
+player colours, the orange bulldozer, the black riot shield, the grey person (the designer's PNG in design/src), the orange bitcoin disc and a striped
 road barrier. Flat fills, dark outline, no shadows.
 
 Sheet layout: 9 columns x 2 rows of 128 px cells.
@@ -17,6 +17,7 @@ from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
 
 GAME = Path(__file__).resolve().parent.parent
 OUT = GAME / 'bga' / 'img' / 'icons.png'
+SRC_PERSON = Path(__file__).resolve().parent / 'src' / 'person_grey.png'
 
 CELL = 128
 SS = 4  # supersampling
@@ -128,15 +129,13 @@ def police():
 
 
 def human():
-    im, d = blank()
-    m, md = new_mask()
-    md.ellipse([u(46), u(4), u(82), u(40)], fill=255)  # head
-    md.rounded_rectangle([u(34), u(36), u(94), u(84)], radius=u(14), fill=255)  # torso
-    for (x0, y0, x1, y1, w) in [(40, 48, 12, 76, 15), (88, 48, 116, 76, 15), (50, 76, 38, 118, 20), (78, 76, 90, 118, 20)]:
-        md.line([u(x0), u(y0), u(x1), u(y1)], fill=255, width=u(w))
-        for (x, y) in ((x0, y0), (x1, y1)):
-            md.ellipse([u(x - w / 2), u(y - w / 2), u(x + w / 2), u(y + w / 2)], fill=255)
-    piece(im, m, (214, 214, 208), width=4)
+    """The designer's grey person (design/src/person_grey.png), fitted to the cell height, centred, alpha kept."""
+    im, _ = blank()
+    src = Image.open(SRC_PERSON).convert('RGBA')
+    h = u(112)
+    w = round(src.width * h / src.height)
+    src = src.resize((w, h), Image.LANCZOS)
+    im.alpha_composite(src, ((W - w) // 2, u(8)))
     return im
 
 
