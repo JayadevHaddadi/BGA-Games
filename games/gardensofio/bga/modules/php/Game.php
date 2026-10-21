@@ -434,7 +434,7 @@ class Game extends \Bga\GameFramework\Table
 
         if ($laps > 0 && $this->isLapOption() && $this->eligibleLapFlowers() !== []) {
             $this->setFlag('lap_pending', 1);
-            $this->setFlag('lap_resume', 'end');
+            $this->globals->set('lap_resume', 'end');
             return LapBonus::class;
         }
 
