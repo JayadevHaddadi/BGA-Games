@@ -8,7 +8,7 @@ Sources (all in games/people/):
   ../Nestor Games Logo.jpg   publisher logo (shared file in games/).
 
 Outputs:
-  bga/img/       gameplay art (BGA preloads img/, so keep it small): board.jpg, table.jpg
+  bga/img/       gameplay art (BGA preloads img/, so keep it small): board.jpg, table.jpg, icons.png (design/make_icons.py)
   bga/metadata_assets/   Control Panel images, written by tools/bga_assets.py
 """
 from pathlib import Path
@@ -117,6 +117,8 @@ def displays():
 
 
 if __name__ == '__main__':
+    import make_icons
+    make_icons.build()  # bga/img/icons.png (sprite sheet of all gameplay icons)
     board()
     table_background()
     metadata_images()

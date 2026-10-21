@@ -23,6 +23,7 @@ const PP_SHAPES = {
     green: '<circle cx="5" cy="5" r="3.4"/>',
 };
 
+const ppIco = (name, extra = '') => `<span class="pp_ico pp_ico_${name}${extra}" aria-hidden="true"></span>`;
 const ppImg = (name) => `${typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : ''}img/${name}`;
 const ppCoord = (r, c) => `${String.fromCharCode(65 + c)}${r + 1}`;
 const ppOff = (i) => i * PP_PITCH + PP_GUTTER;
@@ -57,6 +58,7 @@ export class Game {
         this.stage = null; // the active player's staged choice
         this.mode = null; // the chosen bribe in the Bribe state
         this.sweepCount = null; // humans the bulldozer takes (null: the most)
+        this.askingCount = false; // the "how many" popup is open
         this.args = null;
         this.isActive = false;
         this.stateName = null;
@@ -88,16 +90,18 @@ export class Game {
             <div id="pp_bribes" role="group" aria-label="${_('Bribes')}" hidden></div>
             <div id="pp_sweep" role="group" aria-label="${_('Bulldozer')}" hidden></div>
             <div id="pp_board_wrap">
-                <div id="pp_board" role="grid" aria-label="${_('Board: 6 by 6 districts. Columns A to F, rows 1 to 6.')}"></div>
+                <div id="pp_board" role="grid" aria-label="${_('Game board: districts in columns and rows, A1 is the top-left district.')}"><div id="pp_grid"></div></div>
             </div>
             <p id="pp_info" aria-live="polite"></p>
             <div id="pp_final" hidden></div>`;
         this.bga.gameArea.getElement().appendChild(root);
         document.body.classList.add('people_page_bg');
         document.body.style.setProperty('--pp-table', `url("${ppImg('table.jpg')}")`);
+        document.body.style.setProperty('--pp-icons', `url("${ppImg('icons.png')}")`);
 
         this.buildBoard();
-        document.getElementById('pp_board').style.backgroundImage = `url("${ppImg('board.jpg')}")`;
+        this.cropBoard();
+        document.getElementById('pp_grid').style.backgroundImage = `url("${ppImg('board.jpg')}")`;
         document.getElementById('pp_sweep').addEventListener('click', (e) => this.onSweepPanelTap(e));
         this.fitContainerToScreen(root);
         window.addEventListener('resize', () => this.fitContainerToScreen(root));
@@ -155,16 +159,34 @@ export class Game {
         return r >= r0 && r <= r1 && c >= c0 && c <= c1;
     }
 
+    /**
+     * Shows only the game area: the 6 x 6 grid is laid out in full inside #pp_grid, and #pp_board is a window onto the
+     * area rows and columns. The fence roadblocks of the small and medium games sit on the area border and stay out of
+     * view (they still exist in the rules, see Rules::fenceEdges, and still count against the supply).
+     */
+    cropBoard() {
+        const [r0, r1, c0, c1] = this.bounds;
+        const nr = r1 - r0 + 1;
+        const nc = c1 - c0 + 1;
+        const board = document.getElementById('pp_board');
+        const grid = document.getElementById('pp_grid');
+        board.style.aspectRatio = `${nc} / ${nr}`;
+        grid.style.width = `${(PP_GRID * 100) / nc}%`;
+        grid.style.height = `${(PP_GRID * 100) / nr}%`;
+        grid.style.left = `${(-c0 * 100) / nc}%`;
+        grid.style.top = `${(-r0 * 100) / nr}%`;
+    }
+
     /** One element per district, edge and crossing. Positions are fixed percentages of the board (see the constants). */
     buildBoard() {
-        const board = document.getElementById('pp_board');
+        const board = document.getElementById('pp_grid');
         let html = '';
         for (let r = 0; r < PP_GRID; r++) {
             for (let c = 0; c < PP_GRID; c++) {
                 html += `<div class="pp_dist${this.inArea(r, c) ? '' : ' pp_out'}" data-r="${r}" data-c="${c}" role="gridcell"
                     style="left:${ppOff(c)}%;top:${ppOff(r)}%;width:${PP_DIST}%;height:${PP_DIST}%"
                     aria-label="${ppCoord(r, c)}">
-                    <span class="pp_count"></span><span class="pp_drop" hidden></span><span class="pp_bull" hidden></span><span class="pp_shield" hidden></span>
+                    <span class="pp_hum pp_ico pp_ico_human"></span><span class="pp_count"></span><span class="pp_drop" hidden></span><span class="pp_bull pp_ico pp_ico_sweep" hidden></span><span class="pp_shield pp_ico pp_ico_police" hidden></span>
                 </div>`;
             }
         }
@@ -242,18 +264,17 @@ export class Game {
             const glyph = el.querySelector('.pp_glyph');
             glyph.className = 'pp_glyph';
             glyph.innerHTML = '';
+            const playable = !el.classList.contains('pp_inactive'); // the fence on the area border is never drawn
             if (edge && edge.type === 'F') {
                 const colour = this.players[edge.pid] ? this.players[edge.pid].colour : 'red';
-                glyph.classList.add('pp_factory', `pp_f_${colour}`);
-                glyph.innerHTML = ppMark(colour);
+                glyph.classList.add('pp_factory', 'pp_ico', `pp_ico_f_${colour}`);
                 glyph.title = _('Factory');
-            } else if (edge && edge.type === 'R') {
+            } else if (edge && edge.type === 'R' && playable) {
                 glyph.classList.add('pp_roadblock');
                 glyph.title = _('Roadblock');
             }
             if (stage && stage.kind === 'factory' && stage.edge === key) {
-                glyph.classList.add('pp_ghost', `pp_f_${this.myColour()}`);
-                glyph.innerHTML = ppMark(this.myColour());
+                glyph.classList.add('pp_ghost', 'pp_factory', 'pp_ico', `pp_ico_f_${this.myColour()}`);
             }
             // Targets are a short dashed bar in the street, not a box around the districts
             glyph.classList.toggle('pp_free', targets.edges.has(key) && !(edge));
@@ -294,7 +315,7 @@ export class Game {
             this.args.free.forEach((k) => out.edges.add(k));
             return out;
         }
-        if (this.stateName !== 'Bribe' || !this.mode) return out;
+        if (this.stateName !== 'Bribe' || !this.mode || this.askingCount) return out;
         const opts = this.args.options;
         if (this.mode === 'police') {
             opts.police.forEach(([r, c]) => out.dists.add(`${r},${c}`));
@@ -380,6 +401,36 @@ export class Game {
         return { kind: 'sweep', tr, tc, path, drops };
     }
 
+    /**
+     * Small choice popup (allowed for an in-turn choice): how many humans the bulldozer picks up, buttons 1 to max.
+     * Choosing sets the count; closing it without a choice leaves the bulldozer bribe.
+     */
+    askSweepCount() {
+        const max = this.sweepMax();
+        const dialogs = this.bga?.dialogs;
+        if (max <= 1 || typeof dialogs?.multipleChoice !== 'function') {
+            this.sweepCount = max || null;
+            return;
+        }
+        const choices = {};
+        for (let n = 1; n <= max; n++) choices[n] = String(n);
+        this.askingCount = true;
+        const done = (value) => {
+            this.askingCount = false;
+            if (this.mode !== 'sweep' || !this.isActive) return;
+            if (value === null || value === undefined || value === '') {
+                if (this.sweepCount === null) this.mode = null; // closed before any choice: back to the bribe choice
+            } else {
+                this.sweepCount = Number(value);
+                this.stage = null;
+            }
+            this.refresh();
+            this.updateButtons(this.args, this.isActive);
+            this.setStatus(this.stageHint());
+        };
+        dialogs.multipleChoice(_('How many humans does the bulldozer pick up?'), choices).then(done, () => done(null));
+    }
+
     sweepLeft() {
         const st = this.stage;
         return this.sweepTake() - st.drops.reduce((a, b) => a + b, 0);
@@ -387,20 +438,17 @@ export class Game {
 
     renderSweepPanel() {
         const host = document.getElementById('pp_sweep');
-        const show = this.isActive && this.stateName === 'Bribe' && this.mode === 'sweep' && this.args && this.sweepMax() > 0;
+        const show = this.isActive && this.stateName === 'Bribe' && this.mode === 'sweep' && this.args && this.sweepMax() > 0
+            && !!this.stage && this.stage.kind === 'sweep';
         host.hidden = !show;
         if (!show) {
             host.innerHTML = '';
             return;
         }
-        const take = this.sweepTake();
-        let html = `<div class="pp_sweep_row"><span>${_('Humans to take')}</span>`;
-        for (let n = 1; n <= this.sweepMax(); n++) {
-            html += `<button type="button" class="pp_step" data-take="${n}" aria-pressed="${n === take}">${n}</button>`;
-        }
-        html += '</div>';
+        let html = '';
         const st = this.stage;
         if (st && st.kind === 'sweep') {
+            html += `<div class="pp_sweep_row"><span>${ppIco('sweep')} ${_('Humans dropped on each district')}</span></div>`;
             st.path.forEach(([r, c], i) => {
                 html += `<div class="pp_sweep_row"><span class="pp_sweep_name">${ppCoord(r, c)}</span>
                     <button type="button" class="pp_step" data-drop="${i}" data-delta="-1" aria-label="${_('Fewer')}" ${st.drops[i] <= 1 ? 'disabled' : ''}>-</button>
@@ -414,12 +462,7 @@ export class Game {
     onSweepPanelTap(e) {
         const el = e.target.closest('button');
         if (!el || el.disabled || !this.isActive || this.mode !== 'sweep') return;
-        if (el.dataset.take) {
-            this.sweepCount = Number(el.dataset.take);
-            const st = this.stage;
-            // A longer path than humans taken is not possible: choose the destination again
-            this.stage = st && this.sweepDistance([st.tr, st.tc]) <= this.sweepTake() ? this.sweepStage(st.tr, st.tc) : null;
-        } else if (el.dataset.drop !== undefined && this.stage) {
+        if (el.dataset.drop !== undefined && this.stage) {
             const i = Number(el.dataset.drop);
             const delta = Number(el.dataset.delta);
             const st = this.stage;
@@ -485,7 +528,7 @@ export class Game {
             return _('Confirm the police, or tap another district.');
         }
         if (this.mode === 'sweep') {
-            if (!st) return _('Bulldozer: choose how many humans to take, then tap a district it can reach straight ahead.');
+            if (!st) return _('Bulldozer: tap a district it can reach straight ahead.');
             return this.sweepLeft() === 0
                 ? _('Confirm the bulldozer, or change the humans dropped on each district.')
                 : _('Bulldozer: ${n} more human(s) to drop. Every district on the way gets at least one.').replace('${n}', String(this.sweepLeft()));
@@ -525,10 +568,11 @@ export class Game {
             return;
         }
         const labels = { police: _('Police'), sweep: _('Bulldozer'), roadblock: _('Roadblock'), more: _('More people') };
+        const icons = { police: 'police', sweep: 'sweep', roadblock: 'roadblock', more: 'human' };
         host.innerHTML = PP_MODES.map((m) => {
             const count = this.args.options[m].length;
             return `<button type="button" class="pp_bribe" data-mode="${m}" aria-pressed="${this.mode === m}"
-                ${count === 0 ? 'disabled' : ''}>${labels[m]}</button>`;
+                ${count === 0 ? 'disabled' : ''}>${ppIco(icons[m])}<span>${labels[m]}</span></button>`;
         }).join('');
         host.querySelectorAll('.pp_bribe').forEach((el) => {
             el.addEventListener('click', () => this.chooseMode(el.dataset.mode));
@@ -539,6 +583,7 @@ export class Game {
         this.mode = this.mode === mode ? null : mode;
         this.sweepCount = null;
         this.stage = null;
+        if (this.mode === 'sweep') this.askSweepCount();
         this.refresh();
         this.updateButtons(this.args, this.isActive);
         this.setStatus(this.stageHint());
@@ -557,14 +602,15 @@ export class Game {
             }
             const p = this.players[pid];
             if (!p) return;
-            line.innerHTML = `<span class="pp_swatch pp_f_${p.colour}" title="${this.colourName(p.colour)}">${ppMark(p.colour)}</span>
-                <span>${p.bitcoins} ${_('bitcoins')}</span><span>${p.factories} ${_('factories')}</span>`;
+            line.innerHTML = `<span class="pp_stat" title="${_('bitcoins')}" aria-label="${p.bitcoins} ${_('bitcoins')}">${ppIco('coin')}<b>${p.bitcoins}</b></span>
+                <span class="pp_stat" title="${this.colourName(p.colour)}: ${_('factories')}" aria-label="${p.factories} ${_('factories')}">${ppIco(`f_${p.colour}`)}<b>${p.factories}</b></span>`;
         });
     }
 
     renderInfo() {
-        document.getElementById('pp_info').textContent =
-            `${_('Outside the game area')}: ${this.pool} ${_('humans')}. ${_('Roadblocks left')}: ${this.roadblocks}.`;
+        document.getElementById('pp_info').innerHTML =
+            `<span class="pp_stat">${_('Outside the game area')} ${ppIco('human')}<b>${this.pool}</b></span>
+             <span class="pp_stat">${_('Roadblocks left')} ${ppIco('roadblock')}<b>${this.roadblocks}</b></span>`;
     }
 
     colourName(colour) {
@@ -631,11 +677,19 @@ export class Game {
         if (this.stateName === 'Bribe') {
             if (this.stage) {
                 confirm(() => this.confirmStage(), this.stageReady());
+                this.addCountButton();
                 this.bga.statusBar.addActionButton(_('Undo'), clear, { color: 'alert' });
             } else {
+                this.addCountButton();
                 this.bga.statusBar.addActionButton(_('Skip bribe'), () => this.bga.actions.performAction('actSkipBribe', {}), { color: 'alert' });
             }
         }
+    }
+
+    /** Bulldozer: a side button that shows the humans taken and reopens the popup. */
+    addCountButton() {
+        if (this.mode !== 'sweep' || this.sweepMax() <= 1 || this.askingCount) return;
+        this.bga.statusBar.addActionButton(_('Humans: ${n}').replace('${n}', String(this.sweepTake())), () => this.askSweepCount(), { color: 'secondary' });
     }
 
     cancelStage() {

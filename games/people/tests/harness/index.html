@@ -54,6 +54,7 @@ for (let r = 0; r < 5; r++) for (let c = 0; c < 6; c++) {
     if (inArea(r, c) !== inArea(r + 1, c) && (inArea(r, c) || inArea(r + 1, c))) fence.push(`h:${r}:${c}`);
 }
 fence.forEach((key) => edges.push({ key, type: 'R', pid: 0 }));
+edges.push({ key: 'h:2:3', type: 'R', pid: 0 }); // one roadblock bought inside the area
 const factories = { 2: ['v:2:1', 'h:3:3', 'v:4:2'], 3: ['v:2:1', 'h:3:3', 'v:3:4', 'h:1:2'], 4: ['v:2:1', 'h:3:3', 'v:3:4', 'h:1:2'] }[players];
 factories.forEach((key, i) => edges.push({ key, type: 'F', pid: (i % players) + 1 }));
 const used = new Set(edges.map((e) => e.key));
@@ -113,7 +114,7 @@ const gamedatas = {
     edges,
     players: playersData,
     player_order: order,
-    roadblocks: 12 - fence.length,
+    roadblocks: 12 - fence.length - 1,
     pool: 8,
     bulldozer: [2, 2],
     shield: [3, 1],
@@ -122,7 +123,7 @@ const gamedatas = {
 
 /* ---------------------------------------------------------------- mock BGA */
 
-const log = { actions: [], sounds: [], buttons: [], fns: {}, title: '' };
+const log = { actions: [], sounds: [], buttons: [], fns: {}, title: '', dialogs: [], pick: null };
 const statusBar = {
     setTitle(t) { log.title = t; },
     addActionButton(label, fn, opts) { log.fns[label] = fn; log.buttons.push({ label, disabled: !!(opts && opts.disabled), color: opts && opts.color }); },
@@ -135,6 +136,8 @@ const bga = {
     actions: { performAction: (name, args) => log.actions.push({ name, args }) },
     states: { register() {} },
     notifications: { setupPromiseNotifications() {} },
+    // The "how many" popup: records what it offered and answers with log.pick (null = closed without a choice)
+    dialogs: { multipleChoice: (text, choices) => { log.dialogs.push({ text, choices: Object.keys(choices) }); return Promise.resolve(log.pick); } },
     players: { getCurrentPlayerId: () => 1, getActivePlayerId: () => 1 },
     userPreferences: { get: () => 1 },
     gameui: { instantaneousMode: false },
@@ -176,6 +179,7 @@ const tap = (el) => el.dispatchEvent(new MouseEvent('click', { bubbles: true }))
 const press = (label) => { const b = log.buttons.find((x) => x.label === label); if (b && !b.disabled) log.fns[label](); return !!b; };
 const enabled = (label) => log.buttons.some((x) => x.label === label && !x.disabled);
 const script = {};
+const tick = () => new Promise((r) => setTimeout(r, 0));
 const stepSizes = () => [...document.querySelectorAll('.pp_step')].map((el) => Math.min(rect(el).width, rect(el).height));
 if (mode === 'script') {
     game.enterFactory({ free, factories_left: 14 }, true);
@@ -193,16 +197,30 @@ if (mode === 'script') {
     press('Confirm');
     script.policeAction = log.actions.slice(-1)[0];
 
-    // Bulldozer: take 4, drive 2 districts right, adjust the drops, confirm
-    game.enterBribe(bribeArgs, true);
-    document.querySelector('.pp_bribe[data-mode="sweep"]').click();
+    // Bulldozer: the popup asks how many to take; take 4, drive 2 districts right, adjust the drops, confirm
+    const humansLabel = () => (log.buttons.find((x) => x.label.startsWith('Humans:')) || {}).label;
+    const askAgain = async (n) => { log.pick = String(n); press(humansLabel()); await tick(); };
     const lit = () => [...document.querySelectorAll('.pp_dist.pp_target')].map((el) => `${el.dataset.r}${el.dataset.c}`).sort().join(',');
     const sweepBtn = (sel) => document.querySelector(`#pp_sweep ${sel}`);
-    script.sweepTakeButtons = document.querySelectorAll('#pp_sweep [data-take]').length;
+
+    game.enterBribe(bribeArgs, true);
+    log.pick = null; // popup closed without a choice: back to the bribe list
+    document.querySelector('.pp_bribe[data-mode="sweep"]').click();
+    script.litWhileAsking = lit();
+    await tick();
+    script.popupOffered = log.dialogs.slice(-1)[0];
+    script.cancelLeavesMode = document.querySelectorAll('.pp_bribe[aria-pressed="true"]').length === 0;
+    script.noInlineTakeRow = document.querySelectorAll('#pp_sweep [data-take]').length === 0 && document.getElementById('pp_sweep').hidden;
+
+    log.pick = '5';
+    document.querySelector('.pp_bribe[data-mode="sweep"]').click();
+    await tick();
     script.sweepLitMax = lit();
-    sweepBtn('[data-take="2"]').click();
+    script.countButton = humansLabel();
+    await askAgain(2);
     script.sweepLitTake2 = lit();
-    sweepBtn('[data-take="4"]').click();
+    await askAgain(4);
+    script.countButtonAfter = humansLabel();
     tap(document.querySelector('.pp_dist[data-r="2"][data-c="4"]'));
     const rows = () => [...document.querySelectorAll('#pp_sweep .pp_sweep_n')].map((el) => el.textContent).join(',');
     script.sweepDefaultDrops = rows();
@@ -215,20 +233,20 @@ if (mode === 'script') {
     script.sweepPlusEnabledWhenFull = !sweepBtn('[data-drop="0"][data-delta="1"]').disabled;
     sweepBtn('[data-drop="0"][data-delta="1"]').click();
     script.sweepAfterPlus = rows();
-    script.sweepMinusDisabledAtOne = false;
     sweepBtn('[data-drop="1"][data-delta="-1"]').click();
     sweepBtn('[data-drop="1"][data-delta="-1"]').click();
     script.sweepMinusDisabledAtOne = sweepBtn('[data-drop="1"][data-delta="-1"]').disabled;
     script.sweepRowsAfterFloor = rows();
-    // shorter take than the path clears the destination
-    sweepBtn('[data-take="1"]').click();
-    script.sweepStageClearedByTake1 = document.querySelectorAll('#pp_sweep .pp_sweep_n').length === 0;
-    sweepBtn('[data-take="4"]').click();
+    // a shorter take than the path clears the destination
+    await askAgain(1);
+    script.sweepStageClearedByTake1 = document.getElementById('pp_sweep').hidden;
+    await askAgain(4);
     tap(document.querySelector('.pp_dist[data-r="2"][data-c="4"]'));
     sweepBtn('[data-drop="1"][data-delta="-1"]').click();
     sweepBtn('[data-drop="0"][data-delta="1"]').click();
     press('Confirm');
     script.sweepAction = log.actions.slice(-1)[0];
+    game.leaveState();
 }
 
 const inAreaEl = (el) => !el.classList.contains('pp_inactive');
@@ -240,6 +258,22 @@ const distSizes = [...document.querySelectorAll('.pp_dist:not(.pp_out)')].map((e
 const root = rect(document.getElementById('pp_root'));
 const board = rect(document.getElementById('pp_board'));
 const viewport = document.documentElement.clientWidth || window.innerWidth;
+const boardRect = rect(document.getElementById('pp_board'));
+const inside = (b) => b.left >= boardRect.left - 1 && b.right <= boardRect.right + 1 && b.top >= boardRect.top - 1 && b.bottom <= boardRect.bottom + 1;
+const px = (el, prop) => parseFloat(getComputedStyle(el)[prop]);
+const areaDists = [...document.querySelectorAll('.pp_dist:not(.pp_out)')];
+const boardInfo = {
+    areaOutside: areaDists.filter((el) => !inside(rect(el))).length,
+    roadblocksDrawn: document.querySelectorAll('.pp_roadblock').length,
+    humanIconMin: Math.round(Math.min(...areaDists.map((el) => rect(el.querySelector('.pp_hum')).width))),
+    countFont: Math.round(px(areaDists[0].querySelector('.pp_count'), 'fontSize')),
+    factoryIcons: document.querySelectorAll('.pp_edge .pp_factory').length,
+    bulldozerIcon: Math.round(rect(document.querySelector('.pp_bull:not([hidden])') || document.body).width),
+    shieldIcon: Math.round(rect(document.querySelector('.pp_shield:not([hidden])') || document.body).width),
+    panelIcons: document.querySelectorAll('.pp_panel .pp_ico').length,
+    panelIconMin: Math.round(Math.min(...[...document.querySelectorAll('.pp_panel .pp_ico')].map((el) => rect(el).width))),
+    panelFont: Math.round(px(document.querySelector('.pp_panel b'), 'fontSize')),
+};
 const report = {
     viewport: window.innerWidth,
     players,
@@ -252,10 +286,19 @@ const report = {
     rootWidth: Math.round(root.width),
     actionButtons: log.buttons.map((b) => `${b.label}${b.disabled ? ' (disabled)' : ''}`),
     statusTitle: log.title,
+    board: boardInfo,
     errors: window.errors,
     script: mode === 'script' ? script : undefined,
     checks: mode === 'script' ? {
-        takeButtons: { ok: script.sweepTakeButtons === 5 },
+        cropAspect: { ok: Math.abs(board.width / board.height - (bounds[3] - bounds[2] + 1) / (bounds[1] - bounds[0] + 1)) < 0.01 },
+        areaInsideBoard: { ok: boardInfo.areaOutside === 0 },
+        noFenceDrawn: { ok: boardInfo.roadblocksDrawn === 1 }, // only the bought roadblock, never the fence
+        humanIcons: { ok: boardInfo.humanIconMin >= 36 && boardInfo.countFont >= 20 },
+        panelIcons: { ok: boardInfo.panelIconMin >= 36 && boardInfo.panelFont >= 22 && boardInfo.panelIcons === players * 2 },
+        pieceIcons: { ok: boardInfo.factoryIcons >= 3 && boardInfo.bulldozerIcon > 0 && boardInfo.shieldIcon > 0 },
+        popup: { ok: !!script.popupOffered && script.popupOffered.choices.join(',') === '1,2,3,4,5' && script.cancelLeavesMode === true },
+        noInlineTakeRow: { ok: script.noInlineTakeRow === true && script.litWhileAsking === '' },
+        countButton: { ok: script.countButton === 'Humans: 5' && script.countButtonAfter === 'Humans: 4' },
         litAtMax: { ok: script.sweepLitMax.includes('24') && script.sweepLitMax.includes('23') },
         litAtTake2: { ok: script.sweepLitTake2.split(',').every((k) => Math.abs(k[0] - 2) + Math.abs(k[1] - 2) <= 2) && script.sweepLitTake2.includes('24') && !script.sweepLitTake2.includes('25') },
         defaultDrops: { ok: script.sweepDefaultDrops === '1,3' && script.sweepBadges === '+1,+3' },

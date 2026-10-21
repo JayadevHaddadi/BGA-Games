@@ -77,7 +77,7 @@ class Bribe extends GameState
         $this->game->setFlag('shield_c', $c);
 
         $this->spend($pid);
-        $this->notifyBribe($pid, 'police', $changes, clienttranslate('${player_name} spends a bitcoin on the police: the humans on ${coord} are dispersed.'), [
+        $this->notifyBribe($pid, 'police', $changes, clienttranslate('${player_name} ${icon} spends a bitcoin on the police: the humans on ${coord} are dispersed.'), [
             'coord' => $this->game->coordLabel($r, $c),
         ]);
         return $this->game->endTurn();
@@ -131,7 +131,7 @@ class Bribe extends GameState
             $detail[] = $this->game->coordLabel($pr, $pc) . ': ' . $list[$i];
         }
         $this->spend($pid);
-        $this->notifyBribe($pid, 'sweep', $changes, clienttranslate('${player_name} bulldozes ${taken} humans from ${from} to ${to} (${detail}).'), [
+        $this->notifyBribe($pid, 'sweep', $changes, clienttranslate('${player_name} ${icon} bulldozes ${taken} humans from ${from} to ${to} (${detail}).'), [
             'from' => $this->game->coordLabel($r, $c),
             'to' => $this->game->coordLabel($tr, $tc),
             'taken' => $count,
@@ -159,7 +159,7 @@ class Bribe extends GameState
         [$from, $to] = $this->game->edgeLabel($edge);
 
         $this->spend($pid);
-        $this->notifyBribe($pid, 'roadblock', [], clienttranslate('${player_name} spends a bitcoin on a roadblock between ${from} and ${to}.'), [
+        $this->notifyBribe($pid, 'roadblock', [], clienttranslate('${player_name} ${icon} spends a bitcoin on a roadblock between ${from} and ${to}.'), [
             'from' => $from,
             'to' => $to,
             'edge' => $edge,
@@ -186,7 +186,7 @@ class Bribe extends GameState
         $this->game->setFlag('pool', $this->game->flag('pool') - Rules::MORE_IN_COST);
 
         $this->spend($pid);
-        $this->notifyBribe($pid, 'more', $changes, clienttranslate('${player_name} spends a bitcoin to let more people in at ${coord}: four districts get one human each.'), [
+        $this->notifyBribe($pid, 'more', $changes, clienttranslate('${player_name} ${icon} spends a bitcoin to let more people in at ${coord}: four districts get one human each.'), [
             'coord' => $this->game->coordLabel($r, $c),
         ]);
         return $this->game->endTurn();
@@ -232,6 +232,7 @@ class Bribe extends GameState
             'player_id' => $pid,
             'player_name' => $this->game->getPlayerNameById($pid),
             'kind' => $kind,
+            'icon' => '<span class="pp_ico pp_ico_' . $kind . '"></span>',
             'changes' => $changes,
             'pool' => $this->game->flag('pool'),
             'bulldozer' => [$this->game->flag('bull_r'), $this->game->flag('bull_c')],

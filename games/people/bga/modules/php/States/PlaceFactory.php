@@ -74,11 +74,12 @@ class PlaceFactory extends GameState
 
         [$from, $to] = $this->game->edgeLabel($edge);
         $this->game->refreshScores();
-        $this->game->notifyAllPlayers('factoryPlaced', clienttranslate('${player_name} builds a ${colour} factory between ${from} and ${to}.'), [
+        $this->game->notifyAllPlayers('factoryPlaced', clienttranslate('${player_name} builds a ${colour} factory ${icon} between ${from} and ${to}.'), [
             'player_id' => $pid,
             'player_name' => $this->game->getPlayerNameById($pid),
             'edge' => $edge,
             'colour' => $this->game->colourName($colour),
+            'icon' => '<span class="pp_ico pp_ico_f_' . $colour . '"></span>',
             'from' => $from,
             'to' => $to,
             'players' => $this->game->getPlayers(),
