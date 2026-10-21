@@ -12,3 +12,6 @@
 9. Player panel: bitcoin and factory icons with counts, about twice the size.
 Icons: `design/make_icons.py` builds `bga/img/icons.png` (one sprite sheet, 9 x 2 cells); `make_assets.py` calls it. `bga/img/` holds 3 files.
 Harness: `frame.html` runs the 2, 3 and 4 player boards and merges the reports; the script flow covers the popup, the cropped board and the icon sizes.
+
+## Owner decisions (2026-10-21)
+- Bribe step buttons: bribes grey, Undo red, **Skip blue** (owner choice, overrides the usual red-for-skip convention; do not change back). Six buttons in the bribe step are accepted by the owner.
