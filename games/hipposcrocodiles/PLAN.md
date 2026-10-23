@@ -38,7 +38,7 @@ The object of the game is to place animal pieces into the river or lake. Each an
    Color: Vivid Green (`#2e7d32` / `#43a047`).
 
 ### Boards
-- **River** (Standard, Option 100 = 1): 20 rows × 10 columns (200 squares).
+- **Rectangle** (Option 100 = 2): 20 rows × 10 columns (200 squares).
 - **Lake** (Option 100 = 2): 14 rows × 14 columns (196 squares).
 
 Grid coordinates: row $r \in [0, \text{rows}-1]$, col $c \in [0, \text{cols}-1]$.

@@ -11,8 +11,8 @@
                 "description": "Rectangular playing area of 200 squares"
             },
             "3": {
-                "name": "River",
-                "description": "The whole surface of the original board: 10 squares wide at both ends, 14 wide in the middle (256 squares)"
+                "name": "Lagoon",
+                "description": "Meandering lagoon, 209 squares"
             },
             "4": {
                 "name": "Pool",

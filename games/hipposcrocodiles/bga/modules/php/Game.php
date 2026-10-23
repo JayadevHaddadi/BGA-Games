@@ -47,7 +47,7 @@ class Game extends \Bga\GameFramework\Table
         $this->tableStats->init(['turns_number'], 0);
         $this->playerStats->init(['turns_number', 'pieces_placed'], 0);
 
-        // Map (option 100): 1 Square, 2 Rectangle, 3 River, 4 Pool. Trunks (option 101): 1 off, 2 players place, 3 random.
+        // Map (option 100): 1 Square, 2 Rectangle, 3 Lagoon, 4 Pool. Trunks (option 101): 1 off, 2 players place, 3 random.
         $map = Rules::normalizeMap((int) ($options[100] ?? $this->tableOptions->get(100, Rules::DEFAULT_MAP)));
         $trunkMode = (int) ($options[101] ?? $this->tableOptions->get(101, Rules::TRUNKS_OFF));
         if (!in_array($trunkMode, [Rules::TRUNKS_OFF, Rules::TRUNKS_PLAYERS, Rules::TRUNKS_RANDOM], true)) {

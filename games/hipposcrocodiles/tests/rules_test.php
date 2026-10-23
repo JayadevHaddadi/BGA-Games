@@ -44,7 +44,7 @@ assertCheck($croc0['rows'] === 6 && $croc0['cols'] === 3, "Crocodile rot 0 is 6x
 // 3. Board Dimensions
 assertCheck(Rules::boardDimensions(Rules::MAP_SQUARE) === [14, 14], "Square map is 14x14");
 assertCheck(Rules::boardDimensions(Rules::MAP_RECTANGLE) === [20, 10], "Rectangle map is 20x10");
-assertCheck(Rules::boardDimensions(Rules::MAP_RIVER) === [20, 14], "River map is 20x14");
+assertCheck(Rules::boardDimensions(Rules::MAP_LAGOON) === [19, 13], "Lagoon map is 19x13");
 assertCheck(Rules::boardDimensions(Rules::MAP_POOL) === [16, 16], "Pool map is 16x16");
 
 // 4. Placement on Empty Board
@@ -88,7 +88,7 @@ assertCheck(!Rules::hasLegalPlacement($smallBoard, 5, 5, Rules::SPECIES_CROCODIL
 
 
 // 9. Maps: cell counts, shape, symmetry
-$expectedCells = [Rules::MAP_SQUARE => 196, Rules::MAP_RECTANGLE => 200, Rules::MAP_RIVER => 256, Rules::MAP_POOL => 208];
+$expectedCells = [Rules::MAP_SQUARE => 196, Rules::MAP_RECTANGLE => 200, Rules::MAP_LAGOON => 209, Rules::MAP_POOL => 208];
 foreach ($expectedCells as $map => $n) {
     assertCheck(Rules::maskCellCount($map) === $n, "map $map has $n cells");
     $mask = Rules::maskRows($map);
@@ -104,29 +104,31 @@ foreach ($expectedCells as $map => $n) {
         $zeros += count(array_filter($line, fn($v) => $v === 0));
     }
     assertCheck($zeros === $n, "map $map board has $n free cells");
-    // 180 degree symmetry of the printed boards
+    // 180 degree symmetry of the printed boards (the lagoon meanders: it is top/bottom mirror symmetric instead)
     $sym = true;
     for ($r = 0; $r < $mr; $r++) {
         for ($c = 0; $c < $mc; $c++) {
-            $sym = $sym && Rules::inMask($map, $r, $c) === Rules::inMask($map, $mr - 1 - $r, $mc - 1 - $c);
+            $other = $map === Rules::MAP_LAGOON ? Rules::inMask($map, $mr - 1 - $r, $c) : Rules::inMask($map, $mr - 1 - $r, $mc - 1 - $c);
+            $sym = $sym && Rules::inMask($map, $r, $c) === $other;
         }
     }
     assertCheck($sym, "map $map is symmetric");
 }
-assertCheck(Rules::maskRows(Rules::MAP_RIVER)[0] === '..##########..', "River top part is 10 wide");
-assertCheck(Rules::maskRows(Rules::MAP_RIVER)[10] === '##############', "River middle part is 14 wide");
+assertCheck(Rules::maskRows(Rules::MAP_LAGOON)[0] === '..###########', "Lagoon top rows are shifted right");
+assertCheck(Rules::maskRows(Rules::MAP_LAGOON)[7] === '###########..', "Lagoon middle rows are shifted left");
+assertCheck(Rules::maskRows(Rules::MAP_LAGOON)[3] === '.###########.', "Lagoon second band is centred");
 assertCheck(Rules::maskRows(Rules::MAP_POOL)[0] === '.....######.....', "Pool top row is 6 wide");
 assertCheck(Rules::normalizeMap(99) === Rules::DEFAULT_MAP, "Unknown map falls back to the default");
 
 // 10. Mask legality: animals cannot cover cells outside the mask
-$riverBoard = Rules::createBoardForMap(Rules::MAP_RIVER);
-assertCheck(!Rules::canPlace($riverBoard, 20, 14, Rules::SPECIES_HIPPO, 0, 0, 0), "River: hippo cannot cover top-left void corner");
-assertCheck(Rules::canPlace($riverBoard, 20, 14, Rules::SPECIES_HIPPO, 0, 0, 2), "River: hippo fits in the top part");
-assertCheck(!Rules::canPlace($riverBoard, 20, 14, Rules::SPECIES_HIPPO, 0, 1, 1), "River: hippo cannot stick out of the top part into the void");
-assertCheck(Rules::canPlace($riverBoard, 20, 14, Rules::SPECIES_HIPPO, 0, 3, 0), "River: hippo fits in the middle part");
+$lagoonBoard = Rules::createBoardForMap(Rules::MAP_LAGOON);
+assertCheck(!Rules::canPlace($lagoonBoard, 19, 13, Rules::SPECIES_HIPPO, 0, 0, 0), "Lagoon: hippo cannot cover top-left void corner");
+assertCheck(Rules::canPlace($lagoonBoard, 19, 13, Rules::SPECIES_HIPPO, 0, 0, 2), "Lagoon: hippo fits in the top part");
+assertCheck(!Rules::canPlace($lagoonBoard, 19, 13, Rules::SPECIES_HIPPO, 0, 2, 1), "Lagoon: hippo cannot stick out of the water into the void");
+assertCheck(Rules::canPlace($lagoonBoard, 19, 13, Rules::SPECIES_HIPPO, 0, 7, 0), "Lagoon: hippo fits in the left-shifted part");
 $poolBoard = Rules::createBoardForMap(Rules::MAP_POOL);
 assertCheck(!Rules::canPlace($poolBoard, 16, 16, Rules::SPECIES_CROCODILE, 0, 0, 2), "Pool: crocodile cannot stick out of the 6-wide top row");
-foreach ([Rules::MAP_SQUARE, Rules::MAP_RECTANGLE, Rules::MAP_RIVER, Rules::MAP_POOL] as $map) {
+foreach ([Rules::MAP_SQUARE, Rules::MAP_RECTANGLE, Rules::MAP_LAGOON, Rules::MAP_POOL] as $map) {
     [$mr, $mc] = Rules::boardDimensions($map);
     $b = Rules::createBoardForMap($map);
     foreach ([Rules::SPECIES_HIPPO, Rules::SPECIES_CROCODILE, Rules::SPECIES_TRUNK] as $sp) {
@@ -172,7 +174,7 @@ assertCheck($ok && count($poolTrunks) > 0, "Pool: trunks only inside the mask");
 // 12. Random trunk generation is always legal, spaced out and leaves both animals a move
 mt_srand(12345);
 $rand = fn(int $min, int $max): int => mt_rand($min, $max);
-foreach ([Rules::MAP_SQUARE, Rules::MAP_RECTANGLE, Rules::MAP_RIVER, Rules::MAP_POOL] as $map) {
+foreach ([Rules::MAP_SQUARE, Rules::MAP_RECTANGLE, Rules::MAP_LAGOON, Rules::MAP_POOL] as $map) {
     [$mr, $mc] = Rules::boardDimensions($map);
     for ($i = 0; $i < 60; $i++) {
         $b = Rules::createBoardForMap($map);
@@ -225,7 +227,7 @@ foreach ([Rules::MAP_SQUARE, Rules::MAP_POOL] as $map) {
 
 // 14. Fuzz: full games on every map with each trunk mode (random legal play; the player who cannot move loses)
 $fuzzGames = 0;
-foreach ([Rules::MAP_SQUARE, Rules::MAP_RECTANGLE, Rules::MAP_RIVER, Rules::MAP_POOL] as $map) {
+foreach ([Rules::MAP_SQUARE, Rules::MAP_RECTANGLE, Rules::MAP_LAGOON, Rules::MAP_POOL] as $map) {
     foreach ([Rules::TRUNKS_OFF, Rules::TRUNKS_PLAYERS, Rules::TRUNKS_RANDOM] as $mode) {
         for ($g = 0; $g < 25; $g++) {
             [$mr, $mc] = Rules::boardDimensions($map);

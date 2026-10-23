@@ -9,7 +9,7 @@
 * The game is played on one of four maps (table option '''Map'''):
 ** '''Square''': 14×14 grid (196 squares), the default.
 ** '''Rectangle''': 20×10 grid (200 squares).
-** '''River''': the whole surface of the original board, 10 squares wide at both ends and 14 wide in the middle (256 squares).
+** '''Lagoon''': a meandering lagoon, 19 rows of 11 squares each, drifting right, centre, left, centre and right again from top to bottom (209 squares).
 ** '''Pool''': the round pool board, 16×16 grid with the corners cut off (208 squares).
 * Animals can only cover squares of the map: nothing may stick out over the green frame.
 

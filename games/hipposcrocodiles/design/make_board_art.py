@@ -25,7 +25,7 @@ WATER = (79, 168, 204)
 LINE = (255, 255, 255)
 LINE_W = 2
 
-NAMES = {1: 'square', 2: 'rectangle', 3: 'river', 4: 'pool'}
+NAMES = {1: 'square', 2: 'rectangle', 3: 'lagoon', 4: 'pool'}
 
 
 def read_masks():

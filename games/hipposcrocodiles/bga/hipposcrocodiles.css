@@ -95,7 +95,7 @@
 }
 #hippos_board.hippos_map_square { background-image: url(img/board_square.png); }
 #hippos_board.hippos_map_rectangle { background-image: url(img/board_rectangle.png); }
-#hippos_board.hippos_map_river { background-image: url(img/board_river.png); }
+#hippos_board.hippos_map_lagoon { background-image: url(img/board_lagoon.png); }
 #hippos_board.hippos_map_pool { background-image: url(img/board_pool.png); }
 
 #hippos_grid {

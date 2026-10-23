@@ -40,7 +40,7 @@ const ROT_COUNT = { hippo: 4, crocodile: 4, trunk: 2 };
 // Board art from design/make_board_art.py (board_<map>.png): every cell is PITCH px, the grid starts at (PAD, PAD).
 const ART_PITCH = 60;
 const ART_PAD = 18;
-const MAP_NAMES = { 1: 'square', 2: 'rectangle', 3: 'river', 4: 'pool' };
+const MAP_NAMES = { 1: 'square', 2: 'rectangle', 3: 'lagoon', 4: 'pool' };
 // Tile images are drawn at rotation 0 (hippo: 4x3 cells, tail right; crocodile: 3x6 cells, head down) and rotated
 // clockwise by 90 * rot degrees, matching SHAPES[species][rot].
 const TILE = { hippo: { cols: 4, rows: 3 }, crocodile: { cols: 3, rows: 6 }, trunk: { cols: 3, rows: 1 } };
