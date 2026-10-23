@@ -119,13 +119,16 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /** Live score = tiles on the top level (the deciding level in Misere); aux = the next levels. Advanced: score = points, aux = top-level tiles. */
-    public function refreshScores(array $tiles): void
+    public function refreshScores(array $tiles): array
     {
+        $shown = [];
         $ids = array_map('intval', array_keys($this->loadPlayersBasicInfos()));
         foreach (Rules::scores($tiles, $ids, $this->isMisere(), $this->isAdvanced()) as $pid => $row) {
             $this->playerScore->set($pid, $row['score']);
             $this->playerScoreAux->set($pid, $row['aux']);
+            $shown[(int) $pid] = (int) $row['score'];
         }
+        return $shown;
     }
 
     protected function getAllDatas(int $currentPlayerId): array

@@ -70,7 +70,7 @@ class PlayerTurn extends GameState
         $tile = ['id' => $id, 'player_id' => $pid, 'shape' => $shape, 'o' => $o, 'x' => $x, 'y' => $y, 'level' => $level];
         $tiles[] = $tile;
 
-        $this->game->refreshScores($tiles);
+        $scores = $this->game->refreshScores($tiles);
         $this->tableStats->inc('turns_number', 1);
         $this->playerStats->inc('turns_number', 1, $pid);
         if ($level > $this->tableStats->get('levels')) {
@@ -85,6 +85,7 @@ class PlayerTurn extends GameState
             'player_name' => $this->game->getPlayerNameById($pid),
             'level' => $level,
             'tile' => $this->game->tileForClient($tile),
+            'scores' => $scores,
         ]);
         $this->game->giveExtraTime($pid);
         $this->game->activeNextPlayer();

@@ -742,12 +742,12 @@ export class Game {
             <div id="pu_view"></div>
             <div id="pu_side">
             <div id="pu_controls" role="group" aria-label="${_('View and tile controls')}">
-                <button type="button" class="pu_btn" id="pu_rotate" title="${_('Rotate (R / Shift+R)')}">${_('Rotate (R)')}</button>
-                <button type="button" class="pu_btn" id="pu_rotate_ccw" title="${_('Rotate (R / Shift+R)')}">${_('Rotate left (Shift+R)')}</button>
-                <button type="button" class="pu_btn" id="pu_flip">${_('Flip (F)')}</button>
+                <button type="button" class="pu_btn" id="pu_rotate" title="${_('Rotate (R)')}" aria-label="${_('Rotate (R)')}"><span class="pu_ic" aria-hidden="true">\u27F3</span><span class="pu_tx">${_('Rotate (R)')}</span></button>
+                <button type="button" class="pu_btn" id="pu_rotate_ccw" title="${_('Rotate left (Shift+R)')}" aria-label="${_('Rotate left (Shift+R)')}"><span class="pu_ic" aria-hidden="true">\u27F2</span><span class="pu_tx">${_('Rotate left (Shift+R)')}</span></button>
+                <button type="button" class="pu_btn" id="pu_flip" title="${_('Flip (F)')}" aria-label="${_('Flip (F)')}"><span class="pu_ic" aria-hidden="true">\u21C6</span><span class="pu_tx">${_('Flip (F)')}</span></button>
                 <button type="button" class="pu_btn" id="pu_mode"></button>
-                <button type="button" class="pu_btn" id="pu_reset" title="${_('Reset camera (C)')}">${_('Reset camera (C)')}</button>
-                <label class="pu_check" id="pu_levels_wrap"><input type="checkbox" id="pu_levels"> <span>${_('Show levels (L)')}</span></label>
+                <button type="button" class="pu_btn" id="pu_reset" title="${_('Reset camera (C)')}" aria-label="${_('Reset camera (C)')}"><span class="pu_ic" aria-hidden="true">\u2316</span><span class="pu_tx">${_('Reset camera (C)')}</span></button>
+                <label class="pu_check" id="pu_levels_wrap" title="${_('Show levels (L)')}"><input type="checkbox" id="pu_levels" aria-label="${_('Show levels (L)')}"> <span class="pu_ic" aria-hidden="true">#</span><span class="pu_tx">${_('Show levels (L)')}</span></label>
                 <label class="pu_xray" id="pu_xray_wrap"><span id="pu_xray_label"></span>
                     <span class="pu_xray_ctl"><input type="range" id="pu_xray" min="1" max="1" step="1" value="1" aria-label="${_('Hide levels above')}"><span id="pu_xray_ticks" aria-hidden="true"></span></span></label>
             </div>
@@ -842,7 +842,12 @@ export class Game {
         view.setShowLevels(this.levelsVisible());
         view.setMaxLevel(this.maxShown);
         view.resetCamera();
-        this.root.querySelector('#pu_mode').textContent = this.mode === '3d' ? _('Switch to 2D (D)') : _('Switch to 3D (D)');
+        const to2d = this.mode === '3d';
+        const modeBtn = this.root.querySelector('#pu_mode');
+        const modeText = to2d ? _('Switch to 2D (D)') : _('Switch to 3D (D)');
+        modeBtn.title = modeText;
+        modeBtn.setAttribute('aria-label', modeText);
+        modeBtn.innerHTML = `<span class="pu_ic" aria-hidden="true">${to2d ? '2D' : '3D'}</span><span class="pu_tx">${modeText}</span>`;
         this.root.querySelector('#pu_reset').hidden = this.mode !== '3d';
         this.root.querySelector('#pu_levels_wrap').hidden = this.mode !== '3d';
         this.refreshAnchors();
@@ -1135,6 +1140,17 @@ export class Game {
         this.updateStatus();
     }
 
+    /** Keep the player-panel score counters live (the framework's own score notification is not relied on). */
+    showScores(scores) {
+        if (!scores) return;
+        for (const [pid, v] of Object.entries(scores)) {
+            try {
+                const c = this.bga.playerPanels.getScoreCounter(Number(pid));
+                if (c) c.toValue(Number(v));
+            } catch (e) { /* no counter for this player */ }
+        }
+    }
+
     /** The staged choice is cleared here, when the state changes (a refused action keeps it). */
     leaveState() {
         this.args = null;
@@ -1191,6 +1207,7 @@ export class Game {
         this.touchStage = false;
         this.cursor = null;
         if (Number(tile.player_id) === this.myId) this.selected = null;
+        this.showScores(args.scores);
         this.updateXray();
         this.renderTray();
         const instant = !!(this.bga?.gameui?.isReplayMode?.() || this.bga?.gameui?.instantaneousMode);

@@ -421,3 +421,18 @@ body.pu_page_bg #game_play_area_background {
 [hidden] {
     display: none !important;
 }
+
+/* Compact controls under the board on narrow or touch screens: icon buttons, no keyboard hints */
+.pu_ic { font-size: 20px; line-height: 1; }
+.pu_tx { margin-left: 6px; }
+.pu_ic + .pu_tx { margin-left: 6px; }
+
+@media (max-width: 899px), (pointer: coarse) {
+    #pu_controls { gap: 4px; padding: 6px 4px; }
+    .pu_btn { min-width: 40px; min-height: 40px; padding: 0 8px; }
+    .pu_btn .pu_tx, .pu_check .pu_tx { display: none; }
+    .pu_check { min-height: 40px; gap: 2px; padding: 0 6px; border: 1px solid #8b8472; border-radius: 3px; background: #34373f; }
+    .pu_check input { width: 20px; height: 20px; }
+    .pu_xray { flex: 1 1 100%; min-height: 0; }
+    .pu_key, #pu_keys { display: none; }
+}
