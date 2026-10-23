@@ -32,7 +32,7 @@ class PlayerTurn extends GameState
         return ['possibleMoves' => $this->movesFor($pid)];
     }
 
-    private function movesFor(int $pid): array
+    private function movesFor(int $pid): array|\stdClass
     {
         $tiles = $this->game->getTiles();
         $hand = $this->game->getHands($tiles)[$pid] ?? [];
