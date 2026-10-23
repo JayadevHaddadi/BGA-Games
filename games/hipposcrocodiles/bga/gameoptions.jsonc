@@ -17,6 +17,10 @@
             "4": {
                 "name": "Pool",
                 "description": "The round pool board (208 squares)"
+            },
+            "5": {
+                "name": "Random",
+                "description": "One of the four maps, chosen at random"
             }
         },
         "default": 1

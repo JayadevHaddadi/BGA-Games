@@ -91,9 +91,15 @@ export class Game {
                         <div id="hippos_pieces"></div>
                     </div>
                 </div>
+                <div id="hippos_map_label"></div>
                 <div id="hippos_status_msg"></div>
             </div>`;
         this.bga.gameArea.getElement().appendChild(root);
+
+        const mapLabel = document.getElementById('hippos_map_label');
+        if (mapLabel && gamedatas.map_title) {
+            mapLabel.textContent = _('Map') + ': ' + _(gamedatas.map_title);
+        }
 
         this.buildBoard();
         this.renderReserves();

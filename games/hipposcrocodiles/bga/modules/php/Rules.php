@@ -23,6 +23,7 @@ class Rules
     public const MAP_RECTANGLE = 2;
     public const MAP_LAGOON = 3;
     public const MAP_POOL = 4;
+    public const MAP_RANDOM = 5;       // board option value only, resolved to one of the four maps at setup
     public const DEFAULT_MAP = self::MAP_SQUARE;
     public const MAP_NAMES = [1 => 'square', 2 => 'rectangle', 3 => 'lagoon', 4 => 'pool'];
 
@@ -161,6 +162,15 @@ class Rules
             1 => ['rows' => 3, 'cols' => 1, 'cells' => [[0, 0], [1, 0], [2, 0]]],
         ],
     ];
+
+    /** Resolve the board option to a concrete map; Random picks one of the four maps uniformly. $rand(min, max) is inclusive. */
+    public static function resolveMap(int $option, callable $rand): int
+    {
+        if ($option === self::MAP_RANDOM) {
+            return (int) $rand(1, count(self::MAP_NAMES));
+        }
+        return self::normalizeMap($option);
+    }
 
     /** Valid map id (unknown values fall back to the default map) */
     public static function normalizeMap(int $map): int

@@ -47,14 +47,22 @@ class Game extends \Bga\GameFramework\Table
         $this->tableStats->init(['turns_number'], 0);
         $this->playerStats->init(['turns_number', 'pieces_placed'], 0);
 
-        // Map (option 100): 1 Square, 2 Rectangle, 3 Lagoon, 4 Pool. Trunks (option 101): 1 off, 2 players place, 3 random.
-        $map = Rules::normalizeMap((int) ($options[100] ?? $this->tableOptions->get(100, Rules::DEFAULT_MAP)));
+        // Map (option 100): 1 Square, 2 Rectangle, 3 Lagoon, 4 Pool, 5 Random (resolved here, stored in map_id). Trunks (option 101): 1 off, 2 players place, 3 random.
+        $map = Rules::resolveMap(
+            (int) ($options[100] ?? $this->tableOptions->get(100, Rules::DEFAULT_MAP)),
+            fn(int $min, int $max): int => (int) bga_rand($min, $max)
+        );
         $trunkMode = (int) ($options[101] ?? $this->tableOptions->get(101, Rules::TRUNKS_OFF));
         if (!in_array($trunkMode, [Rules::TRUNKS_OFF, Rules::TRUNKS_PLAYERS, Rules::TRUNKS_RANDOM], true)) {
             $trunkMode = Rules::TRUNKS_OFF;
         }
         $this->globals->set('map_id', $map);
         $this->globals->set('trunk_mode', $trunkMode);
+
+        $this->notify->all('mapChosen', clienttranslate('The map for this game is ${map_name}'), [
+            'map_name' => $this->getMapTitle($map),
+            'i18n' => ['map_name'],
+        ]);
 
         $trunks = [];
         if ($trunkMode === Rules::TRUNKS_RANDOM) {
@@ -102,6 +110,20 @@ class Game extends \Bga\GameFramework\Table
             $map = ((int) $this->globals->get('board_type', 1) === 2) ? Rules::MAP_SQUARE : Rules::MAP_RECTANGLE;
         }
         return Rules::normalizeMap((int) $map);
+    }
+
+    public function getMapTitle(int $map): string
+    {
+        switch ($map) {
+            case Rules::MAP_RECTANGLE:
+                return clienttranslate('Rectangle');
+            case Rules::MAP_LAGOON:
+                return clienttranslate('Lagoon');
+            case Rules::MAP_POOL:
+                return clienttranslate('Pool');
+            default:
+                return clienttranslate('Square');
+        }
     }
 
     public function getTrunkMode(): int
@@ -287,6 +309,7 @@ class Game extends \Bga\GameFramework\Table
         return [
             'map' => $this->getMapId(),
             'map_name' => Rules::MAP_NAMES[$this->getMapId()],
+            'map_title' => $this->getMapTitle($this->getMapId()),
             'mask' => Rules::maskRows($this->getMapId()),
             'rows' => $rows,
             'cols' => $cols,

@@ -6,7 +6,7 @@
 
 * One player controls the '''Hippos''' (brown) and has 8 hippo pieces in reserve.
 * The other player controls the '''Crocodiles''' (olive green) and has 8 crocodile pieces in reserve.
-* The game is played on one of four maps (table option '''Map'''):
+* The game is played on one of four maps (table option '''Map'''; choose '''Random''' to have one of the four picked at random when the game starts):
 ** '''Square''': 14×14 grid (196 squares), the default.
 ** '''Rectangle''': 20×10 grid (200 squares).
 ** '''Lagoon''': a meandering lagoon, 19 rows of 11 squares each, drifting right, centre, left, centre and right again from top to bottom (209 squares).

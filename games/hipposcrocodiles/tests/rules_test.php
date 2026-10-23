@@ -287,5 +287,48 @@ foreach ([Rules::MAP_SQUARE, Rules::MAP_RECTANGLE, Rules::MAP_LAGOON, Rules::MAP
 }
 assertCheck($fuzzGames === 300, "300 fuzz games played");
 
+// Random map option resolves uniformly to a valid map
+$seen = [];
+for ($i = 0; $i < 400; $i++) {
+    $m = Rules::resolveMap(Rules::MAP_RANDOM, fn(int $a, int $b): int => mt_rand($a, $b));
+    assertCheck(isset(Rules::MASKS[$m]) && $m !== Rules::MAP_RANDOM, "Random resolves to a valid map ($m)");
+    $seen[$m] = true;
+}
+assertCheck(count($seen) === 4, "Random reaches all four maps");
+assertCheck(Rules::resolveMap(Rules::MAP_POOL, fn() => 1) === Rules::MAP_POOL, "Explicit map is kept");
+assertCheck(Rules::resolveMap(99, fn() => 1) === Rules::DEFAULT_MAP, "Unknown option falls back to the default");
+// Full fuzz games on Random-resolved maps
+foreach ([Rules::TRUNKS_OFF, Rules::TRUNKS_RANDOM] as $mode) {
+    for ($g = 0; $g < 40; $g++) {
+        $map = Rules::resolveMap(Rules::MAP_RANDOM, fn(int $a, int $b): int => mt_rand($a, $b));
+        [$mr, $mc] = Rules::boardDimensions($map);
+        $b = Rules::createBoardForMap($map);
+        if ($mode === Rules::TRUNKS_RANDOM) {
+            foreach (Rules::randomTrunks($b, $mr, $mc, Rules::TRUNKS_RANDOM_COUNT, fn(int $a, int $z): int => mt_rand($a, $z)) as $t) {
+                Rules::placePiece($b, $mr, $mc, Rules::SPECIES_TRUNK, $t['rot'], $t['r'], $t['c'], Rules::CELL_TRUNK);
+            }
+        }
+        $sp = [Rules::SPECIES_HIPPO, Rules::SPECIES_CROCODILE];
+        $reserve = [8, 8];
+        $turn = 0;
+        $id = 0;
+        $ok = true;
+        while ($turn < 16 && Rules::hasLegalPlacement($b, $mr, $mc, $sp[$turn % 2])) {
+            $legal = Rules::getLegalPlacements($b, $mr, $mc, $sp[$turn % 2]);
+            $m = $legal[mt_rand(0, count($legal) - 1)];
+            Rules::placePiece($b, $mr, $mc, $sp[$turn % 2], $m['rot'], $m['r'], $m['c'], ++$id);
+            $turn++;
+        }
+        for ($r = 0; $r < $mr; $r++) {
+            for ($c = 0; $c < $mc; $c++) {
+                if (!Rules::inMask($map, $r, $c) && $b[$r][$c] !== Rules::CELL_VOID) {
+                    $ok = false;
+                }
+            }
+        }
+        assertCheck($ok, "Random-map fuzz game $g (map $map, trunk mode $mode) stays inside the mask");
+    }
+}
+
 echo "rules_test.php: $checks checks, $failures failed\n";
 exit($failures === 0 ? 0 : 1);
