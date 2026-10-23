@@ -24,19 +24,20 @@ What is actually uploaded in each GMM may differ; check the live page before rep
 
 | Game | Current display images | Status |
 | :--- | :--- | :--- |
-| gardensofmars | 2 table photos of the real game (same photo twice) | OK, add more angles |
+| gardensofmars | 2 distinct table photos of the real game | OK (physical photos from Nestor) |
+| pentup | 2 table photos of the real game (pentup_big_1, pentup_big_2) | OK (physical photos from Nestor) |
+| hipposandcrocodiles | 2 table photos of the real game (full board + focus crop) | OK (physical photo from Nestor) |
+| red | 2 table photos of the real game (full board + focus crop) | OK (physical photo from Nestor) |
+| KILN | 2 table photos of the real game (kiln_2 + board crop) | OK (physical photo from Nestor) |
+| nestorgamesgp | 5 table photos of the real game (tracks, loops, items) | OK (physical photos from Nestor) |
+| gardensofuranus | 3 table photos of the real game (hexagon, rhombus, trapezoid) | OK (physical photos from Nestor) |
+| gardensofio | 2 table photos of the real game (gardensofio_big + focus crop) | OK (physical photo from Nestor) |
+| people | 2 table photos of the real game (people 2 + focus crop) | OK (physical photo from Nestor) |
 | pushfight | box art + product photo | moot: Tinkerhouse declined the licence (2026-10-22) |
-| people | BGA screenshots | WRONG: use Néstor's `_People.zip` |
-| gardensofenceladus | BGA screenshots | WRONG |
-| gardensofio | BGA screenshots | WRONG |
-| gardensofuranus | board art + tile sheet | WRONG |
-| hipposandcrocodiles | blank dark images | WRONG |
-| red | blank dark images | WRONG |
-| KILN | print templates | WRONG |
-| lordsofscotland | title card | WRONG |
-| microchip | BGA screenshots | WRONG |
-| microforge | rendered art (4 copies of one image) | WRONG |
-| nestorgamesgp | BGA screenshots | WRONG |
-| omega | BGA renders | WRONG |
-| sugargliders | rendered art (4 copies of one image) | WRONG |
-| yavalath | BGA screenshots | WRONG |
+| gardensofenceladus | BGA screenshots | Awaiting physical photos from publisher |
+| lordsofscotland | title card | Awaiting physical photos |
+| microchip | BGA screenshots | Awaiting physical photos from publisher |
+| microforge | rendered art | Awaiting physical photos |
+| omega | BGA renders | Awaiting physical photos from publisher |
+| sugargliders | rendered art | Awaiting physical photos from publisher |
+| yavalath | BGA screenshots | Awaiting physical photos from publisher |

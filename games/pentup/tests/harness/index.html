@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pent-Up harness</title>
+<link rel="stylesheet" href="../../bga/pentup.css">
+<style>
+  body { margin: 0; font-family: sans-serif; background: #1d1f24; color: #ece8dc; }
+  #game_play_area { padding: 0; }
+  #out { white-space: pre-wrap; font: 12px monospace; padding: 8px; background: #111; color: #eee; }
+</style>
+</head>
+<body data-done="0">
+<div id="page-content">
+  <div id="statusbar"></div>
+  <div id="game_play_area"></div>
+</div>
+<div id="player_panels"></div>
+<pre id="out">running</pre>
+
+<script>
+window._ = (s) => s;
+window.g_gamethemeurl = '../../bga/';
+window.errors = [];
+window.addEventListener('error', (e) => {
+  if (e.message && e.message.includes('ResizeObserver')) return;
+  window.errors.push(String(e.message));
+});
+window.addEventListener('unhandledrejection', (e) => {
+  window.errors.push(String(e.reason));
+});
+</script>
+<script type="module">
+import { Game } from '../../bga/modules/js/Game.js';
+
+const calls = [];
+const buttons = [];
+let title = '';
+const bga = {
+  states: { register() {} },
+  gameArea: { getElement: () => document.getElementById('game_play_area') },
+  notifications: { setupPromiseNotifications() {} },
+  userPreferences: { get: () => 1 },
+  sounds: { play() {} },
+  statusBar: {
+    setTitle(text, args) {
+      title = text;
+      if (args) Object.keys(args).forEach((k) => { title = title.replace('${' + k + '}', args[k]); });
+    },
+    addActionButton(label, fn, opts) { buttons.push({ label, fn, opts: opts || {} }); },
+    removeActionButtons() { buttons.length = 0; },
+  },
+  players: {
+    getCurrentPlayerId: () => 1,
+    isCurrentPlayerActive: () => true,
+    getActivePlayerId: () => 1,
+  },
+  playerPanels: {
+    getElement: (pid) => {
+      let el = document.getElementById('panel_' + pid);
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'panel_' + pid;
+        document.getElementById('player_panels').appendChild(el);
+      }
+      return el;
+    },
+    getScoreCounter: () => ({ toValue() {} }),
+  },
+  actions: {
+    performAction(name, args) { calls.push({ name, args }); return Promise.resolve(); },
+  },
+};
+
+function fixture() {
+  return {
+    players: {
+      1: { id: 1, name: 'Alice', color: 'f0e9d6' },
+      2: { id: 2, name: 'Bob', color: '202227' },
+    },
+    hands: {
+      1: ['F', 'I', 'L', 'N', 'P', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'],
+      2: ['F', 'I', 'L', 'N', 'P', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'],
+    },
+    tiles: [
+      { player_id: 1, shape: 'P', level: 1, x: 0, y: 0, orientation: 0 },
+    ],
+    active_player: 1,
+  };
+}
+
+async function run() {
+  const game = new Game(bga);
+  game.setup(fixture());
+  game.enterTurn({
+    maxLevel: 1,
+    possibleMoves: [
+      { shape: 'X', orientation: 0, x: 2, y: 0, level: 1 },
+    ],
+  }, true);
+
+  // Wait a tick for DOM and async scene init
+  await new Promise((r) => setTimeout(r, 200));
+
+  const report = { ok: true, errors: window.errors.slice(), checks: {} };
+
+  const root = document.getElementById('pu_root');
+  report.checks.root_present = !!root;
+  if (!root) report.ok = false;
+
+  const view = document.getElementById('pu_view');
+  report.checks.view_present = !!view;
+  if (!view) report.ok = false;
+
+  const tray = document.getElementById('pu_tray');
+  report.checks.tray_present = !!tray;
+  if (!tray) report.ok = false;
+
+  // Check controls tap target sizes
+  const ctlButtons = document.querySelectorAll('#pu_controls button');
+  let ctlMinSize = 999;
+  ctlButtons.forEach((b) => {
+    const r = b.getBoundingClientRect();
+    if (r.width > 0 && r.height > 0) {
+      ctlMinSize = Math.min(ctlMinSize, r.width, r.height);
+    }
+  });
+  report.checks.controls_tap_target_min = Math.round(ctlMinSize);
+  if (ctlMinSize < 32 && ctlButtons.length > 0) {
+    report.errors.push(`Control button smaller than 32px: ${ctlMinSize}px`);
+    report.ok = false;
+  }
+
+  if (report.errors.length > 0) {
+    report.ok = false;
+  }
+
+  document.getElementById('out').textContent = JSON.stringify(report, null, 2);
+  document.body.dataset.done = '1';
+}
+
+run().catch((e) => {
+  window.errors.push(String(e));
+  document.getElementById('out').textContent = JSON.stringify({ ok: false, errors: window.errors }, null, 2);
+  document.body.dataset.done = '1';
+});
+</script>
+</body>
+</html>
