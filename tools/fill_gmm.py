@@ -91,7 +91,7 @@ def fill_gmm(page, slug):
     year = meta.get('year_published')
     if year:
         y_row = page.locator('div.tabmetadata__row-1:has-text("Publication year")').first
-        if 'NOT SET' in y_row.inner_text():
+        if 'NOT SET' in y_row.inner_text() or str(year) not in y_row.inner_text():
             set_row_field('div.tabmetadata__row-1:has-text("Publication year")', year, 'Publication year')
 
     # Characteristics

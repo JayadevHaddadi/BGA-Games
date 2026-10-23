@@ -5,8 +5,11 @@
   "game_name": "Red",
   "bgg_id": 112118,
   "bgg_url": "https://boardgamegeek.com/boardgame/112118",
-  "year_published": null,
-  "players": null,
+  "year_published": 2011,
+  "players": [
+    2,
+    3
+  ],
   "estimated_duration_minutes": 30,
   "publisher": {
     "name": "nestorgames",
@@ -18,7 +21,7 @@
   ],
   "artists": [],
   "rules_edits": [],
-  "rules_url": null,
+  "rules_url": "https://nestorgames.com/rulebooks/RED_EN.pdf",
   "description": "Red is an abstract tile-placement game by Néstor Romeral Andrés played with 36 tiles across three colours: black, white, and red. On each turn, players draft tiles showing contrasting backgrounds and inner circles, placing them adjacent on an expanding shared grid. Points are scored at game end by multiplying the size of your largest connected border group by your largest connected circle group.",
   "zombie_mode_level": 1,
   "tags": [

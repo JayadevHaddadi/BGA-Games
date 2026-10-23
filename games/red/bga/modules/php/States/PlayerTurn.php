@@ -38,6 +38,7 @@ class PlayerTurn extends GameState
         $pid = (int) $this->game->getActivePlayerId();
         $this->game->checkPlacement($size, $bg, $circle, $x, $y);
         $this->game->placeTile($pid, $size, $bg, $circle, $x, $y);
+        $this->game->giveExtraTime($pid);
         return NextPlayer::class;
     }
 

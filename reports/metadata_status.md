@@ -57,7 +57,7 @@ Legend:
 - **Studio Project**: `red` | **Status**: Studio Accessible
 - **BGG ID**: `112118` | **Publisher**: `nestorgames`
 - **Designer(s)**: Studio=`Néstor Romeral Andrés` | Local=`Néstor Romeral Andrés`
-- **Publication Year**: Studio=`2000` | Local=`None`
+- **Publication Year**: Studio=`2011` | Local=`2011`
 - **Zombie Mode Level**: Studio=`1` | Local=`1`
 - **Characteristics**: Studio=`{'Complexity': '3', 'Luck': '2', 'Strategy': '3', 'Diplomacy': '1'}` | Local=`{'complexity': 3, 'luck': 2, 'strategy': 3, 'diplomacy': 1, 'note': 'PROPOSAL: sliders 1 to 5 in the Control Panel only.'}`
 - **Tags**: Studio=['Casual games', 'Family'] | Local=['Abstract Strategy', 'Tile Placement', 'Combinatorial']
