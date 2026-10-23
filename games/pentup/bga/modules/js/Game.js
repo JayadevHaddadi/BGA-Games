@@ -747,11 +747,13 @@ export class Game {
                 <button type="button" class="pu_btn" id="pu_flip" title="${_('Flip (F)')}" aria-label="${_('Flip (F)')}"><span class="pu_ic" aria-hidden="true">\u21C6</span><span class="pu_tx">${_('Flip (F)')}</span></button>
                 <button type="button" class="pu_btn" id="pu_mode"></button>
                 <button type="button" class="pu_btn" id="pu_reset" title="${_('Reset camera (C)')}" aria-label="${_('Reset camera (C)')}"><span class="pu_ic" aria-hidden="true">\u2316</span><span class="pu_tx">${_('Reset camera (C)')}</span></button>
-                <label class="pu_check" id="pu_levels_wrap" title="${_('Show levels (L)')}"><input type="checkbox" id="pu_levels" aria-label="${_('Show levels (L)')}"> <span class="pu_ic" aria-hidden="true">#</span><span class="pu_tx">${_('Show levels (L)')}</span></label>
+            </div>
+            <div id="pu_tray_wrap"><div id="pu_tray" role="group" aria-label="${_('Your tiles')}"></div></div>
+            <div id="pu_levelbar">
                 <label class="pu_xray" id="pu_xray_wrap"><span id="pu_xray_label"></span>
                     <span class="pu_xray_ctl"><input type="range" id="pu_xray" min="1" max="1" step="1" value="1" aria-label="${_('Hide levels above')}"><span id="pu_xray_ticks" aria-hidden="true"></span></span></label>
+                <label class="pu_check" id="pu_levels_wrap" title="${_('Show levels (L)')}"><input type="checkbox" id="pu_levels" aria-label="${_('Show levels (L)')}"> <span class="pu_ic" aria-hidden="true">#</span><span class="pu_tx">${_('Show levels (L)')}</span></label>
             </div>
-            <div id="pu_tray_wrap"><h3 id="pu_tray_title"></h3><div id="pu_tray" role="group" aria-label="${_('Your tiles')}"></div><p id="pu_left"></p></div>
             <p id="pu_keys">${_('Keys: 1-9,0,-,= tile · R/Shift+R rotate · F flip · C camera · D 2D/3D · L levels')}</p>
             <div id="pu_final" hidden></div>
             </div>
@@ -760,6 +762,14 @@ export class Game {
         document.body.classList.add('pu_page_bg');
         this.root = root;
         this.host = root.querySelector('#pu_view');
+        const fitNarrow = () => {
+            const w = root.clientWidth || (root.parentNode && root.parentNode.clientWidth) || window.innerWidth;
+            const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+            root.classList.toggle('pu_narrow', w < 760 || window.innerWidth < 900 || (coarse && w < 900));
+        };
+        fitNarrow();
+        if (typeof ResizeObserver !== 'undefined') new ResizeObserver(fitNarrow).observe(root);
+        window.addEventListener('resize', fitNarrow);
 
         root.querySelector('#pu_rotate').addEventListener('click', () => this.rotate());
         root.querySelector('#pu_flip').addEventListener('click', () => this.flip());
@@ -1050,9 +1060,8 @@ export class Game {
             return `<button type="button" class="pu_tile${sel ? ' pu_sel' : ''}${unplayed ? '' : ' pu_used'}" data-shape="${s}" ${playable ? '' : 'disabled'} aria-pressed="${sel}" aria-keyshortcuts="${key}" aria-label="${label}">`
                 + `<b class="pu_key" aria-hidden="true">${key}</b>${unplayed ? '' : '<b class="pu_done" aria-hidden="true">\u2713</b>'}${this.iconSvg(s, o, colour)}<span>${s}</span></button>`;
         }).join('');
-        this.root.querySelector('#pu_tray_title').textContent = puFmt(_('Your tiles: ${n}'), { n: hand.length });
         this.root.querySelector('#pu_tray_wrap').hidden = !(this.hands[this.myId] && this.myId);
-        this.root.querySelector('#pu_left').innerHTML = this.opponentInfo();
+        this.renderPanels();
     }
 
     /** Colour name of a player: from a placed tile, else from the seat colour in gamedatas.players. */
@@ -1071,22 +1080,23 @@ export class Game {
         return this.tiles.reduce((n, t) => n + (Number(t.player_id) === Number(pid) ? Number(t.level) : 0), 0);
     }
 
-    /** One entry per opponent (colour swatch, name, tiles left); with Advanced scoring also every player's points. */
-    opponentInfo() {
-        const esc = (v) => String(v).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-        const advanced = !!this.gamedatas.advanced;
-        const items = [];
-        for (const [pid, list] of Object.entries(this.hands)) {
-            const mine = Number(pid) === this.myId;
-            if (mine && !advanced) continue;
-            const p = this.gamedatas.players && this.gamedatas.players[pid];
+    /** Remaining tile count of every player, shown inside their BGA player panel. */
+    renderPanels() {
+        for (const [pid, list] of Object.entries(this.hands || {})) {
+            let el = null;
+            try { el = this.bga.playerPanels.getElement(Number(pid)); } catch (e) { /* no panel */ }
+            if (!el) continue;
+            let line = el.querySelector('.pu_panel');
+            if (!line) {
+                line = document.createElement('div');
+                line.className = 'pu_panel';
+                el.appendChild(line);
+            }
+            const n = list.length;
             const col = this.colourOf(pid);
-            const name = esc(p ? p.name : pid);
-            let text = puFmt(_('${name}: ${n} tiles left'), { name, n: list.length });
-            if (advanced) text += ' \u2013 ' + puFmt(_('${n} points'), { n: this.playerPoints(pid) });
-            items.push(`<span class="pu_opp"><i class="pu_swatch pu_sw_${col}" aria-hidden="true"></i>${text}</span>`);
+            const label = puFmt(_('${n} tiles left'), { n });
+            line.innerHTML = `<i class="pu_swatch pu_sw_${col}" aria-hidden="true"></i><span title="${label}" aria-label="${label}">\u25A2 <b>${n}</b></span>`;
         }
-        return items.join('');
     }
 
     updateStatus() {
