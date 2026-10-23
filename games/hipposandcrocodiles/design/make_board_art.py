@@ -53,8 +53,26 @@ art = {'river': build('river', 2, 0, 10, 20), 'lake': build('lake', 0, 3, 14, 14
 pieces = Image.open(GAME / 'hcpieces.png').convert('RGBA')
 CELL = 72
 SP = 118.0
+# Softer, natural animal colours instead of the print's magenta / neon green.
+# Each pixel is a blend of the cyan tile and the animal colour; keep the blend, swap the colour.
+CYAN = (0, 204, 255)
+ANIMAL = {'hippo': (124, 92, 72), 'crocodile': (74, 112, 52)}
+def recolor(im, name):
+    px = im.load()
+    new = ANIMAL[name]
+    for y in range(im.height):
+        for x in range(im.width):
+            r, g, b, a = px[x, y]
+            if a == 0:
+                continue
+            t = r / 255 if name == 'hippo' else 1 - b / 255   # share of animal colour
+            t = max(0.0, min(1.0, t))
+            px[x, y] = tuple(round(t * n + (1 - t) * c) for n, c in zip(new, CYAN)) + (a,)
+    return im
+
 def tile(name, box, cols, rows):
     im = pieces.crop(box).resize((cols * CELL, rows * CELL), Image.LANCZOS)
+    im = recolor(im, name)
     im.save(OUT / f'piece_{name}.png', optimize=True)
 tile('hippo', (437, 609, 909, 963), 4, 3)
 tile('crocodile', (488, 1032, 843, 1741), 3, 6)
