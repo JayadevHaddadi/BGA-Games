@@ -20,11 +20,9 @@ PITCH_Y = (1414.5 - 233.5) / 20
 PITCH = (PITCH_X + PITCH_Y) / 2
 GX, GY = 150.5, 233.5
 PAD = 18          # frame thickness around the grid
-LOGO = (262, 0, 862, 172)
 FRAME = (51, 204, 51)
 
 src = Image.open(GAME / 'board_hippos.png').convert('RGB')
-logo = src.crop(LOGO)
 
 
 def build(name, col0, row0, cols, rows):
@@ -32,16 +30,15 @@ def build(name, col0, row0, cols, rows):
     x0 = GX + col0 * PITCH_X
     y0 = GY + row0 * PITCH_Y
     grid = src.crop((round(x0), round(y0), round(x0) + gw + 1, round(y0) + gh + 1))
-    top = logo.size[1] + 6
-    w = max(gw + 2 * PAD, logo.size[0] + 8)
-    h = top + gh + 2 * PAD + 6
-    img = Image.new('RGB', (w, h), (255, 255, 255))
+    # Green frame only: no publisher logo / title on the board.
+    w = gw + 2 * PAD
+    h = gh + 2 * PAD
+    img = Image.new('RGBA', (w, h), (255, 255, 255, 0))
     d = ImageDraw.Draw(img)
-    gx = (w - gw) // 2
-    gy = top + PAD
+    gx = PAD
+    gy = PAD
     d.rounded_rectangle((gx - PAD, gy - PAD, gx + gw + PAD, gy + gh + PAD), radius=PAD + 8, fill=FRAME)
     img.paste(grid, (gx, gy))
-    img.paste(logo, ((w - logo.size[0]) // 2, 3))
     img.save(OUT / f'board_{name}.png', optimize=True)
     # sub-pixel origin: round(x0) crop offset is compensated
     ox = gx - (round(x0) - x0)

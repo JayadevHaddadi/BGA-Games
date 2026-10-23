@@ -25,8 +25,8 @@ const SHAPES = {
 
 // Board art from design/make_board_art.py: image size, grid origin (px in the image) and cell pitch.
 const BOARD_ART = {
-    river: { w: 627, h: 1401, x: 17.64, y: 195.5, pitch: 59.061 },
-    lake: { w: 863, h: 1047, x: 18.5, y: 195.65, pitch: 59.061 },
+    river: { w: 627, h: 1217, x: 17.64, y: 17.5, pitch: 59.061 },
+    lake: { w: 863, h: 863, x: 18.5, y: 17.65, pitch: 59.061 },
 };
 // Tile images are drawn at rotation 0 (hippo: 4x3 cells, tail right; crocodile: 3x6 cells, head down) and rotated
 // clockwise by 90 * rot degrees, matching SHAPES[species][rot].
@@ -205,8 +205,10 @@ export class Game {
         this.isActive = isActive;
         this.stage = null;
         this.clearPreviews();
+        if (isActive) this.ensureRotation();
         this.highlightLegal();
         this.updateButtons(args, isActive);
+        this.updateTitle();
     }
 
     leaveState() {
@@ -225,48 +227,94 @@ export class Game {
         for (const el of document.querySelectorAll('.hippos_ghost')) el.remove();
     }
 
+    legalIn(rot) {
+        return (this.args?.legal_placements || []).filter((m) => Number(m.rot) === rot);
+    }
+
+    // Switch to a rotation that has at least one legal placement (starting with the current one).
+    ensureRotation() {
+        for (let i = 0; i < 4; i++) {
+            const rot = (this.currentRot + i) % 4;
+            if (this.legalIn(rot).length) { this.currentRot = rot; return true; }
+        }
+        return false;
+    }
+
+    // Legal placements (current rotation) whose shape covers cell (r, c).
+    coveringPlacements(r, c, rot) {
+        const shapes = SHAPES[this.args.species];
+        if (!shapes) return [];
+        const out = [];
+        for (const m of this.legalIn(rot)) {
+            for (const [dr, dc] of shapes[rot].cells) {
+                if (Number(m.r) + dr === r && Number(m.c) + dc === c) { out.push(m); break; }
+            }
+        }
+        return out;
+    }
+
+    // Prefer the placement whose centre is closest to the tapped cell.
+    bestCovering(r, c, rot) {
+        const shape = SHAPES[this.args.species][rot];
+        let best = null, bestD = Infinity;
+        for (const m of this.coveringPlacements(r, c, rot)) {
+            const cr = Number(m.r) + (shape.rows - 1) / 2;
+            const cc = Number(m.c) + (shape.cols - 1) / 2;
+            const d = (cr - r) ** 2 + (cc - c) ** 2;
+            if (d < bestD) { bestD = d; best = m; }
+        }
+        return best;
+    }
+
+    updateTitle() {
+        if (!this.isActive || !this.args || !this.bga.statusBar?.setTitle) return;
+        const name = this.args.species === 'crocodile' ? _('crocodile') : _('hippo');
+        const n = this.legalIn(this.currentRot).length;
+        let text;
+        if (!n) {
+            text = _('No legal placement is available.');
+        } else {
+            text = _('You must place a ${animal}: ${n} possible spots (rotation ${deg}° shown)')
+                .replace('${animal}', name).replace('${n}', String(n)).replace('${deg}', String(this.currentRot * 90));
+        }
+        try { this.bga.statusBar.setTitle(text); } catch (e) {}
+    }
+
     highlightLegal() {
         this.clearHighlights();
         if (!this.isActive || !this.args?.legal_placements) return;
 
-        // Mark anchor cells that have at least one legal placement
-        for (const m of this.args.legal_placements) {
-            if (m.rot === this.currentRot) {
-                const cell = document.getElementById(`hippos_cell_${m.r}_${m.c}`);
+        // Mark every cell that some legal placement (current rotation) would cover
+        const shape = SHAPES[this.args.species]?.[this.currentRot];
+        if (!shape) return;
+        for (const m of this.legalIn(this.currentRot)) {
+            for (const [dr, dc] of shape.cells) {
+                const cell = document.getElementById(`hippos_cell_${Number(m.r) + dr}_${Number(m.c) + dc}`);
                 if (cell) cell.classList.add('hippos_legal_target');
             }
         }
     }
 
     onCellClicked(r, c) {
-        if (!this.isActive || !this.args) return;
-        const mySpecies = this.args.species;
-        if (!mySpecies) return;
+        if (!this.isActive || !this.args || !this.args.species) return;
 
-        // Check if placement at (r, c) with currentRot is legal
-        const isLegal = this.args.legal_placements?.some(
-            (m) => m.rot === this.currentRot && m.r === r && m.c === c
-        );
-
-        if (!isLegal) {
-            // Find if any other rotation fits at (r, c)
-            const alt = this.args.legal_placements?.find((m) => m.r === r && m.c === c);
-            if (alt) {
-                this.currentRot = alt.rot;
-                this.stagePlacement(r, c, alt.rot);
-                return;
+        let m = this.bestCovering(r, c, this.currentRot);
+        if (!m) {
+            // Another rotation may reach this cell
+            for (let i = 1; i < 4 && !m; i++) {
+                const rot = (this.currentRot + i) % 4;
+                m = this.bestCovering(r, c, rot);
+                if (m) { this.currentRot = rot; this.highlightLegal(); this.updateTitle(); }
             }
-            return;
         }
-
-        this.stagePlacement(r, c, this.currentRot);
+        if (m) this.stagePlacement(Number(m.r), Number(m.c), this.currentRot);
     }
 
     stagePlacement(r, c, rot) {
         this.stage = { r, c, rot };
         this.clearPreviews();
 
-        const legal = this.args.legal_placements?.some((m) => m.rot === rot && m.r === r && m.c === c);
+        const legal = this.args.legal_placements?.some((m) => Number(m.rot) === rot && Number(m.r) === r && Number(m.c) === c);
         const ghost = this.makePieceEl(this.args.species, rot, r, c);
         ghost.classList.add('hippos_ghost', legal ? 'hippos_ghost_ok' : 'hippos_ghost_bad');
         document.getElementById('hippos_pieces').appendChild(ghost);
@@ -277,10 +325,11 @@ export class Game {
     onRotate() {
         if (!this.isActive || !this.args) return;
         this.currentRot = (this.currentRot + 1) % 4;
+        this.ensureRotation();
         if (this.stage) {
             // If currently staged, test if the new rotation fits at the same (r, c)
             const fit = this.args.legal_placements?.some(
-                (m) => m.rot === this.currentRot && m.r === this.stage.r && m.c === this.stage.c
+                (m) => Number(m.rot) === this.currentRot && Number(m.r) === this.stage.r && Number(m.c) === this.stage.c
             );
             if (fit) {
                 this.stagePlacement(this.stage.r, this.stage.c, this.currentRot);
@@ -291,6 +340,7 @@ export class Game {
         }
         this.highlightLegal();
         this.updateButtons(this.args, this.isActive);
+        this.updateTitle();
     }
 
     onConfirm() {
@@ -303,6 +353,7 @@ export class Game {
         this.stage = null;
         this.clearPreviews();
         this.updateButtons(this.args, this.isActive);
+        this.updateTitle();
     }
 
     updateButtons(args, isActive) {

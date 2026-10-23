@@ -119,16 +119,15 @@
 .hippos_legal_target::after {
     content: "";
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 22%;
-    height: 22%;
-    border-radius: 50%;
-    background-color: rgba(255, 255, 255, 0.55);
+    inset: 6%;
+    border-radius: 22%;
+    background-color: rgba(255, 255, 255, 0.34);
+    border: 2px solid rgba(255, 255, 255, 0.85);
+    box-sizing: border-box;
+    pointer-events: none;
 }
 @media (hover: hover) {
-    .hippos_legal_target:hover { background-color: rgba(255, 255, 255, 0.25); }
+    .hippos_legal_target:hover::after { background-color: rgba(255, 255, 255, 0.55); }
 }
 
 /* Placed animals: real tile images over the cells; never intercept taps */
@@ -175,7 +174,7 @@
 }
 
 /* Player panel reserve line (BGA default panel colours) */
-.hippos_panel { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 13px; }
+.hippos_panel { display: flex; align-items: center; gap: 12px; margin-top: 6px; font-size: 26px; }
 .hippos_panel_icon { display: inline-block; background-repeat: no-repeat; background-size: 100% 100%; flex: none; }
-.hippos_panel_icon.hippos_species_hippo { width: 24px; height: 18px; background-image: url(img/piece_hippo.png); }
-.hippos_panel_icon.hippos_species_crocodile { width: 14px; height: 28px; background-image: url(img/piece_crocodile.png); }
+.hippos_panel_icon.hippos_species_hippo { width: 48px; height: 36px; background-image: url(img/piece_hippo.png); }
+.hippos_panel_icon.hippos_species_crocodile { width: 28px; height: 56px; background-image: url(img/piece_crocodile.png); }
