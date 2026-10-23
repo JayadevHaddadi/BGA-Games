@@ -42,8 +42,8 @@ export class Game {
 
     setup(gamedatas) {
         this.gamedatas = gamedatas;
-        this.rows = gamedatas.rows;
-        this.cols = gamedatas.cols;
+        this.rows = Number(gamedatas.rows);
+        this.cols = Number(gamedatas.cols);
         this.boardType = gamedatas.board_type;
         this.species = gamedatas.species;
         this.reserves = gamedatas.reserves;
@@ -136,10 +136,13 @@ export class Game {
     }
 
     renderPieceOnGrid(species, rot, topR, leftC, pieceId) {
+        // Database values arrive as strings: "1" + 2 would be "12"
+        rot = Number(rot); topR = Number(topR); leftC = Number(leftC);
         const shape = SHAPES[species][rot];
         for (const [dr, dc] of shape.cells) {
             const r = topR + dr;
             const c = leftC + dc;
+            if (!this.grid[r] || c < 0 || c >= this.cols) continue;
             this.grid[r][c] = pieceId;
             const cell = document.getElementById(`hippos_cell_${r}_${c}`);
             if (cell) {
