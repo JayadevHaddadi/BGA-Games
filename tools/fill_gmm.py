@@ -44,7 +44,13 @@ def fill_gmm(page, slug):
     print(f"=======================================================")
 
     url = f'https://studio.boardgamearena.com/controlpanelgames?game={project_slug}'
-    page.goto(url, wait_until='domcontentloaded')
+    for attempt in range(3):
+        try:
+            page.goto(url, wait_until='domcontentloaded', timeout=30000)
+            break
+        except Exception as e:
+            if attempt == 2: raise
+            page.wait_for_timeout(3000)
     page.wait_for_timeout(2000)
 
     # 1. Switch to Metadata tab
@@ -78,7 +84,7 @@ def fill_gmm(page, slug):
     if designer_str:
         # Check if already set
         d_row = page.locator('div.tabmetadata__row-2:has-text("Designer")').first
-        if 'NOT SET' in d_row.inner_text():
+        if 'NOT SET' in d_row.inner_text() or 'John Doe' in d_row.inner_text() or designer_str not in d_row.inner_text():
             set_row_field('div.tabmetadata__row-2:has-text("Designer")', designer_str, 'Designer')
 
     # Publication year
