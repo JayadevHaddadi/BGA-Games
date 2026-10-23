@@ -26,7 +26,7 @@ What is actually uploaded in each GMM may differ; check the live page before rep
 | :--- | :--- | :--- |
 | gardensofmars | 2 distinct table photos of the real game | OK (physical photos from Nestor) |
 | pentup | 2 table photos of the real game (pentup_big_1, pentup_big_2) | OK (physical photos from Nestor) |
-| hipposandcrocodiles | 2 table photos of the real game (full board + focus crop) | OK (physical photo from Nestor) |
+| hipposcrocodiles | 2 table photos of the real game (full board + focus crop) | OK (physical photo from Nestor) |
 | red | 2 table photos of the real game (full board + focus crop) | OK (physical photo from Nestor) |
 | KILN | 2 table photos of the real game (kiln_2 + board crop) | OK (physical photo from Nestor) |
 | nestorgamesgp | 5 table photos of the real game (tracks, loops, items) | OK (physical photos from Nestor) |

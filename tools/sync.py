@@ -52,7 +52,7 @@ TARGET_MAP = {
     "red": ("games/red/bga", "red"),
     "microchip": ("games/microchip/bga", "microchip"),
     "people": ("games/people/bga", "people"),
-    "hipposandcrocodiles": ("games/hipposandcrocodiles/bga", "hipposandcrocodiles"),
+    "hipposcrocodiles": ("games/hipposcrocodiles/bga", "hipposcrocodiles"),
     "pentup": ("games/pentup/bga", "pentup"),
     # <bga:targets>  (tools/bga.py register inserts new games above this line)
 }

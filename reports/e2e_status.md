@@ -17,7 +17,7 @@ Not covered: real clicks, look and feel, phone layout, rules correctness. Those 
 | people | Antigravity | 2-4 | yes | PASS 2p (all), 4p (replay skipped) | 2026-10-19 | |
 | microchip | Antigravity | 2-5 | yes | PASS 2p, 5p, all scenarios | 2026-10-19 | |
 | red | Antigravity | 2-3 | yes | PASS 3p (all), 2p (replay skipped) | 2026-10-19 | |
-| hipposandcrocodiles | Antigravity | 2 | yes | PASS 2p, all scenarios incl. replay | 2026-10-19 | replay load error fixed by Antigravity |
+| hipposcrocodiles | Antigravity | 2 | yes | PASS 2p, all scenarios incl. replay | 2026-10-19 | replay load error fixed by Antigravity |
 | gardensofio | | 2-5 | yes | PASS 2p, 5p, all scenarios | 2026-10-21 | lap-bonus crash fixed (3f565ed); debug_playToEnd added |
 | pentup | Claude | 2 | yes | PASS 2p (replay skipped: no Studio archive) | 2026-10-23 | new game, 3D client |
 | all other games | | | no | not run | | add the slug to `tools/e2e/games.json` to enable |

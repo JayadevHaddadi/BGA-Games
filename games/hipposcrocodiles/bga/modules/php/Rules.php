@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Bga\Games\hipposandcrocodiles;
+namespace Bga\Games\hipposcrocodiles;
 
 /**
  * Pure game rules for Hippos & Crocodiles (no framework dependencies).

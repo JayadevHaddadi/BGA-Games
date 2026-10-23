@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Bga\Games\hipposandcrocodiles\States;
+namespace Bga\Games\hipposcrocodiles\States;
 
 use Bga\GameFramework\StateType;
 use Bga\GameFramework\States\GameState;
-use Bga\Games\hipposandcrocodiles\Game;
-use Bga\Games\hipposandcrocodiles\Rules;
+use Bga\Games\hipposcrocodiles\Game;
+use Bga\Games\hipposcrocodiles\Rules;
 
 /** Alternates the trunk placers; once everybody has placed theirs, the first player starts the animal phase. */
 class NextTrunk extends GameState

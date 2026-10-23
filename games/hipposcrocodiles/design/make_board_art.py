@@ -6,7 +6,7 @@ every cell is PITCH px, so Game.js needs only PITCH / PAD (no per-map table).
 Tiles: piece_hippo.png / piece_crocodile.png (cropped and recoloured from the print) and piece_trunk.png (drawn).
 Also writes tests/harness/masks.json for the browser harness.
 
-Run: python3 games/hipposandcrocodiles/design/make_board_art.py
+Run: python3 games/hipposcrocodiles/design/make_board_art.py
 """
 import json
 import re

@@ -9,7 +9,7 @@
 | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- | :--- |
 | **pentup** | `pentup` | Studio | ✓ | ✓ | ✓ | ✓ | ✓ (2) | ✓ | ✓ | ✓ (4/4) | ✓ (3) | Physical photos (Nestor) | Request Public Alpha |
 | **red** | `red` | Studio | ✓ | ✓ | ✓ | ✓ | ✓ (2) | ✓ | ✓ | ✓ (4/4) | ✓ (2) | Physical photos (Nestor) | Ready / Up to date |
-| **hipposandcrocodiles** | `hipposandcrocodiles` | Studio | ✓ | ✓ | ✓ | ✓ | ✓ (2) | ✓ | ✓ | ✓ (4/4) | ✓ (2) | Physical photos (Nestor) | Ready / Up to date |
+| **hipposcrocodiles** | `hipposcrocodiles` | Studio | ✓ | ✓ | ✓ | ✓ | ✓ (2) | ✓ | ✓ | ✓ (4/4) | ✓ (2) | Physical photos (Nestor) | Ready / Up to date |
 | **people** | `people` | Studio | ✓ | ✓ | ✓ | ✓ | ✓ (2) | ✓ | ✓ | ✓ (4/4) | ✓ (2) | Physical photos (Nestor) | Ready / Up to date |
 | **microchip** | `microchip` | Studio | ✓ | ✓ | ✓ | ✓ | ✓ (2) | ✓ | ✓ | ✓ (4/4) | ✓ (2) | Awaiting physical photos (Screenshots) | Need real physical photos |
 | **gardensofenceladus** | `gardensofenceladus` | Studio | ✓ | ✓ | ✓ | ✓ | ✓ (2) | ✓ | ✓ | ✓ (4/4) | ✓ (3) | Awaiting physical photos (Screenshots) | Need real physical photos |
@@ -71,8 +71,8 @@ Legend:
   - Displays: 2 on Studio | 2 local (display_1.jpg, display_2.jpg)
 - **Display Photos Nature**: Physical photos (Nestor)
 
-### Hippos & Crocodiles (`hipposandcrocodiles`)
-- **Studio Project**: `hipposandcrocodiles` | **Status**: Studio Accessible
+### Hippos & Crocodiles (`hipposcrocodiles`)
+- **Studio Project**: `hipposcrocodiles` | **Status**: Studio Accessible
 - **BGG ID**: `51197` | **Publisher**: `nestorgames`
 - **Designer(s)**: Studio=`Néstor Romeral Andrés` | Local=`Néstor Romeral Andrés`
 - **Publication Year**: Studio=`2008` | Local=`2008`

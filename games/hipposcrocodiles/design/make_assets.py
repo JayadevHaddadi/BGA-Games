@@ -1,6 +1,6 @@
 """Builds the Hippos & Crocodiles art: sprites, title, and metadata images via tools/bga_assets.py.
 
-Run: python3 tools/bga.py assets hipposandcrocodiles
+Run: python3 tools/bga.py assets hipposcrocodiles
 """
 from pathlib import Path
 import sys

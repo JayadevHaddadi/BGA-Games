@@ -29,7 +29,7 @@ on every push to `main`. Remote: `https://github.com/JayadevHaddadi/BGA-Games` (
 | Gardens of Enceladus | `games/gardensofenceladus/bga` | `gardensofenceladus` | Implemented, not yet played on Studio |
 | People | `games/people/bga` | `people` | Implemented, not yet played on Studio |
 | Microchip | `games/microchip/bga` | `microchip` | Implemented, not yet played on Studio |
-| Hippos and Crocodiles | not in the repo yet | `hipposandcrocodiles` | Blank Studio templates |
+| Hippos and Crocodiles | not in the repo yet | `hipposcrocodiles` | Blank Studio templates |
 | GoCaine, Blitzkrieg | not in the repo yet | `gocaine`, `blitzkrieg` | On Studio only |
 
 Rulebooks for the backlog (Seven, Taiji, Pent-Up, Counterplays, Stack-22, Flink, Manalath, Onager) are in their

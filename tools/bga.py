@@ -670,6 +670,11 @@ def cmd_check(args):
     # 5. Config values
     if (bga / 'gameinfos.jsonc').exists():
         gi = read_jsonc(bga / 'gameinfos.jsonc')
+        import re as _re
+        _want = _re.sub(r'[^a-z0-9]', '', str(gi.get('game_name', '')).lower())
+        (rep.add('PASS', 'Studio project name = game name, non-alphanumerics removed, lowercased') if _want == slug else
+         rep.add('FAIL', 'Studio project name must equal the game name with non-alphanumerics removed, lowercased',
+                 f'game_name "{gi.get("game_name")}" requires project "{_want}", but slug is "{slug}" ("&" is dropped)'))
         (rep.add('PASS', 'bgg_id set') if gi.get('bgg_id') else rep.add('FAIL', 'bgg_id set', 'add "bgg_id" to gameinfos.jsonc (AGENTS.md rule 17)'))
         (rep.add('PASS', 'publisher set') if gi.get('publisher') else rep.add('WARN', 'publisher set'))
         width = (gi.get('game_interface_width') or {}).get('min')

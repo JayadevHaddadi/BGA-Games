@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parent.parent
 GAMES = [
     ("pentup", "pentup", "pentup"),
     ("red", "red", "red"),
-    ("hipposandcrocodiles", "hipposandcrocodiles", "hipposandcrocodiles"),
+    ("hipposcrocodiles", "hipposcrocodiles", "hipposcrocodiles"),
     ("people", "people", "people"),
     ("microchip", "microchip", "microchip"),
     ("gardensofenceladus", "gardensofenceladus", "gardensofenceladus"),
@@ -49,7 +49,7 @@ BACKLOG_GAMES = [
 PHYSICAL_PHOTO_STATUS = {
     "pentup": "Physical photos (Nestor)",
     "red": "Physical photos (Nestor)",
-    "hipposandcrocodiles": "Physical photos (Nestor)",
+    "hipposcrocodiles": "Physical photos (Nestor)",
     "people": "Physical photos (Nestor)",
     "kiln": "Physical photos (Nestor)",
     "nestorgamesgp": "Physical photos (Nestor)",

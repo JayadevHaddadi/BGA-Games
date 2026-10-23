@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Bga\Games\hipposandcrocodiles;
+namespace Bga\Games\hipposcrocodiles;
 
 use Bga\GameFramework\Actions\UserException;
-use Bga\Games\hipposandcrocodiles\States\PlaceTrunk;
-use Bga\Games\hipposandcrocodiles\States\PlayerTurn;
+use Bga\Games\hipposcrocodiles\States\PlaceTrunk;
+use Bga\Games\hipposcrocodiles\States\PlayerTurn;
 
 class Game extends \Bga\GameFramework\Table
 {

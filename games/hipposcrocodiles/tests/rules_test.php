@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../bga/modules/php/Rules.php';
 
-use Bga\Games\hipposandcrocodiles\Rules;
+use Bga\Games\hipposcrocodiles\Rules;
 
 $checks = 0;
 $failures = 0;

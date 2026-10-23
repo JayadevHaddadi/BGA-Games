@@ -34,7 +34,7 @@ PROJECT_MAP = {
     'red': 'red',
     'microchip': 'microchip',
     'people': 'people',
-    'hipposandcrocodiles': 'hipposandcrocodiles',
+    'hipposcrocodiles': 'hipposcrocodiles',
     'pentup': 'pentup',
 }
 

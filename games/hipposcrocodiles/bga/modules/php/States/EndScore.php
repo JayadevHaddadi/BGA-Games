@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Bga\Games\hipposandcrocodiles\States;
+namespace Bga\Games\hipposcrocodiles\States;
 
 use Bga\GameFramework\StateType;
 use Bga\GameFramework\States\GameState;
-use Bga\Games\hipposandcrocodiles\Game;
+use Bga\Games\hipposcrocodiles\Game;
 
 const ST_END_GAME = 99;
 

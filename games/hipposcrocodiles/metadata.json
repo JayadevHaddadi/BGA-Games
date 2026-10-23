@@ -1,7 +1,7 @@
 {
   "_comment": "Single source for the Control Panel (Game Metadata Manager). Run: python3 tools/bga.py gmm <slug>",
-  "slug": "hipposandcrocodiles",
-  "studio_project": "hipposandcrocodiles",
+  "slug": "hipposcrocodiles",
+  "studio_project": "hipposcrocodiles",
   "game_name": "Hippos & Crocodiles",
   "bgg_id": 51197,
   "bgg_url": "https://boardgamegeek.com/boardgame/51197",

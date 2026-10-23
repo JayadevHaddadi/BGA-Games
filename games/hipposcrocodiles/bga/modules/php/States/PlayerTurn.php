@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Bga\Games\hipposandcrocodiles\States;
+namespace Bga\Games\hipposcrocodiles\States;
 
 use Bga\GameFramework\States\PossibleAction;
 use Bga\GameFramework\StateType;
 use Bga\GameFramework\States\GameState;
-use Bga\Games\hipposandcrocodiles\Game;
-use Bga\Games\hipposandcrocodiles\Rules;
+use Bga\Games\hipposcrocodiles\Game;
+use Bga\Games\hipposcrocodiles\Rules;
 
 class PlayerTurn extends GameState
 {
