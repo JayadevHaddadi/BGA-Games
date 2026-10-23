@@ -5,9 +5,8 @@
   "microchip",
   "hipposandcrocodiles",
   "gardensofio",
-  "pentup"
+  "pentup",
+  "red"
  ],
- "paused": {
-  "red": "Studio project red is read-only for us (permission denied on write); re-enable after the first successful deploy"
- }
+ "paused": {}
 }
