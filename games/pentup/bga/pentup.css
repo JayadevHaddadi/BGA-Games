@@ -22,13 +22,6 @@ body.pu_page_bg #game_play_area_background {
     font-size: 15px;
 }
 
-#pu_status {
-    margin: 0 0 8px;
-    padding: 0 8px;
-    min-height: 1.3em;
-    line-height: 1.3;
-}
-
 #pu_view {
     position: relative;
     width: 100%;
@@ -76,7 +69,7 @@ body.pu_page_bg #game_play_area_background {
     #pu_view.pu_is3d {
         aspect-ratio: auto;
         max-height: none;
-        height: max(420px, calc(100vh - 200px));
+        height: min(max(420px, 70vh), 640px);
     }
 
     #pu_view:not(.pu_is3d) {
@@ -262,6 +255,34 @@ body.pu_page_bg #game_play_area_background {
     margin: 0 auto;
     overflow: auto;
     touch-action: manipulation;
+    position: relative;
+}
+
+.pu2_svg {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.pu2_t {
+    stroke-width: 0.045;
+    stroke-linejoin: round;
+}
+
+.pu2_t_white { fill: #f0e9d6; stroke: #6b6556; }
+.pu2_t_black { fill: #202227; stroke: #8a8d96; }
+.pu2_t_red { fill: #b23a34; stroke: #e0827c; }
+
+.pu2_dropp {
+    animation: pu2_fade 0.4s ease-out 1;
+}
+
+@keyframes pu2_fade {
+    from { opacity: 0.2; }
+    to { opacity: 1; }
 }
 
 .pu2_cell {
@@ -273,27 +294,29 @@ body.pu_page_bg #game_play_area_background {
     justify-content: center;
     border: 1px solid rgba(0, 0, 0, 0.18);
     background: #8c5d37;
+    position: relative;
+    z-index: 1;
     font-size: 12px;
     font-weight: bold;
     line-height: 1;
 }
 
 .pu2_cell.pu2_white {
-    background: #f0e9d6;
+    background: transparent;
     color: #262626;
-    border-color: #a69f8b;
+    border-color: transparent;
 }
 
 .pu2_cell.pu2_black {
-    background: #202227;
+    background: transparent;
     color: #f3f1ea;
-    border-color: #5b5e66;
+    border-color: transparent;
 }
 
 .pu2_cell.pu2_red {
-    background: #b23a34;
+    background: transparent;
     color: #f3f1ea;
-    border-color: #e0827c;
+    border-color: transparent;
 }
 
 .pu2_cell.pu2_anchor {

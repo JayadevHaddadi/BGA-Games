@@ -16,7 +16,13 @@ class PlayerTurn extends GameState
     public function __construct(
         protected Game $game,
     ) {
-        parent::__construct($game, id: 30, type: StateType::ACTIVE_PLAYER);
+        parent::__construct(
+            $game,
+            id: 30,
+            type: StateType::ACTIVE_PLAYER,
+            description: clienttranslate('${actplayer} must place a tile'),
+            descriptionMyTurn: clienttranslate('${you} must place a tile'),
+        );
     }
 
     /** Legal moves per shape still in hand, each shape on its own mandatory level. */

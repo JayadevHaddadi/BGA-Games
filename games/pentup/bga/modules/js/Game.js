@@ -12,7 +12,7 @@
  */
 
 const PU_GRID = 40;
-const PU_TH = 0.5; // tile thickness in cell units
+const PU_TH = 0.26; // tile thickness in cell units (about 4 mm on the real 15 mm pitch)
 const PU_SHAPES = {
     F: [[1, 0], [2, 0], [0, 1], [1, 1], [1, 2]],
     I: [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4]],
@@ -43,6 +43,50 @@ function puNorm(shape, o) {
     const my = Math.min(...cells.map((c) => c[1]));
     return cells.map(([x, y]) => [x - mx, y - my]);
 }
+/* Nestor's laser-cut outlines (design/pentup_tiles.svg, parsed by design/gen_outlines.py): one closed path per shape,
+   in cell units, in the orientation of PU_SHAPES. Rounded corners with a small notch at every seam. */
+const PU_OUTLINES = {
+    F: 'M 1 1.1 C 1 1.045 0.955 1 0.9 1 L 0.1 1 C 0.045 1 0 1.045 0 1.1 L 0 1.9 C 0 1.955 0.045 2 0.1 2 L 0.9 2 C 0.955 2 1 1.955 1 1.9 C 1 1.955 1.045 2 1.1 2 C 1.045 2 1 2.045 1 2.1 L 1 2.9 C 1 2.955 1.045 3 1.1 3 L 1.9 3 C 1.955 3 2 2.955 2 2.9 L 2 2.1 C 2 2.045 1.955 2 1.9 2 C 1.955 2 2 1.955 2 1.9 L 2 1.1 C 2 1.045 1.955 1 1.9 1 C 1.955 1 2 0.955 2 0.9 C 2 0.955 2.045 1 2.1 1 L 2.9 1 C 2.955 1 3 0.955 3 0.9 L 3 0.1 C 3 0.045 2.955 0 2.9 0 L 2.1 0 C 2.045 0 2 0.045 2 0.1 C 2 0.045 1.955 0 1.9 0 L 1.1 0 C 1.045 0 1 0.045 1 0.1 L 1 0.9 C 1 0.955 1.045 1 1.1 1 C 1.045 1 1 1.045 1 1.1 Z',
+    I: 'M 1 4.1 L 1 4.9 C 1 4.955 0.955 5 0.9 5 L 0.1 5 C 0.045 5 0 4.955 0 4.9 L 0 4.1 C 0 4.045 0.045 4 0.1 4 C 0.045 4 0 3.955 0 3.9 L 0 3.1 C 0 3.045 0.045 3 0.1 3 C 0.045 3 0 2.955 0 2.9 L 0 2.1 C 0 2.045 0.045 2 0.1 2 C 0.045 2 0 1.955 0 1.9 L 0 1.1 C 0 1.045 0.045 1 0.1 1 C 0.045 1 0 0.955 0 0.9 L 0 0.1 C 0 0.045 0.045 0 0.1 0 L 0.9 0 C 0.955 0 1 0.045 1 0.1 L 1 0.9 C 1 0.955 0.955 1 0.9 1 C 0.955 1 1 1.045 1 1.1 L 1 1.9 C 1 1.955 0.955 2 0.9 2 C 0.955 2 1 2.045 1 2.1 L 1 2.9 C 1 2.955 0.955 3 0.9 3 C 0.955 3 1 3.045 1 3.1 L 1 3.9 C 1 3.955 0.955 4 0.9 4 C 0.955 4 1 4.045 1 4.1 Z',
+    L: 'M 1 3.9 C 1 3.955 1.045 4 1.1 4 L 1.9 4 C 1.955 4 2 3.955 2 3.9 L 2 3.1 C 2 3.045 1.955 3 1.9 3 L 1.1 3 C 1.045 3 1 3.045 1 3.1 C 1 3.045 0.955 3 0.9 3 C 0.955 3 1 2.955 1 2.9 L 1 2.1 C 1 2.045 0.955 2 0.9 2 C 0.955 2 1 1.955 1 1.9 L 1 1.1 C 1 1.045 0.955 1 0.9 1 C 0.955 1 1 0.955 1 0.9 L 1 0.1 C 1 0.045 0.955 0 0.9 0 L 0.1 0 C 0.045 0 0 0.045 0 0.1 L 0 0.9 C 0 0.955 0.045 1 0.1 1 C 0.045 1 0 1.045 0 1.1 L 0 1.9 C 0 1.955 0.045 2 0.1 2 C 0.045 2 0 2.045 0 2.1 L 0 2.9 C 0 2.955 0.045 3 0.1 3 C 0.045 3 0 3.045 0 3.1 L 0 3.9 C 0 3.955 0.045 4 0.1 4 L 0.9 4 C 0.955 4 1 3.955 1 3.9 Z',
+    N: 'M 0 3.1 L 0 3.9 C 0 3.955 0.045 4 0.1 4 L 0.9 4 C 0.955 4 1 3.955 1 3.9 L 1 3.1 C 1 3.045 0.955 3 0.9 3 C 0.955 3 1 2.955 1 2.9 C 1 2.955 1.045 3 1.1 3 L 1.9 3 C 1.955 3 2 2.955 2 2.9 L 2 2.1 C 2 2.045 1.955 2 1.9 2 C 1.955 2 2 1.955 2 1.9 L 2 1.1 C 2 1.045 1.955 1 1.9 1 C 1.955 1 2 0.955 2 0.9 L 2 0.1 C 2 0.045 1.955 0 1.9 0 L 1.1 0 C 1.045 0 1 0.045 1 0.1 L 1 0.9 C 1 0.955 1.045 1 1.1 1 C 1.045 1 1 1.045 1 1.1 L 1 1.9 C 1 1.955 1.045 2 1.1 2 C 1.045 2 1 2.045 1 2.1 C 1 2.045 0.955 2 0.9 2 L 0.1 2 C 0.045 2 0 2.045 0 2.1 L 0 2.9 C 0 2.955 0.045 3 0.1 3 C 0.045 3 0 3.045 0 3.1 Z',
+    P: 'M 0.9 3 L 0.1 3 C 0.045 3 0 2.955 0 2.9 L 0 2.1 C 0 2.045 0.045 2 0.1 2 C 0.045 2 0 1.955 0 1.9 L 0 1.1 C 0 1.045 0.045 1 0.1 1 C 0.045 1 0 0.955 0 0.9 L 0 0.1 C 0 0.045 0.045 0 0.1 0 L 0.9 0 C 0.955 0 1 0.045 1 0.1 C 1 0.045 1.045 0 1.1 0 L 1.9 0 C 1.955 0 2 0.045 2 0.1 L 2 0.9 C 2 0.955 1.955 1 1.9 1 C 1.955 1 2 1.045 2 1.1 L 2 1.9 C 2 1.955 1.955 2 1.9 2 L 1.1 2 C 1.045 2 1 1.955 1 1.9 C 1 1.955 0.955 2 0.9 2 C 0.955 2 1 2.045 1 2.1 L 1 2.9 C 1 2.955 0.955 3 0.9 3 Z',
+    T: 'M 1.9 2 C 1.955 2 2 2.045 2 2.1 L 2 2.9 C 2 2.955 1.955 3 1.9 3 L 1.1 3 C 1.045 3 1 2.955 1 2.9 L 1 2.1 C 1 2.045 1.045 2 1.1 2 C 1.045 2 1 1.955 1 1.9 L 1 1.1 C 1 1.045 1.045 1 1.1 1 C 1.045 1 1 0.955 1 0.9 C 1 0.955 0.955 1 0.9 1 L 0.1 1 C 0.045 1 0 0.955 0 0.9 L 0 0.1 C 0 0.045 0.045 0 0.1 0 L 0.9 0 C 0.955 0 1 0.045 1 0.1 C 1 0.045 1.045 0 1.1 0 L 1.9 0 C 1.955 0 2 0.045 2 0.1 C 2 0.045 2.045 0 2.1 0 L 2.9 0 C 2.955 0 3 0.045 3 0.1 L 3 0.9 C 3 0.955 2.955 1 2.9 1 L 2.1 1 C 2.045 1 2 0.955 2 0.9 C 2 0.955 1.955 1 1.9 1 C 1.955 1 2 1.045 2 1.1 L 2 1.9 C 2 1.955 1.955 2 1.9 2 Z',
+    U: 'M 2.9 1 C 2.955 1 3 0.955 3 0.9 L 3 0.1 C 3 0.045 2.955 0 2.9 0 L 2.1067 0 C 2.0517 0 2.0067 0.045 2.0067 0.1 L 2.0067 0.9 C 2.0067 0.955 2.0517 1 2.1067 1 C 2.0517 1 2 1.0517 2 1.1067 C 2 1.0517 1.955 1.0067 1.9 1.0067 L 1.1 1.0067 C 1.045 1.0067 1 1.0517 1 1.1067 C 1 1.0517 0.9483 1 0.8933 1 C 0.9483 1 0.9933 0.955 0.9933 0.9 L 0.9933 0.1 C 0.9933 0.045 0.9483 0 0.8933 0 L 0.1 0 C 0.045 0 0 0.045 0 0.1 L 0 0.9 C 0 0.955 0.045 1 0.1 1 C 0.045 1 0 1.045 0 1.1 L 0 1.9 C 0 1.955 0.045 2 0.1 2 L 0.9 2 C 0.955 2 1 1.955 1 1.9 C 1 1.955 1.045 2 1.1 2 L 1.9 2 C 1.955 2 2 1.955 2 1.9 C 2 1.955 2.045 2 2.1 2 L 2.9 2 C 2.955 2 3 1.955 3 1.9 L 3 1.1 C 3 1.045 2.955 1 2.9 1 Z',
+    V: 'M 2 2.1 C 2 2.045 2.045 2 2.1 2 L 2.9 2 C 2.955 2 3 2.045 3 2.1 L 3 2.9 C 3 2.955 2.955 3 2.9 3 L 2.1 3 C 2.045 3 2 2.955 2 2.9 C 2 2.955 1.955 3 1.9 3 L 1.1 3 C 1.045 3 1 2.955 1 2.9 C 1 2.955 0.955 3 0.9 3 L 0.1 3 C 0.045 3 0 2.955 0 2.9 L 0 2.1 C 0 2.045 0.045 2 0.1 2 C 0.045 2 0 1.955 0 1.9 L 0 1.1 C 0 1.045 0.045 1 0.1 1 C 0.045 1 0 0.955 0 0.9 L 0 0.1 C 0 0.045 0.045 0 0.1 0 L 0.9 0 C 0.955 0 1 0.045 1 0.1 L 1 0.9 C 1 0.955 0.955 1 0.9 1 C 0.955 1 1 1.045 1 1.1 L 1 1.9 C 1 1.955 0.955 2 0.9 2 C 0.955 2 1 2.045 1 2.1 C 1 2.045 1.045 2 1.1 2 L 1.9 2 C 1.955 2 2 2.045 2 2.1 Z',
+    W: 'M 2.1 3 L 2.9 3 C 2.955 3 3 2.955 3 2.9 L 3 2.1 C 3 2.045 2.955 2 2.9 2 L 2.1 2 C 2.045 2 2 2.045 2 2.1 C 2 2.045 1.955 2 1.9 2 C 1.955 2 2 1.955 2 1.9 L 2 1.1 C 2 1.045 1.955 1 1.9 1 L 1.1 1 C 1.045 1 1 1.045 1 1.1 C 1 1.045 0.955 1 0.9 1 C 0.955 1 1 0.955 1 0.9 L 1 0.1 C 1 0.045 0.955 0 0.9 0 L 0.1 0 C 0.045 0 -0 0.045 -0 0.1 L -0 0.9 C -0 0.955 0.045 1 0.1 1 C 0.045 1 -0 1.045 -0 1.1 L -0 1.9 C -0 1.955 0.045 2 0.1 2 L 0.9 2 C 0.955 2 1 1.955 1 1.9 C 1 1.955 1.045 2 1.1 2 C 1.045 2 1 2.045 1 2.1 L 1 2.9 C 1 2.955 1.045 3 1.1 3 L 1.9 3 C 1.955 3 2 2.955 2 2.9 C 2 2.955 2.045 3 2.1 3 Z',
+    X: 'M 1.9 2 C 1.955 2 2 2.045 2 2.1 L 2 2.9 C 2 2.955 1.955 3 1.9 3 L 1.1 3 C 1.045 3 1 2.955 1 2.9 L 1 2.1 C 1 2.045 1.045 2 1.1 2 C 1.045 2 1 1.955 1 1.9 C 1 1.955 0.955 2 0.9 2 L 0.1 2 C 0.045 2 0 1.955 0 1.9 L 0 1.1 C 0 1.045 0.045 1 0.1 1 L 0.9 1 C 0.955 1 1 1.045 1 1.1 C 1 1.045 1.045 1 1.1 1 C 1.045 1 1 0.955 1 0.9 L 1 0.1 C 1 0.045 1.045 0 1.1 0 L 1.9 0 C 1.955 0 2 0.045 2 0.1 L 2 0.9 C 2 0.955 1.955 1 1.9 1 C 1.955 1 2 1.045 2 1.1 C 2 1.045 2.045 1 2.1 1 L 2.9 1 C 2.955 1 3 1.045 3 1.1 L 3 1.9 C 3 1.955 2.955 2 2.9 2 L 2.1 2 C 2.045 2 2 1.955 2 1.9 C 2 1.955 1.955 2 1.9 2 Z',
+    Y: 'M 1 1.1 C 1 1.045 0.955 1 0.9 1 L 0.1 1 C 0.045 1 0 1.045 0 1.1 L 0 1.9 C 0 1.955 0.045 2 0.1 2 L 0.9 2 C 0.955 2 1 1.955 1 1.9 C 1 1.955 1.045 2 1.1 2 C 1.045 2 1 2.045 1 2.1 L 1 2.9 C 1 2.955 1.045 3 1.1 3 C 1.045 3 1 3.045 1 3.1 L 1 3.9 C 1 3.955 1.045 4 1.1 4 L 1.9 4 C 1.955 4 2 3.955 2 3.9 L 2 3.1 C 2 3.045 1.955 3 1.9 3 C 1.955 3 2 2.955 2 2.9 L 2 2.1 C 2 2.045 1.955 2 1.9 2 C 1.955 2 2 1.955 2 1.9 L 2 1.1 C 2 1.045 1.955 1 1.9 1 C 1.955 1 2 0.955 2 0.9 L 2 0.1 C 2 0.045 1.955 0 1.9 0 L 1.1 0 C 1.045 0 1 0.045 1 0.1 L 1 0.9 C 1 0.955 1.045 1 1.1 1 C 1.045 1 1 1.045 1 1.1 Z',
+    Z: 'M 0 0.9 L 0 0.1 C 0 0.045 0.045 0 0.1 0 L 0.9 0 C 0.955 0 1 0.045 1 0.1 C 1 0.045 1.045 0 1.1 0 L 1.9 0 C 1.955 0 2 0.045 2 0.1 L 2 0.9 C 2 0.955 1.955 1 1.9 1 C 1.955 1 2 1.045 2 1.1 L 2 1.9 C 2 1.955 1.955 2 1.9 2 C 1.955 2 2 2.045 2 2.1 C 2 2.045 2.045 2 2.1 2 L 2.9 2 C 2.955 2 3 2.045 3 2.1 L 3 2.9 C 3 2.955 2.955 3 2.9 3 L 2.1 3 C 2.045 3 2 2.955 2 2.9 C 2 2.955 1.955 3 1.9 3 L 1.1 3 C 1.045 3 1 2.955 1 2.9 L 1 2.1 C 1 2.045 1.045 2 1.1 2 C 1.045 2 1 1.955 1 1.9 L 1 1.1 C 1 1.045 1.045 1 1.1 1 C 1.045 1 1 0.955 1 0.9 C 1 0.955 0.955 1 0.9 1 L 0.1 1 C 0.045 1 0 0.955 0 0.9 Z',
+};
+
+const puOutlineCache = {};
+/** Outline of a shape in orientation o as absolute path segments [cmd, ...numbers], origin at the bounding-box corner. */
+function puOutline(shape, o) {
+    const ck = `${shape}${o}`;
+    if (puOutlineCache[ck]) return puOutlineCache[ck];
+    const tok = PU_OUTLINES[shape].split(' ');
+    const segs = [];
+    for (let i = 0; i < tok.length;) {
+        const cmd = tok[i++];
+        const n = { M: 2, L: 2, C: 6, Z: 0 }[cmd];
+        const pts = [];
+        for (let k = 0; k < n; k += 2) {
+            let x = Number(tok[i++]), y = Number(tok[i++]);
+            if (o >= 4) x = -x;
+            for (let r = 0; r < o % 4; r++) [x, y] = [-y, x];
+            pts.push(x, y);
+        }
+        segs.push([cmd, ...pts]);
+    }
+    let mx = Infinity, my = Infinity;
+    for (const s of segs) for (let k = 1; k < s.length; k += 2) { mx = Math.min(mx, s[k]); my = Math.min(my, s[k + 1]); }
+    for (const s of segs) for (let k = 1; k < s.length; k += 2) { s[k] = Math.round((s[k] - mx) * 1e4) / 1e4; s[k + 1] = Math.round((s[k + 1] - my) * 1e4) / 1e4; }
+    puOutlineCache[ck] = segs;
+    return segs;
+}
+const puPathD = (shape, o) => puOutline(shape, o).map((s) => s.join(' ')).join(' ');
+
 const puCells = (shape, o, ax, ay) => puNorm(shape, o).map(([x, y]) => [x + ax, y + ay]);
 const puKey = (cells) => cells.map((c) => c[0] * 100 + c[1]).sort((a, b) => a - b).join(',');
 function puBox(shape, o) {
@@ -112,19 +156,18 @@ class Scene3D {
         this.camera = new T.PerspectiveCamera(40, 1, 0.5, 400);
 
         // Table
+        // The table only covers the played area plus a margin (see updateBoard), so it grows with the game
+        this.woodTex = this.woodTexture();
         const table = new T.Mesh(
-            new T.PlaneGeometry(90, 90),
-            new T.MeshStandardMaterial({ map: this.woodTexture(), roughness: 0.85, metalness: 0 }),
+            new T.PlaneGeometry(1, 1),
+            new T.MeshStandardMaterial({ map: this.woodTex, roughness: 0.85, metalness: 0 }),
         );
         table.rotation.x = -Math.PI / 2;
-        table.position.set(PU_GRID / 2, 0, PU_GRID / 2);
         table.receiveShadow = true;
         scene.add(table);
-        const grid = new T.GridHelper(PU_GRID, PU_GRID, 0x000000, 0x000000);
-        grid.position.set(PU_GRID / 2, 0.01, PU_GRID / 2);
-        grid.material.transparent = true;
-        grid.material.opacity = 0.1;
-        scene.add(grid);
+        this.table = table;
+        this.gridKey = '';
+        this.gridLines = null;
 
         // Light
         scene.add(new T.HemisphereLight(0xfff1dc, 0x3b2a1d, 1.0));
@@ -140,18 +183,8 @@ class Scene3D {
         this.sun = sun;
         scene.add(sun, sun.target);
 
-        // Tile cell: a rounded, bevelled square so the five squares show a seam like the real set
-        const s = new T.Shape();
-        const a = 0.37, r = 0.1;
-        s.moveTo(-a + r, -a); s.lineTo(a - r, -a); s.quadraticCurveTo(a, -a, a, -a + r);
-        s.lineTo(a, a - r); s.quadraticCurveTo(a, a, a - r, a);
-        s.lineTo(-a + r, a); s.quadraticCurveTo(-a, a, -a, a - r);
-        s.lineTo(-a, -a + r); s.quadraticCurveTo(-a, -a, -a + r, -a);
-        const bt = 0.04;
-        const geo = new T.ExtrudeGeometry(s, { depth: PU_TH - 2 * bt, bevelEnabled: true, bevelThickness: bt, bevelSize: 0.04, bevelSegments: 2, curveSegments: 4 });
-        geo.rotateX(-Math.PI / 2);
-        geo.translate(0, bt, 0);
-        this.cellGeo = geo;
+        // One extruded solid per (shape, orientation), built from the real laser-cut outline and cached
+        this.geoCache = {};
         this.mats = {};
         for (const [name, hex] of Object.entries(PU_TILE_COLOURS)) {
             this.mats[name] = new T.MeshStandardMaterial({ color: hex, roughness: name === 'black' ? 0.32 : 0.5, metalness: 0 });
@@ -164,11 +197,8 @@ class Scene3D {
             ok: new T.MeshBasicMaterial({ color: 0x35c46a, transparent: true, opacity: 0.62, depthWrite: false }),
             bad: new T.MeshBasicMaterial({ color: 0xd8423c, transparent: true, opacity: 0.62, depthWrite: false }),
         };
-        for (let i = 0; i < 5; i++) {
-            const m = new T.Mesh(geo, this.ghostMats.bad);
-            m.scale.set(1.03, 1.03, 1.03);
-            this.ghost.add(m);
-        }
+        this.ghostMesh = new T.Mesh(new T.BufferGeometry(), this.ghostMats.bad);
+        this.ghost.add(this.ghostMesh);
         scene.add(this.ghost);
         this.markers = new T.InstancedMesh(
             new T.CircleGeometry(0.17, 14).rotateX(-Math.PI / 2),
@@ -183,12 +213,12 @@ class Scene3D {
         const controls = new OrbitControls(this.camera, this.canvas);
         controls.enableDamping = true;
         controls.dampingFactor = 0.1;
-        controls.zoomSpeed = 0.35; // also scales pinch zoom on touch
         controls.rotateSpeed = 0.8;
-        controls.maxPolarAngle = Math.PI / 2 - 0.08;
-        controls.minDistance = 5;
+        controls.maxPolarAngle = Math.PI / 2 - 0.15; // never under (or level with) the table
+        controls.minDistance = 6;
         controls.maxDistance = 60;
-        controls.addEventListener('change', () => this.render());
+        controls.zoomSpeed = 0.12; // gentle pinch
+        controls.addEventListener('change', () => { this.clampTarget(); this.render(); });
         // Damping needs update() each frame, but only while the user is interacting or the motion is settling.
         this.interacting = false;
         this.dampRaf = 0;
@@ -201,7 +231,18 @@ class Scene3D {
         this.kickDamp = () => { if (!this.dampRaf && this.renderer) this.dampRaf = requestAnimationFrame(dampTick); };
         controls.addEventListener('start', () => { this.interacting = true; this.kickDamp(); });
         controls.addEventListener('end', () => { this.interacting = false; this.kickDamp(); });
-        this.canvas.addEventListener('wheel', () => this.kickDamp(), { passive: true });
+        // Own wheel zoom: a small fixed step per notch, normalised so trackpads with many small events do not fly
+        this.canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            const px = e.deltaY * (e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 400 : 1);
+            const notches = Math.max(-1.5, Math.min(1.5, px / 100));
+            const off = this.camera.position.clone().sub(controls.target);
+            const d = Math.max(controls.minDistance, Math.min(controls.maxDistance, off.length() * Math.pow(1.06, notches)));
+            this.camera.position.copy(controls.target).add(off.setLength(d));
+            this.clampTarget();
+            this.render();
+        }, { passive: false, capture: true });
         this.controls = controls;
         this.ray = new T.Raycaster();
         this.plane = new T.Plane(new T.Vector3(0, 1, 0), 0);
@@ -213,6 +254,28 @@ class Scene3D {
         window.addEventListener('resize', this.onWinResize);
         this.resize();
         this.fit();
+    }
+
+    /** Solid tile geometry (origin at the bounding-box corner, x = grid x, z = grid y), cached per shape and orientation. */
+    tileGeo(shape, o) {
+        const key = `${shape}${o}`;
+        if (this.geoCache[key]) return this.geoCache[key];
+        const T = this.T;
+        const sh = new T.Shape();
+        // Shape y is flipped so that, after the -90 degree turn about x, shape y becomes world z (a proper rotation)
+        for (const [cmd, ...p] of puOutline(shape, o)) {
+            if (cmd === 'M') sh.moveTo(p[0], -p[1]);
+            else if (cmd === 'L') sh.lineTo(p[0], -p[1]);
+            else if (cmd === 'C') sh.bezierCurveTo(p[0], -p[1], p[2], -p[3], p[4], -p[5]);
+        }
+        sh.closePath();
+        const bt = 0.025;
+        const geo = new T.ExtrudeGeometry(sh, { depth: PU_TH - 2 * bt, bevelEnabled: true, bevelThickness: bt, bevelSize: bt, bevelOffset: -bt, bevelSegments: 2, curveSegments: 3 });
+        geo.rotateX(-Math.PI / 2);
+        geo.translate(0, bt, 0);
+        geo.computeBoundingSphere();
+        this.geoCache[key] = geo;
+        return geo;
     }
 
     woodTexture() {
@@ -303,18 +366,59 @@ class Scene3D {
         return { x0, x1, y0, y1 };
     }
 
+    /** Table, grid and zoom limits follow the played area: area + 4 cells margin, at least 12 x 12. */
+    updateBoard() {
+        const b = this.bounds();
+        this.bnd = b;
+        const w = Math.max(12, b.x1 - b.x0 + 8), h = Math.max(12, b.y1 - b.y0 + 8);
+        const cx = Math.round((b.x0 + b.x1) / 2), cz = Math.round((b.y0 + b.y1) / 2);
+        const gw = 2 * Math.ceil(w / 2), gh = 2 * Math.ceil(h / 2);
+        const key = `${gw}x${gh}@${cx},${cz}`;
+        if (key !== this.gridKey) {
+            this.gridKey = key;
+            const T = this.T;
+            if (this.gridLines) { this.scene.remove(this.gridLines); this.gridLines.geometry.dispose(); this.gridLines.material.dispose(); }
+            const lines = new T.GridHelper(Math.max(gw, gh), Math.max(gw, gh), 0x000000, 0x000000);
+            lines.scale.set(gw / Math.max(gw, gh), 1, gh / Math.max(gw, gh));
+            lines.position.set(cx, 0.01, cz);
+            lines.material.transparent = true;
+            lines.material.opacity = 0.1;
+            this.scene.add(lines);
+            this.gridLines = lines;
+            this.table.scale.set(gw + 2, gh + 2, 1);
+            this.table.position.set(cx, 0, cz);
+            this.woodTex.repeat.set((gw + 2) / 15, (gh + 2) / 15);
+        }
+        const ext = Math.max(b.x1 - b.x0, b.y1 - b.y0, 8) + 3;
+        this.ext = ext;
+        const fov = (this.camera.fov * Math.PI) / 180;
+        this.fitDist = ((ext / 2) / Math.tan(fov / 2) / Math.min(1, this.camera.aspect)) * 1.05;
+        this.controls.minDistance = Math.max(6, ext * 0.35);
+        this.controls.maxDistance = Math.max(this.controls.minDistance + 4, this.fitDist * 2.2);
+    }
+
+    /** Keep the pan target inside the played area plus a margin; the camera moves with it. */
+    clampTarget() {
+        const b = this.bnd;
+        if (!b) return;
+        const t = this.controls.target;
+        const nx = Math.max(b.x0 - 4, Math.min(b.x1 + 4, t.x)), nz = Math.max(b.y0 - 4, Math.min(b.y1 + 4, t.z));
+        if (nx !== t.x || nz !== t.z || t.y !== 0) {
+            this.camera.position.x += nx - t.x;
+            this.camera.position.z += nz - t.z;
+            t.set(nx, 0, nz);
+        }
+    }
+
     /** Camera reset: frame all tiles from a 3/4 view. */
     fit() {
-        const b = this.bounds();
+        this.updateBoard();
+        const b = this.bnd;
         const cx = (b.x0 + b.x1) / 2, cz = (b.y0 + b.y1) / 2;
-        const ext = Math.max(b.x1 - b.x0, b.y1 - b.y0, 8) + 3;
-        const fov = (this.camera.fov * Math.PI) / 180;
-        const dist = ((ext / 2) / Math.tan(fov / 2) / Math.min(1, this.camera.aspect)) * 1.05;
+        const ext = this.ext, dist = this.fitDist;
         const el = (58 * Math.PI) / 180;
         this.camera.position.set(cx, dist * Math.sin(el), cz + dist * Math.cos(el));
         this.controls.target.set(cx, 0, cz);
-        this.controls.minDistance = Math.max(5, ext * 0.35);
-        this.controls.maxDistance = Math.max(40, dist * 2.2);
         this.controls.update();
         this.sun.position.set(cx - 10, 28, cz + 12);
         this.sun.target.position.set(cx, 0, cz);
@@ -347,13 +451,11 @@ class Scene3D {
         const level = Number(tile.level);
         const group = new T.Group();
         const mat = this.mats[tile.color] || this.mats.white;
-        for (const [x, y] of cells) {
-            const m = new T.Mesh(this.cellGeo, mat);
-            m.position.set(x + 0.5, 0, y + 0.5);
-            m.castShadow = true;
-            m.receiveShadow = true;
-            group.add(m);
-        }
+        const m = new T.Mesh(this.tileGeo(tile.shape, Number(tile.o)), mat);
+        m.position.set(Math.min(...cells.map((c) => c[0])), 0, Math.min(...cells.map((c) => c[1])));
+        m.castShadow = true;
+        m.receiveShadow = true;
+        group.add(m);
         // Level number on the cell nearest the centre of the tile
         const mx = cells.reduce((s, c) => s + c[0], 0) / 5, my = cells.reduce((s, c) => s + c[1], 0) / 5;
         const cc = cells.slice().sort((p, q) => Math.hypot(p[0] - mx, p[1] - my) - Math.hypot(q[0] - mx, q[1] - my))[0];
@@ -367,6 +469,7 @@ class Scene3D {
         const rec = { id: tile.id, group, label, level, cells };
         this.tiles.push(rec);
         this.applyXray();
+        this.updateBoard();
         let done = Promise.resolve();
         if (animate && !puReduced()) {
             group.position.y = baseY + 7;
@@ -389,13 +492,12 @@ class Scene3D {
     }
     applyXray() { for (const t of this.tiles) t.group.visible = t.level <= this.maxLevel; }
 
-    showGhost(cells, level, ok) {
+    showGhost(cells, level, ok, shape, o) {
         this.level = level;
-        const kids = this.ghost.children;
-        cells.forEach(([x, y], i) => {
-            kids[i].position.set(x + 0.5, 0, y + 0.5);
-            kids[i].material = ok ? this.ghostMats.ok : this.ghostMats.bad;
-        });
+        const g = this.ghostMesh;
+        g.geometry = this.tileGeo(shape, o);
+        g.position.set(Math.min(...cells.map((c) => c[0])), 0, Math.min(...cells.map((c) => c[1])));
+        g.material = ok ? this.ghostMats.ok : this.ghostMats.bad;
         this.ghost.position.y = (level - 1) * PU_TH + 0.02;
         this.ghost.visible = true;
         this.render();
@@ -521,7 +623,15 @@ class Grid2D {
         const b = (this.box = this.bounds());
         const cols = b.x1 - b.x0 + 1;
         this.el.style.gridTemplateColumns = `repeat(${cols}, var(--pu2-size))`;
-        let html = '';
+        // Tile outlines (same laser-cut shape as the 3D view) sit under the transparent number cells
+        const rows = b.y1 - b.y0 + 1;
+        let svg = `<svg class="pu2_svg" viewBox="${b.x0} ${b.y0} ${cols} ${rows}" aria-hidden="true" focusable="false">`;
+        for (const t of this.tiles.slice().sort((p, q) => p.level - q.level)) {
+            if (t.level > this.maxLevel) continue;
+            const ax = Math.min(...t.cells.map((c) => c[0])), ay = Math.min(...t.cells.map((c) => c[1]));
+            svg += `<path class="pu2_t pu2_t_${t.color}${t.id === dropId ? ' pu2_dropp' : ''}" transform="translate(${ax} ${ay})" d="${puPathD(t.shape, t.o)}"/>`;
+        }
+        let html = svg + '</svg>';
         for (let y = b.y0; y <= b.y1; y++) {
             for (let x = b.x0; x <= b.x1; x++) {
                 const k = `${x},${y}`;
@@ -540,6 +650,7 @@ class Grid2D {
     /** Ghost and anchor classes are toggled in place: re-rendering on hover would swallow clicks. */
     paint() {
         for (const n of this.el.children) {
+            if (!n.dataset || n.dataset.x === undefined) continue;
             const k = `${n.dataset.x},${n.dataset.y}`;
             const g = this.ghostCells.get(k);
             n.classList.toggle('pu2_anchor', this.anchors.has(k) && !g);
@@ -550,7 +661,7 @@ class Grid2D {
 
     addTile(tile, animate) {
         const cells = puCells(tile.shape, Number(tile.o), Number(tile.x), Number(tile.y));
-        this.tiles.push({ id: tile.id, color: tile.color, level: Number(tile.level), cells });
+        this.tiles.push({ id: tile.id, color: tile.color, level: Number(tile.level), cells, shape: tile.shape, o: Number(tile.o) });
         this.render(animate && !puReduced() ? tile.id : null);
         return animate && !puReduced() ? new Promise((r) => setTimeout(r, 420)) : Promise.resolve();
     }
@@ -622,7 +733,6 @@ export class Game {
         const root = document.createElement('div');
         root.id = 'pu_root';
         root.innerHTML = `
-            <p id="pu_status" aria-live="polite"></p>
             <div id="pu_main">
             <div id="pu_view"></div>
             <div id="pu_side">
@@ -825,7 +935,7 @@ export class Game {
         const cells = puCells(this.selected, this.o, ax, ay);
         const legal = this.legalSets(this.selected).has(puKey(cells));
         this.ghostState = { ax, ay, legal };
-        this.view.showGhost(cells, this.moves()[this.selected].level, legal);
+        this.view.showGhost(cells, this.moves()[this.selected].level, legal, this.selected, this.o);
         this.updateStatus();
     }
 
@@ -870,14 +980,12 @@ export class Game {
     }
 
     iconSvg(shape, o, colour) {
-        const cells = puNorm(shape, o);
         const { w, h } = puBox(shape, o);
         const fill = PU_TILE_CSS[colour] || PU_TILE_CSS.white;
         const stroke = colour === 'white' ? '#6b6556' : colour === 'red' ? '#e0827c' : '#8a8d96';
-        const rects = cells.map(([x, y]) => `<rect x="${x + 0.06}" y="${y + 0.06}" width="0.88" height="0.88" rx="0.1" fill="${fill}" stroke="${stroke}" stroke-width="0.06"/>`).join('');
         const s = Math.max(w, h);
-        const ox = (s - w) / 2, oy = (s - h) / 2;
-        return `<svg viewBox="0 0 ${s} ${s}" aria-hidden="true" focusable="false"><g transform="translate(${ox} ${oy})">${rects}</g></svg>`;
+        const ox = (s - w) / 2 + 0.05, oy = (s - h) / 2 + 0.05;
+        return `<svg viewBox="0 0 ${s + 0.1} ${s + 0.1}" aria-hidden="true" focusable="false"><path transform="translate(${ox} ${oy})" d="${puPathD(shape, o)}" fill="${fill}" stroke="${stroke}" stroke-width="0.05" stroke-linejoin="round"/></svg>`;
     }
 
     renderTray() {
@@ -945,9 +1053,12 @@ export class Game {
                 }
             }
         }
-        const el = this.root.querySelector('#pu_status');
-        el.textContent = text;
-        el.hidden = !text;
+        // The prompt lives in the real BGA status bar (only the active player gets a custom one)
+        if (this.isActive && this.args && text && text !== this.lastTitle && this.bga.statusBar && this.bga.statusBar.setTitle) {
+            this.lastTitle = text;
+            this.bga.statusBar.setTitle(text);
+        }
+        if (!this.isActive) this.lastTitle = '';
     }
 
     coarse() {
