@@ -1,3 +1,17 @@
 {
   // option ids should be between 100 and 199
+  "100": {
+    "name": "Variant",
+    "values": {
+      "1": {
+        "name": "Standard",
+        "description": "The player with the most tiles on the highest level wins. Ties go to the next level down."
+      },
+      "2": {
+        "name": "Misère",
+        "description": "The player with the most tiles on the lowest level (the table) wins. Ties go to the next level up."
+      }
+    },
+    "default": 1
+  }
 }

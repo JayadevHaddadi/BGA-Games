@@ -5,19 +5,24 @@
   "game_name": "Pent-Up",
   "bgg_id": null,
   "bgg_url": null,
-  "year_published": null,
-  "players": null,
+  "year_published": 2003,
+  "players": [
+    2,
+    2
+  ],
   "estimated_duration_minutes": 30,
   "publisher": {
     "name": "nestorgames",
-    "bgg_id": null,
+    "bgg_id": 10094,
     "website": ""
   },
-  "designers": [],
+  "designers": [
+    "Néstor Romeral Andrés"
+  ],
   "artists": [],
   "rules_edits": [],
   "rules_url": null,
-  "description": "TODO: 1 to 2 paragraphs in English about the theme, the components and the objective.",
+  "description": "Pent-Up is a tile-stacking game for two players with pentomino-shaped tiles. Each player has the 12 different pentominoes of their colour (white or black). Players take turns placing a tile either on the table next to a tile already there, or on top of at least two tiles, always lying flat and fully supported.\n\nThe key rule: a tile must go on the highest level where it can legally be placed. When all tiles are placed, the player with the most tiles on the highest level wins; ties go to the next level down.",
   "zombie_mode_level": 1,
   "tags": [
     "Abstract Strategy",

@@ -1,19 +1,32 @@
 ==Goal==
 
-Describe the goal in one or two sentences.
+Place your pentomino tiles so that, when all tiles are placed, you have '''more tiles on the highest level''' than your opponent. If the number is equal, compare the next level down, and so on.
 
 ==Setup==
 
-* Describe the setup.
+Each player has the 12 different pentominoes (F, I, L, N, P, T, U, V, W, X, Y, Z) in their colour. White starts. Tiles can be rotated and flipped freely.
 
 ==Your turn==
 
-{| class="wikitable"
-! # !! Step !! What you do
-|-
-| 1 || '''Step name''' || What happens.
-|}
+Place one of your unplayed tiles. It must be aligned to the grid and lie flat, with every square supported (no overhang). It goes either:
 
-==Game end==
+* '''On the table (level 1)''', touching at least one tile that is already on the table along an edge; or
+* '''On top of other tiles''', where its five squares all rest on the level directly below, and those squares belong to '''at least 2 different tiles''' (of any colour).
 
-* When the game ends and how the winner is found.
+The very first tile of the game can be placed anywhere.
+
+==The key rule==
+
+A tile must be placed on the '''highest level on which that tile can legally be placed'''. The game highlights only the legal squares, and different tiles may be legal on different levels in the same turn.
+
+==End of the game==
+
+The game ends when all 24 tiles have been placed. Look at the highest level reached: the player with more tiles there wins. If equal, compare the next level down, and so on.
+
+==Misère variant==
+
+Play as usual, but the player with the most tiles on the '''lowest level''' (the table) wins. Ties are broken on the next level up.
+
+==Credits==
+
+Pent-Up was designed by Néstor Romeral Andrés (nestorgames), 2003, with revisions by Nathan Morse.
