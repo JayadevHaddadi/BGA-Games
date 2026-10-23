@@ -181,11 +181,27 @@ class Scene3D {
 
         // Controls: one finger rotates, two fingers zoom and pan, mouse wheel zooms
         const controls = new OrbitControls(this.camera, this.canvas);
-        controls.enableDamping = false;
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.1;
+        controls.zoomSpeed = 0.35; // also scales pinch zoom on touch
+        controls.rotateSpeed = 0.8;
         controls.maxPolarAngle = Math.PI / 2 - 0.08;
-        controls.minDistance = 4;
-        controls.maxDistance = 110;
+        controls.minDistance = 5;
+        controls.maxDistance = 60;
         controls.addEventListener('change', () => this.render());
+        // Damping needs update() each frame, but only while the user is interacting or the motion is settling.
+        this.interacting = false;
+        this.dampRaf = 0;
+        const dampTick = () => {
+            this.dampRaf = 0;
+            if (!this.renderer) return;
+            const moved = controls.update();
+            if (moved || this.interacting) this.dampRaf = requestAnimationFrame(dampTick);
+        };
+        this.kickDamp = () => { if (!this.dampRaf && this.renderer) this.dampRaf = requestAnimationFrame(dampTick); };
+        controls.addEventListener('start', () => { this.interacting = true; this.kickDamp(); });
+        controls.addEventListener('end', () => { this.interacting = false; this.kickDamp(); });
+        this.canvas.addEventListener('wheel', () => this.kickDamp(), { passive: true });
         this.controls = controls;
         this.ray = new T.Raycaster();
         this.plane = new T.Plane(new T.Vector3(0, 1, 0), 0);
@@ -297,6 +313,8 @@ class Scene3D {
         const el = (58 * Math.PI) / 180;
         this.camera.position.set(cx, dist * Math.sin(el), cz + dist * Math.cos(el));
         this.controls.target.set(cx, 0, cz);
+        this.controls.minDistance = Math.max(5, ext * 0.35);
+        this.controls.maxDistance = Math.max(40, dist * 2.2);
         this.controls.update();
         this.sun.position.set(cx - 10, 28, cz + 12);
         this.sun.target.position.set(cx, 0, cz);
@@ -424,6 +442,7 @@ class Scene3D {
         window.removeEventListener('resize', this.onWinResize);
         this.anims.forEach((a) => a.resolve());
         this.anims = [];
+        if (this.dampRaf) cancelAnimationFrame(this.dampRaf);
         this.controls.dispose();
         this.renderer.dispose();
         this.canvas.remove();
@@ -604,7 +623,9 @@ export class Game {
         root.id = 'pu_root';
         root.innerHTML = `
             <p id="pu_status" aria-live="polite"></p>
+            <div id="pu_main">
             <div id="pu_view"></div>
+            <div id="pu_side">
             <div id="pu_controls" role="group" aria-label="${_('View and tile controls')}">
                 <button type="button" class="pu_btn" id="pu_rotate">${_('Rotate (R)')}</button>
                 <button type="button" class="pu_btn" id="pu_flip">${_('Flip (F)')}</button>
@@ -615,7 +636,9 @@ export class Game {
                     <input type="range" id="pu_xray" min="1" max="1" step="1" value="1" aria-label="${_('Hide levels above')}"></label>
             </div>
             <div id="pu_tray_wrap"><h3 id="pu_tray_title"></h3><div id="pu_tray" role="group" aria-label="${_('Your tiles')}"></div><p id="pu_left"></p></div>
-            <div id="pu_final" hidden></div>`;
+            <div id="pu_final" hidden></div>
+            </div>
+            </div>`;
         this.bga.gameArea.getElement().appendChild(root);
         document.body.classList.add('pu_page_bg');
         this.root = root;

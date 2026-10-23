@@ -56,6 +56,56 @@ body.pu_page_bg #game_play_area_background {
     touch-action: none;
 }
 
+/* Wide screens: board left, side column right */
+#pu_main {
+    display: block;
+}
+
+@media (min-width: 900px) {
+    #pu_root {
+        max-width: 1500px;
+    }
+
+    #pu_main {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 320px;
+        gap: 12px;
+        align-items: start;
+    }
+
+    #pu_view.pu_is3d {
+        aspect-ratio: auto;
+        max-height: none;
+        height: max(420px, calc(100vh - 200px));
+    }
+
+    #pu_view:not(.pu_is3d) {
+        min-height: 420px;
+        max-height: calc(100vh - 160px);
+        overflow: auto;
+    }
+
+    #pu_side {
+        min-width: 0;
+    }
+
+    #pu_side #pu_controls {
+        padding: 0 0 8px;
+    }
+
+    #pu_side #pu_tray_wrap {
+        padding: 0;
+    }
+
+    #pu_side #pu_tray {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    #pu_side #pu_final {
+        margin: 8px 0 0;
+    }
+}
+
 /* Controls */
 #pu_controls {
     display: flex;
