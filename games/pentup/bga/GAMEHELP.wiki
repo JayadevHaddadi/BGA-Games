@@ -4,7 +4,7 @@ Place your pentomino tiles so that, when all tiles are placed, you have '''more 
 
 ==Setup==
 
-Each player has the 12 different pentominoes (F, I, L, N, P, T, U, V, W, X, Y, Z) in their colour. White starts. Tiles can be rotated and flipped freely.
+With 2 or 3 players. Each player has the 12 different pentominoes (F, I, L, N, P, T, U, V, W, X, Y, Z) in their colour. White starts; with 3 players the order is white, black, red (clockwise). Tiles can be rotated and flipped freely.
 
 ==Your turn==
 
@@ -21,11 +21,20 @@ A tile must be placed on the '''highest level on which that tile can legally be 
 
 ==End of the game==
 
-The game ends when all 24 tiles have been placed. Look at the highest level reached: the player with more tiles there wins. If equal, compare the next level down, and so on.
+The game ends when all tiles (24 with 2 players, 36 with 3) have been placed. Look at the highest level reached: the player with more tiles there wins. If equal, compare the next level down, and so on.
 
 ==Misère variant==
 
 Play as usual, but the player with the most tiles on the '''lowest level''' (the table) wins. Ties are broken on the next level up.
+
+==Three players==
+
+With 3 players the red set joins in and everyone plays as usual. The winning condition is the same as with 2 players. The game option ''Scoring'' (shown only for 3 players) offers:
+
+* '''Standard''': most tiles on the highest level, ties broken on the next level down.
+* '''Advanced''': every tile scores its level number (a tile on the table is worth 1 point, on the second level 2 points, and so on). The highest total wins; if equal, the player with more tiles on the top level wins.
+
+The Misère variant is ignored when Advanced scoring is chosen.
 
 ==Credits==
 

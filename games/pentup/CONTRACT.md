@@ -45,7 +45,11 @@ but accepts any `o` whose cells match a legal placement.
   shapes.
 - Game end: all tiles placed. Ranking: most own tiles on the top level (highest level that has any
   tile); ties broken by the next level down, and so on.
-- BGA score = own tiles on the top level. `player_score_aux` = lower levels encoded
+- Options: `100` Variant 1 Standard / 2 Misère. `101` Scoring (shown only for 3 players) 1 Standard / 2 Advanced.
+  Advanced ignores Misère (the server forces `misere` to 0 when advanced; advanced needs 3 players).
+- Advanced (3 players): each tile scores its level number, highest total wins. BGA score = points,
+  `player_score_aux` = own tiles on the top level. Ranking vector = [points, top level count, ...lower levels].
+- BGA score (standard) = own tiles on the top level. `player_score_aux` = lower levels encoded
   (count on top-1 * 10000 + count on top-2 * 100 + count on top-3), enough for tie display.
 
 ## Data to the client
@@ -56,7 +60,8 @@ tiles:  [{id, player_id, color, shape, o, x, y, level}]   // placed tiles
 hands:  {player_id: ["F","I",...]}                        // unplayed shapes
 gridSize: 40
 ```
-`color` is the player's colour name `white` / `black` (later `red`).
+`color` is the player's colour name `white` / `black` / `red` (seat 3, hex `c62828` in gameinfos). 2-3 players, each with their own 12 tiles; turn order white, black, red.
+`gamedatas.advanced` (bool) and `gamedatas.misere` (bool) tell the client the scoring mode.
 
 State `playerTurn` args:
 ```
@@ -66,4 +71,4 @@ Action: `actPlace(shape: string, o: int, x: int, y: int)` (level is computed by 
 
 Notification `tilePlaced`: `{player_id, player_name, tile: {id, player_id, color, shape, o, x, y, level}}`,
 message `${player_name} places a tile on level ${level}`.
-Notification at the end: `finalLevels`: `{levels: {level: {player_id: count}}}` for the end screen.
+Notification at the end: `finalLevels`: `{levels: {level: {player_id: count}}, advanced: bool, points: {player_id: n}}` for the end screen.

@@ -161,6 +161,26 @@ body.pu_page_bg #game_play_area_background {
     opacity: 0.85;
 }
 
+#pu_left .pu_opp {
+    display: inline-block;
+    margin-right: 14px;
+    white-space: nowrap;
+}
+
+.pu_swatch {
+    display: inline-block;
+    width: 11px;
+    height: 11px;
+    margin-right: 5px;
+    border: 1px solid #8a8d96;
+    border-radius: 2px;
+    vertical-align: -1px;
+}
+
+.pu_sw_white { background: #f0e9d6; }
+.pu_sw_black { background: #202227; }
+.pu_sw_red { background: #b23a34; border-color: #e0827c; }
+
 #pu_final {
     margin: 8px;
     padding: 8px;
@@ -172,6 +192,10 @@ body.pu_page_bg #game_play_area_background {
 #pu_final h3 {
     margin: 0 0 4px;
     font-size: 15px;
+}
+
+#pu_final h3 + ul + h3 {
+    margin-top: 8px;
 }
 
 #pu_final ul {
@@ -219,6 +243,7 @@ body.pu_page_bg #game_play_area_background {
 .pu2_cell.pu2_red {
     background: #b23a34;
     color: #f3f1ea;
+    border-color: #e0827c;
 }
 
 .pu2_cell.pu2_anchor {

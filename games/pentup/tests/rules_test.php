@@ -209,5 +209,74 @@ for ($game = 0; $game < 8; $game++) {
 }
 check($topSeen >= 2, 'random games stack at least 2 levels');
 
+// 9. Three players (red set): 36 tiles, every tile always placeable, game ends
+mt_srand(777);
+$topSeen3 = 0;
+for ($game = 0; $game < 8; $game++) {
+    $tiles = [];
+    $hands = [1 => Rules::shapes(), 2 => Rules::shapes(), 3 => Rules::shapes()];
+    $id = 1;
+    $pid = 1;
+    for ($turn = 0; $turn < 36; $turn++) {
+        $occ = Rules::occupancy($tiles);
+        $moves = Rules::possibleMoves($occ, $hands[$pid]);
+        check(count($moves) === count($hands[$pid]), "3p game $game turn $turn: every tile in hand is placeable");
+        if (count($moves) === 0) {
+            break;
+        }
+        $shape = array_keys($moves)[mt_rand(0, count($moves) - 1)];
+        $list = $moves[$shape]['moves'];
+        [$o, $x, $y] = $list[mt_rand(0, count($list) - 1)];
+        $level = $moves[$shape]['level'];
+        check(Rules::placementLevel($occ, $shape, $o, $x, $y) === $level, "3p game $game turn $turn: listed move validates");
+        $tiles[] = ['id' => $id++, 'player_id' => $pid, 'shape' => $shape, 'o' => $o, 'x' => $x, 'y' => $y, 'level' => $level];
+        $hands[$pid] = array_values(array_diff($hands[$pid], [$shape]));
+        $pid = $pid % 3 + 1;
+    }
+    check(count($tiles) === 36 && count($hands[1]) + count($hands[2]) + count($hands[3]) === 0, "3p game $game ends with 36 tiles");
+    $occ = Rules::occupancy($tiles);
+    $cellsCount = 0;
+    foreach ($occ as $lvl) {
+        $cellsCount += count($lvl);
+    }
+    check($cellsCount === 180, "3p game $game: 180 distinct cells");
+    $topSeen3 = max($topSeen3, max(array_column($tiles, 'level')));
+    $std = Rules::scores($tiles, [1, 2, 3]);
+    check($std[1]['score'] + $std[2]['score'] + $std[3]['score'] >= 1, "3p game $game: someone is on the top level");
+    $adv = Rules::scores($tiles, [1, 2, 3], false, true);
+    $sum = $adv[1]['score'] + $adv[2]['score'] + $adv[3]['score'];
+    check($sum === array_sum(array_column($tiles, 'level')), "3p game $game: advanced points sum to the level sum");
+    check($sum >= 36, "3p game $game: at least 1 point per tile");
+}
+check($topSeen3 >= 2, '3p random games stack at least 2 levels');
+
+// 10. Advanced scoring (3 players): level number = points
+$t3 = [
+    ['id' => 1, 'player_id' => 1, 'shape' => 'I', 'o' => 0, 'x' => 0, 'y' => 0, 'level' => 1],
+    ['id' => 2, 'player_id' => 2, 'shape' => 'L', 'o' => 0, 'x' => 0, 'y' => 0, 'level' => 1],
+    ['id' => 3, 'player_id' => 3, 'shape' => 'F', 'o' => 0, 'x' => 0, 'y' => 0, 'level' => 1],
+    ['id' => 4, 'player_id' => 1, 'shape' => 'P', 'o' => 0, 'x' => 0, 'y' => 0, 'level' => 2],
+    ['id' => 5, 'player_id' => 1, 'shape' => 'T', 'o' => 0, 'x' => 0, 'y' => 0, 'level' => 2],
+    ['id' => 6, 'player_id' => 2, 'shape' => 'U', 'o' => 0, 'x' => 0, 'y' => 0, 'level' => 3],
+    ['id' => 7, 'player_id' => 3, 'shape' => 'N', 'o' => 0, 'x' => 0, 'y' => 0, 'level' => 1],
+];
+$a = Rules::scores($t3, [1, 2, 3], false, true);
+check($a[1]['score'] === 5 && $a[2]['score'] === 4 && $a[3]['score'] === 2, 'advanced: points are the sum of level numbers');
+check($a[1]['aux'] === 0 && $a[2]['aux'] === 1 && $a[3]['aux'] === 0, 'advanced: aux is the tiles on the top level');
+check(Rules::compareVectors($a[1]['vector'], $a[2]['vector']) > 0, 'advanced: more points ranks higher even with no tile on top');
+$s3 = Rules::scores($t3, [1, 2, 3]);
+check($s3[2]['score'] === 1 && $s3[1]['score'] === 0, 'standard 3p: only the top level counts first');
+check(Rules::compareVectors($s3[2]['vector'], $s3[1]['vector']) > 0, 'standard 3p: player 2 beats player 1');
+check(Rules::compareVectors($s3[1]['vector'], $s3[3]['vector']) > 0, 'standard 3p: tie on top, level 2 decides');
+check(Rules::points($t3, 1) === 5, 'points() helper');
+$tie = [
+    ['id' => 1, 'player_id' => 1, 'shape' => 'I', 'o' => 0, 'x' => 0, 'y' => 0, 'level' => 2],
+    ['id' => 2, 'player_id' => 2, 'shape' => 'L', 'o' => 0, 'x' => 0, 'y' => 0, 'level' => 1],
+    ['id' => 3, 'player_id' => 2, 'shape' => 'F', 'o' => 0, 'x' => 0, 'y' => 0, 'level' => 1],
+];
+$ti = Rules::scores($tie, [1, 2], false, true);
+check($ti[1]['score'] === 2 && $ti[2]['score'] === 2 && Rules::compareVectors($ti[1]['vector'], $ti[2]['vector']) > 0,
+    'advanced: equal points, more tiles on top breaks the tie');
+
 echo $failures === 0 ? "OK: $checks checks passed\n" : "FAILED: $failures of $checks checks\n";
 exit($failures === 0 ? 0 : 1);

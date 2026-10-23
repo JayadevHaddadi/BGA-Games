@@ -18,7 +18,7 @@ Repo folder `games/pentup/`, Studio code in `games/pentup/bga/` (registered in `
   directly below (flat, no overhang).
 - **Mandatory highest level:** the tile must go on the highest level where it can legally go.
 - End when all tiles are placed. Most tiles on the top level wins; ties go to the next level down.
-- Options (later): 3 players (red set), advanced 3p scoring (level = points), misère (lowest level
+- Done: 3 players (red set, `c62828`), option 101 Scoring Standard/Advanced (level = points, shown for 3 players only; Advanced ignores misère). Options (later): misère (lowest level
   wins), Swiss variant (after placing your "+" tile, place another). 2v2 team variant last.
 
 ## Engine (PHP, server)

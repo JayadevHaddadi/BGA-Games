@@ -250,16 +250,29 @@ final class Rules
 
     /**
      * Score vectors. Standard: counts from the top level down. Misere: counts from level 1 up.
+     * Advanced (3 players): every tile scores its level number; vector = [points, tiles on top level, ...lower levels].
      * Returns player id => ['vector' => int[], 'score' => int, 'aux' => int].
-     * score = tiles on the deciding level; aux = next three levels (x10000, x100, x1).
+     * Standard/Misere: score = tiles on the deciding level; aux = next three levels (x10000, x100, x1).
+     * Advanced: score = points; aux = tiles on the top level.
      * @param array[] $tiles @param int[] $playerIds
      */
-    public static function scores(array $tiles, array $playerIds, bool $misere = false): array
+    public static function scores(array $tiles, array $playerIds, bool $misere = false, bool $advanced = false): array
     {
         $counts = self::levelCounts($tiles);
         $top = count($counts) > 0 ? max(array_keys($counts)) : 0;
-        $levels = $misere ? range(1, max(1, $top)) : range(max(1, $top), 1);
         $out = [];
+        if ($advanced) {
+            foreach ($playerIds as $pid) {
+                $points = self::points($tiles, (int) $pid);
+                $vec = [$points];
+                foreach (range(max(1, $top), 1) as $l) {
+                    $vec[] = (int) ($counts[$l][$pid] ?? 0);
+                }
+                $out[$pid] = ['vector' => $vec, 'score' => $points, 'aux' => $vec[1]];
+            }
+            return $out;
+        }
+        $levels = $misere ? range(1, max(1, $top)) : range(max(1, $top), 1);
         foreach ($playerIds as $pid) {
             $vec = array_map(fn($l) => (int) ($counts[$l][$pid] ?? 0), $levels);
             $at = fn(int $i) => $vec[$i] ?? 0;
@@ -270,6 +283,18 @@ final class Rules
             ];
         }
         return $out;
+    }
+
+    /** Advanced scoring points of one player: the sum of the level numbers of their tiles. */
+    public static function points(array $tiles, int $playerId): int
+    {
+        $sum = 0;
+        foreach ($tiles as $t) {
+            if ((int) $t['player_id'] === $playerId) {
+                $sum += (int) $t['level'];
+            }
+        }
+        return $sum;
     }
 
     /** Compare two score vectors: positive when $a ranks higher. */

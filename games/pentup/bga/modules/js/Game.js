@@ -850,7 +850,7 @@ export class Game {
         const cells = puNorm(shape, o);
         const { w, h } = puBox(shape, o);
         const fill = PU_TILE_CSS[colour] || PU_TILE_CSS.white;
-        const stroke = colour === 'white' ? '#6b6556' : '#8a8d96';
+        const stroke = colour === 'white' ? '#6b6556' : colour === 'red' ? '#e0827c' : '#8a8d96';
         const rects = cells.map(([x, y]) => `<rect x="${x + 0.06}" y="${y + 0.06}" width="0.88" height="0.88" rx="0.1" fill="${fill}" stroke="${stroke}" stroke-width="0.06"/>`).join('');
         const s = Math.max(w, h);
         const ox = (s - w) / 2, oy = (s - h) / 2;
@@ -869,13 +869,41 @@ export class Game {
         }).join('');
         this.root.querySelector('#pu_tray_title').textContent = puFmt(_('Your tiles: ${n}'), { n: hand.length });
         this.root.querySelector('#pu_tray_wrap').hidden = !(this.hands[this.myId] && this.myId);
-        const left = [];
+        this.root.querySelector('#pu_left').innerHTML = this.opponentInfo();
+    }
+
+    /** Colour name of a player: from a placed tile, else from the seat colour in gamedatas.players. */
+    colourOf(pid) {
+        const t = this.tiles.find((x) => Number(x.player_id) === Number(pid));
+        if (t) return t.color;
+        const p = this.gamedatas.players && this.gamedatas.players[pid];
+        const hex = p && p.color ? String(p.color).replace('#', '').toLowerCase() : '';
+        if (hex === 'ffffff') return 'white';
+        if (hex === '000000') return 'black';
+        if (hex) return 'red';
+        return 'white';
+    }
+
+    playerPoints(pid) {
+        return this.tiles.reduce((n, t) => n + (Number(t.player_id) === Number(pid) ? Number(t.level) : 0), 0);
+    }
+
+    /** One entry per opponent (colour swatch, name, tiles left); with Advanced scoring also every player's points. */
+    opponentInfo() {
+        const esc = (v) => String(v).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+        const advanced = !!this.gamedatas.advanced;
+        const items = [];
         for (const [pid, list] of Object.entries(this.hands)) {
-            if (Number(pid) === this.myId) continue;
+            const mine = Number(pid) === this.myId;
+            if (mine && !advanced) continue;
             const p = this.gamedatas.players && this.gamedatas.players[pid];
-            left.push(puFmt(_('${name}: ${n} tiles left'), { name: p ? p.name : pid, n: list.length }));
+            const col = this.colourOf(pid);
+            const name = esc(p ? p.name : pid);
+            let text = puFmt(_('${name}: ${n} tiles left'), { name, n: list.length });
+            if (advanced) text += ' \u2013 ' + puFmt(_('${n} points'), { n: this.playerPoints(pid) });
+            items.push(`<span class="pu_opp"><i class="pu_swatch pu_sw_${col}" aria-hidden="true"></i>${text}</span>`);
         }
-        this.root.querySelector('#pu_left').textContent = left.join(' | ');
+        return items.join('');
     }
 
     updateStatus() {
@@ -979,14 +1007,22 @@ export class Game {
     notif_finalLevels(args) {
         const levels = (args && args.levels) || {};
         const box = this.root.querySelector('#pu_final');
+        const nameOf = (pid) => {
+            const p = this.gamedatas.players && this.gamedatas.players[pid];
+            return String(p ? p.name : pid).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+        };
+        const sw = (pid) => `<i class="pu_swatch pu_sw_${this.colourOf(pid)}" aria-hidden="true"></i>`;
         const rows = Object.keys(levels).map(Number).sort((a, b) => b - a).map((lvl) => {
-            const parts = Object.entries(levels[lvl]).filter(([, n]) => n > 0).map(([pid, n]) => {
-                const p = this.gamedatas.players && this.gamedatas.players[pid];
-                return `${p ? p.name : pid}: ${n}`;
-            });
+            const parts = Object.entries(levels[lvl]).filter(([, n]) => n > 0).map(([pid, n]) => `${sw(pid)}${nameOf(pid)}: ${n}`);
             return `<li><strong>${puFmt(_('Level ${level}'), { level: lvl })}</strong> ${parts.join(', ')}</li>`;
         });
-        box.innerHTML = `<h3>${_('Tiles per level')}</h3><ul>${rows.join('')}</ul>`;
+        let html = `<h3>${_('Tiles per level')}</h3><ul>${rows.join('')}</ul>`;
+        if (args && args.advanced && args.points) {
+            const pts = Object.entries(args.points).sort((a, b) => b[1] - a[1])
+                .map(([pid, n]) => `<li>${sw(pid)}${nameOf(pid)}: <strong>${puFmt(_('${n} points'), { n })}</strong></li>`);
+            html += `<h3>${_('Points')}</h3><ul>${pts.join('')}</ul>`;
+        }
+        box.innerHTML = html;
         box.hidden = false;
         this.maxShown = this.maxLevel();
         this.updateXray();

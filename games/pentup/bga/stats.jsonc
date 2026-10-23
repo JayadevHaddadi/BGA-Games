@@ -9,6 +9,7 @@
     "player": {
         "turns_number": { "id": 10, "name": "Number of turns", "type": "int" },
         "tiles_top_level": { "id": 11, "name": "Tiles on the top level", "type": "int" },
-        "highest_placed": { "id": 12, "name": "Highest level used by a tile", "type": "int" }
+        "highest_placed": { "id": 12, "name": "Highest level used by a tile", "type": "int" },
+        "points": { "id": 13, "name": "Points (level numbers of the tiles)", "type": "int" }
     }
 }

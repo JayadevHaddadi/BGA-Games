@@ -24,7 +24,7 @@ class Game extends \Bga\GameFramework\Table
     public function getGameProgression(): int
     {
         $placed = (int) $this->getUniqueValueFromDb("SELECT COUNT(*) FROM `tile`");
-        return max(0, min(99, (int) round(100 * $placed / (2 * count(Rules::shapes())))));
+        return max(0, min(99, (int) round(100 * $placed / (count($this->loadPlayersBasicInfos()) * count(Rules::shapes())))));
     }
 
     protected function setupNewGame($players, $options = [])
@@ -43,12 +43,20 @@ class Game extends \Bga\GameFramework\Table
         $this->playerScore->initDb($playerIds, 0);
         $this->playerScoreAux->initDb($playerIds, 0);
         $this->tableStats->init(['turns_number', 'levels'], 0);
-        $this->playerStats->init(['turns_number', 'tiles_top_level', 'highest_placed'], 0);
+        $this->playerStats->init(['turns_number', 'tiles_top_level', 'highest_placed', 'points'], 0);
 
-        $this->globals->set('misere', (int) ($options[100] ?? 1) === 2 ? 1 : 0);
+        // Advanced scoring (option 101) exists for 3 players only and ignores Misere (documented in GAMEHELP)
+        $advanced = count($players) >= 3 && (int) ($options[101] ?? 1) === 2;
+        $this->globals->set('advanced', $advanced ? 1 : 0);
+        $this->globals->set('misere', !$advanced && (int) ($options[100] ?? 1) === 2 ? 1 : 0);
 
         $this->activeNextPlayer();
         return PlayerTurn::class;
+    }
+
+    public function isAdvanced(): bool
+    {
+        return (int) $this->globals->get('advanced', 0) === 1;
     }
 
     public function isMisere(): bool
@@ -71,14 +79,14 @@ class Game extends \Bga\GameFramework\Table
         ], $rows);
     }
 
-    /** 'white' or 'black' (later 'red'), from the player's colour. */
+    /** 'white', 'black' or 'red', from the player's colour. */
     public function colorName(int $playerId): string
     {
         $hex = strtolower((string) ($this->loadPlayersBasicInfos()[$playerId]['player_color'] ?? ''));
         return match ($hex) {
             'ffffff' => 'white',
             '000000' => 'black',
-            'ff0000' => 'red',
+            'c62828', 'ff0000' => 'red',
             default => $hex,
         };
     }
@@ -110,11 +118,11 @@ class Game extends \Bga\GameFramework\Table
         return $n;
     }
 
-    /** Live score = tiles on the top level (the deciding level in Misere); aux = the next levels. */
+    /** Live score = tiles on the top level (the deciding level in Misere); aux = the next levels. Advanced: score = points, aux = top-level tiles. */
     public function refreshScores(array $tiles): void
     {
         $ids = array_map('intval', array_keys($this->loadPlayersBasicInfos()));
-        foreach (Rules::scores($tiles, $ids, $this->isMisere()) as $pid => $row) {
+        foreach (Rules::scores($tiles, $ids, $this->isMisere(), $this->isAdvanced()) as $pid => $row) {
             $this->playerScore->set($pid, $row['score']);
             $this->playerScoreAux->set($pid, $row['aux']);
         }
@@ -128,6 +136,7 @@ class Game extends \Bga\GameFramework\Table
             'hands' => $this->getHands($tiles),
             'gridSize' => Rules::GRID,
             'misere' => $this->isMisere(),
+            'advanced' => $this->isAdvanced(),
         ];
     }
 
