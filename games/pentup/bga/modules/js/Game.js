@@ -12,7 +12,7 @@
  */
 
 const PU_GRID = 40;
-const PU_TH = 0.26; // tile thickness in cell units (about 4 mm on the real 15 mm pitch)
+const PU_TH = 0.52; // tile thickness in cell units (doubled for readability; every level height derives from this)
 const PU_SHAPES = {
     F: [[1, 0], [2, 0], [0, 1], [1, 1], [1, 2]],
     I: [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4]],
@@ -269,7 +269,7 @@ class Scene3D {
             else if (cmd === 'C') sh.bezierCurveTo(p[0], -p[1], p[2], -p[3], p[4], -p[5]);
         }
         sh.closePath();
-        const bt = 0.025;
+        const bt = 0.04;
         const geo = new T.ExtrudeGeometry(sh, { depth: PU_TH - 2 * bt, bevelEnabled: true, bevelThickness: bt, bevelSize: bt, bevelOffset: -bt, bevelSegments: 2, curveSegments: 3 });
         geo.rotateX(-Math.PI / 2);
         geo.translate(0, bt, 0);
@@ -393,7 +393,7 @@ class Scene3D {
         this.ext = ext;
         const fov = (this.camera.fov * Math.PI) / 180;
         this.fitDist = ((ext / 2) / Math.tan(fov / 2) / Math.min(1, this.camera.aspect)) * 1.05;
-        this.controls.minDistance = Math.max(6, ext * 0.35);
+        this.controls.minDistance = Math.max(7, ext * 0.35);
         this.controls.maxDistance = Math.max(this.controls.minDistance + 4, this.fitDist * 2.2);
     }
 
@@ -472,8 +472,8 @@ class Scene3D {
         this.updateBoard();
         let done = Promise.resolve();
         if (animate && !puReduced()) {
-            group.position.y = baseY + 7;
-            done = new Promise((resolve) => this.anims.push({ group, from: baseY + 7, to: baseY, t0: performance.now(), dur: 450, resolve }));
+            group.position.y = baseY + 8;
+            done = new Promise((resolve) => this.anims.push({ group, from: baseY + 8, to: baseY, t0: performance.now(), dur: 450, resolve }));
         }
         this.render();
         return done;
@@ -737,7 +737,8 @@ export class Game {
             <div id="pu_view"></div>
             <div id="pu_side">
             <div id="pu_controls" role="group" aria-label="${_('View and tile controls')}">
-                <button type="button" class="pu_btn" id="pu_rotate">${_('Rotate (R)')}</button>
+                <button type="button" class="pu_btn" id="pu_rotate" title="${_('Rotate (R / Shift+R)')}">${_('Rotate (R)')}</button>
+                <button type="button" class="pu_btn" id="pu_rotate_ccw" title="${_('Rotate (R / Shift+R)')}">${_('Rotate left (Shift+R)')}</button>
                 <button type="button" class="pu_btn" id="pu_flip">${_('Flip (F)')}</button>
                 <button type="button" class="pu_btn" id="pu_mode"></button>
                 <button type="button" class="pu_btn" id="pu_reset">${_('Reset camera')}</button>
@@ -771,13 +772,8 @@ export class Game {
             const b = e.target.closest('button[data-shape]');
             if (b && !b.disabled) this.select(b.dataset.shape);
         });
-        document.addEventListener('keydown', (e) => {
-            if (e.ctrlKey || e.metaKey || e.altKey) return;
-            const tag = (e.target && e.target.tagName) || '';
-            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-            if (e.key === 'r' || e.key === 'R') this.rotate();
-            else if (e.key === 'f' || e.key === 'F') this.flip();
-        });
+        root.querySelector('#pu_rotate_ccw').addEventListener('click', () => this.rotate(-1));
+        this.installKeys();
 
         this.showLevels = puStore.get('pentup_levels') === '1';
         root.querySelector('#pu_levels').checked = this.showLevels;
@@ -961,8 +957,33 @@ export class Game {
         this.afterChange();
     }
 
-    rotate() {
-        this.o = (this.o & 4) | ((this.o + 1) & 3);
+    /** Window-level capture listener (added once) so BGA's "type to chat" focus never sees R / F / Esc. */
+    installKeys() {
+        if (this.keysInstalled) return;
+        this.keysInstalled = true;
+        window.addEventListener('keydown', (e) => {
+            if (!this.root || !this.root.isConnected) return;
+            if (e.ctrlKey || e.metaKey || e.altKey) return;
+            const t = e.target;
+            const tag = (t && t.tagName) || '';
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) return;
+            const k = (e.key || '').toLowerCase();
+            if (k !== 'r' && k !== 'f' && k !== 'escape') return;
+            if (k === 'escape') {
+                if (!this.selected) return;
+            }
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            if (e.repeat) return;
+            if (k === 'r') this.rotate(e.shiftKey ? -1 : 1);
+            else if (k === 'f') this.flip();
+            else this.select(this.selected);
+        }, { capture: true });
+    }
+
+    /** dir = 1: clockwise on screen (R); dir = -1: counter-clockwise (Shift+R). Stays within o = mirror*4 + rot. */
+    rotate(dir = 1) {
+        this.o = (this.o & 4) | (((this.o & 3) + (dir < 0 ? 3 : 1)) % 4);
         this.afterChange();
     }
 
