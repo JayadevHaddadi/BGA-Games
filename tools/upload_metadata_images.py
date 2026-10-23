@@ -31,7 +31,7 @@ PROJECT_MAP = {
     'gardensofmars': 'gardensofmars',
     'gardensofio': 'gardensofio',
     'gardensofenceladus': 'gardensofenceladus',
-    'red': 'redd',
+    'red': 'red',
     'microchip': 'microchip',
     'people': 'people',
     'hipposandcrocodiles': 'hipposandcrocodiles',
