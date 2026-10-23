@@ -41,6 +41,8 @@ stop conditions in phase 0. Collect rule questions in `PLAN.md` and report them 
 
 Live-table tests are automated by `tools/e2e/studio_play.py` (setup: `reports/e2e_setup.md`). **Read and update `reports/e2e_status.md`** (per-game results, shared with the other agents). A game is tested nightly once its slug is in `tools/e2e/games.json`; no per-game code is needed (Studio's own debug panel plays to the end).
 
+**Game page display images must be photos of the real physical game** (2 to 10), never screenshots, templates or generated art. Rule, sources and per-game audit: `reports/display_images.md`.
+
 A live Studio table is the only test of the PHP inside the framework. Nothing here runs it, so say so in the report.
 After the first deploy, the user (or an agent with a browser) plays one game at 2 players and at the maximum player
 count: refresh mid-turn, let a player quit (zombie), finish the game, open the replay.
