@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Bga\Games\hipposandcrocodiles\States;
 
-use Bga\GameFramework\Actions\PossibleAction;
+use Bga\GameFramework\States\PossibleAction;
 use Bga\GameFramework\StateType;
 use Bga\GameFramework\States\GameState;
 use Bga\Games\hipposandcrocodiles\Game;

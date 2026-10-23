@@ -54,14 +54,12 @@ export class Game {
         root.id = 'hippos_root';
         root.innerHTML = `
             <div id="hippos_container">
-                <div id="hippos_reserves_panel"></div>
                 <div id="hippos_board_wrap">
                     <div id="hippos_board" style="--rows: ${this.rows}; --cols: ${this.cols};"></div>
                 </div>
                 <div id="hippos_status_msg"></div>
             </div>`;
         this.bga.gameArea.getElement().appendChild(root);
-        document.body.classList.add('hippos_page_bg');
 
         this.buildBoard();
         this.renderReserves();
@@ -122,22 +120,18 @@ export class Game {
     }
 
     renderReserves() {
-        const panel = document.getElementById('hippos_reserves_panel');
-        if (!panel) return;
-        panel.innerHTML = '';
         for (const [pid, count] of Object.entries(this.reserves)) {
+            const el = this.bga?.playerPanels?.getElement?.(pid);
+            if (!el) continue;
+            let line = el.querySelector('.hippos_panel');
+            if (!line) {
+                line = document.createElement('div');
+                line.className = 'hippos_panel';
+                el.appendChild(line);
+            }
             const sp = this.species[pid] || 'hippo';
-            const name = this.bga.players.getPlayer(pid)?.name || `Player ${pid}`;
-            const item = document.createElement('div');
-            item.className = `hippos_reserve_item hippos_species_${sp}`;
-            item.id = `hippos_reserve_${pid}`;
-            item.innerHTML = `
-                <div class="hippos_reserve_icon"></div>
-                <div class="hippos_reserve_info">
-                    <span class="hippos_reserve_name">${name}</span>
-                    <span class="hippos_reserve_count">${_('Reserve:')} <b id="hippos_count_${pid}">${count}</b></span>
-                </div>`;
-            panel.appendChild(item);
+            const spName = sp === 'hippo' ? _('Hippos') : _('Crocodiles');
+            line.innerHTML = `<span class="hippos_panel_icon hippos_species_${sp}"></span>${spName} ${_('left:')} <b>${count}</b>`;
         }
     }
 
@@ -288,8 +282,7 @@ export class Game {
 
         if (this.reserves && player_id !== undefined && this.reserves[player_id] !== undefined) {
             this.reserves[player_id] = reserve_left;
-            const cntEl = document.getElementById(`hippos_count_${player_id}`);
-            if (cntEl) cntEl.textContent = reserve_left;
+            this.renderReserves();
         }
 
         this.sfx('hippos_place');

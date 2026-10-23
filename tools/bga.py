@@ -859,6 +859,11 @@ def contract_checks(rep, folder, bga, js_text, sound_ids):
     (rep.add('PASS', f'client actions exist on the server ({len(sent)})') if not missing
      else rep.add('FAIL', 'client actions exist on the server', 'no PHP method for: ' + ', '.join(missing) + ' ("This move is not authorized now")'))
 
+    # PossibleAction must come from ...\States\ (the ...\Actions\ one is silently ignored -> "not authorized now")
+    badpa = [f.name for f in php_files if 'GameFramework\\Actions\\PossibleAction' in f.read_text(encoding='utf-8')]
+    (rep.add('PASS', 'PossibleAction imported from GameFramework\\States') if not badpa
+     else rep.add('FAIL', 'PossibleAction wrong namespace ("This move is not authorized now")', ', '.join(badpa)))
+
     # State ids are unique
     ids = {}
     for php in files_under(php_dir / 'States', ['php']) if (php_dir / 'States').exists() else []:

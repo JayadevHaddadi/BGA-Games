@@ -19,7 +19,7 @@ Each animal occupies exactly 10 squares on the board:
 {| class="wikitable"
 ! # !! Action !! Description
 |-
-| 1 || '''Pick placement''' || Tap an unoccupied board cell where your animal can fit. Animals can be placed in any of the 4 cardinal orientations ($0^\circ, 90^\circ, 180^\circ, 270^\circ$).
+| 1 || '''Pick placement''' || Tap an unoccupied board cell where your animal can fit. Animals can be placed in any of the 4 cardinal orientations (0°, 90°, 180°, 270°).
 |-
 | 2 || '''Rotate''' || Use the '''Rotate 90°''' button to change orientation.
 |-

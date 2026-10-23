@@ -1,12 +1,11 @@
 /* Hippos & Crocodiles styles */
 
-body.hippos_page_bg {
+#hippos_root {
     background-color: #1e3a4b;
+    border-radius: 6px;
     background-image: radial-gradient(circle at 50% 30%, #2a526b 0%, #0d1e29 100%);
     color: #e0f2fe;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    margin: 0;
-    padding: 0;
 }
 
 #hippos_root {
@@ -54,7 +53,7 @@ body.hippos_page_bg {
     border-radius: 2px;
 }
 
-.hippos_species_hippo .hippos_reserve_icon {
+.hippos_reserve_item.hippos_species_hippo .hippos_reserve_icon {
     background-color: #d81b60;
     border: 1px solid #ff80ab;
 }
@@ -206,3 +205,9 @@ body.hippos_cb_on .hippos_piece_crocodile::before {
     border: 1px solid #38bdf8;
     border-radius: 3px;
 }
+
+/* Player panel reserve line (BGA default panel colours) */
+.hippos_panel { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 13px; }
+.hippos_panel_icon { width: 14px; height: 14px; border-radius: 2px; display: inline-block; }
+.hippos_panel_icon.hippos_species_hippo { background-color: #d81b60; border: 1px solid #ff80ab; }
+.hippos_panel_icon.hippos_species_crocodile { background-color: #2e7d32; border: 1px solid #81c784; }
