@@ -33,6 +33,7 @@ on:
           - people
           - red
           - hipposandcrocodiles
+          - pentup
           # <bga:options>  (tools/bga.py register inserts new games above this line)
 
 jobs:

@@ -6,9 +6,8 @@ Official rulebook link: https://nestorgames.com/rulebooks/PENTUP_EN.pdf
 ## Studio project name
 
 **`pentup`**. BGA project names are lowercase letters and digits only (no hyphen), so `pent-up` is not
-valid. The display name in GMM is "Pent-Up". If Studio says `pentup` is taken, use `pentupgame`.
-Repo folder stays `games/pent-up/`; the Studio code goes in `games/pent-up/bga/` and `tools/sync.py`
-gets the mapping `pent-up -> pentup`.
+valid. The display name in GMM is "Pent-Up". The Studio project exists (created 2026-10-23).
+Repo folder `games/pentup/`, Studio code in `games/pentup/bga/` (registered in `tools/sync.py`).
 
 ## Rules to implement
 
@@ -49,7 +48,7 @@ gets the mapping `pent-up -> pentup`.
 
 ## Steps
 
-1. User creates Studio project `pentup` (BGA Studio > Manage games > new project).
+1. Done: Studio project `pentup` created, repo scaffolded with `tools/bga.py new`.
 2. Agent A (Sonnet): PHP engine + `tests/` move-generator tests against the rulebook examples
    (the 1x5 + P example; Puzzle 1 reaching level 6 must be possible).
 3. Agent B (Sonnet), in parallel: Three.js scene prototype from fixed sample positions.

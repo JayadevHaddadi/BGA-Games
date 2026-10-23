@@ -1,0 +1,12 @@
+/* Pent-Up: play area styles. Guidelines: no shadows, no looping animation, no emoji, radius <= 3px. */
+
+body.pu_page_bg {
+    background-color: #1d1f24;
+}
+
+body.pu_page_bg #page-content,
+body.pu_page_bg #ebd-body,
+body.pu_page_bg #game_play_area,
+body.pu_page_bg #game_play_area_background {
+    background: transparent;
+}
