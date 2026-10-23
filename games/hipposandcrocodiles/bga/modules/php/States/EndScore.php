@@ -12,12 +12,14 @@ const ST_END_GAME = 99;
 
 class EndScore extends GameState
 {
+    public const ID = 90;
+
     public function __construct(
         protected Game $game,
     ) {
         parent::__construct(
             $game,
-            id: 90,
+            id: self::ID,
             type: StateType::GAME,
         );
     }

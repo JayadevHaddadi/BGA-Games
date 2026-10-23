@@ -10,11 +10,3 @@ CREATE TABLE `piece` (
   `place_order` int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (`piece_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-DROP TABLE IF EXISTS `cell`;
-CREATE TABLE `cell` (
-  `r` int(11) NOT NULL,
-  `c` int(11) NOT NULL,
-  `piece_id` int(10) unsigned DEFAULT NULL,
-  PRIMARY KEY (`r`,`c`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;

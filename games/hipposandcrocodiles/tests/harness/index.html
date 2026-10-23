@@ -71,11 +71,45 @@ const bga = {
   },
 };
 
+// ?map=1..4 (default 2 Rectangle), ?trunks=none|random|setup
+const params = new URLSearchParams(location.search);
+const MAP = Number(params.get('map') || 2);
+const TRUNKS = params.get('trunks') || 'none';
+const masks = await (await fetch('masks.json')).json();
+const mask = masks[String(MAP)];
+
+const HIPPO = {
+  0: [[0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[1,3],[2,0],[2,1],[2,2]],
+  1: [[0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[2,0],[2,1],[2,2],[3,1]],
+};
+const TRUNK = { 0: [[0,0],[0,1],[0,2]], 1: [[0,0],[1,0],[2,0]] };
+const trunks = TRUNKS === 'random'
+  ? [{ id: 1, player_id: 0, rotation: 0, top_r: 2, left_c: 3 }, { id: 2, player_id: 0, rotation: 1, top_r: 6, left_c: 8 },
+     { id: 3, player_id: 0, rotation: 0, top_r: 11, left_c: 4 }, { id: 4, player_id: 0, rotation: 1, top_r: 8, left_c: 1 }]
+  : [];
+const taken = new Set();
+for (const t of trunks) for (const [dr, dc] of TRUNK[t.rotation]) taken.add(`${t.top_r + dr},${t.left_c + dc}`);
+function legalFor(shapes) {
+  const out = [];
+  for (const rot of Object.keys(shapes)) {
+    for (let r = 0; r < mask.length; r++) for (let c = 0; c < mask[0].length; c++) {
+      if (shapes[rot].every(([dr, dc]) => mask[r + dr]?.[c + dc] === '#' && !taken.has(`${r + dr},${c + dc}`))) {
+        out.push({ rot: Number(rot), r, c });
+      }
+    }
+  }
+  return out;
+}
+
 function fixture() {
   return {
-    board_type: 1, // River (20x10)
-    rows: 20,
-    cols: 10,
+    map: MAP,
+    mask,
+    rows: mask.length,
+    cols: mask[0].length,
+    trunk_mode: TRUNKS === 'setup' ? 2 : (TRUNKS === 'random' ? 3 : 1),
+    trunks,
+    trunks_left: { 1: TRUNKS === 'setup' ? 2 : 0, 2: TRUNKS === 'setup' ? 2 : 0 },
     placed_pieces: [],
     species: { 1: 'hippo', 2: 'crocodile' },
     reserves: { 1: 8, 2: 8 },
@@ -87,16 +121,16 @@ try {
   game.setup(fixture());
 
   // Enter turn state with legal placements
-  const legal_placements = [
-    { rot: 0, r: 0, c: 0 },
-    { rot: 0, r: 1, c: 0 },
-    { rot: 0, r: 0, c: 1 },
-    { rot: 1, r: 0, c: 0 },
-  ];
-  game.enterTurn({ species: 'hippo', legal_placements, reserve_left: 8 }, true);
+  if (TRUNKS === 'setup') {
+    game.enterTurn({ species: 'trunk', legal_placements: legalFor(TRUNK), trunks_left: 2 }, true);
+  } else {
+    game.enterTurn({ species: 'hippo', legal_placements: legalFor(HIPPO), reserve_left: 8 }, true);
+  }
 
-  // Simulate tapping cell (0, 0)
-  game.onCellClicked(0, 0);
+  // Simulate tapping a legal cell
+  const rot0 = (game.args.legal_placements || []).filter((m) => m.rot === 0);
+  const first = rot0[Math.floor(rot0.length / 2)] || { r: 0, c: 0 };
+  game.onCellClicked(first.r + (TRUNKS === 'setup' ? 0 : 1), first.c + 1);
 
   // Check that Confirm button appeared
   const hasConfirm = buttons.some(b => b.text && b.text.includes('Confirm'));

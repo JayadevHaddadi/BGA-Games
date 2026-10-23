@@ -21,6 +21,11 @@ const SHAPES = {
         { rows: 6, cols: 3, cells: [[0,1],[1,0],[1,1],[1,2],[2,1],[3,0],[3,1],[3,2],[4,1],[5,1]] },
         { rows: 3, cols: 6, cells: [[0,2],[0,4],[1,0],[1,1],[1,2],[1,3],[1,4],[1,5],[2,2],[2,4]] },
     ],
+    // Trunk: 3x1, rotations 0 (horizontal) and 1 (vertical) only
+    trunk: [
+        { rows: 1, cols: 3, cells: [[0,0],[0,1],[0,2]] },
+        { rows: 3, cols: 1, cells: [[0,0],[1,0],[2,0]] },
+    ],
 };
 
 // Pivot cell [row, col] inside each rotation's bounding box. Hippo: centre of the 3x3 body. Crocodile: spine cell
@@ -28,16 +33,17 @@ const SHAPES = {
 const PIVOT = {
     hippo: [[1, 1], [1, 1], [1, 2], [2, 1]],
     crocodile: [[3, 1], [1, 2], [2, 1], [1, 3]],
+    trunk: [[0, 1], [1, 0]],
 };
+const ROT_COUNT = { hippo: 4, crocodile: 4, trunk: 2 };
 
-// Board art from design/make_board_art.py: image size, grid origin (px in the image) and cell pitch.
-const BOARD_ART = {
-    river: { w: 627, h: 1217, x: 17.64, y: 17.5, pitch: 59.061 },
-    lake: { w: 863, h: 863, x: 18.5, y: 17.65, pitch: 59.061 },
-};
+// Board art from design/make_board_art.py (board_<map>.png): every cell is PITCH px, the grid starts at (PAD, PAD).
+const ART_PITCH = 60;
+const ART_PAD = 18;
+const MAP_NAMES = { 1: 'square', 2: 'rectangle', 3: 'river', 4: 'pool' };
 // Tile images are drawn at rotation 0 (hippo: 4x3 cells, tail right; crocodile: 3x6 cells, head down) and rotated
 // clockwise by 90 * rot degrees, matching SHAPES[species][rot].
-const TILE = { hippo: { cols: 4, rows: 3 }, crocodile: { cols: 3, rows: 6 } };
+const TILE = { hippo: { cols: 4, rows: 3 }, crocodile: { cols: 3, rows: 6 }, trunk: { cols: 3, rows: 1 } };
 
 class PlayerTurnState {
     constructor(game) { this.game = game; }
@@ -54,17 +60,25 @@ export class Game {
         this.isActive = false;
         this.currentRot = 0;
         this.bga.states.register('PlayerTurn', new PlayerTurnState(this));
+        this.bga.states.register('PlaceTrunk', new PlayerTurnState(this));
     }
 
     setup(gamedatas) {
         this.gamedatas = gamedatas;
         this.rows = Number(gamedatas.rows);
         this.cols = Number(gamedatas.cols);
-        this.boardType = gamedatas.board_type;
+        this.mapId = Number(gamedatas.map) || 1;
+        this.mask = gamedatas.mask;
+        this.trunkMode = Number(gamedatas.trunk_mode) || 1;
         this.species = gamedatas.species;
         this.reserves = gamedatas.reserves;
+        this.trunksLeft = gamedatas.trunks_left || {};
 
-        this.art = (this.rows === this.cols) ? BOARD_ART.lake : BOARD_ART.river;
+        const mapName = MAP_NAMES[this.mapId] || 'square';
+        this.art = {
+            w: this.cols * ART_PITCH + 2 * ART_PAD, h: this.rows * ART_PITCH + 2 * ART_PAD,
+            x: ART_PAD, y: ART_PAD, pitch: ART_PITCH,
+        };
         this.grid = Array.from({ length: this.rows }, () => Array(this.cols).fill(0));
 
         const root = document.createElement('div');
@@ -72,7 +86,7 @@ export class Game {
         root.innerHTML = `
             <div id="hippos_container">
                 <div id="hippos_board_wrap">
-                    <div id="hippos_board" class="hippos_${this.art === BOARD_ART.lake ? 'lake' : 'river'}">
+                    <div id="hippos_board" class="hippos_map_${mapName}">
                         <div id="hippos_grid" style="--rows: ${this.rows}; --cols: ${this.cols};"></div>
                         <div id="hippos_pieces"></div>
                     </div>
@@ -85,6 +99,9 @@ export class Game {
         this.renderReserves();
         this.layoutBoard();
 
+        for (const t of gamedatas.trunks || []) {
+            this.renderPieceOnGrid('trunk', t.rotation, t.top_r, t.left_c, `trunk_${t.id}`);
+        }
         // Populate initial placed pieces
         if (gamedatas.placed_pieces) {
             for (const p of gamedatas.placed_pieces) {
@@ -140,7 +157,7 @@ export class Game {
         for (let r = 0; r < this.rows; r++) {
             for (let c = 0; c < this.cols; c++) {
                 const cell = document.createElement('div');
-                cell.className = 'hippos_cell';
+                cell.className = this.inMask(r, c) ? 'hippos_cell' : 'hippos_cell hippos_void';
                 cell.id = `hippos_cell_${r}_${c}`;
                 cell.dataset.r = r;
                 cell.dataset.c = c;
@@ -148,6 +165,10 @@ export class Game {
                 board.appendChild(cell);
             }
         }
+    }
+
+    inMask(r, c) {
+        return this.mask?.[r]?.[c] === '#';
     }
 
     renderReserves() {
@@ -163,6 +184,18 @@ export class Game {
             const sp = this.species[pid] || 'hippo';
             const spName = sp === 'hippo' ? _('Hippos') : _('Crocodiles');
             line.innerHTML = `<span class="hippos_panel_icon hippos_species_${sp}"></span>${spName} ${_('left:')} <b>${count}</b>`;
+            let tline = el.querySelector('.hippos_panel_trunks');
+            const tl = Number(this.trunksLeft?.[pid] || 0);
+            if (this.trunkMode === 2 && tl > 0) {
+                if (!tline) {
+                    tline = document.createElement('div');
+                    tline.className = 'hippos_panel hippos_panel_trunks';
+                    el.appendChild(tline);
+                }
+                tline.innerHTML = `<span class="hippos_panel_icon hippos_species_trunk"></span>${_('Trunks left to place:')} <b>${tl}</b>`;
+            } else if (tline) {
+                tline.remove();
+            }
         }
     }
 
@@ -240,14 +273,19 @@ export class Game {
         for (const el of document.querySelectorAll('.hippos_ghost')) el.remove();
     }
 
+    rotCount() {
+        return ROT_COUNT[this.args?.species] || 4;
+    }
+
     legalIn(rot) {
         return (this.args?.legal_placements || []).filter((m) => Number(m.rot) === rot);
     }
 
     // Switch to a rotation that has at least one legal placement (starting with the current one).
     ensureRotation() {
-        for (let i = 0; i < 4; i++) {
-            const rot = (this.currentRot + i) % 4;
+        const n = this.rotCount();
+        for (let i = 0; i < n; i++) {
+            const rot = (this.currentRot + i) % n;
             if (this.legalIn(rot).length) { this.currentRot = rot; return true; }
         }
         return false;
@@ -297,11 +335,15 @@ export class Game {
 
     updateTitle() {
         if (!this.isActive || !this.args || !this.bga.statusBar?.setTitle) return;
-        const name = this.args.species === 'crocodile' ? _('crocodile') : _('hippo');
+        const isTrunk = this.args.species === 'trunk';
+        const name = isTrunk ? _('trunk') : (this.args.species === 'crocodile' ? _('crocodile') : _('hippo'));
         const n = this.legalIn(this.currentRot).length;
         let text;
         if (!n) {
             text = _('No legal placement is available.');
+        } else if (isTrunk) {
+            text = _('You must place a trunk: ${n} possible spots (${orient} shown)')
+                .replace('${n}', String(n)).replace('${orient}', this.currentRot ? _('vertical') : _('horizontal'));
         } else {
             text = _('You must place a ${animal}: ${n} possible spots (rotation ${deg}° shown)')
                 .replace('${animal}', name).replace('${n}', String(n)).replace('${deg}', String(this.currentRot * 90));
@@ -329,13 +371,14 @@ export class Game {
     }
 
     onCellClicked(r, c) {
-        if (!this.isActive || !this.args || !this.args.species) return;
+        if (!this.isActive || !this.args || !this.args.species || !this.inMask(r, c)) return;
 
         let m = this.pivotAt(r, c, this.currentRot) || this.bestCovering(r, c, this.currentRot);
         if (!m) {
             // Another rotation may reach this cell
-            for (let i = 1; i < 4 && !m; i++) {
-                const rot = (this.currentRot + i) % 4;
+            const rn = this.rotCount();
+            for (let i = 1; i < rn && !m; i++) {
+                const rot = (this.currentRot + i) % rn;
                 m = this.bestCovering(r, c, rot);
                 if (m) { this.currentRot = rot; this.highlightLegal(); this.updateTitle(); }
             }
@@ -369,9 +412,10 @@ export class Game {
     // pivot there, or else the one with the nearest pivot (so Confirm stays available instead of a dead red ghost).
     onRotate(delta) {
         if (!this.isActive || !this.args) return;
-        let rot = (this.currentRot + delta) % 4;
+        const rn = this.rotCount();
+        let rot = (this.currentRot + delta) % rn;
         // Skip rotations with no legal placement at all
-        for (let i = 0; i < 4 && !this.legalIn(rot).length; i++) rot = (rot + (delta === 3 ? 3 : 1)) % 4;
+        for (let i = 0; i < rn && !this.legalIn(rot).length; i++) rot = (rot + (delta === 3 ? rn - 1 : 1)) % rn;
         const oldRot = this.currentRot;
         const old = this.stage;
         this.currentRot = rot;
@@ -393,7 +437,8 @@ export class Game {
     onConfirm() {
         if (!this.isActive || !this.stage) return;
         const { rot, r, c } = this.stage;
-        this.bga.actions.performAction('actPlace', { rotation: rot, r, c });
+        const action = this.args.species === 'trunk' ? 'actPlaceTrunk' : 'actPlace';
+        this.bga.actions.performAction(action, { rotation: rot, r, c });
     }
 
     onCancel() {
@@ -409,10 +454,11 @@ export class Game {
         if (!isActive) return;
 
         const bar = this.bga.statusBar;
-        if (this.stage) bar.addActionButton(_('Confirm placement'), () => this.onConfirm(), { color: 'primary' });
+        const isTrunk = args?.species === 'trunk';
+        if (this.stage) bar.addActionButton(isTrunk ? _('Confirm trunk') : _('Confirm placement'), () => this.onConfirm(), { color: 'primary' });
         bar.addActionButton(_('⟲ Left'), () => this.onRotate(3), { color: 'secondary' });
         bar.addActionButton(_('⟳ Right'), () => this.onRotate(1), { color: 'secondary' });
-        bar.addActionButton(_('180°'), () => this.onRotate(2), { color: 'secondary' });
+        if (!isTrunk) bar.addActionButton(_('180°'), () => this.onRotate(2), { color: 'secondary' });
         if (this.stage) bar.addActionButton(_('Cancel'), () => this.onCancel(), { color: 'alert' });
     }
 
@@ -428,6 +474,16 @@ export class Game {
             this.renderReserves();
         }
 
+        this.sfx('hippos_place');
+    }
+
+    notif_trunkPlaced(notif) {
+        const a = notif?.args ?? notif;
+        this.renderPieceOnGrid('trunk', a.rotation, a.top_r, a.left_c, `trunk_${a.trunk_id}`);
+        if (a.player_id !== undefined) {
+            this.trunksLeft[a.player_id] = Number(a.trunks_left);
+            this.renderReserves();
+        }
         this.sfx('hippos_place');
     }
 

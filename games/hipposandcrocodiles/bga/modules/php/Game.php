@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Bga\Games\hipposandcrocodiles;
 
 use Bga\GameFramework\Actions\UserException;
+use Bga\Games\hipposandcrocodiles\States\PlaceTrunk;
 use Bga\Games\hipposandcrocodiles\States\PlayerTurn;
 
 class Game extends \Bga\GameFramework\Table
@@ -46,21 +47,30 @@ class Game extends \Bga\GameFramework\Table
         $this->tableStats->init(['turns_number'], 0);
         $this->playerStats->init(['turns_number', 'pieces_placed'], 0);
 
-        // Board type: 1 = River (20x10), 2 = Lake (14x14)
-        $boardType = (int) ($options[100] ?? Rules::BOARD_RIVER);
-        if ($boardType !== Rules::BOARD_LAKE) {
-            $boardType = Rules::BOARD_RIVER;
+        // Map (option 100): 1 Square, 2 Rectangle, 3 River, 4 Pool. Trunks (option 101): 1 off, 2 players place, 3 random.
+        $map = Rules::normalizeMap((int) ($options[100] ?? $this->tableOptions->get(100, Rules::DEFAULT_MAP)));
+        $trunkMode = (int) ($options[101] ?? $this->tableOptions->get(101, Rules::TRUNKS_OFF));
+        if (!in_array($trunkMode, [Rules::TRUNKS_OFF, Rules::TRUNKS_PLAYERS, Rules::TRUNKS_RANDOM], true)) {
+            $trunkMode = Rules::TRUNKS_OFF;
         }
-        $this->globals->set('board_type', $boardType);
+        $this->globals->set('map_id', $map);
+        $this->globals->set('trunk_mode', $trunkMode);
 
-        [$rows, $cols] = Rules::boardDimensions($boardType);
-        $cellValues = [];
-        for ($r = 0; $r < $rows; $r++) {
-            for ($c = 0; $c < $cols; $c++) {
-                $cellValues[] = "($r, $c, NULL)";
+        $trunks = [];
+        if ($trunkMode === Rules::TRUNKS_RANDOM) {
+            [$rows, $cols] = Rules::boardDimensions($map);
+            $picked = Rules::randomTrunks(
+                Rules::createBoardForMap($map),
+                $rows,
+                $cols,
+                Rules::TRUNKS_RANDOM_COUNT,
+                fn(int $min, int $max): int => (int) bga_rand($min, $max)
+            );
+            foreach ($picked as $i => $m) {
+                $trunks[] = ['id' => $i + 1, 'player_id' => 0, 'rotation' => $m['rot'], 'top_r' => $m['r'], 'left_c' => $m['c']];
             }
         }
-        static::DbQuery("INSERT INTO `cell` (`r`, `c`, `piece_id`) VALUES " . implode(',', $cellValues));
+        $this->globals->set('trunks', $trunks);
 
         // Pieces: 8 Hippos for Player 1, 8 Crocodiles for Player 2
         $speciesMap = [
@@ -77,21 +87,97 @@ class Game extends \Bga\GameFramework\Table
         static::DbQuery("INSERT INTO `piece` (`player_id`, `species`, `placed`, `place_order`) VALUES " . implode(',', $pieceValues));
 
         $this->activeNextPlayer();
-        return PlayerTurn::class;
+        return $trunkMode === Rules::TRUNKS_PLAYERS ? PlaceTrunk::class : PlayerTurn::class;
     }
 
     /* ---------------------------------------------------------------------------------------------- */
     /* Accessors and Helpers                                                                           */
     /* ---------------------------------------------------------------------------------------------- */
 
-    public function getBoardType(): int
+    /** Map id. Tables created before the map option existed stored 'board_type' (1 River 20x10, 2 Lake 14x14). */
+    public function getMapId(): int
     {
-        return (int) $this->globals->get('board_type', Rules::BOARD_RIVER);
+        $map = $this->globals->get('map_id', null);
+        if ($map === null) {
+            $map = ((int) $this->globals->get('board_type', 1) === 2) ? Rules::MAP_SQUARE : Rules::MAP_RECTANGLE;
+        }
+        return Rules::normalizeMap((int) $map);
+    }
+
+    public function getTrunkMode(): int
+    {
+        return (int) $this->globals->get('trunk_mode', Rules::TRUNKS_OFF);
     }
 
     public function getBoardDimensions(): array
     {
-        return Rules::boardDimensions($this->getBoardType());
+        return Rules::boardDimensions($this->getMapId());
+    }
+
+    /** All trunks on the board: list of [id, player_id, rotation, top_r, left_c] (numbers as ints) */
+    public function getTrunks(): array
+    {
+        $out = [];
+        foreach ((array) $this->globals->get('trunks', []) as $t) {
+            $out[] = [
+                'id' => (int) $t['id'],
+                'player_id' => (int) $t['player_id'],
+                'rotation' => (int) $t['rotation'],
+                'top_r' => (int) $t['top_r'],
+                'left_c' => (int) $t['left_c'],
+            ];
+        }
+        return $out;
+    }
+
+    /** Trunks a player still has to place (only in "players place" mode) */
+    public function getTrunksLeft(int $playerId): int
+    {
+        if ($this->getTrunkMode() !== Rules::TRUNKS_PLAYERS) {
+            return 0;
+        }
+        $placed = count(array_filter($this->getTrunks(), fn($t) => $t['player_id'] === $playerId));
+        return max(0, Rules::TRUNKS_EACH - $placed);
+    }
+
+    /** Are all setup trunks placed (always true outside "players place" mode) */
+    public function trunkSetupDone(): bool
+    {
+        if ($this->getTrunkMode() !== Rules::TRUNKS_PLAYERS) {
+            return true;
+        }
+        foreach (array_keys($this->loadPlayersBasicInfos()) as $pid) {
+            if ($this->getTrunksLeft((int) $pid) > 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public function placeTrunk(int $playerId, int $rotation, int $topRow, int $leftCol): void
+    {
+        if ($this->getTrunksLeft($playerId) <= 0) {
+            throw new UserException(clienttranslate('You have no more trunks to place.'));
+        }
+        [$rows, $cols] = $this->getBoardDimensions();
+        $board = $this->getBoard();
+        if (!Rules::canPlace($board, $rows, $cols, Rules::SPECIES_TRUNK, $rotation, $topRow, $leftCol)) {
+            throw new UserException(clienttranslate('This trunk placement is not allowed on the board.'));
+        }
+        $trunks = $this->getTrunks();
+        $id = count($trunks) + 1;
+        $trunks[] = ['id' => $id, 'player_id' => $playerId, 'rotation' => $rotation, 'top_r' => $topRow, 'left_c' => $leftCol];
+        $this->globals->set('trunks', $trunks);
+
+        $this->notify->all('trunkPlaced', clienttranslate('${player_name} places a trunk'), [
+            'player_id' => $playerId,
+            'player_name' => $this->getPlayerNameById($playerId),
+            'trunk_id' => $id,
+            'rotation' => $rotation,
+            'top_r' => $topRow,
+            'left_c' => $leftCol,
+            'trunks_left' => $this->getTrunksLeft($playerId),
+        ]);
     }
 
     public function getSpeciesOf(int $playerId): string
@@ -105,13 +191,16 @@ class Game extends \Bga\GameFramework\Table
         return $species === Rules::SPECIES_HIPPO ? clienttranslate('Hippo') : clienttranslate('Crocodile');
     }
 
+    /** Grid: CELL_VOID outside the map, CELL_TRUNK on trunks, piece id on animals, 0 when free */
     public function getBoard(): array
     {
         [$rows, $cols] = $this->getBoardDimensions();
-        $board = Rules::createBoard($rows, $cols);
-        $cells = static::getObjectListFromDb("SELECT `r`, `c`, `piece_id` FROM `cell` WHERE `piece_id` IS NOT NULL");
-        foreach ($cells as $cell) {
-            $board[(int) $cell['r']][(int) $cell['c']] = (int) $cell['piece_id'];
+        $board = Rules::createBoardForMap($this->getMapId());
+        foreach ($this->getTrunks() as $t) {
+            Rules::placePiece($board, $rows, $cols, Rules::SPECIES_TRUNK, $t['rotation'], $t['top_r'], $t['left_c'], Rules::CELL_TRUNK);
+        }
+        foreach ($this->getPlacedPieces() as $p) {
+            Rules::placePiece($board, $rows, $cols, $p['species'], (int) $p['rotation'], (int) $p['top_r'], (int) $p['left_c'], (int) $p['piece_id']);
         }
         return $board;
     }
@@ -151,10 +240,6 @@ class Game extends \Bga\GameFramework\Table
 
         $nextOrder = 1 + (int) $this->getUniqueValueFromDb('SELECT COALESCE(MAX(`place_order`), 0) FROM `piece`');
         static::DbQuery("UPDATE `piece` SET `placed` = 1, `rotation` = $rotation, `top_r` = $topRow, `left_c` = $leftCol, `place_order` = $nextOrder WHERE `piece_id` = $pieceId");
-
-        foreach ($occupied as [$r, $c]) {
-            static::DbQuery("UPDATE `cell` SET `piece_id` = $pieceId WHERE `r` = $r AND `c` = $c");
-        }
 
         $this->playerStats->inc('pieces_placed', 1, $playerId);
         $this->tableStats->inc('turns_number', 1);
@@ -200,9 +285,17 @@ class Game extends \Bga\GameFramework\Table
         }
 
         return [
-            'board_type' => $this->getBoardType(),
+            'map' => $this->getMapId(),
+            'map_name' => Rules::MAP_NAMES[$this->getMapId()],
+            'mask' => Rules::maskRows($this->getMapId()),
             'rows' => $rows,
             'cols' => $cols,
+            'trunk_mode' => $this->getTrunkMode(),
+            'trunks' => $this->getTrunks(),
+            'trunks_left' => array_combine(
+                array_map('intval', array_keys($players)),
+                array_map(fn($pid) => $this->getTrunksLeft((int) $pid), array_keys($players))
+            ),
             'placed_pieces' => $this->getPlacedPieces(),
             'species' => $species,
             'reserves' => $reserves,

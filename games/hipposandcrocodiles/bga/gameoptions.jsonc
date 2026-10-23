@@ -1,14 +1,40 @@
 {
     "100": {
-        "name": "Board",
+        "name": "Map",
         "values": {
             "1": {
-                "name": "River (20x10)",
-                "description": "Standard playing area of 200 squares"
+                "name": "Square (14x14)",
+                "description": "Square playing area of 196 squares"
             },
             "2": {
-                "name": "Lake (14x14)",
-                "description": "Square playing area of 196 squares"
+                "name": "Rectangle (20x10)",
+                "description": "Rectangular playing area of 200 squares"
+            },
+            "3": {
+                "name": "River",
+                "description": "The whole surface of the original board: 10 squares wide at both ends, 14 wide in the middle (256 squares)"
+            },
+            "4": {
+                "name": "Pool",
+                "description": "The round pool board (208 squares)"
+            }
+        },
+        "default": 1
+    },
+    "101": {
+        "name": "Trunks",
+        "values": {
+            "1": {
+                "name": "Off",
+                "description": "No trunks on the board"
+            },
+            "2": {
+                "name": "On - players place 2 each",
+                "description": "Before the first animal, players take turns placing 2 trunks each (first player starts). Trunks are obstacles."
+            },
+            "3": {
+                "name": "On - randomly placed",
+                "description": "4 trunks are placed at random before the game starts. Trunks are obstacles."
             }
         },
         "default": 1
