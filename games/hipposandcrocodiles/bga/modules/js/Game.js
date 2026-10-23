@@ -23,6 +23,13 @@ const SHAPES = {
     ],
 };
 
+// Pivot cell [row, col] inside each rotation's bounding box. Hippo: centre of the 3x3 body. Crocodile: spine cell
+// midway between the two leg pairs. The pivot stays on the same board cell when rotating.
+const PIVOT = {
+    hippo: [[1, 1], [1, 1], [1, 2], [2, 1]],
+    crocodile: [[3, 1], [1, 2], [2, 1], [1, 3]],
+};
+
 // Board art from design/make_board_art.py: image size, grid origin (px in the image) and cell pitch.
 const BOARD_ART = {
     river: { w: 627, h: 1217, x: 17.64, y: 17.5, pitch: 59.061 },
@@ -218,9 +225,15 @@ export class Game {
     }
 
     clearHighlights() {
-        for (const el of document.querySelectorAll('.hippos_legal_target')) {
-            el.classList.remove('hippos_legal_target');
+        for (const el of document.querySelectorAll('.hippos_legal_target, .hippos_pivot_target')) {
+            el.classList.remove('hippos_legal_target', 'hippos_pivot_target');
         }
+    }
+
+    // Board cell [r, c] where placement m (in rotation rot) has its pivot.
+    pivotOf(m, rot) {
+        const [pr, pc] = PIVOT[this.args.species][rot];
+        return [Number(m.r) + pr, Number(m.c) + pc];
     }
 
     clearPreviews() {
@@ -251,6 +264,22 @@ export class Game {
             }
         }
         return out;
+    }
+
+    // Legal placement in rotation rot with its pivot exactly on (r, c), else null.
+    pivotAt(r, c, rot) {
+        return this.legalIn(rot).find((m) => { const [pr, pc] = this.pivotOf(m, rot); return pr === r && pc === c; }) || null;
+    }
+
+    // Legal placement in rotation rot whose pivot is nearest to (r, c).
+    nearestPivot(r, c, rot) {
+        let best = null, bestD = Infinity;
+        for (const m of this.legalIn(rot)) {
+            const [pr, pc] = this.pivotOf(m, rot);
+            const d = (pr - r) ** 2 + (pc - c) ** 2;
+            if (d < bestD) { bestD = d; best = m; }
+        }
+        return best;
     }
 
     // Prefer the placement whose centre is closest to the tapped cell.
@@ -292,13 +321,17 @@ export class Game {
                 const cell = document.getElementById(`hippos_cell_${Number(m.r) + dr}_${Number(m.c) + dc}`);
                 if (cell) cell.classList.add('hippos_legal_target');
             }
+            // Where the pivot can go: stronger highlight, tap here
+            const [pr, pc] = this.pivotOf(m, this.currentRot);
+            const pcell = document.getElementById(`hippos_cell_${pr}_${pc}`);
+            if (pcell) pcell.classList.add('hippos_pivot_target');
         }
     }
 
     onCellClicked(r, c) {
         if (!this.isActive || !this.args || !this.args.species) return;
 
-        let m = this.bestCovering(r, c, this.currentRot);
+        let m = this.pivotAt(r, c, this.currentRot) || this.bestCovering(r, c, this.currentRot);
         if (!m) {
             // Another rotation may reach this cell
             for (let i = 1; i < 4 && !m; i++) {
@@ -317,22 +350,36 @@ export class Game {
         const legal = this.args.legal_placements?.some((m) => Number(m.rot) === rot && Number(m.r) === r && Number(m.c) === c);
         const ghost = this.makePieceEl(this.args.species, rot, r, c);
         ghost.classList.add('hippos_ghost', legal ? 'hippos_ghost_ok' : 'hippos_ghost_bad');
+        const [pr, pc] = PIVOT[this.args.species][rot];
+        const shape = SHAPES[this.args.species][rot];
+        const pivot = document.createElement('div');
+        pivot.className = 'hippos_pivot';
+        pivot.style.width = `${(0.62 / shape.cols) * 100}%`;
+        pivot.style.height = `${(0.62 / shape.rows) * 100}%`;
+        pivot.style.left = `${((pc + 0.5) / shape.cols) * 100}%`;
+        pivot.style.top = `${((pr + 0.5) / shape.rows) * 100}%`;
+        ghost.appendChild(pivot);
         document.getElementById('hippos_pieces').appendChild(ghost);
 
         this.updateButtons(this.args, this.isActive);
     }
 
-    onRotate() {
+    // delta: 1 = clockwise (Right), 3 = counter-clockwise (Left), 2 = half turn.
+    // A staged animal keeps its pivot on the same cell: we move to the legal placement in the new rotation with the
+    // pivot there, or else the one with the nearest pivot (so Confirm stays available instead of a dead red ghost).
+    onRotate(delta) {
         if (!this.isActive || !this.args) return;
-        this.currentRot = (this.currentRot + 1) % 4;
-        this.ensureRotation();
-        if (this.stage) {
-            // If currently staged, test if the new rotation fits at the same (r, c)
-            const fit = this.args.legal_placements?.some(
-                (m) => Number(m.rot) === this.currentRot && Number(m.r) === this.stage.r && Number(m.c) === this.stage.c
-            );
-            if (fit) {
-                this.stagePlacement(this.stage.r, this.stage.c, this.currentRot);
+        let rot = (this.currentRot + delta) % 4;
+        // Skip rotations with no legal placement at all
+        for (let i = 0; i < 4 && !this.legalIn(rot).length; i++) rot = (rot + (delta === 3 ? 3 : 1)) % 4;
+        const oldRot = this.currentRot;
+        const old = this.stage;
+        this.currentRot = rot;
+        if (old) {
+            const [pr, pc] = this.pivotOf(old, oldRot);
+            const m = this.pivotAt(pr, pc, rot) || this.nearestPivot(pr, pc, rot);
+            if (m) {
+                this.stagePlacement(Number(m.r), Number(m.c), rot);
             } else {
                 this.stage = null;
                 this.clearPreviews();
@@ -361,13 +408,12 @@ export class Game {
         this.bga.statusBar.removeActionButtons();
         if (!isActive) return;
 
-        if (this.stage) {
-            this.bga.statusBar.addActionButton(_('Confirm placement'), () => this.onConfirm(), { color: 'primary' });
-            this.bga.statusBar.addActionButton(_('Rotate 90°'), () => this.onRotate(), { color: 'secondary' });
-            this.bga.statusBar.addActionButton(_('Cancel'), () => this.onCancel(), { color: 'alert' });
-        } else {
-            this.bga.statusBar.addActionButton(_('Rotate 90°'), () => this.onRotate(), { color: 'secondary' });
-        }
+        const bar = this.bga.statusBar;
+        if (this.stage) bar.addActionButton(_('Confirm placement'), () => this.onConfirm(), { color: 'primary' });
+        bar.addActionButton(_('⟲ Left'), () => this.onRotate(3), { color: 'secondary' });
+        bar.addActionButton(_('⟳ Right'), () => this.onRotate(1), { color: 'secondary' });
+        bar.addActionButton(_('180°'), () => this.onRotate(2), { color: 'secondary' });
+        if (this.stage) bar.addActionButton(_('Cancel'), () => this.onCancel(), { color: 'alert' });
     }
 
     /* ------------------------------------------------------------------------ Notifications */
