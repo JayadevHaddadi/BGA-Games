@@ -23,6 +23,15 @@ const SHAPES = {
     ],
 };
 
+// Board art from design/make_board_art.py: image size, grid origin (px in the image) and cell pitch.
+const BOARD_ART = {
+    river: { w: 627, h: 1401, x: 17.64, y: 195.5, pitch: 59.061 },
+    lake: { w: 863, h: 1047, x: 18.5, y: 195.65, pitch: 59.061 },
+};
+// Tile images are drawn at rotation 0 (hippo: 4x3 cells, tail right; crocodile: 3x6 cells, head down) and rotated
+// clockwise by 90 * rot degrees, matching SHAPES[species][rot].
+const TILE = { hippo: { cols: 4, rows: 3 }, crocodile: { cols: 3, rows: 6 } };
+
 class PlayerTurnState {
     constructor(game) { this.game = game; }
     onEnteringState(args, isActive) { this.game.enterTurn(args, isActive); }
@@ -48,6 +57,7 @@ export class Game {
         this.species = gamedatas.species;
         this.reserves = gamedatas.reserves;
 
+        this.art = (this.rows === this.cols) ? BOARD_ART.lake : BOARD_ART.river;
         this.grid = Array.from({ length: this.rows }, () => Array(this.cols).fill(0));
 
         const root = document.createElement('div');
@@ -55,7 +65,10 @@ export class Game {
         root.innerHTML = `
             <div id="hippos_container">
                 <div id="hippos_board_wrap">
-                    <div id="hippos_board" style="--rows: ${this.rows}; --cols: ${this.cols};"></div>
+                    <div id="hippos_board" class="hippos_${this.art === BOARD_ART.lake ? 'lake' : 'river'}">
+                        <div id="hippos_grid" style="--rows: ${this.rows}; --cols: ${this.cols};"></div>
+                        <div id="hippos_pieces"></div>
+                    </div>
                 </div>
                 <div id="hippos_status_msg"></div>
             </div>`;
@@ -63,6 +76,7 @@ export class Game {
 
         this.buildBoard();
         this.renderReserves();
+        this.layoutBoard();
 
         // Populate initial placed pieces
         if (gamedatas.placed_pieces) {
@@ -79,15 +93,25 @@ export class Game {
         this.bga.notifications.setupPromiseNotifications({});
     }
 
-    fitLayout() {
-        const wrap = document.getElementById('hippos_board_wrap');
+    // Percent geometry of the printed grid inside the board image, so cells stay aligned at any size.
+    layoutBoard() {
+        const { w, h, x, y, pitch } = this.art;
         const board = document.getElementById('hippos_board');
-        if (!wrap || !board) return;
+        const box = [document.getElementById('hippos_grid'), document.getElementById('hippos_pieces')];
+        board.style.aspectRatio = `${w} / ${h}`;
+        for (const el of box) {
+            el.style.left = `${(x / w) * 100}%`;
+            el.style.top = `${(y / h) * 100}%`;
+            el.style.width = `${(this.cols * pitch / w) * 100}%`;
+            el.style.height = `${(this.rows * pitch / h) * 100}%`;
+        }
+    }
 
-        const availW = Math.min(window.innerWidth || 375, wrap.parentElement ? wrap.parentElement.clientWidth : 375) - 16;
-        // Target cell size: on River (10 cols), 35px fits 375px; on Lake (14 cols), scale accordingly
-        const cellPx = Math.floor(Math.min(42, Math.max(22, availW / this.cols)));
-        board.style.setProperty('--cell-size', `${cellPx}px`);
+    fitLayout() {
+        const board = document.getElementById('hippos_board');
+        if (!board) return;
+        // Never blow a cell up beyond ~40 px on desktop; phones fill the width.
+        board.style.maxWidth = `${Math.round(this.art.w * 40 / this.art.pitch)}px`;
     }
 
     sfx(id) {
@@ -104,7 +128,7 @@ export class Game {
     }
 
     buildBoard() {
-        const board = document.getElementById('hippos_board');
+        const board = document.getElementById('hippos_grid');
         board.innerHTML = '';
         for (let r = 0; r < this.rows; r++) {
             for (let c = 0; c < this.cols; c++) {
@@ -135,6 +159,27 @@ export class Game {
         }
     }
 
+    // A tile image (cyan outline + silhouette) over the shape's bounding box, rotated about its centre.
+    makePieceEl(species, rot, topR, leftC) {
+        const shape = SHAPES[species][rot];
+        const base = TILE[species];
+        const el = document.createElement('div');
+        el.className = `hippos_piece hippos_piece_${species}`;
+        el.style.left = `${(leftC / this.cols) * 100}%`;
+        el.style.top = `${(topR / this.rows) * 100}%`;
+        el.style.width = `${(shape.cols / this.cols) * 100}%`;
+        el.style.height = `${(shape.rows / this.rows) * 100}%`;
+        const img = document.createElement('div');
+        img.className = 'hippos_tile';
+        const swapped = rot % 2 === 1;
+        // Unrotated image box is base.cols x base.rows cells; for 90/270 that equals shape.rows x shape.cols.
+        img.style.width = swapped ? `${(shape.rows / shape.cols) * 100}%` : '100%';
+        img.style.height = swapped ? `${(shape.cols / shape.rows) * 100}%` : '100%';
+        img.style.transform = `translate(-50%, -50%) rotate(${rot * 90}deg)`;
+        el.appendChild(img);
+        return el;
+    }
+
     renderPieceOnGrid(species, rot, topR, leftC, pieceId) {
         // Database values arrive as strings: "1" + 2 would be "12"
         rot = Number(rot); topR = Number(topR); leftC = Number(leftC);
@@ -146,10 +191,13 @@ export class Game {
             this.grid[r][c] = pieceId;
             const cell = document.getElementById(`hippos_cell_${r}_${c}`);
             if (cell) {
-                cell.classList.add('hippos_occupied', `hippos_piece_${species}`);
+                cell.classList.add('hippos_occupied');
                 cell.dataset.pieceId = pieceId;
             }
         }
+        const el = this.makePieceEl(species, rot, topR, leftC);
+        el.id = `hippos_piece_${pieceId}`;
+        document.getElementById('hippos_pieces').appendChild(el);
     }
 
     enterTurn(args, isActive) {
@@ -174,9 +222,7 @@ export class Game {
     }
 
     clearPreviews() {
-        for (const el of document.querySelectorAll('.hippos_staged')) {
-            el.classList.remove('hippos_staged', 'hippos_staged_hippo', 'hippos_staged_croc');
-        }
+        for (const el of document.querySelectorAll('.hippos_ghost')) el.remove();
     }
 
     highlightLegal() {
@@ -220,13 +266,10 @@ export class Game {
         this.stage = { r, c, rot };
         this.clearPreviews();
 
-        const shape = SHAPES[this.args.species][rot];
-        for (const [dr, dc] of shape.cells) {
-            const cell = document.getElementById(`hippos_cell_${r + dr}_${c + dc}`);
-            if (cell) {
-                cell.classList.add('hippos_staged', `hippos_staged_${this.args.species}`);
-            }
-        }
+        const legal = this.args.legal_placements?.some((m) => m.rot === rot && m.r === r && m.c === c);
+        const ghost = this.makePieceEl(this.args.species, rot, r, c);
+        ghost.classList.add('hippos_ghost', legal ? 'hippos_ghost_ok' : 'hippos_ghost_bad');
+        document.getElementById('hippos_pieces').appendChild(ghost);
 
         this.updateButtons(this.args, this.isActive);
     }

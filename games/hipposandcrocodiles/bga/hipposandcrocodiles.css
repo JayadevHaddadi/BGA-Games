@@ -2,7 +2,7 @@
 
 #hippos_root {
     background-color: #1e3a4b;
-    border-radius: 6px;
+    border-radius: 3px;
     background-image: radial-gradient(circle at 50% 30%, #2a526b 0%, #0d1e29 100%);
     color: #e0f2fe;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -12,7 +12,7 @@
     width: 100%;
     max-width: 900px;
     margin: 0 auto;
-    padding: 8px;
+    padding: 6px;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
@@ -84,108 +84,76 @@
     justify-content: center;
     align-items: center;
     width: 100%;
-    overflow: hidden;
 }
 
+/* The publisher's printed board (cropped by design/make_board_art.py); grid/pieces layers are placed in % by Game.js */
 #hippos_board {
+    position: relative;
+    width: 100%;
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    border-radius: 3px;
+    touch-action: manipulation;
+}
+#hippos_board.hippos_river { background-image: url(img/board_river.png); }
+#hippos_board.hippos_lake { background-image: url(img/board_lake.png); }
+
+#hippos_grid {
     --rows: 20;
     --cols: 10;
-    --cell-size: 32px;
+    position: absolute;
     display: grid;
-    grid-template-rows: repeat(var(--rows), var(--cell-size));
-    grid-template-columns: repeat(var(--cols), var(--cell-size));
-    gap: 1px;
-    background-color: #0b1a24;
-    border: 2px solid #38bdf8;
-    border-radius: 3px;
-    padding: 2px;
-    box-sizing: border-box;
+    grid-template-rows: repeat(var(--rows), 1fr);
+    grid-template-columns: repeat(var(--cols), 1fr);
 }
 
 .hippos_cell {
-    width: var(--cell-size);
-    height: var(--cell-size);
-    background-color: #17384e;
-    box-sizing: border-box;
-    cursor: default;
     position: relative;
+    cursor: default;
+    min-width: 0;
+    min-height: 0;
+    -webkit-tap-highlight-color: transparent;
 }
 
-@media (hover: hover) {
-    .hippos_legal_target:hover {
-        background-color: #38bdf8;
-        cursor: pointer;
-    }
-}
-
-.hippos_legal_target {
-    cursor: pointer;
-}
-
+.hippos_legal_target { cursor: pointer; }
 .hippos_legal_target::after {
     content: "";
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 6px;
-    height: 6px;
+    width: 22%;
+    height: 22%;
     border-radius: 50%;
-    background-color: #7dd3fc;
+    background-color: rgba(255, 255, 255, 0.55);
+}
+@media (hover: hover) {
+    .hippos_legal_target:hover { background-color: rgba(255, 255, 255, 0.25); }
 }
 
-/* Staged Previews */
-.hippos_staged {
-    opacity: 0.8;
-}
-
-.hippos_staged_hippo {
-    background-color: #f06292;
-    outline: 1px solid #ff4081;
-}
-
-.hippos_staged_crocodile {
-    background-color: #66bb6a;
-    outline: 1px solid #00e676;
-}
-
-/* Placed Pieces */
-.hippos_occupied {
-    cursor: default;
-}
-
-.hippos_piece_hippo {
-    background-color: #d81b60;
-    outline: 1px solid #ad1457;
-}
-
-.hippos_piece_crocodile {
-    background-color: #2e7d32;
-    outline: 1px solid #1b5e20;
-}
-
-/* Colour-blind Symbols (pref 100) */
-body.hippos_cb_on .hippos_piece_hippo::before {
-    content: "●";
+/* Placed animals: real tile images over the cells; never intercept taps */
+#hippos_pieces {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 10px;
-    color: #ffffff;
-    opacity: 0.7;
+    pointer-events: none;
 }
-
-body.hippos_cb_on .hippos_piece_crocodile::before {
-    content: "▲";
+.hippos_piece {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 9px;
-    color: #ffffff;
-    opacity: 0.7;
 }
+.hippos_tile {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+}
+.hippos_piece_hippo .hippos_tile { background-image: url(img/piece_hippo.png); }
+.hippos_piece_crocodile .hippos_tile { background-image: url(img/piece_crocodile.png); }
+
+/* Staged preview: same image, semi-transparent, green glow (legal) or red glow (illegal) */
+.hippos_ghost { opacity: 0.78; z-index: 2; }
+/* the glow is a bounding-box outline: legal = green, illegal = red tint */
+.hippos_ghost_ok { outline: 2px solid #22c55e; outline-offset: -1px; }
+.hippos_ghost_bad { outline: 2px solid #ef4444; outline-offset: -1px; opacity: 0.6; filter: sepia(1) hue-rotate(-40deg) saturate(4); }
 
 /* Status Message */
 #hippos_status_msg {
@@ -208,6 +176,6 @@ body.hippos_cb_on .hippos_piece_crocodile::before {
 
 /* Player panel reserve line (BGA default panel colours) */
 .hippos_panel { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 13px; }
-.hippos_panel_icon { width: 14px; height: 14px; border-radius: 2px; display: inline-block; }
-.hippos_panel_icon.hippos_species_hippo { background-color: #d81b60; border: 1px solid #ff80ab; }
-.hippos_panel_icon.hippos_species_crocodile { background-color: #2e7d32; border: 1px solid #81c784; }
+.hippos_panel_icon { display: inline-block; background-repeat: no-repeat; background-size: 100% 100%; flex: none; }
+.hippos_panel_icon.hippos_species_hippo { width: 24px; height: 18px; background-image: url(img/piece_hippo.png); }
+.hippos_panel_icon.hippos_species_crocodile { width: 14px; height: 28px; background-image: url(img/piece_crocodile.png); }
