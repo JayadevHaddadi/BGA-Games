@@ -10,3 +10,246 @@ body.pu_page_bg #game_play_area,
 body.pu_page_bg #game_play_area_background {
     background: transparent;
 }
+
+/* Layout: full width on phones, capped on desktop */
+#pu_root {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 0 12px;
+    color: #ece8dc;
+    font-size: 15px;
+}
+
+#pu_status {
+    margin: 0 0 8px;
+    padding: 0 8px;
+    min-height: 1.3em;
+    line-height: 1.3;
+}
+
+#pu_view {
+    position: relative;
+    width: 100%;
+    background: #2b2018;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+#pu_view.pu_is3d {
+    aspect-ratio: 1 / 1;
+    max-height: 72vh;
+    touch-action: none;
+}
+
+@media (min-width: 700px) {
+    #pu_view.pu_is3d {
+        aspect-ratio: 16 / 10;
+    }
+}
+
+.pu_canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+}
+
+/* Controls */
+#pu_controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    padding: 8px;
+}
+
+.pu_btn {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0 12px;
+    border: 1px solid #8b8472;
+    border-radius: 3px;
+    background: #34373f;
+    color: #ece8dc;
+    font: inherit;
+    cursor: pointer;
+}
+
+.pu_btn:focus-visible,
+.pu_tile:focus-visible {
+    outline: 2px solid #7ff0a8;
+    outline-offset: 1px;
+}
+
+.pu_check,
+.pu_xray {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+}
+
+.pu_check input {
+    width: 22px;
+    height: 22px;
+}
+
+.pu_xray input {
+    width: 140px;
+    min-height: 44px;
+}
+
+@media (hover: hover) {
+    .pu_btn:hover:not(:disabled),
+    .pu_tile:hover:not(:disabled) {
+        border-color: #ece8dc;
+    }
+}
+
+/* Tray */
+#pu_tray_wrap {
+    padding: 0 8px;
+}
+
+#pu_tray_wrap h3 {
+    margin: 4px 0 6px;
+    font-size: 15px;
+}
+
+#pu_tray {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+    gap: 6px;
+}
+
+.pu_tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-height: 64px;
+    padding: 4px;
+    border: 1px solid #5b5e66;
+    border-radius: 3px;
+    background: #2a2d34;
+    color: #ece8dc;
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.pu_tile svg {
+    width: 40px;
+    height: 40px;
+}
+
+.pu_tile:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.pu_tile.pu_sel {
+    border: 2px solid #7ff0a8;
+    background: #3a4a40;
+}
+
+#pu_left {
+    margin: 8px 0 0;
+    font-size: 13px;
+    opacity: 0.85;
+}
+
+#pu_final {
+    margin: 8px;
+    padding: 8px;
+    border: 1px solid #5b5e66;
+    border-radius: 3px;
+    background: #2a2d34;
+}
+
+#pu_final h3 {
+    margin: 0 0 4px;
+    font-size: 15px;
+}
+
+#pu_final ul {
+    margin: 0;
+    padding-left: 18px;
+}
+
+/* 2D top-down fallback */
+.pu_grid2d {
+    --pu2-size: 28px;
+    display: grid;
+    width: max-content;
+    max-width: 100%;
+    margin: 0 auto;
+    overflow: auto;
+    touch-action: manipulation;
+}
+
+.pu2_cell {
+    box-sizing: border-box;
+    width: var(--pu2-size);
+    height: var(--pu2-size);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(0, 0, 0, 0.18);
+    background: #8c5d37;
+    font-size: 12px;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.pu2_cell.pu2_white {
+    background: #f0e9d6;
+    color: #262626;
+    border-color: #a69f8b;
+}
+
+.pu2_cell.pu2_black {
+    background: #202227;
+    color: #f3f1ea;
+    border-color: #5b5e66;
+}
+
+.pu2_cell.pu2_red {
+    background: #b23a34;
+    color: #f3f1ea;
+}
+
+.pu2_cell.pu2_anchor {
+    background-image: radial-gradient(circle, rgba(127, 240, 168, 0.75) 22%, rgba(127, 240, 168, 0) 26%);
+}
+
+.pu2_cell.pu2_ok {
+    background-color: #35c46a;
+    color: #10321d;
+}
+
+.pu2_cell.pu2_bad {
+    background-color: #d8423c;
+    color: #fff;
+}
+
+.pu2_cell.pu2_drop {
+    animation: pu2_drop 0.4s ease-out 1;
+}
+
+@keyframes pu2_drop {
+    from { transform: scale(1.35); }
+    to { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pu2_cell.pu2_drop {
+        animation: none;
+    }
+}
+
+[hidden] {
+    display: none !important;
+}
