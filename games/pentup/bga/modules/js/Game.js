@@ -691,6 +691,11 @@ class Grid2D {
 /* State classes                                                                                   */
 /* ---------------------------------------------------------------------------------------------- */
 
+/** Fixed tray order and the keyboard key of each slot (1-9, 0, then - and =). */
+const PU_ORDER = ['F', 'I', 'L', 'N', 'P', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
+const PU_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '='];
+const PU_CODES = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9', 'Digit0', 'Minus', 'Equal'];
+
 class PlayerTurnState {
     constructor(game) { this.game = game; }
     onEnteringState(args, isActive) { this.game.enterTurn(args, isActive); }
@@ -741,12 +746,13 @@ export class Game {
                 <button type="button" class="pu_btn" id="pu_rotate_ccw" title="${_('Rotate (R / Shift+R)')}">${_('Rotate left (Shift+R)')}</button>
                 <button type="button" class="pu_btn" id="pu_flip">${_('Flip (F)')}</button>
                 <button type="button" class="pu_btn" id="pu_mode"></button>
-                <button type="button" class="pu_btn" id="pu_reset">${_('Reset camera')}</button>
-                <label class="pu_check" id="pu_levels_wrap"><input type="checkbox" id="pu_levels"> <span>${_('Show levels')}</span></label>
+                <button type="button" class="pu_btn" id="pu_reset" title="${_('Reset camera (C)')}">${_('Reset camera (C)')}</button>
+                <label class="pu_check" id="pu_levels_wrap"><input type="checkbox" id="pu_levels"> <span>${_('Show levels (L)')}</span></label>
                 <label class="pu_xray" id="pu_xray_wrap"><span id="pu_xray_label"></span>
-                    <input type="range" id="pu_xray" min="1" max="1" step="1" value="1" aria-label="${_('Hide levels above')}"></label>
+                    <span class="pu_xray_ctl"><input type="range" id="pu_xray" min="1" max="1" step="1" value="1" aria-label="${_('Hide levels above')}"><span id="pu_xray_ticks" aria-hidden="true"></span></span></label>
             </div>
             <div id="pu_tray_wrap"><h3 id="pu_tray_title"></h3><div id="pu_tray" role="group" aria-label="${_('Your tiles')}"></div><p id="pu_left"></p></div>
+            <p id="pu_keys">${_('Keys: 1-9,0,-,= tile · R/Shift+R rotate · F flip · C camera · D 2D/3D · L levels')}</p>
             <div id="pu_final" hidden></div>
             </div>
             </div>`;
@@ -759,11 +765,7 @@ export class Game {
         root.querySelector('#pu_flip').addEventListener('click', () => this.flip());
         root.querySelector('#pu_reset').addEventListener('click', () => this.view && this.view.resetCamera());
         root.querySelector('#pu_mode').addEventListener('click', () => this.toggleMode());
-        root.querySelector('#pu_levels').addEventListener('change', (e) => {
-            this.showLevels = e.target.checked;
-            puStore.set('pentup_levels', this.showLevels ? '1' : '0');
-            if (this.view) this.view.setShowLevels(this.showLevels);
-        });
+        root.querySelector('#pu_levels').addEventListener('change', (e) => this.setLevels(e.target.checked));
         root.querySelector('#pu_xray').addEventListener('input', (e) => {
             this.maxShown = Number(e.target.value);
             this.updateXray();
@@ -777,6 +779,7 @@ export class Game {
 
         this.showLevels = puStore.get('pentup_levels') === '1';
         root.querySelector('#pu_levels').checked = this.showLevels;
+        this.hideTicks = false;
         const pref = puStore.get('pentup_view');
         this.mode = pref === '2d' || pref === '3d' ? pref : '3d';
         if (this.mode === '3d' && !puWebgl()) this.mode = '2d';
@@ -836,10 +839,10 @@ export class Game {
         if (!view) view = new Grid2D(this.host, cb);
         this.view = view;
         for (const t of this.tiles) view.addTile(t, false);
-        view.setShowLevels(this.showLevels);
+        view.setShowLevels(this.levelsVisible());
         view.setMaxLevel(this.maxShown);
         view.resetCamera();
-        this.root.querySelector('#pu_mode').textContent = this.mode === '3d' ? _('Switch to 2D') : _('Switch to 3D');
+        this.root.querySelector('#pu_mode').textContent = this.mode === '3d' ? _('Switch to 2D (D)') : _('Switch to 3D (D)');
         this.root.querySelector('#pu_reset').hidden = this.mode !== '3d';
         this.root.querySelector('#pu_levels_wrap').hidden = this.mode !== '3d';
         this.refreshAnchors();
@@ -862,7 +865,23 @@ export class Game {
         r.value = String(this.maxShown);
         r.disabled = max < 2;
         this.root.querySelector('#pu_xray_label').textContent = puFmt(_('Levels shown: up to ${n}'), { n: this.maxShown });
-        if (this.view) this.view.setMaxLevel(this.maxShown);
+        let ticks = '';
+        for (let i = 1; i <= max; i++) ticks += `<i${i === this.maxShown ? ' class="pu_cur"' : ''}>${i}</i>`;
+        this.root.querySelector('#pu_xray_ticks').innerHTML = ticks;
+        if (this.view) {
+            this.view.setMaxLevel(this.maxShown);
+            this.view.setShowLevels(this.levelsVisible());
+        }
+    }
+
+    /** Level numbers show when "Show levels" is on, or whenever the X-ray slider hides some levels. */
+    levelsVisible() { return this.showLevels || this.maxShown < this.maxLevel(); }
+
+    setLevels(on) {
+        this.showLevels = !!on;
+        this.root.querySelector('#pu_levels').checked = this.showLevels;
+        puStore.set('pentup_levels', this.showLevels ? '1' : '0');
+        if (this.view) this.view.setShowLevels(this.levelsVisible());
     }
 
     /* ------------------------------------------------------------------------ moves and ghost */
@@ -947,12 +966,10 @@ export class Game {
 
     select(shape) {
         if (!this.isActive || !this.moves()[shape]) return;
-        if (this.selected === shape) {
-            this.selected = null;
-        } else {
-            this.selected = shape;
-            if (!this.legalAnchors(shape, this.o).length) this.o = this.moves()[shape].moves[0][0];
-        }
+        if (this.selected === shape) return; // there is always a selected tile on your turn
+        this.selected = shape;
+        // Orientation: the last one used carries over; it only changes if it has no legal spot for this shape.
+        if (!this.legalAnchors(shape, this.o).length) this.o = this.moves()[shape].moves[0][0];
         this.touchStage = false;
         this.afterChange();
     }
@@ -968,16 +985,21 @@ export class Game {
             const tag = (t && t.tagName) || '';
             if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) return;
             const k = (e.key || '').toLowerCase();
-            if (k !== 'r' && k !== 'f' && k !== 'escape') return;
-            if (k === 'escape') {
-                if (!this.selected) return;
-            }
+            let slot = PU_KEYS.indexOf(e.key);
+            if (slot < 0 && !'rfcdl'.includes(k)) slot = PU_CODES.indexOf(e.code);
+            const isLetter = k.length === 1 && 'rfcdl'.includes(k);
+            if (slot < 0 && !isLetter && k !== 'escape') return;
+            if (k === 'escape' && !this.touchStage) return;
             e.preventDefault();
             e.stopImmediatePropagation();
             if (e.repeat) return;
-            if (k === 'r') this.rotate(e.shiftKey ? -1 : 1);
+            if (slot >= 0) this.select(PU_ORDER[slot]);
+            else if (k === 'r') this.rotate(e.shiftKey ? -1 : 1);
             else if (k === 'f') this.flip();
-            else this.select(this.selected);
+            else if (k === 'c') { if (this.mode === '3d' && this.view) this.view.resetCamera(); }
+            else if (k === 'd') this.toggleMode();
+            else if (k === 'l') { if (this.mode === '3d') this.setLevels(!this.showLevels); }
+            else this.cancelStage();
         }, { capture: true });
     }
 
@@ -1010,14 +1032,18 @@ export class Game {
     }
 
     renderTray() {
-        const hand = (this.hands[this.myId] || []).slice().sort();
+        const hand = this.hands[this.myId] || [];
         const colour = this.myColour();
         const tray = this.root.querySelector('#pu_tray');
-        tray.innerHTML = hand.map((s) => {
-            const playable = this.isActive && !!this.moves()[s];
-            const sel = s === this.selected;
+        tray.innerHTML = PU_ORDER.map((s, i) => {
+            const unplayed = hand.includes(s);
+            const playable = unplayed && this.isActive && !!this.moves()[s];
+            const sel = playable && s === this.selected;
             const o = sel ? this.o : 0;
-            return `<button type="button" class="pu_tile${sel ? ' pu_sel' : ''}" data-shape="${s}" ${playable ? '' : 'disabled'} aria-pressed="${sel}" aria-label="${puFmt(_('Tile ${shape}'), { shape: s })}">${this.iconSvg(s, o, colour)}<span>${s}</span></button>`;
+            const key = PU_KEYS[i];
+            const label = puFmt(_('Tile ${shape}'), { shape: s }) + (unplayed ? '' : ' (' + _('already played') + ')');
+            return `<button type="button" class="pu_tile${sel ? ' pu_sel' : ''}${unplayed ? '' : ' pu_used'}" data-shape="${s}" ${playable ? '' : 'disabled'} aria-pressed="${sel}" aria-keyshortcuts="${key}" aria-label="${label}">`
+                + `<b class="pu_key" aria-hidden="true">${key}</b>${unplayed ? '' : '<b class="pu_done" aria-hidden="true">\u2713</b>'}${this.iconSvg(s, o, colour)}<span>${s}</span></button>`;
         }).join('');
         this.root.querySelector('#pu_tray_title').textContent = puFmt(_('Your tiles: ${n}'), { n: hand.length });
         this.root.querySelector('#pu_tray_wrap').hidden = !(this.hands[this.myId] && this.myId);
@@ -1095,6 +1121,14 @@ export class Game {
         this.touchStage = false;
         this.cursor = null;
         if (this.selected && !this.moves()[this.selected]) this.selected = null;
+        if (isActive && !this.selected) {
+            // Always have a tile selected on your turn: the first unplayed one in tray order.
+            const first = PU_ORDER.find((s) => this.moves()[s]);
+            if (first) {
+                this.selected = first;
+                if (!this.legalAnchors(first, this.o).length) this.o = this.moves()[first].moves[0][0];
+            }
+        }
         this.renderTray();
         this.refreshAnchors();
         this.refreshGhost();
@@ -1120,12 +1154,17 @@ export class Game {
         if (!isActive || !this.touchStage || !this.selected) return;
         const legal = !!(this.ghostState && this.ghostState.legal);
         this.bga.statusBar.addActionButton(_('Confirm'), () => this.submit(), { color: 'primary', disabled: !legal });
-        this.bga.statusBar.addActionButton(_('Cancel'), () => {
-            this.touchStage = false;
-            this.cursor = null;
-            this.refreshGhost();
-            this.updateButtons(this.args, this.isActive);
-        }, { color: 'alert' });
+        this.bga.statusBar.addActionButton(_('Cancel'), () => this.cancelStage(), { color: 'alert' });
+    }
+
+    /** Drop a pending (tapped, unconfirmed) placement; the tile stays selected. */
+    cancelStage() {
+        if (!this.touchStage) return;
+        this.touchStage = false;
+        this.cursor = null;
+        this.refreshGhost();
+        this.updateButtons(this.args, this.isActive);
+        this.updateStatus();
     }
 
     submit() {

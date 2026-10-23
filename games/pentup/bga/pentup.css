@@ -141,7 +141,7 @@ body.pu_page_bg #game_play_area_background {
 
 .pu_xray input {
     width: 140px;
-    min-height: 44px;
+    min-height: 28px;
 }
 
 @media (hover: hover) {
@@ -188,9 +188,79 @@ body.pu_page_bg #game_play_area_background {
     height: 40px;
 }
 
+.pu_tile {
+    position: relative;
+}
+
 .pu_tile:disabled {
     opacity: 0.4;
     cursor: default;
+}
+
+.pu_tile.pu_used {
+    opacity: 0.25;
+    filter: grayscale(1);
+    pointer-events: none;
+}
+
+.pu_key {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    min-width: 14px;
+    padding: 0 3px;
+    border-radius: 3px;
+    background: #14161a;
+    color: #ece8dc;
+    font-size: 10px;
+    line-height: 14px;
+    text-align: center;
+}
+
+.pu_done {
+    position: absolute;
+    top: 1px;
+    right: 4px;
+    color: #7ff0a8;
+    font-size: 12px;
+    line-height: 14px;
+}
+
+.pu_xray_ctl {
+    display: inline-flex;
+    flex-direction: column;
+}
+
+#pu_xray_ticks {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 8px;
+    font-size: 11px;
+    line-height: 1;
+}
+
+#pu_xray_ticks i {
+    font-style: normal;
+    opacity: 0.7;
+}
+
+#pu_xray_ticks i.pu_cur {
+    opacity: 1;
+    font-weight: bold;
+    color: #7ff0a8;
+}
+
+#pu_keys {
+    margin: 8px 0 0;
+    padding: 0 8px;
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+@media (pointer: coarse) {
+    #pu_keys {
+        display: none;
+    }
 }
 
 .pu_tile.pu_sel {
