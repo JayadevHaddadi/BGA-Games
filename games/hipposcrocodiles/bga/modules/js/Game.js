@@ -35,6 +35,9 @@ const PIVOT = {
     crocodile: [[3, 1], [1, 2], [2, 1], [1, 3]],
     trunk: [[0, 1], [1, 0]],
 };
+// Direction (0 up, 1 right, 2 down, 3 left) the animal's head/snout points to in each rotation. Art at rotation 0:
+// hippo snout to the right, crocodile head down; rotations are clockwise.
+const HEAD_DIR = { hippo: [1, 2, 3, 0], crocodile: [2, 3, 0, 1] };
 const ROT_COUNT = { hippo: 4, crocodile: 4, trunk: 2 };
 
 // Board art from design/make_board_art.py (board_<map>.png): every cell is PITCH px, the grid starts at (PAD, PAD).
@@ -65,8 +68,7 @@ export class Game {
         this.desktopOverride = null; // tests: true/false forces the input mode
         this.keysInstalled = false;
         if (this.bga?.userPreferences) {
-            this.bga.userPreferences.onChange = (prefId) => { if (Number(prefId) === 103) this.highlightLegal(); };
-        }
+                    }
     }
 
     // Mouse-driven devices get hover ghost + click-to-place + A/D/S keys; touch keeps tap, stage and Confirm.
@@ -109,6 +111,7 @@ export class Game {
         this.species = gamedatas.species;
         this.reserves = gamedatas.reserves;
         this.trunksLeft = gamedatas.trunks_left || {};
+        this.easy = gamedatas.easy === undefined ? true : !!gamedatas.easy;
 
         const mapName = MAP_NAMES[this.mapId] || 'square';
         this.art = {
@@ -331,9 +334,17 @@ export class Game {
         this.clearHoverGhost();
         if (!this.hover || !this.isActive || !this.args?.species || !this.isDesktop()) return;
         const m = this.pivotAt(this.hover[0], this.hover[1], this.currentRot);
-        if (!m) return;
-        const ghost = this.makePieceEl(this.args.species, this.currentRot, Number(m.r), Number(m.c));
+        if (!m && this.easy) return;
+        let tr, tc;
+        if (m) { tr = Number(m.r); tc = Number(m.c); } else {
+            // Hard mode: show where the animal would sit, in red, since it does not fit
+            if (!this.inMask(this.hover[0], this.hover[1])) return;
+            const [pr, pc] = PIVOT[this.args.species][this.currentRot];
+            tr = this.hover[0] - pr; tc = this.hover[1] - pc;
+        }
+        const ghost = this.makePieceEl(this.args.species, this.currentRot, tr, tc);
         ghost.classList.add('hippos_ghost_hover');
+        if (!m) ghost.classList.add('hippos_ghost_bad');
         document.getElementById('hippos_pieces').appendChild(ghost);
     }
 
@@ -351,6 +362,7 @@ export class Game {
 
     // Switch to a rotation that has at least one legal placement (starting with the current one).
     ensureRotation() {
+        if (!this.easy) return true; // hard: do not reveal which rotations have room
         const n = this.rotCount();
         for (let i = 0; i < n; i++) {
             const rot = (this.currentRot + i) % n;
@@ -414,17 +426,35 @@ export class Game {
 
     updateTitle() {
         if (!this.isActive || !this.args || !this.bga.statusBar?.setTitle) return;
-        const isTrunk = this.args.species === 'trunk';
-        const name = isTrunk ? _('trunk') : (this.args.species === 'crocodile' ? _('crocodile') : _('hippo'));
-        const n = this.legalIn(this.currentRot).length;
+        const species = this.args.species;
+        const isTrunk = species === 'trunk';
+        const name = isTrunk ? _('trunk') : (species === 'crocodile' ? _('crocodile') : _('hippo'));
+        const icon = this.titleIcon(species, this.currentRot);
+        const sub = (t, o) => Object.keys(o).reduce((a, k) => a.replace('${' + k + '}', o[k]), t);
         let text;
-        if (!n) {
+        if (!this.easy) {
+            text = sub(_('You must place a ${animal} ${icon}'), { animal: name, icon });
+        } else if (!(this.args.legal_placements || []).length) {
             text = _('No legal placement is available.');
         } else {
-            // The current orientation is shown as a picture instead of words
-            text = _('You must place a ${animal}: ${n} possible spots')
-                .replace('${animal}', name).replace('${n}', String(n))
-                + ' ' + this.titleIcon(this.args.species, this.currentRot);
+            const counts = [0, 0, 0, 0]; // per direction: up, right, down, left
+            let parts;
+            const bold = (str, on) => (on ? `<b>${str}</b>` : str);
+            if (isTrunk) {
+                const h = this.legalIn(0).length, v = this.legalIn(1).length;
+                parts = sub(_('horizontal ${h}, vertical ${v}'), {
+                    h: bold(String(h), this.currentRot === 0), v: bold(String(v), this.currentRot === 1),
+                });
+            } else {
+                const cur = HEAD_DIR[species][this.currentRot];
+                for (let rot = 0; rot < 4; rot++) counts[HEAD_DIR[species][rot]] += this.legalIn(rot).length;
+                const labels = [
+                    _('${n} ↑ up'), _('${n} → right'), _('${n} ↓ down'), _('${n} ← left'),
+                ];
+                // Order: up, left, down, right
+                parts = [0, 3, 2, 1].map((d) => bold(sub(labels[d], { n: String(counts[d]) }), d === cur)).join(', ');
+            }
+            text = sub(_('You must place a ${animal} ${icon}  Possible spots: ${spots}'), { animal: name, icon, spots: parts });
         }
         try { this.bga.statusBar.setTitle(text); } catch (e) {}
     }
@@ -433,8 +463,8 @@ export class Game {
         this.clearHighlights();
         if (!this.isActive || !this.args?.legal_placements) return;
 
-        // Only the pivot cells (where the animal's central helper can go); preference 103 can turn this off
-        if (Number(this.bga?.userPreferences?.get?.(103) ?? 1) === 0) return;
+        // Only the pivot cells (where the animal's central helper can go); only in Easy difficulty
+        if (!this.easy) return;
         if (!SHAPES[this.args.species]?.[this.currentRot]) return;
         for (const m of this.legalIn(this.currentRot)) {
             const [pr, pc] = this.pivotOf(m, this.currentRot);
@@ -448,7 +478,7 @@ export class Game {
 
         if (this.isDesktop()) {
             const pm = this.pivotAt(r, c, this.currentRot);
-            if (!pm) return;
+            if (!pm) { this.say(_("Doesn't fit here")); return; }
             if (Number(this.bga?.userPreferences?.get?.(102) ?? 1) === 1) {
                 // Preference "Confirm placement" on (default): stage it and wait for Confirm
                 this.stagePlacement(Number(pm.r), Number(pm.c), this.currentRot);
@@ -461,7 +491,9 @@ export class Game {
             return;
         }
 
-        let m = this.pivotAt(r, c, this.currentRot) || this.bestCovering(r, c, this.currentRot);
+        let m = this.pivotAt(r, c, this.currentRot);
+        if (!m && !this.easy) { this.say(_("Doesn't fit here")); return; }
+        m = m || this.bestCovering(r, c, this.currentRot);
         if (!m) {
             // Another rotation may reach this cell
             const rn = this.rotCount();
@@ -472,6 +504,12 @@ export class Game {
             }
         }
         if (m) this.stagePlacement(Number(m.r), Number(m.c), this.currentRot);
+    }
+
+    // Short message under the status bar
+    say(text) {
+        const el = document.getElementById('hippos_status_msg');
+        if (el) el.textContent = text;
     }
 
     stagePlacement(r, c, rot) {
@@ -503,7 +541,7 @@ export class Game {
         const rn = this.rotCount();
         let rot = (this.currentRot + delta) % rn;
         // Skip rotations with no legal placement at all
-        for (let i = 0; i < rn && !this.legalIn(rot).length; i++) rot = (rot + (delta === 3 ? rn - 1 : 1)) % rn;
+        for (let i = 0; this.easy && i < rn && !this.legalIn(rot).length; i++) rot = (rot + (delta === 3 ? rn - 1 : 1)) % rn;
         const oldRot = this.currentRot;
         // Desktop: the staged animal stays put; only the hover ghost / next hover rotation changes.
         // Touch: no hover, so rotating the staged animal is the only way to rotate.
@@ -511,7 +549,7 @@ export class Game {
         this.currentRot = rot;
         if (old) {
             const [pr, pc] = this.pivotOf(old, oldRot);
-            const m = this.pivotAt(pr, pc, rot) || this.nearestPivot(pr, pc, rot);
+            const m = this.pivotAt(pr, pc, rot) || (this.easy ? this.nearestPivot(pr, pc, rot) : null);
             if (m) {
                 this.stagePlacement(Number(m.r), Number(m.c), rot);
             } else {

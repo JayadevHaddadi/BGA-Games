@@ -327,6 +327,7 @@ class Game extends \Bga\GameFramework\Table
             'placed_pieces' => $this->getPlacedPieces(),
             'species' => $species,
             'reserves' => $reserves,
+            'easy' => ((int) $this->tableOptions->get(103, 1)) !== 2,
         ];
     }
 

@@ -76,7 +76,7 @@ const bga = {
       b.onclick = callback;
       document.getElementById('statusbar').appendChild(b);
     },
-    setTitle() {},
+    setTitle(t) { window.__lastTitle = t; },
   },
   actions: {
     performAction(name, args) { calls.push({ name, args }); return Promise.resolve(); },
@@ -121,6 +121,7 @@ function fixture() {
     mask,
     rows: mask.length,
     cols: mask[0].length,
+    easy: true,
     trunk_mode: TRUNKS === 'setup' ? 2 : (TRUNKS === 'random' ? 3 : 1),
     trunks,
     trunks_left: { 1: TRUNKS === 'setup' ? 2 : 0, 2: TRUNKS === 'setup' ? 2 : 0 },
@@ -226,12 +227,15 @@ try {
       // Hint preference
       desk.noLegalTarget = document.querySelectorAll('.hippos_legal_target').length === 0;
       desk.pivotHints = document.querySelectorAll('.hippos_pivot_target').length > 0;
-      game.bga.userPreferences.get = (id) => (id === 103 ? 0 : 1);
-      game.bga.userPreferences.onChange && game.bga.userPreferences.onChange(103, 0);
+      desk.easyText = TRUNKS === 'setup' ? /horizontal \d+, vertical \d+/.test(window.__lastTitle || '')
+        : /Possible spots: .*↑ up.*← left.*↓ down.*→ right/.test(window.__lastTitle || '');
+      game.easy = false; game.highlightLegal(); game.updateTitle();
       desk.hintsOff = document.querySelectorAll('.hippos_pivot_target').length === 0
-        && document.querySelectorAll('.hippos_legal_target').length === 0;
-      game.bga.userPreferences.get = () => 1;
-      game.bga.userPreferences.onChange && game.bga.userPreferences.onChange(103, 1);
+        && document.querySelectorAll('.hippos_legal_target').length === 0
+        && /^You must place a \w+ /.test(window.__lastTitle) && !/Possible|\d spots/.test(window.__lastTitle.replace(/<[^>]*>/g, '').replace(/\d+px/g, ''));
+      game.hover = null; game.onCellClicked(0, 0);
+      desk.hardNoFit = true;
+      game.easy = true; game.highlightLegal(); game.updateTitle();
       desk.hintsBack = document.querySelectorAll('.hippos_pivot_target').length > 0;
       // Button order
       game.updateButtons(game.args, true);
@@ -247,7 +251,7 @@ try {
       game.desktopOverride = true;
     }
     desk.extra = desk.stageKept !== false && desk.hoverRotChanged !== false && desk.stagedGhostKept !== false
-      && desk.noLegalTarget !== false && desk.pivotHints !== false && desk.hintsOff !== false && desk.hintsBack !== false
+      && desk.noLegalTarget !== false && desk.pivotHints !== false && desk.hintsOff !== false && desk.easyText !== false && desk.hintsBack !== false
       && desk.orderOk !== false && desk.touchRotatesStage !== false;
     desk.ok = desk.extra && desk.hoverGhost === 1 && desk.afterD === 1 && desk.afterA === 3 && desk.afterS === 1 && !desk.chatFocused
       && desk.ghostAfterKeys === 1 && desk.chatKeyUntouched && (params.get('shot') === 'desktop' || desk.clickPlaced)

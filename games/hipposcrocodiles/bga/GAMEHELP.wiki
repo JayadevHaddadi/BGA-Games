@@ -19,6 +19,12 @@ Table option '''Animal distribution''':
 * '''Random''' (default): who plays the Hippos and who plays the Crocodiles is decided at random.
 * '''First player plays Hippos''' / '''First player plays Crocodiles''': the player who starts gets that animal. When you start a rematch from the end of a game, BGA rotates the starting player, so the animals swap automatically (with '''Random''' the animals are drawn again).
 
+==Difficulty==
+
+Table option '''Difficulty''':
+* '''Easy''' (default): the cells where the centre of the animal can go are highlighted, and the status bar tells how many spots are possible in each direction (where the animal's head points) for all four rotations.
+* '''Hard''': no highlights and no counts. Place the animal where you think it fits; a spot that does not fit is shown in red and cannot be confirmed.
+
 ==Trunks (optional)==
 
 Trunks are brown rectangles of 3×1 squares that act as obstacles: no animal can be placed on top of them. They can be placed horizontally or vertically, must fit completely inside the map and cannot overlap another trunk. The more trunks, the shorter the game. Table option '''Trunks''':

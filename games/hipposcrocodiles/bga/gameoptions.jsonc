@@ -60,5 +60,19 @@
             }
         },
         "default": 1
+    },
+    "103": {
+        "name": "Difficulty",
+        "values": {
+            "1": {
+                "name": "Easy - possible placements are highlighted",
+                "description": "The cells where the animal can be placed are highlighted and the number of possible spots is shown per direction"
+            },
+            "2": {
+                "name": "Hard - no highlights",
+                "description": "Nothing shows where an animal fits: work it out yourself"
+            }
+        },
+        "default": 1
     }
 }
