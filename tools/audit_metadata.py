@@ -34,6 +34,7 @@ GAMES = [
     ("lordsofscotland", "lordsofscotland", "lordsofscotland"),
     ("pushfight", "pushfight", "pushfight"),
     ("mandala", "mandala", "mandala"),
+    ("vaultnestorgames", "vaultnestorgames", "vaultnestorgames"),
 ]
 
 BACKLOG_GAMES = [
@@ -65,6 +66,7 @@ PHYSICAL_PHOTO_STATUS = {
     "microforge": "Awaiting physical photos (Renders)",
     "lordsofscotland": "Awaiting physical photos (Title card)",
     "mandala": "Legacy production art",
+    "vaultnestorgames": "Awaiting physical photos (Harness screenshots)",
 }
 
 
