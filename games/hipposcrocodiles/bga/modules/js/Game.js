@@ -439,13 +439,17 @@ export class Game {
         if (!this.isActive || !this.args || !this.args.species || !this.inMask(r, c)) return;
 
         if (this.isDesktop()) {
-            // Click places immediately: the hover ghost is exactly what is placed
             const pm = this.pivotAt(r, c, this.currentRot);
-            if (pm) {
-                this.stage = { r: Number(pm.r), c: Number(pm.c), rot: this.currentRot };
-                this.clearHoverGhost();
-                this.onConfirm();
+            if (!pm) return;
+            if (Number(this.bga?.userPreferences?.get?.(102) ?? 1) === 1) {
+                // Preference "Confirm placement" on (default): stage it and wait for Confirm
+                this.stagePlacement(Number(pm.r), Number(pm.c), this.currentRot);
+                return;
             }
+            // Preference off: the click places exactly what the hover ghost shows
+            this.stage = { r: Number(pm.r), c: Number(pm.c), rot: this.currentRot };
+            this.clearHoverGhost();
+            this.onConfirm();
             return;
         }
 

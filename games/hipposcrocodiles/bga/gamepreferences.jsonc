@@ -15,5 +15,13 @@
       "0": { "name": "Off" }
     },
     "default": 1
+  },
+  "102": {
+    "name": "Confirm placement",
+    "values": {
+      "1": { "name": "On: click shows the animal, press Confirm to place it" },
+      "0": { "name": "Off: click places the animal at once (computer only)" }
+    },
+    "default": 1
   }
 }

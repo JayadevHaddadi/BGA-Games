@@ -186,11 +186,21 @@ try {
       const [qr, qc] = game.pivotOf(m2, 0);
       document.getElementById(`hippos_cell_${qr}_${qc}`).dispatchEvent(new MouseEvent('mouseenter'));
     } else {
+      // Preference 102 "Confirm placement" on (default): the click only stages, Confirm places
       calls.length = 0;
       const m3 = game.legalIn(game.currentRot)[0];
       const [tr, tc] = game.pivotOf(m3, game.currentRot);
       game.onCellClicked(tr, tc);
-      desk.clickPlaced = calls.length === 1 && calls[0].name === 'actPlace';
+      desk.clickStaged = calls.length === 0 && !!game.stage;
+      game.onConfirm();
+      desk.confirmPlaced = calls.length === 1 && calls[0].name === 'actPlace';
+      // Preference off: the click places at once
+      const prefGet = game.bga.userPreferences.get;
+      game.bga.userPreferences.get = (id) => (id === 102 ? 0 : 1);
+      calls.length = 0; game.stage = null;
+      game.onCellClicked(tr, tc);
+      desk.clickPlaced = desk.clickStaged && desk.confirmPlaced && calls.length === 1 && calls[0].name === 'actPlace';
+      game.bga.userPreferences.get = prefGet;
     }
     if (params.get('shot') === 'phone') {
       game.desktopOverride = false; game.hover = null; game.clearHoverGhost(); game.currentRot = 0;
