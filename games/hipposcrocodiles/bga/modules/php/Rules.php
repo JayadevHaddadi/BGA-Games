@@ -28,6 +28,11 @@ class Rules
     public const MAP_NAMES = [1 => 'square', 2 => 'rectangle', 3 => 'lagoon', 4 => 'pool'];
 
     /** Trunk modes (option 101) */
+    // Option 102 "Animal distribution"
+    public const DIST_RANDOM = 1;
+    public const DIST_FIRST_HIPPOS = 2;
+    public const DIST_FIRST_CROCS = 3;
+
     public const TRUNKS_OFF = 1;
     public const TRUNKS_PLAYERS = 2;
     public const TRUNKS_RANDOM = 3;
@@ -170,6 +175,26 @@ class Rules
             return (int) $rand(1, count(self::MAP_NAMES));
         }
         return self::normalizeMap($option);
+    }
+
+    /**
+     * Species per player id. $playerIds is in table (natural) order, the first one plays first. Unknown option values
+     * behave like Random. $rand(min, max) is inclusive.
+     */
+    public static function assignSpecies(int $option, array $playerIds, callable $rand): array
+    {
+        $playerIds = array_values($playerIds);
+        if ($option === self::DIST_FIRST_HIPPOS) {
+            $firstHippos = true;
+        } elseif ($option === self::DIST_FIRST_CROCS) {
+            $firstHippos = false;
+        } else {
+            $firstHippos = ((int) $rand(0, 1)) === 1;
+        }
+        return [
+            $playerIds[0] => $firstHippos ? self::SPECIES_HIPPO : self::SPECIES_CROCODILE,
+            $playerIds[1] => $firstHippos ? self::SPECIES_CROCODILE : self::SPECIES_HIPPO,
+        ];
     }
 
     /** Valid map id (unknown values fall back to the default map) */

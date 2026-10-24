@@ -6,6 +6,9 @@
 <title>Hippos & Crocodiles harness</title>
 <link rel="stylesheet" href="../../bga/hipposcrocodiles.css">
 <style>
+  #statusbar { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px; }
+  .bgabutton { display: inline-flex; align-items: center; justify-content: center; padding: 0 10px; background: #4871b6; color: #fff; border-radius: 3px; }
+  #chat { width: 120px; }
   body { margin: 0; font-family: sans-serif; background: #fff; }
   #game_play_area { padding: 0; }
   #out { white-space: pre-wrap; font: 12px monospace; padding: 8px; }
@@ -17,6 +20,7 @@
   <div id="game_play_area"></div>
 </div>
 <div id="player_panels"></div>
+<input id="chat" placeholder="chat">
 <pre id="out">running</pre>
 
 <script>
@@ -62,8 +66,16 @@ const bga = {
     getScoreCounter: () => ({ toValue() {} }),
   },
   statusBar: {
-    removeActionButtons() { buttons.length = 0; },
-    addActionButton(text, callback, opts) { buttons.push({ text, callback, opts }); },
+    removeActionButtons() { buttons.length = 0; document.getElementById('statusbar').innerHTML = ''; },
+    addActionButton(text, callback, opts) {
+      buttons.push({ text, callback, opts });
+      const b = document.createElement('a');
+      b.className = 'bgabutton bgabutton_' + (opts?.color || 'blue') + ' ' + (opts?.classes || '');
+      b.textContent = text;
+      if (opts?.tooltip) b.title = opts.tooltip;
+      b.onclick = callback;
+      document.getElementById('statusbar').appendChild(b);
+    },
     setTitle() {},
   },
   actions: {
@@ -81,6 +93,8 @@ const mask = masks[String(MAP)];
 const HIPPO = {
   0: [[0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[1,3],[2,0],[2,1],[2,2]],
   1: [[0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[2,0],[2,1],[2,2],[3,1]],
+  2: [[0,1],[0,2],[0,3],[1,0],[1,1],[1,2],[1,3],[2,1],[2,2],[2,3]],
+  3: [[0,1],[1,0],[1,1],[1,2],[2,0],[2,1],[2,2],[3,0],[3,1],[3,2]],
 };
 const TRUNK = { 0: [[0,0],[0,1],[0,2]], 1: [[0,0],[1,0],[2,0]] };
 const trunks = TRUNKS === 'random'
@@ -132,8 +146,60 @@ try {
   const first = rot0[Math.floor(rot0.length / 2)] || { r: 0, c: 0 };
   game.onCellClicked(first.r + (TRUNKS === 'setup' ? 0 : 1), first.c + 1);
 
+  // Chat box that steals letter keys (bubble phase, like BGA's) - our capture listener must win
+  const chat = document.getElementById('chat');
+  document.addEventListener('keydown', (e) => { if (/^[a-z]$/i.test(e.key)) chat.focus(); });
+
   // Check that Confirm button appeared
   const hasConfirm = buttons.some(b => b.text && b.text.includes('Confirm'));
+
+  const rotBtns = [...document.querySelectorAll('.hippos_rot_btn')].map((b) => b.getBoundingClientRect());
+  const minBtn = Math.round(Math.min(...rotBtns.map((r) => Math.min(r.width, r.height))));
+  const touchLabels = buttons.map((b) => b.text).join('|');
+  const touchHasTooltip = buttons.some((b) => b.opts?.tooltip);
+
+  // Desktop mode: hover ghost, A/D/S, click places immediately
+  const desk = {};
+  if (TRUNKS !== 'setup') {
+    game.onCancel();
+    game.desktopOverride = true;
+    game.updateButtons(game.args, true);
+    desk.tooltips = buttons.filter((b) => b.opts?.tooltip).map((b) => b.opts.tooltip).join('|');
+    game.currentRot = 0;
+    const pm = game.legalIn(0)[Math.floor(game.legalIn(0).length / 2)];
+    const [pr, pc] = game.pivotOf(pm, 0);
+    document.getElementById(`hippos_cell_${pr}_${pc}`).dispatchEvent(new MouseEvent('mouseenter'));
+    desk.hoverGhost = document.querySelectorAll('.hippos_ghost_hover').length;
+    const key = (k) => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
+    chat.blur();
+    key('d'); desk.afterD = game.currentRot;
+    key('a'); key('a'); desk.afterA = game.currentRot;
+    key('s'); desk.afterS = game.currentRot;
+    desk.chatFocused = document.activeElement === chat;
+    desk.ghostAfterKeys = document.querySelectorAll('.hippos_ghost_hover').length;
+    // typing in the chat itself must be left alone
+    const ev = new KeyboardEvent('keydown', { key: 'd', bubbles: true, cancelable: true });
+    chat.dispatchEvent(ev); desk.chatKeyUntouched = !ev.defaultPrevented && game.currentRot === desk.afterS;
+    if (params.get('shot') === 'desktop') {
+      game.currentRot = 0; game.highlightLegal();
+      const m2 = game.legalIn(0)[Math.floor(game.legalIn(0).length / 2)];
+      const [qr, qc] = game.pivotOf(m2, 0);
+      document.getElementById(`hippos_cell_${qr}_${qc}`).dispatchEvent(new MouseEvent('mouseenter'));
+    } else {
+      calls.length = 0;
+      const m3 = game.legalIn(game.currentRot)[0];
+      const [tr, tc] = game.pivotOf(m3, game.currentRot);
+      game.onCellClicked(tr, tc);
+      desk.clickPlaced = calls.length === 1 && calls[0].name === 'actPlace';
+    }
+    if (params.get('shot') === 'phone') {
+      game.desktopOverride = false; game.hover = null; game.clearHoverGhost(); game.currentRot = 0;
+      game.onCellClicked(pr, pc); // staged ghost + Confirm/Cancel
+    }
+    desk.ok = desk.hoverGhost === 1 && desk.afterD === 1 && desk.afterA === 3 && desk.afterS === 1 && !desk.chatFocused
+      && desk.ghostAfterKeys === 1 && desk.chatKeyUntouched && (params.get('shot') === 'desktop' || desk.clickPlaced)
+      && /A/.test(desk.tooltips) && /S/.test(desk.tooltips) && !touchHasTooltip;
+  }
 
   // Measure layout
   setTimeout(() => {
@@ -154,11 +220,14 @@ try {
       hasConfirmButton: hasConfirm,
       horizontalOverflow: Math.round(horizontalOverflow),
       jsErrors: window.errors,
-      ok: window.errors.length === 0 && horizontalOverflow === 0 && cellPx >= 32 && hasConfirm,
+      minRotButtonPx: minBtn,
+      desktop: desk,
+      ok: window.errors.length === 0 && minBtn >= 44 && (desk.ok !== false) && horizontalOverflow === 0 && cellPx >= 32 && hasConfirm,
     };
 
     document.getElementById('out').textContent = JSON.stringify(report, null, 2);
     document.body.dataset.done = '1';
+    if (params.get('shot')) window.scrollTo(0, 0);
   }, 200);
 
 } catch (err) {

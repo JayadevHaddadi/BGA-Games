@@ -42,5 +42,23 @@
             }
         },
         "default": 1
+    },
+    "102": {
+        "name": "Animal distribution",
+        "values": {
+            "1": {
+                "name": "Random",
+                "description": "Who plays the Hippos and who plays the Crocodiles is decided at random"
+            },
+            "2": {
+                "name": "First player plays Hippos",
+                "description": "The player who starts plays the Hippos. In a rematch BGA rotates the starting player, so the animals swap."
+            },
+            "3": {
+                "name": "First player plays Crocodiles",
+                "description": "The player who starts plays the Crocodiles. In a rematch BGA rotates the starting player, so the animals swap."
+            }
+        },
+        "default": 1
     }
 }

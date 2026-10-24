@@ -61,6 +61,39 @@ export class Game {
         this.currentRot = 0;
         this.bga.states.register('PlayerTurn', new PlayerTurnState(this));
         this.bga.states.register('PlaceTrunk', new PlayerTurnState(this));
+        this.hover = null;
+        this.desktopOverride = null; // tests: true/false forces the input mode
+        this.keysInstalled = false;
+    }
+
+    // Mouse-driven devices get hover ghost + click-to-place + A/D/S keys; touch keeps tap, stage and Confirm.
+    isDesktop() {
+        if (this.desktopOverride !== null) return this.desktopOverride;
+        try { return !!window.matchMedia('(hover: hover) and (pointer: fine)').matches; } catch (e) { return false; }
+    }
+
+    // Capture-phase and installed once: BGA's chat box steals letter keys otherwise.
+    installKeys() {
+        if (this.keysInstalled) return;
+        this.keysInstalled = true;
+        window.addEventListener('keydown', (e) => {
+            if (!this.isActive || !this.args?.species || !this.isDesktop()) return;
+            if (!document.getElementById('hippos_root')) return;
+            if (e.ctrlKey || e.metaKey || e.altKey) return;
+            const t = e.target;
+            const tag = (t && t.tagName) || '';
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) return;
+            const k = (e.key || '').toLowerCase();
+            if (k !== 'a' && k !== 'd' && k !== 's') return;
+            if (k === 's' && this.args.species === 'trunk') return;
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            if (e.repeat) return;
+            if (document.activeElement && document.activeElement !== document.body && document.activeElement.blur) {
+                try { document.activeElement.blur(); } catch (err) {}
+            }
+            this.onRotate(k === 'a' ? 3 : (k === 'd' ? 1 : 2));
+        }, { capture: true });
     }
 
     setup(gamedatas) {
@@ -102,6 +135,9 @@ export class Game {
         }
 
         this.buildBoard();
+        const grid = document.getElementById('hippos_grid');
+        grid.addEventListener('mouseleave', () => { this.hover = null; this.clearHoverGhost(); });
+        this.installKeys();
         this.renderReserves();
         this.layoutBoard();
 
@@ -168,6 +204,7 @@ export class Game {
                 cell.dataset.r = r;
                 cell.dataset.c = c;
                 cell.addEventListener('click', () => this.onCellClicked(r, c));
+                cell.addEventListener('mouseenter', () => this.onCellHover(r, c));
                 board.appendChild(cell);
             }
         }
@@ -259,6 +296,7 @@ export class Game {
 
     leaveState() {
         this.stage = null;
+        this.hover = null;
         this.clearPreviews();
         this.clearHighlights();
     }
@@ -273,6 +311,27 @@ export class Game {
     pivotOf(m, rot) {
         const [pr, pc] = PIVOT[this.args.species][rot];
         return [Number(m.r) + pr, Number(m.c) + pc];
+    }
+
+    clearHoverGhost() {
+        for (const el of document.querySelectorAll('.hippos_ghost_hover')) el.remove();
+    }
+
+    // Desktop: the legal placement of the current rotation with its pivot on the hovered cell, as a faint ghost.
+    // Nothing is drawn where the pivot cannot go (the highlighted cells already show where it can).
+    onCellHover(r, c) {
+        this.hover = [r, c];
+        this.showHoverGhost();
+    }
+
+    showHoverGhost() {
+        this.clearHoverGhost();
+        if (!this.hover || !this.isActive || !this.args?.species || !this.isDesktop()) return;
+        const m = this.pivotAt(this.hover[0], this.hover[1], this.currentRot);
+        if (!m) return;
+        const ghost = this.makePieceEl(this.args.species, this.currentRot, Number(m.r), Number(m.c));
+        ghost.classList.add('hippos_ghost_hover');
+        document.getElementById('hippos_pieces').appendChild(ghost);
     }
 
     clearPreviews() {
@@ -379,6 +438,17 @@ export class Game {
     onCellClicked(r, c) {
         if (!this.isActive || !this.args || !this.args.species || !this.inMask(r, c)) return;
 
+        if (this.isDesktop()) {
+            // Click places immediately: the hover ghost is exactly what is placed
+            const pm = this.pivotAt(r, c, this.currentRot);
+            if (pm) {
+                this.stage = { r: Number(pm.r), c: Number(pm.c), rot: this.currentRot };
+                this.clearHoverGhost();
+                this.onConfirm();
+            }
+            return;
+        }
+
         let m = this.pivotAt(r, c, this.currentRot) || this.bestCovering(r, c, this.currentRot);
         if (!m) {
             // Another rotation may reach this cell
@@ -438,6 +508,7 @@ export class Game {
         this.highlightLegal();
         this.updateButtons(this.args, this.isActive);
         this.updateTitle();
+        this.showHoverGhost();
     }
 
     onConfirm() {
@@ -461,11 +532,15 @@ export class Game {
 
         const bar = this.bga.statusBar;
         const isTrunk = args?.species === 'trunk';
-        if (this.stage) bar.addActionButton(isTrunk ? _('Confirm trunk') : _('Confirm placement'), () => this.onConfirm(), { color: 'primary' });
-        bar.addActionButton(_('⟲ Left'), () => this.onRotate(3), { color: 'secondary' });
-        bar.addActionButton(_('⟳ Right'), () => this.onRotate(1), { color: 'secondary' });
-        if (!isTrunk) bar.addActionButton(_('180°'), () => this.onRotate(2), { color: 'secondary' });
-        if (this.stage) bar.addActionButton(_('Cancel'), () => this.onCancel(), { color: 'alert' });
+        const desk = this.isDesktop();
+        const rotBtn = (label, key, delta) => bar.addActionButton(label, () => this.onRotate(delta), {
+            color: 'secondary', classes: 'hippos_rot_btn', tooltip: desk ? `${label} (${key})` : undefined,
+        });
+        if (this.stage) bar.addActionButton(isTrunk ? _('Confirm trunk') : _('Confirm placement'), () => this.onConfirm(), { color: 'primary', classes: 'hippos_rot_btn' });
+        rotBtn(_('⟲ Left'), 'A', 3);
+        rotBtn(_('⟳ Right'), 'D', 1);
+        if (!isTrunk) rotBtn(_('180°'), 'S', 2);
+        if (this.stage) bar.addActionButton(_('Cancel'), () => this.onCancel(), { color: 'alert', classes: 'hippos_rot_btn' });
     }
 
     /* ------------------------------------------------------------------------ Notifications */

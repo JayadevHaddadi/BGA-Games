@@ -80,11 +80,13 @@ class Game extends \Bga\GameFramework\Table
         }
         $this->globals->set('trunks', $trunks);
 
-        // Pieces: 8 Hippos for Player 1, 8 Crocodiles for Player 2
-        $speciesMap = [
-            $playerIds[0] => Rules::SPECIES_HIPPO,
-            $playerIds[1] => Rules::SPECIES_CROCODILE,
-        ];
+        // Animal distribution (option 102). $players is in table order; BGA rotates that order on a rematch (unless
+        // disable_player_order_swap_on_rematch), so with a fixed "first player plays X" the animals swap in a rematch.
+        $speciesMap = Rules::assignSpecies(
+            (int) ($options[102] ?? $this->tableOptions->get(102, Rules::DIST_RANDOM)),
+            $playerIds,
+            fn(int $min, int $max): int => (int) bga_rand($min, $max)
+        );
 
         $pieceValues = [];
         foreach ($speciesMap as $pid => $species) {

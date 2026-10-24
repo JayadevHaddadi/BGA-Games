@@ -209,3 +209,9 @@
     pointer-events: none;
     z-index: 3;
 }
+
+/* Hover ghost (desktop): faint, never intercepts the mouse */
+.hippos_ghost_hover { opacity: 0.5; z-index: 2; pointer-events: none; }
+
+/* Status bar buttons: BGA tap-target guideline, at least 44 x 44 px */
+.hippos_rot_btn { min-width: 44px; min-height: 44px; box-sizing: border-box; }

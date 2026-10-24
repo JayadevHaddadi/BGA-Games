@@ -287,6 +287,22 @@ foreach ([Rules::MAP_SQUARE, Rules::MAP_RECTANGLE, Rules::MAP_LAGOON, Rules::MAP
 }
 assertCheck($fuzzGames === 300, "300 fuzz games played");
 
+// Animal distribution option
+$sp = Rules::assignSpecies(Rules::DIST_FIRST_HIPPOS, [7, 9], fn() => 0);
+assertCheck($sp[7] === 'hippo' && $sp[9] === 'crocodile', "First player plays Hippos");
+$sp = Rules::assignSpecies(Rules::DIST_FIRST_CROCS, [7, 9], fn() => 1);
+assertCheck($sp[7] === 'crocodile' && $sp[9] === 'hippo', "First player plays Crocodiles");
+$sp = Rules::assignSpecies(Rules::DIST_RANDOM, [7, 9], fn() => 1);
+assertCheck($sp[7] === 'hippo' && $sp[9] === 'crocodile', "Random roll 1: first hippos");
+$sp = Rules::assignSpecies(Rules::DIST_RANDOM, [7, 9], fn() => 0);
+assertCheck($sp[7] === 'crocodile' && $sp[9] === 'hippo', "Random roll 0: first crocodiles");
+$sp = Rules::assignSpecies(99, [7, 9], fn() => 1);
+assertCheck($sp[7] === 'hippo', "Unknown distribution acts as Random");
+// Rematch: BGA rotates player order, so a fixed option swaps the animals
+$a = Rules::assignSpecies(Rules::DIST_FIRST_HIPPOS, [7, 9], fn() => 0);
+$b = Rules::assignSpecies(Rules::DIST_FIRST_HIPPOS, [9, 7], fn() => 0);
+assertCheck($a[7] !== $b[7] && $a[9] !== $b[9], "Rotated player order swaps animals");
+
 // Random map option resolves uniformly to a valid map
 $seen = [];
 for ($i = 0; $i < 400; $i++) {
