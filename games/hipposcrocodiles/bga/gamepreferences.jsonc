@@ -23,5 +23,13 @@
       "0": { "name": "Off: click places the animal at once (computer only)" }
     },
     "default": 1
+  },
+  "103": {
+    "name": "Placement hints",
+    "values": {
+      "1": { "name": "On: highlight where the animal's centre can go" },
+      "0": { "name": "Off" }
+    },
+    "default": 1
   }
 }

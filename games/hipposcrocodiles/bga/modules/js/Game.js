@@ -64,6 +64,9 @@ export class Game {
         this.hover = null;
         this.desktopOverride = null; // tests: true/false forces the input mode
         this.keysInstalled = false;
+        if (this.bga?.userPreferences) {
+            this.bga.userPreferences.onChange = (prefId) => { if (Number(prefId) === 103) this.highlightLegal(); };
+        }
     }
 
     // Mouse-driven devices get hover ghost + click-to-place + A/D/S keys; touch keeps tap, stage and Confirm.
@@ -302,8 +305,8 @@ export class Game {
     }
 
     clearHighlights() {
-        for (const el of document.querySelectorAll('.hippos_legal_target, .hippos_pivot_target')) {
-            el.classList.remove('hippos_legal_target', 'hippos_pivot_target');
+        for (const el of document.querySelectorAll('.hippos_pivot_target')) {
+            el.classList.remove('hippos_pivot_target');
         }
     }
 
@@ -420,15 +423,10 @@ export class Game {
         this.clearHighlights();
         if (!this.isActive || !this.args?.legal_placements) return;
 
-        // Mark every cell that some legal placement (current rotation) would cover
-        const shape = SHAPES[this.args.species]?.[this.currentRot];
-        if (!shape) return;
+        // Only the pivot cells (where the animal's central helper can go); preference 103 can turn this off
+        if (Number(this.bga?.userPreferences?.get?.(103) ?? 1) === 0) return;
+        if (!SHAPES[this.args.species]?.[this.currentRot]) return;
         for (const m of this.legalIn(this.currentRot)) {
-            for (const [dr, dc] of shape.cells) {
-                const cell = document.getElementById(`hippos_cell_${Number(m.r) + dr}_${Number(m.c) + dc}`);
-                if (cell) cell.classList.add('hippos_legal_target');
-            }
-            // Where the pivot can go: stronger highlight, tap here
             const [pr, pc] = this.pivotOf(m, this.currentRot);
             const pcell = document.getElementById(`hippos_cell_${pr}_${pc}`);
             if (pcell) pcell.classList.add('hippos_pivot_target');
@@ -497,7 +495,9 @@ export class Game {
         // Skip rotations with no legal placement at all
         for (let i = 0; i < rn && !this.legalIn(rot).length; i++) rot = (rot + (delta === 3 ? rn - 1 : 1)) % rn;
         const oldRot = this.currentRot;
-        const old = this.stage;
+        // Desktop: the staged animal stays put; only the hover ghost / next hover rotation changes.
+        // Touch: no hover, so rotating the staged animal is the only way to rotate.
+        const old = this.isDesktop() ? null : this.stage;
         this.currentRot = rot;
         if (old) {
             const [pr, pc] = this.pivotOf(old, oldRot);
@@ -543,8 +543,8 @@ export class Game {
         });
         if (this.stage) bar.addActionButton(isTrunk ? _('Confirm trunk') : _('Confirm placement'), () => this.onConfirm(), { color: 'primary', classes: 'hippos_rot_btn' });
         rotBtn(_('⟲ Left'), 'A', 3);
-        rotBtn(_('⟳ Right'), 'D', 1);
         if (!isTrunk) rotBtn(_('180°'), 'S', 2);
+        rotBtn(_('⟳ Right'), 'D', 1);
         if (this.stage) bar.addActionButton(_('Cancel'), () => this.onCancel(), { color: 'alert', classes: 'hippos_rot_btn' });
     }
 

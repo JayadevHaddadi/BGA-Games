@@ -117,27 +117,22 @@
 /* Cells outside the map mask: nothing to see or tap */
 .hippos_void { visibility: hidden; pointer-events: none; }
 
-.hippos_legal_target { cursor: pointer; }
-.hippos_legal_target::after {
+/* Cells where the pivot (centre helper) of the current rotation can go */
+.hippos_pivot_target { cursor: pointer; }
+.hippos_pivot_target::after {
     content: "";
     position: absolute;
     inset: 6%;
     border-radius: 22%;
-    background-color: rgba(255, 255, 255, 0.34);
-    border: 2px solid rgba(255, 255, 255, 0.85);
     box-sizing: border-box;
     pointer-events: none;
-}
-@media (hover: hover) {
-    .hippos_legal_target:hover::after { background-color: rgba(255, 255, 255, 0.55); }
-}
-
-/* Cells where the pivot of the current rotation can go: stronger than the plain coverable cells */
-.hippos_pivot_target::after {
     background-color: rgba(255, 255, 255, 0.7);
     border: 3px solid #fff;
     outline: 2px solid rgba(0, 0, 0, 0.75);
     outline-offset: -1px;
+}
+@media (hover: hover) {
+    .hippos_pivot_target:hover::after { background-color: rgba(255, 255, 255, 0.85); }
 }
 
 /* Placed animals: real tile images over the cells; never intercept taps */

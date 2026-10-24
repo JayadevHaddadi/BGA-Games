@@ -206,7 +206,50 @@ try {
       game.desktopOverride = false; game.hover = null; game.clearHoverGhost(); game.currentRot = 0;
       game.onCellClicked(pr, pc); // staged ghost + Confirm/Cancel
     }
-    desk.ok = desk.hoverGhost === 1 && desk.afterD === 1 && desk.afterA === 3 && desk.afterS === 1 && !desk.chatFocused
+    if (params.get('shot') !== 'desktop') {
+      // Staged on desktop: A/S/D rotate only the hover ghost
+      game.bga.userPreferences.get = () => 1;
+      game.stage = null; game.currentRot = 0; game.highlightLegal();
+      const ms = game.legalIn(0)[0];
+      const [sr, sc] = game.pivotOf(ms, 0);
+      const cellS = document.getElementById(`hippos_cell_${sr}_${sc}`);
+      cellS.dispatchEvent(new MouseEvent('mouseenter'));
+      game.onCellClicked(sr, sc);
+      const before = JSON.stringify(game.stage);
+      const stagedGhostBefore = document.querySelector('.hippos_ghost')?.className;
+      const rotBefore = game.currentRot;
+      key('d');
+      desk.stageKept = !!game.stage && JSON.stringify(game.stage) === before && game.stage.rot === 0;
+      desk.hoverRotChanged = game.currentRot !== rotBefore && game.currentRot === 1;
+      desk.stagedGhostKept = document.querySelectorAll('.hippos_ghost').length === 1
+        && document.querySelector('.hippos_ghost')?.className === stagedGhostBefore;
+      // Hint preference
+      desk.noLegalTarget = document.querySelectorAll('.hippos_legal_target').length === 0;
+      desk.pivotHints = document.querySelectorAll('.hippos_pivot_target').length > 0;
+      game.bga.userPreferences.get = (id) => (id === 103 ? 0 : 1);
+      game.bga.userPreferences.onChange && game.bga.userPreferences.onChange(103, 0);
+      desk.hintsOff = document.querySelectorAll('.hippos_pivot_target').length === 0
+        && document.querySelectorAll('.hippos_legal_target').length === 0;
+      game.bga.userPreferences.get = () => 1;
+      game.bga.userPreferences.onChange && game.bga.userPreferences.onChange(103, 1);
+      desk.hintsBack = document.querySelectorAll('.hippos_pivot_target').length > 0;
+      // Button order
+      game.updateButtons(game.args, true);
+      const order = buttons.map((b) => b.text.replace(/<[^>]*>/g, '').trim());
+      const iL = order.findIndex((t) => /Left/.test(t)), i180 = order.findIndex((t) => /180/.test(t)), iR = order.findIndex((t) => /Right/.test(t));
+      desk.order = order.join('|');
+      desk.orderOk = game.args.species === 'trunk' || (iL >= 0 && iL < i180 && i180 < iR);
+      // Touch: rotation buttons still rotate the staged animal
+      game.desktopOverride = false; game.hover = null; game.clearHoverGhost();
+      game.currentRot = 0; game.onCellClicked(sr, sc);
+      game.onRotate(1);
+      desk.touchRotatesStage = !game.stage || game.stage.rot === 1;
+      game.desktopOverride = true;
+    }
+    desk.extra = desk.stageKept !== false && desk.hoverRotChanged !== false && desk.stagedGhostKept !== false
+      && desk.noLegalTarget !== false && desk.pivotHints !== false && desk.hintsOff !== false && desk.hintsBack !== false
+      && desk.orderOk !== false && desk.touchRotatesStage !== false;
+    desk.ok = desk.extra && desk.hoverGhost === 1 && desk.afterD === 1 && desk.afterA === 3 && desk.afterS === 1 && !desk.chatFocused
       && desk.ghostAfterKeys === 1 && desk.chatKeyUntouched && (params.get('shot') === 'desktop' || desk.clickPlaced)
       && /A/.test(desk.tooltips) && /S/.test(desk.tooltips) && !touchHasTooltip;
   }
