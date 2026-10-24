@@ -50,6 +50,31 @@ function redTileSvg(size, bg, circle, x, y) {
         + `</g>`;
 }
 
+/** Panel icon: a tile showing only a coloured border (the player's border group). */
+function redBorderIcon(colour, px) {
+    return `<svg class="red_icon" viewBox="0 0 40 40" width="${px}" height="${px}" aria-hidden="true">`
+        + `<rect x="0.5" y="0.5" width="39" height="39" fill="${RED_INK}"/>`
+        + `<rect x="2.5" y="2.5" width="35" height="35" fill="${RED_HEX[colour]}"/>`
+        + `<rect x="10" y="10" width="20" height="20" fill="${RED_MAT}"/></svg>`;
+}
+
+/** Panel icon: a dot in the player's colour (the circle group). */
+function redCircleIcon(colour, px) {
+    return `<svg class="red_icon" viewBox="0 0 40 40" width="${px}" height="${px}" aria-hidden="true">`
+        + `<rect x="0.5" y="0.5" width="39" height="39" fill="${RED_MAT}" stroke="${RED_INK}"/>`
+        + `<circle cx="20" cy="20" r="13" fill="${RED_HEX[colour]}" stroke="${RED_INK}" stroke-width="2.5"/></svg>`;
+}
+
+/** Small drawing for the help dialog: tiles are [size, bg, circle, x, y]; marks are extra SVG in cell units x100. */
+function redMini(tiles, w, h, marks = '') {
+    const body = tiles.map(([size, bg, circle, x, y]) => redTileSvg(size, bg, circle, x, y)).join('');
+    return `<svg class="red_mini" viewBox="0 0 ${w * 100} ${h * 100}" width="${w * 26}" height="${h * 26}" aria-hidden="true">`
+        + `<rect width="${w * 100}" height="${h * 100}" fill="${RED_MAT}"/>${body}${marks}</svg>`;
+}
+
+const RED_OK = '<svg class="red_mark" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#2e7d32"/><path d="M6 12.5l4 4 8-9" stroke="#fff" stroke-width="3" fill="none"/></svg>';
+const RED_NO = '<svg class="red_mark" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#b71c1c"/><path d="M7 7l10 10M17 7L7 17" stroke="#fff" stroke-width="3"/></svg>';
+
 class PlayerTurnState {
     constructor(game) { this.game = game; }
     onEnteringState(args, isActive) { this.game.enterTurn(args, isActive); }
@@ -65,6 +90,7 @@ export class Game {
         this.colours = {};
         this.last = null;
         this.variant = false;
+        this.scores = {};
         this.args = null;
         this.isActive = false;
         this.selectedKey = null;
@@ -83,6 +109,7 @@ export class Game {
         this.colours = gamedatas.colours;
         this.last = gamedatas.last;
         this.variant = !!gamedatas.variant;
+        this.scores = gamedatas.scores || {};
 
         const root = document.createElement('div');
         root.id = 'red_root';
@@ -90,11 +117,20 @@ export class Game {
             <div id="red_board_wrap">
                 <svg id="red_board" viewBox="0 0 100 100" role="img" aria-label="${_('Tile board. Tap a highlighted square to place the chosen tile.')}"></svg>
             </div>
+            <button type="button" id="red_help_btn" aria-haspopup="dialog" aria-label="${_('Rules')}" title="${_('Rules')}">?</button>
+            <div id="red_help" hidden></div>
             <div id="red_pool" role="group" aria-label="${_('Tile pool')}"></div>`;
         this.bga.gameArea.getElement().appendChild(root);
         document.body.classList.add('red_page_bg');
 
         document.getElementById('red_board').addEventListener('click', (e) => this.onBoardTap(e));
+        document.getElementById('red_help_btn').addEventListener('click', () => this.toggleHelp());
+        document.getElementById('red_help').addEventListener('click', (e) => {
+            if (e.target.id === 'red_help' || e.target.closest('.red_help_close')) this.toggleHelp(false);
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') this.toggleHelp(false);
+        });
         this.renderPanels();
         this.fitContainerToScreen(root);
         window.addEventListener('resize', () => this.fitContainerToScreen(root));
@@ -125,12 +161,79 @@ export class Game {
             const colour = this.colours[pid];
             const panel = document.createElement('div');
             panel.className = 'red_panel';
-            panel.innerHTML = `<svg viewBox="0 0 40 40" width="18" height="18" aria-hidden="true">`
-                + `<rect x="1" y="1" width="38" height="38" fill="${RED_HEX[colour]}" stroke="${RED_INK}" stroke-width="2"/>`
-                + `<g class="red_glyph">${redShape(colour, 20, 20, 20, redContrast(colour))}</g></svg>`
-                + `<span>${this.colourLabel(colour)}</span>`;
+            panel.title = this.colourLabel(colour);
+            panel.innerHTML = `<span class="red_term" title="${_('Largest border group')}">${redBorderIcon(colour, 30)}<b class="red_num" data-part="border">0</b></span>`
+                + `<span class="red_op" aria-hidden="true">&times;</span>`
+                + `<span class="red_term" title="${_('Largest circle group')}">${redCircleIcon(colour, 30)}<b class="red_num" data-part="circle">0</b></span>`
+                + `<span class="red_op" aria-hidden="true">=</span>`
+                + `<b class="red_num red_total" data-part="score">0</b>`;
             el.appendChild(panel);
         });
+        this.renderScores();
+    }
+
+    /** Breakdown in the panels and the score counters; called on load, after every placement and at the end. */
+    renderScores() {
+        Object.keys(this.colours).forEach((pid) => {
+            const sc = this.scores[pid] || { border: 0, circle: 0, score: 0 };
+            const el = this.bga.playerPanels.getElement(pid);
+            if (el) {
+                ['border', 'circle', 'score'].forEach((part) => {
+                    const n = el.querySelector(`.red_num[data-part="${part}"]`);
+                    if (n) n.textContent = String(Number(sc[part]));
+                });
+            }
+            try {
+                this.bga.playerPanels.getScoreCounter(pid)?.toValue(Number(sc.score));
+            } catch (e) {
+                // the framework counter is optional here
+            }
+        });
+    }
+
+    /* ------------------------------------------------------------------------ help dialog */
+
+    toggleHelp(force) {
+        const panel = document.getElementById('red_help');
+        const btn = document.getElementById('red_help_btn');
+        if (!panel || !btn) return;
+        const open = typeof force === 'boolean' ? force : panel.hidden;
+        if (open === !panel.hidden) return;
+        panel.hidden = !open;
+        btn.setAttribute('aria-expanded', String(open));
+        if (open) {
+            this.renderHelp();
+            panel.querySelector('.red_help_close')?.focus();
+        }
+    }
+
+    renderHelp() {
+        const panel = document.getElementById('red_help');
+        const t = (size, bg, circle, x, y) => [size, bg, circle, x, y];
+        const rows = [
+            [redMini([t(1, 'black', 'red', 0, 0), t(1, 'white', 'black', 1, 0)], 2, 1, ''), RED_OK,
+                _('Every new tile must touch a small tile along a side.')],
+            [redMini([t(1, 'black', 'red', 0, 0), t(1, 'white', 'black', 1, 1)], 2, 2, ''), RED_NO,
+                _('Touching only at a corner does not count.')],
+            [redMini([t(2, 'red', 'white', 0, 0), t(2, 'black', 'white', 2, 0)], 4, 2, ''), RED_NO,
+                _('Large tiles may never touch each other along a side.')],
+            [redMini([t(2, 'white', 'black', 0, 0)], 2, 2, ''), RED_NO,
+                _('White cannot start with a large tile.')],
+            [`<span class="red_eq">${redBorderIcon('red', 28)}<i>&times;</i>${redCircleIcon('red', 28)}</span>`, '',
+                _('Score = your largest connected border group times your largest connected circle group.')],
+            [redMini([t(1, 'red', 'red', 0, 0), t(2, 'red', 'red', 1, 0)], 3, 2, ''), '',
+                _('A small tile is worth 1, a large tile is worth 2.')],
+            [redMini([t(1, 'white', 'black', 0, 0), t(1, 'red', 'black', 1, 0)], 2, 1, ''), '',
+                _('Two players: play a different tile type from the one your opponent just played (red belongs to nobody).')],
+            [`<span class="red_eq">${redBorderIcon('white', 28)}<i>=</i>${redBorderIcon('black', 28)}</span>`, '',
+                _('Tie for first place: the third player wins.')],
+        ];
+        panel.innerHTML = `<div class="red_help_card" role="dialog" aria-modal="true" aria-labelledby="red_help_title">`
+            + `<div class="red_help_head"><h2 id="red_help_title">${_('How to play')}</h2>`
+            + `<button type="button" class="red_help_close" aria-label="${_('Close')}">&times;</button></div>`
+            + `<ul class="red_help_list">`
+            + rows.map(([pic, mark, text]) => `<li><span class="red_help_pic">${pic}${mark}</span><span class="red_help_text">${text}</span></li>`).join('')
+            + `</ul></div>`;
     }
 
     colourLabel(colour) {
@@ -400,6 +503,10 @@ export class Game {
         this.tiles.push({ id: a.tile_id, size: a.size, bg: a.bg, circle: a.circle, x: a.x, y: a.y, seq: a.seq });
         this.pool = a.pool;
         this.last = a.tile_id;
+        if (a.scores) {
+            this.scores = a.scores;
+            this.renderScores();
+        }
         this.args = null;
         this.selectedKey = null;
         this.stage = null;
@@ -408,7 +515,11 @@ export class Game {
         this.sfx('red_place');
     }
 
-    notif_scoring(notif) {}
+    notif_scoring(notif) {
+        const a = notif.args ?? notif;
+        this.scores[a.player_id] = { border: a.border, circle: a.circle, score: a.score };
+        this.renderScores();
+    }
 
     notif_gameEndTriggered(notif) {
         this.sfx('red_end');

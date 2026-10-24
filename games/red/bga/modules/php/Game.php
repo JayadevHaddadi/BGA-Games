@@ -46,7 +46,7 @@ class Game extends \Bga\GameFramework\Table
             ]);
         }
         static::DbQuery("INSERT INTO `player` (`player_id`, `player_color`, `player_name`) VALUES " . implode(',', $values));
-        $this->reattributeColorsBasedOnPreferences($players, $gameinfos['player_colors']);
+        // Colours are fixed on purpose: seat 1 = White, seat 2 = Black, seat 3 = Red, the same colours as the tiles.
         $this->reloadPlayersBasicInfos();
 
         $playerIds = array_map('intval', array_keys($players));
@@ -201,9 +201,9 @@ class Game extends \Bga\GameFramework\Table
             'bg_name' => $this->colourName($bg),
             'circle_name' => $this->colourName($circle),
             'pool' => $this->poolCounts(),
+            'scores' => $this->refreshScores(),
         ]);
 
-        $this->refreshScores();
         $this->activeNextPlayer();
     }
 
@@ -229,13 +229,32 @@ class Game extends \Bga\GameFramework\Table
         return count($this->colours()) === 2;
     }
 
-    /** Live counters: each player's border group times circle group, so everyone can follow the game. */
-    public function refreshScores(): void
+    /**
+     * Live counters: each player's border group times circle group, so everyone can follow the game. Updates
+     * player_score and returns the breakdown per player id for the notification and getAllDatas.
+     * @return array<int, array{border:int, circle:int, score:int}>
+     */
+    public function refreshScores(): array
     {
         $tiles = $this->placedTiles();
+        $out = [];
         foreach ($this->colours() as $pid => $colour) {
-            $this->playerScore->set((int) $pid, Rules::score($tiles, $colour)['score']);
+            $result = Rules::score($tiles, $colour);
+            $this->playerScore->set((int) $pid, $result['score']);
+            $out[(int) $pid] = $result;
         }
+        return $out;
+    }
+
+    /** The same breakdown without writing anything (page loads). */
+    public function scoreBreakdown(): array
+    {
+        $tiles = $this->placedTiles();
+        $out = [];
+        foreach ($this->colours() as $pid => $colour) {
+            $out[(int) $pid] = Rules::score($tiles, $colour);
+        }
+        return $out;
     }
 
     public function colourName(string $colour): string
@@ -260,6 +279,7 @@ class Game extends \Bga\GameFramework\Table
             'pool' => $this->poolCounts(),
             'colours' => $this->colours(),
             'variant' => $this->isVariant(),
+            'scores' => $this->scoreBreakdown(),
             'last' => $last === null ? null : $last['id'],
         ];
     }

@@ -90,6 +90,16 @@ $split = [tile(Rules::SMALL, 0, 0, 'red', 'black'), tile(Rules::SMALL, 5, 0, 're
 check(Rules::score($split, 'red')['border'] === 1, 'disconnected tiles do not add up');
 check(Rules::score([], 'red')['score'] === 0, 'no tiles scores zero');
 
+// Live scores: recomputed after every placement, so a partial board already has values (0 until both groups exist)
+$live = [tile(Rules::SMALL, 0, 0, 'white', 'black')];
+check(Rules::score($live, 'white') === ['border' => 1, 'circle' => 0, 'score' => 0], 'live: white border only scores 0');
+check(Rules::score($live, 'black') === ['border' => 0, 'circle' => 1, 'score' => 0], 'live: black circle only scores 0');
+$live[] = tile(Rules::SMALL, 1, 0, 'black', 'white');
+check(Rules::score($live, 'white') === ['border' => 1, 'circle' => 1, 'score' => 1], 'live: white 1 x 1');
+$live[] = tile(Rules::LARGE, 0, 1, 'white', 'white');
+check(Rules::score($live, 'white') === ['border' => 3, 'circle' => 3, 'score' => 9], 'live: white 3 x 3 after a large tile');
+check(Rules::score($live, 'black') === ['border' => 1, 'circle' => 1, 'score' => 1], 'live: black 1 x 1');
+
 // 2-player variant: a different type than the opponent's last tile is required when it exists
 $types = [[Rules::SMALL, 'white', 'black'], [Rules::SMALL, 'red', 'black']];
 $moves = Rules::moves($one, $types, Rules::typeKey(Rules::SMALL, 'white', 'black'));
