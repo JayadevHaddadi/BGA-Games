@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vault harness</title>
+<link rel="stylesheet" href="../../bga/vaultnestorgames.css">
+<style>
+  body { margin: 0; font-family: sans-serif; background: #21252b; color: #fff; }
+  #game_play_area { padding: 0; }
+  #out { white-space: pre-wrap; font: 12px monospace; padding: 8px; color: #a9b7c6; }
+</style>
+</head>
+<body data-done="0">
+<div id="page-content">
+  <div id="statusbar"></div>
+  <div id="game_play_area"></div>
+</div>
+<div id="player_panels"></div>
+<pre id="out">running</pre>
+
+<script>
+window._ = (s) => s;
+window.g_gamethemeurl = '../../bga/';
+window.errors = [];
+window.addEventListener('error', (e) => window.errors.push(String(e.message)));
+window.addEventListener('unhandledrejection', (e) => window.errors.push(String(e.reason)));
+</script>
+<script type="module">
+import { Game } from '../../bga/modules/js/Game.js';
+
+const calls = [];
+const buttons = [];
+let statusTitle = '';
+
+const bga = {
+  states: { register() {} },
+  gameArea: { getElement: () => document.getElementById('game_play_area') },
+  notifications: { setupPromiseNotifications() {} },
+  userPreferences: { get: (id) => (id === 101 ? 1 : 1) },
+  sounds: { play() {} },
+  statusBar: {
+    setTitle(text, args) {
+      statusTitle = text;
+      if (args) Object.keys(args).forEach(k => { statusTitle = statusTitle.replace('${' + k + '}', args[k]); });
+    },
+    addActionButton(label, fn, opts) {
+      buttons.push({ label, fn, opts: opts || {} });
+    },
+    removeActionButtons() {
+      buttons.length = 0;
+    },
+  },
+  players: {
+    getCurrentPlayerId: () => 1,
+    isCurrentPlayerActive: () => true,
+    getActivePlayerId: () => 1,
+  },
+  playerPanels: {
+    getCurrentPlayerId: () => 1,
+    getElement: (pid) => {
+      let el = document.getElementById('panel_' + pid);
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'panel_' + pid;
+        document.getElementById('player_panels').appendChild(el);
+      }
+      return el;
+    },
+    getScoreCounter: () => ({ toValue() {} }),
+  },
+  actions: {
+    performAction(name, args) {
+      calls.push({ name, args });
+      return Promise.resolve();
+    },
+  },
+};
+
+function fixture() {
+  const pieces = [];
+  // White pawns on rank 0
+  for (let x = 0; x < 10; x++) {
+    pieces.push({ x, y: 0, color: 1, playerId: 1 });
+  }
+  // Black pawns on rank 9
+  for (let x = 0; x < 10; x++) {
+    pieces.push({ x, y: 9, color: 2, playerId: 2 });
+  }
+  // Midgame test pieces: White at (3, 3) and (4, 4), Black at (5, 5)
+  pieces.push({ x: 3, y: 3, color: 1, playerId: 1 });
+  pieces.push({ x: 4, y: 4, color: 1, playerId: 1 });
+  pieces.push({ x: 5, y: 5, color: 2, playerId: 2 });
+
+  return {
+    players: {
+      1: { id: 1, name: 'WhitePlayer', color: 'ffffff' },
+      2: { id: 2, name: 'BlackPlayer', color: '222222' },
+    },
+    board: pieces,
+    player_roles: { '1': 1, '2': 2 },
+    turn_number: 1,
+    last_move: null,
+  };
+}
+
+try {
+  const game = new Game(bga);
+  game.setup(fixture());
+
+  // Enter turn with legal moves for White
+  const turnArgs = {
+    role: 1,
+    walks: [
+      { from: { x: 3, y: 3 }, to: { x: 3, y: 4 } },
+      { from: { x: 3, y: 3 }, to: { x: 2, y: 3 } },
+      { from: { x: 3, y: 3 }, to: { x: 2, y: 4 } },
+    ],
+    jumps: [
+      // (3,3) over (4,4) -> lands on (5,5) which has Black pawn (capture!)
+      { from: { x: 3, y: 3 }, pivot: { x: 4, y: 4 }, to: { x: 5, y: 5 }, capture: true },
+    ],
+    turn_number: 1,
+  };
+  game.enterTurn(turnArgs, true);
+
+  // Test tap-to-stage:
+  // 1. Click piece at (3, 3)
+  const piece33 = document.getElementById('vaultn_piece_3_3');
+  if (piece33) piece33.click();
+
+  // 2. Click pivot piece at (4, 4) to stage jump
+  const piece44 = document.getElementById('vaultn_piece_4_4');
+  if (piece44) piece44.click();
+
+  setTimeout(() => {
+    const board = document.querySelector('#vaultn_board');
+    const boardRect = board ? board.getBoundingClientRect() : { width: 0, height: 0, left: 0 };
+    const vp = window.innerWidth;
+    const horizontalOverflow = Math.max(0, document.documentElement.scrollWidth - vp);
+
+    // Measure cell tap targets
+    const cells = document.querySelectorAll('.vaultn_cell');
+    let minCellSize = 999;
+    cells.forEach(c => {
+      const r = c.getBoundingClientRect();
+      const s = Math.min(r.width, r.height);
+      if (s > 0 && s < minCellSize) minCellSize = s;
+    });
+
+    // Check button state
+    const hasConfirm = buttons.some(b => b.label.includes('Confirm'));
+    const hasUndo = buttons.some(b => b.label.includes('Undo'));
+
+    const report = {
+      viewport: vp,
+      boardWidth: Math.round(boardRect.width),
+      minTapTarget: Math.round(minCellSize),
+      horizontalOverflow: Math.round(horizontalOverflow),
+      stagedType: game.stage?.type,
+      stagedCapture: game.stage?.isCapture,
+      buttonsCount: buttons.length,
+      hasConfirm,
+      hasUndo,
+      jsErrors: window.errors,
+      ok: window.errors.length === 0 && horizontalOverflow === 0 && minCellSize >= 30 && hasConfirm && hasUndo,
+    };
+
+    document.getElementById('out').textContent = JSON.stringify(report, null, 2);
+    document.body.dataset.done = '1';
+  }, 250);
+
+} catch (err) {
+  window.errors.push(err.stack || err.message);
+  document.getElementById('out').textContent = JSON.stringify({ ok: false, error: String(err) }, null, 2);
+  document.body.dataset.done = '1';
+}
+</script>
+</body>
+</html>

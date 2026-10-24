@@ -6,6 +6,9 @@
 
     // Statistics for each player
     "player": {
-        "turns_number": { "id": 10, "name": "Number of turns", "type": "int" }
+        "turns_number": { "id": 10, "name": "Number of turns", "type": "int" },
+        "walks_count": { "id": 11, "name": "Walks performed", "type": "int" },
+        "jumps_count": { "id": 12, "name": "Jumps performed", "type": "int" },
+        "pieces_captured": { "id": 13, "name": "Pieces captured", "type": "int" }
     }
 }

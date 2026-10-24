@@ -1,19 +1,33 @@
 ==Goal==
 
-Describe the goal in one or two sentences.
+Vault is a 2-player abstract strategy game by Néstor Romeral Andrés. The goal is to advance across the 10x10 grid and establish at least one of your pawns on the opponent's back rank. If you start your turn with at least one pawn on the opponent's back rank, you win!
 
 ==Setup==
 
-* Describe the setup.
+* The game is played on a 10x10 board with a 4-toned checkered pattern.
+* White starts with 10 pawns occupying Rank 1 (the bottom row).
+* Black starts with 10 pawns occupying Rank 10 (the top row).
+* White takes the first turn. Players alternate turns.
 
 ==Your turn==
 
+On your turn, you must perform exactly one action: '''Walk''' or '''Jump''' (Vault).
+
 {| class="wikitable"
-! # !! Step !! What you do
+! Action !! How it works !! Captures
 |-
-| 1 || '''Step name''' || What happens.
+| '''Walk''' || Move one of your friendly pawns one step in any direction (orthogonal or diagonal, like a King in Chess) to an adjacent empty space. || No captures can be made by walking.
+|-
+| '''Jump (Vault)''' || Select a friendly jumping pawn and a second friendly pawn to act as a pivot. The jumping pawn leaps over the pivot pawn in a straight line, landing at the exact mirror distance on the other side (landing square = 2 x Pivot - Jumper). Jumps can be in any direction (orthogonal, diagonal, or knight-like vectors). Intervening squares may be empty or occupied. || If the landing square contains an enemy pawn, that enemy pawn is captured and removed from the game! You cannot land on a friendly pawn or off the board.
 |}
+
+==Board tones==
+
+* The board uses a 4-toned checkered pattern.
+* Because every jump doubles the distance across coordinates, the starting square and landing square of any jump are guaranteed to share the exact same tone.
+* Turning on Colorblind Support (Preference 100) displays distinct geometric markers on the 4 tones.
 
 ==Game end==
 
-* When the game ends and how the winner is found.
+* '''Back Rank Victory''': If at the start of your turn you have at least one pawn on the opponent's back rank (Rank 10 for White, Rank 1 for Black), you win immediately! (Reaching the back rank on your turn gives the opponent one turn to respond).
+* '''Stalemate''': If at the start of your turn you have no legal moves remaining (neither walk nor jump), you lose and your opponent wins.

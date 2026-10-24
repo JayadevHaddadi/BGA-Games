@@ -78,12 +78,12 @@ Checked at the **start of each player's turn**:
 - [x] Scaffold project (`vaultnestorgames`) with `bga.py new`
 - [x] Setup `metadata.json`, `gameinfos.jsonc`, `PLAN.md`
 - [x] Register in `tools/sync.py`, `.github/workflows/bga-deploy.yml`, and `LICENSING_TRACKER.md`
-- [ ] Implement pure rules engine in `bga/modules/php/Rules.php`
-- [ ] Implement CLI tests in `tests/rules_test.php` covering walks, vector jumps, captures, back rank win trigger, edge cases
-- [ ] Implement server logic (`Game.php`, `States/PlayerTurn.php`, `dbmodel.sql`, `stats.jsonc`)
-- [ ] Implement client interface (`Game.js`, `vaultnestorgames.css`) with 4-toned board, tap-to-stage vector jumping, highlight legal moves
-- [ ] Art and metadata assets in `bga/metadata_assets/` and `design/make_assets.py`
-- [ ] MediaWiki rulebook in `bga/GAMEHELP.wiki`
-- [ ] Run `python3 tools/bga.py check vaultnestorgames` (0 FAIL)
-- [ ] Browser harness testing
-- [ ] Deploy and verify on BGA Studio
+- [x] Implement pure rules engine in `bga/modules/php/Rules.php`
+- [x] Implement CLI tests in `tests/rules_test.php` (2731 checks pass)
+- [x] Implement server logic (`Game.php`, `States/PlayerTurn.php`, `States/EndScore.php`, `dbmodel.sql`, `stats.jsonc`)
+- [x] Implement client interface (`Game.js`, `vaultnestorgames.css`) with 4-toned board, tap-to-stage vector jumping, highlight legal moves
+- [x] Art and metadata assets in `bga/metadata_assets/` and `design/make_assets.py`
+- [x] MediaWiki rulebook in `bga/GAMEHELP.wiki`
+- [x] Run `python3 tools/bga.py check vaultnestorgames` (0 FAIL)
+- [x] Browser harness testing (`tests/harness/index.html` at 375px and 1280px, 0 errors)
+- [ ] Deploy and verify on BGA Studio live table
