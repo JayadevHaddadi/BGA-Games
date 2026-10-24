@@ -1,0 +1,2 @@
+-- Vault (nestorgames) database model
+-- Every table is dropped first, so a table restart never meets an old column layout.

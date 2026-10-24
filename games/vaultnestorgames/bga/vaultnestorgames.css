@@ -1,0 +1,12 @@
+/* Vault (nestorgames): play area styles. Guidelines: no shadows, no looping animation, no emoji, radius <= 3px. */
+
+body.vaultn_page_bg {
+    background-color: #1d1f24;
+}
+
+body.vaultn_page_bg #page-content,
+body.vaultn_page_bg #ebd-body,
+body.vaultn_page_bg #game_play_area,
+body.vaultn_page_bg #game_play_area_background {
+    background: transparent;
+}

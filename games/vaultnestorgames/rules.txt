@@ -1,0 +1,69 @@
+                                                                         Jump
+
+                                                                         In order to jump, chose 2 friendly pieces. One of the pieces
+                                                                         then jumps over the other piece in the direction defined by both
+                                                                         pawns, landing on a space beyond that is at a distance equal
+                                                                         to the distance between the two friendly pieces before the
+                                                                         jump was made (like a mirror). Notice that jumping is not
+                                                                         restricted to orthogonal or diagonal directions.
+
+                                                                         The landing space must be either empty or occupied by an
+   A board game for 2 players by Néstor Romeral Andrés
+                                                                         enemy piece, which is then captured and removed from the
+                                                                         game. A piece cannot land on a friendly piece. Pieces cannot
+INTRODUCTION
+                                                                         land outside the board.
+Vault is an abstract game in which each player tries to reach
+the opponent’s back rank. Vault is named after pole vaulting,
+which is a track and field event in which a person uses a long,
+flexible pole as an aid to jump over a bar. Vault is a derivative
+of Onager, by the same designer, and uses a variation of its
+jumping mechanism (also present in Billabong, for example)
+that allows multiple directions to be used. It’s like vector
+movement but without acceleration. Unlike Onager, Vault only
+works well on a square grid, as jumping directions are difficult
+to visualize in a hexagonal grid.
+
+MATERIAL
+                                                                                             Example of a legal jump.
+- A square grid with an even number of cells. Preferably
+checkered for clarity, but this is not mandatory. The                    Notice that the spaces between the jumping pawn and the
+nestorgames edition uses a 10x10 board.                                  landing space don’t need to be empty. Also, captures can only
+- As many white and black pawns as the number of cells per               be made by jumping.
+side.
+                                                                         Note: Thanks to the checkered pattern of the board, the
+Note: the new board is 4-coloured so the jumping pieces                  starting and landing spaces will always be of the same tone.
+always end up in a space of the same colour as the starting
+space. This notabily increases the clarity of the game.                  GAME END
+
+SETUP                                                                    If at the start of your turn you have at least one piece on your
+                                                                         opponent's back rank then you have won.
+Each player has an allocated colour (Black or White). Fill your
+nearest row with pawns of your colour (one per cell).
+
+
+
+
+                                                                                        Example of a game won by White
+
+HOW TO PLAY                                                              If the above condition is not reached and you can’t make a
+                                                                         legal movement at the start of your turn, you lose. This rarely
+White starts. Players alternate turns during the game until the          happens. Players may agree on a draw at any moment during
+victory condition is reached. On your turn, either walk or jump          the game.
+with one of your pawns.
+                                                                         NOTES FROM THE DESIGNER
+Walk
+                                                                         This is intended to be the simplest game that uses this jumping
+Move one of your pieces to an adjacent empty space as a                  mechanism. I’ve decided not to use neither Onager’s stacking
+King in Chess.                                                           mechanism (in order to make it simpler for turn based online
+                                                                         play and also playable with non-stacking pieces) nor the
+                                                                         multiple jump (as it would be almost impossible to think ahead
+                                                                         in this case).
+
+
+
+
+         Examples of valid walks for the White pawn.
+
+                                            Rules and Rule book (c) 2015 Néstor Romeral Andrés
+

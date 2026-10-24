@@ -1,0 +1,25 @@
+{
+    // Name of the game in English (basis for translation)
+    "game_name": "Vault (nestorgames)",
+    "publisher": "nestorgames",
+    "publisher_website": "https://nestorgames.com",
+    "publisher_bgg_id": 9976,
+    "bgg_id": 186404,
+    "players": [2],
+    "suggest_player_number": 2,
+    "not_recommend_player_number": null,
+    "estimated_duration": 20,
+    "fast_additional_time": 20,
+    "medium_additional_time": 30,
+    "slow_additional_time": 45,
+    "tie_breaker_description": "",
+    "losers_not_ranked": false,
+    "solo_mode_ranked": false,
+    "is_coop": 0,
+    "language_dependency": false,
+    "player_colors": ["ffffff", "222222"],
+    "favorite_colors_support": false,
+    "disable_player_order_swap_on_rematch": false,
+    "game_interface_width": { "min": 320 },
+    "exception_on_warning": true
+}
