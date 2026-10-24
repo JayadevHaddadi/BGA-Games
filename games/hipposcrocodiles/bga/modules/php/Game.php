@@ -82,9 +82,12 @@ class Game extends \Bga\GameFramework\Table
 
         // Animal distribution (option 102). $players is in table order; BGA rotates that order on a rematch (unless
         // disable_player_order_swap_on_rematch), so with a fixed "first player plays X" the animals swap in a rematch.
+        // The first player is the one with the lowest table order (player_no 1); the keys of $players are not ordered
+        $byTurnOrder = $playerIds;
+        usort($byTurnOrder, fn(int $a, int $b): int => (int) ($players[$a]['player_table_order'] ?? 0) <=> (int) ($players[$b]['player_table_order'] ?? 0));
         $speciesMap = Rules::assignSpecies(
             (int) ($options[102] ?? $this->tableOptions->get(102, Rules::DIST_RANDOM)),
-            $playerIds,
+            $byTurnOrder,
             fn(int $min, int $max): int => (int) bga_rand($min, $max)
         );
 
