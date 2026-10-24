@@ -161,12 +161,6 @@
 .hippos_ghost_bad { outline: 2px solid #ef4444; outline-offset: -1px; opacity: 0.6; filter: sepia(1) hue-rotate(-40deg) saturate(4); }
 
 /* Status Message */
-#hippos_map_label {
-    text-align: center;
-    font-size: 0.8em;
-    opacity: 0.7;
-    margin-top: 4px;
-}
 
 #hippos_status_msg {
     margin-top: 8px;

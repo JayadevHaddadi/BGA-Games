@@ -228,7 +228,7 @@ try {
       desk.noLegalTarget = document.querySelectorAll('.hippos_legal_target').length === 0;
       desk.pivotHints = document.querySelectorAll('.hippos_pivot_target').length > 0;
       desk.easyText = TRUNKS === 'setup' ? /horizontal \d+, vertical \d+/.test(window.__lastTitle || '')
-        : /Possible spots: .*↑ up.*← left.*↓ down.*→ right/.test(window.__lastTitle || '');
+        : /Possible spots: /.test(window.__lastTitle || '') && ((window.__lastTitle || '').match(/hippos_title_icon/g) || []).length === 5; // big picture + 4 half-size direction pictures
       game.easy = false; game.highlightLegal(); game.updateTitle();
       desk.hintsOff = document.querySelectorAll('.hippos_pivot_target').length === 0
         && document.querySelectorAll('.hippos_legal_target').length === 0

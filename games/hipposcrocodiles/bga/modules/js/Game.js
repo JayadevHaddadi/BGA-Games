@@ -130,15 +130,9 @@ export class Game {
                         <div id="hippos_pieces"></div>
                     </div>
                 </div>
-                <div id="hippos_map_label"></div>
                 <div id="hippos_status_msg"></div>
             </div>`;
         this.bga.gameArea.getElement().appendChild(root);
-
-        const mapLabel = document.getElementById('hippos_map_label');
-        if (mapLabel && gamedatas.map_title) {
-            mapLabel.textContent = _('Map') + ': ' + _(gamedatas.map_title);
-        }
 
         this.buildBoard();
         const grid = document.getElementById('hippos_grid');
@@ -413,10 +407,9 @@ export class Game {
         return best;
     }
 
-    /** Picture of the piece in the given rotation, for the status bar (20 px per cell). */
-    titleIcon(species, rot) {
+    /** Picture of the piece in the given rotation, for the status bar (20 px per cell by default). */
+    titleIcon(species, rot, px = 20) {
         const base = { hippo: [4, 3], crocodile: [3, 6], trunk: [3, 1] }[species] || [3, 3];
-        const px = 20;
         const [w, h] = [base[0] * px, base[1] * px];
         const [bw, bh] = rot % 2 ? [h, w] : [w, h];
         return `<span class="hippos_title_icon" style="width:${bw}px;height:${bh}px">`
@@ -446,13 +439,11 @@ export class Game {
                     h: bold(String(h), this.currentRot === 0), v: bold(String(v), this.currentRot === 1),
                 });
             } else {
-                const cur = HEAD_DIR[species][this.currentRot];
-                for (let rot = 0; rot < 4; rot++) counts[HEAD_DIR[species][rot]] += this.legalIn(rot).length;
-                const labels = [
-                    _('${n} ↑ up'), _('${n} → right'), _('${n} ↓ down'), _('${n} ← left'),
-                ];
-                // Order: up, left, down, right
-                parts = [0, 3, 2, 1].map((d) => bold(sub(labels[d], { n: String(counts[d]) }), d === cur)).join(', ');
+                // One entry per direction (up, left, down, right): the count and the animal at half size pointing that way
+                parts = [0, 3, 2, 1].map((d) => {
+                    const rot = HEAD_DIR[species].indexOf(d);
+                    return bold(String(this.legalIn(rot).length), rot === this.currentRot) + this.titleIcon(species, rot, 10);
+                }).join(' ');
             }
             text = sub(_('You must place a ${animal} ${icon}  Possible spots: ${spots}'), { animal: name, icon, spots: parts });
         }
