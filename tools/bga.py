@@ -874,6 +874,11 @@ def contract_checks(rep, folder, bga, js_text, sound_ids):
     (rep.add('PASS', 'statusBar.addActionButton(label, callback, options) signature') if not badbtn
      else rep.add('FAIL', 'statusBar.addActionButton called with an id first (button shows the id, click does nothing)', f'{len(badbtn)} call(s); use addActionButton(_("Label"), cb, {{ id: "...", color }})'))
 
+    # BGA's release build warns on any "player_score" text in PHP (even comments): use $this->playerScore / playerScoreAux
+    ps = [f.name for f in php_files if re.search(r'player_score', f.read_text(encoding='utf-8'))]
+    (rep.add('PASS', 'no player_score / player_score_aux text in PHP') if not ps
+     else rep.add('WARN', 'player_score text in PHP (BGA build warning; use the playerScore counters, reword comments)', ', '.join(ps)))
+
     # State ids are unique
     ids = {}
     for php in files_under(php_dir / 'States', ['php']) if (php_dir / 'States').exists() else []:

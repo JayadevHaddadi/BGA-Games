@@ -231,7 +231,7 @@ class Game extends \Bga\GameFramework\Table
 
     /**
      * Live counters: each player's border group times circle group, so everyone can follow the game. Updates
-     * player_score and returns the breakdown per player id for the notification and getAllDatas.
+     * BGA score counter and returns the breakdown per player id for the notification and getAllDatas.
      * @return array<int, array{border:int, circle:int, score:int}>
      */
     public function refreshScores(): array
