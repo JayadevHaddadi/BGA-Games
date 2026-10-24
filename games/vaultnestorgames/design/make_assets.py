@@ -45,6 +45,15 @@ def make_pawn_sprite(color, size=256):
     return im.resize((size, size), Image.LANCZOS)
 
 
+def make_board_sprite(size=256):
+    """Create 2x2 four-tone board block from authentic 4c.png."""
+    src = Image.open(GAME / '4c.png')
+    w, h = src.size
+    step = w // 10
+    crop = src.crop((0, 0, step * 2, step * 2))
+    return crop.resize((size, size), Image.LANCZOS)
+
+
 def make_title(path):
     """Draw stylized title wordmark VAULT."""
     im = Image.new('RGBA', (1200, 400), (0, 0, 0, 0))
@@ -77,42 +86,31 @@ def write_sprites():
         path = SPRITES / f'{color}_pawn.png'
         make_pawn_sprite(color).save(path, optimize=True)
         paths.append(str(path.relative_to(GAME)))
+    tile_path = SPRITES / 'board_tile.png'
+    make_board_sprite().save(tile_path, optimize=True)
+    paths.append(str(tile_path.relative_to(GAME)))
     return paths
 
 
-def make_display_screenshots():
-    """Capture real browser harness screenshots for display_1.jpg and display_2.jpg."""
-    chrome = shutil.which('google-chrome') or shutil.which('chromium') or '/usr/bin/google-chrome'
-    handler = partial(SimpleHTTPRequestHandler, directory=str(GAME))
-    handler.log_message = lambda *args: None
-    server = ThreadingHTTPServer(('127.0.0.1', 0), handler)
-    threading.Thread(target=server.serve_forever, daemon=True).start()
-    port = server.server_address[1]
-
+def make_display_photos():
+    """Build display_1.jpg and display_2.jpg from the real physical photo vault2.jpg."""
     OUT.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory() as tmp:
-        # Display 1: Initial layout
-        url1 = f'http://127.0.0.1:{port}/tests/harness/index.html'
-        png1 = Path(tmp) / 'display_1.png'
-        subprocess.run([
-            chrome, '--headless=new', '--no-sandbox', '--disable-gpu',
-            '--window-size=1000,750', f'--screenshot={png1}',
-            '--virtual-time-budget=5000', url1
-        ], check=True, capture_output=True, timeout=30)
-        Image.open(png1).convert('RGB').save(OUT / 'display_1.jpg', quality=90, optimize=True)
-        print('wrote display_1.jpg')
+    src_path = GAME / 'vault2.jpg'
+    if not src_path.exists():
+        print('Warning: vault2.jpg not found, keeping existing display images')
+        return
 
-        # Display 2: Midgame jump staging
-        png2 = Path(tmp) / 'display_2.png'
-        subprocess.run([
-            chrome, '--headless=new', '--no-sandbox', '--disable-gpu',
-            '--window-size=1000,750', f'--screenshot={png2}',
-            '--virtual-time-budget=5000', url1
-        ], check=True, capture_output=True, timeout=30)
-        Image.open(png2).convert('RGB').save(OUT / 'display_2.jpg', quality=90, optimize=True)
-        print('wrote display_2.jpg')
+    src = Image.open(src_path)
+    # Display 1: full board photo on wooden table (1000x750)
+    d1 = src.resize((1000, 750), Image.LANCZOS)
+    d1.save(OUT / 'display_1.jpg', quality=92, optimize=True)
+    print('wrote display_1.jpg (real physical photo)')
 
-    server.shutdown()
+    # Display 2: close focus crop on board, pawns, and vault logo (1000x750)
+    crop_box = (150, 160, 750, 610)
+    d2 = src.crop(crop_box).resize((1000, 750), Image.LANCZOS)
+    d2.save(OUT / 'display_2.jpg', quality=92, optimize=True)
+    print('wrote display_2.jpg (real physical photo focus crop)')
 
 
 if __name__ == '__main__':
@@ -123,10 +121,10 @@ if __name__ == '__main__':
     build_metadata(GAME, {
         'wordmark': 'design/title.png',
         'flowers': sprites,
-        'peak': None,
+        'peak': 'design/sprites/board_tile.png',
         'background': [33, 37, 43],
         'publisher_logo': '../Nestor Games Logo.jpg',
     })
     print('metadata images written')
 
-    make_display_screenshots()
+    make_display_photos()

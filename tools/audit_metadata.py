@@ -66,7 +66,7 @@ PHYSICAL_PHOTO_STATUS = {
     "microforge": "Awaiting physical photos (Renders)",
     "lordsofscotland": "Awaiting physical photos (Title card)",
     "mandala": "Legacy production art",
-    "vaultnestorgames": "Awaiting physical photos (Harness screenshots)",
+    "vaultnestorgames": "OK (physical photo from Nestor)",
 }
 
 

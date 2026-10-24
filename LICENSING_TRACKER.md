@@ -30,7 +30,7 @@ This document tracks publisher/designer permissions, communications, contact inf
 | **Mandala** | Trevor Benjamin, Brett J. Gilbert | Lookout Games / Asmodee | ✅ **Live / Released** | Maintained (`mandala`) |
 | **Yavalath** | Cameron Browne, Ludi | Cameron Browne / Cyberite Ltd | ⚠️ **Public Alpha (2026-10-06); licence form was filled by us on Cameron's behalf, confirmation mail came to us: Cameron must submit or confirm it** | Reviewer Testing (`yavalath`) |
 | **Lords of Scotland**| Richard James (Evertide Games) | Rights reverted to designer | 🔴 **Blocked: need designer contact (Lupe silent since 3 Oct)** | Core Engine Ready (`lordsofscotland`) |
-| **Vault** | Néstor Romeral Andrés | nestorgames | ⚠️ **NOT CONFIRMED: not on BGA's licence list; ask Nestor to add it at gamepublishers** | Scaffolding (`vaultnestorgames`) |
+| **Vault** | Néstor Romeral Andrés | nestorgames | ✅ **BGA License Granted (2026-10-24)** | Ready for Testing (`vaultnestorgames`) |
 | **Amazons** | Walter Zamkauskas | nestorgames (edition) | ⚪ Inquiry Sent | Backlog |
 | **ConHex** | Michail Antonow | nestorgames (edition) | ⚪ Inquiry Sent | Backlog |
 

@@ -25,7 +25,7 @@
 | **lordsofscotland** | `lordsofscotland` | Studio | ✓ | ✓ | ✓ | ✓ | ✓ (5) | ✓ | ✓ | ✓ (4/4) | ✓ (5) | Awaiting physical photos (Title card) | Need real physical photos |
 | **pushfight** | `pushfight` | Studio | ✓ | ✓ | ✓ | ✓ | ⚠️ (2 local) | ✓ | ✓ | ✓ (4/4) | ✓ (3) | Product photo / Box art (Licence declined) | None (Licence declined) |
 | **mandala** | `mandala` | Studio | ✓ | ✓ | ✓ | ✓ | ✓ (5) | ✓ | ✓ | ❌ | ✓ (4) | Legacy production art | Ready / Up to date |
-| **vaultnestorgames** | `vaultnestorgames` | Studio | ✓ | ✓ | ✓ | ✓ | ✓ (2) | ✓ | ✓ | ✓ (4/4) | ⚠️ (1) | Awaiting physical photos (Harness screenshots) | Need real physical photos |
+| **vaultnestorgames** | `vaultnestorgames` | Studio | ✓ | ✓ | ✓ | ✓ | ✓ (4) | ✓ | ✓ | ✓ (4/4) | ✓ (2) | OK (physical photo from Nestor) | Ready / Up to date |
 
 Legend:
 - **✓**: Uploaded and verified in Studio GMM.
@@ -367,7 +367,7 @@ Legend:
 - **Publication Year**: Studio=`2015` | Local=`2015`
 - **Zombie Mode Level**: Studio=`1` | Local=`1`
 - **Characteristics**: Studio=`{'Complexity': '2', 'Luck': '1', 'Strategy': '4', 'Diplomacy': '1'}` | Local=`{'complexity': 2, 'luck': 1, 'strategy': 4, 'diplomacy': 1, 'note': 'PROPOSAL: sliders 1 to 5 in the Control Panel only.'}`
-- **Tags**: Studio=['Casual games'] | Local=['Abstract Strategy', 'Grid Movement']
+- **Tags**: Studio=['Casual games', 'Family'] | Local=['Abstract Strategy', 'Grid Movement']
 - **Description**: Studio=`SET (751 chars)` | Local=`SET (747 chars)`
 - **Media Uploaded on Studio**:
   - Box: ✓ (Local: ✓)
@@ -375,8 +375,8 @@ Legend:
   - Banner: ✓ (Local: ✓)
   - Publisher: ✓ (Local: ✓)
   - Title: ✓ (Local: ✓)
-  - Displays: 2 on Studio | 2 local (display_1.jpg, display_2.jpg)
-- **Display Photos Nature**: Awaiting physical photos (Harness screenshots)
+  - Displays: 4 on Studio | 2 local (display_1.jpg, display_2.jpg)
+- **Display Photos Nature**: OK (physical photo from Nestor)
 
 ---
 

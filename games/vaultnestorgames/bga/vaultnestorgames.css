@@ -138,11 +138,11 @@ body.vaultn_page_bg #game_play_area_background {
     border: 0.5px solid rgba(0, 0, 0, 0.08);
 }
 
-/* 4 Tones */
-.vaultn_tone_0 { background-color: #e4d8c5; }
-.vaultn_tone_1 { background-color: #d4c2a9; }
-.vaultn_tone_2 { background-color: #c0ab90; }
-.vaultn_tone_3 { background-color: #ad9578; }
+/* 4 Tones (Official nestorgames palette from 4c.png) */
+.vaultn_tone_0 { background-color: #de3800; }
+.vaultn_tone_1 { background-color: #ffb300; }
+.vaultn_tone_2 { background-color: #ff9933; }
+.vaultn_tone_3 { background-color: #ff6600; }
 
 /* Colorblind symbols: subtle geometric mark in top-left */
 body.vaultn_cb_on .vaultn_tone_0::before {
@@ -151,7 +151,8 @@ body.vaultn_cb_on .vaultn_tone_0::before {
     top: 1px;
     left: 3px;
     font-size: 10px;
-    color: rgba(0, 0, 0, 0.45);
+    font-weight: bold;
+    color: rgba(0, 0, 0, 0.7);
     line-height: 1;
 }
 
@@ -161,7 +162,8 @@ body.vaultn_cb_on .vaultn_tone_1::before {
     top: 1px;
     left: 3px;
     font-size: 9px;
-    color: rgba(0, 0, 0, 0.45);
+    font-weight: bold;
+    color: rgba(0, 0, 0, 0.7);
     line-height: 1;
 }
 
@@ -171,7 +173,8 @@ body.vaultn_cb_on .vaultn_tone_2::before {
     top: 1px;
     left: 3px;
     font-size: 9px;
-    color: rgba(0, 0, 0, 0.45);
+    font-weight: bold;
+    color: rgba(0, 0, 0, 0.7);
     line-height: 1;
 }
 
@@ -181,7 +184,8 @@ body.vaultn_cb_on .vaultn_tone_3::before {
     top: 1px;
     left: 3px;
     font-size: 8px;
-    color: rgba(0, 0, 0, 0.45);
+    font-weight: bold;
+    color: rgba(0, 0, 0, 0.7);
     line-height: 1;
 }
 
@@ -311,7 +315,8 @@ body.vaultn_cb_on .vaultn_tone_3::before {
     width: 90%;
     height: 90%;
     border-radius: 50%;
-    border: 3px solid #e53935;
+    border: 3px solid #ffffff;
+    outline: 2px solid #b71c1c;
     box-sizing: border-box;
     z-index: 4;
 }

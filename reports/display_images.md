@@ -33,6 +33,7 @@ What is actually uploaded in each GMM may differ; check the live page before rep
 | gardensofuranus | 3 table photos of the real game (hexagon, rhombus, trapezoid) | OK (physical photos from Nestor) |
 | gardensofio | 2 table photos of the real game (gardensofio_big + focus crop) | OK (physical photo from Nestor) |
 | people | 2 table photos of the real game (people 2 + focus crop) | OK (physical photo from Nestor) |
+| vaultnestorgames | 2 table photos of the real game (vault2 + focus crop) | OK (physical photo from Nestor) |
 | pushfight | box art + product photo | moot: Tinkerhouse declined the licence (2026-10-22) |
 | gardensofenceladus | BGA screenshots | Awaiting physical photos from publisher |
 | lordsofscotland | title card | Awaiting physical photos |
