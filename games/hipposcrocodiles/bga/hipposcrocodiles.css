@@ -226,3 +226,16 @@
     text-align: center;
     vertical-align: middle;
 }
+
+/* Current orientation picture in the status bar */
+.hippos_title_icon {
+    display: inline-block;
+    position: relative;
+    vertical-align: middle;
+    margin-left: 6px;
+}
+.hippos_title_icon .hippos_panel_icon {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+}

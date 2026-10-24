@@ -401,6 +401,17 @@ export class Game {
         return best;
     }
 
+    /** Small picture of the piece in the given rotation, for the status bar (8 px per cell). */
+    titleIcon(species, rot) {
+        const base = { hippo: [4, 3], crocodile: [3, 6], trunk: [3, 1] }[species] || [3, 3];
+        const px = 8;
+        const [w, h] = [base[0] * px, base[1] * px];
+        const [bw, bh] = rot % 2 ? [h, w] : [w, h];
+        return `<span class="hippos_title_icon" style="width:${bw}px;height:${bh}px">`
+            + `<span class="hippos_panel_icon hippos_species_${species}" style="width:${w}px;height:${h}px;`
+            + `transform:translate(-50%,-50%) rotate(${rot * 90}deg)"></span></span>`;
+    }
+
     updateTitle() {
         if (!this.isActive || !this.args || !this.bga.statusBar?.setTitle) return;
         const isTrunk = this.args.species === 'trunk';
@@ -409,12 +420,11 @@ export class Game {
         let text;
         if (!n) {
             text = _('No legal placement is available.');
-        } else if (isTrunk) {
-            text = _('You must place a trunk: ${n} possible spots (${orient} shown)')
-                .replace('${n}', String(n)).replace('${orient}', this.currentRot ? _('vertical') : _('horizontal'));
         } else {
-            text = _('You must place a ${animal}: ${n} possible spots (rotation ${deg}° shown)')
-                .replace('${animal}', name).replace('${n}', String(n)).replace('${deg}', String(this.currentRot * 90));
+            // The current orientation is shown as a picture instead of words
+            text = _('You must place a ${animal}: ${n} possible spots')
+                .replace('${animal}', name).replace('${n}', String(n))
+                + ' ' + this.titleIcon(this.args.species, this.currentRot);
         }
         try { this.bga.statusBar.setTitle(text); } catch (e) {}
     }
