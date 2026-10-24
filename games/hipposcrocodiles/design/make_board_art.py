@@ -110,7 +110,7 @@ SP = 118.0
 CYAN = (0, 204, 255)
 ANIMAL = {'hippo': (124, 92, 72), 'crocodile': (74, 112, 52)}
 # Preference "Animal colours: Bright": happy, childish colours
-BRIGHT = {'hippo': (255, 92, 184), 'crocodile': (60, 210, 60)}
+BRIGHT = {'hippo': (255, 92, 184), 'crocodile': (120, 240, 30)}
 def recolor(im, name, palette=ANIMAL):
     px = im.load()
     new = palette[name]
