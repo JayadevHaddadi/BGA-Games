@@ -1,19 +1,38 @@
 ==Goal==
 
-Describe the goal in one or two sentences.
+'''Red''' is a tile-laying game by Néstor Romeral Andrés. Each player owns one colour: '''white''', '''black''' or '''red'''. Build a big connected group of tiles with your colour as the '''border''' and a big connected group with your colour as the '''circle'''. Your score is the size of the first group multiplied by the size of the second.
 
-==Setup==
+==Tiles==
 
-* Describe the setup.
+* Every tile has a background (border) colour and a circle of a different colour, so there are 6 types.
+* '''30 small tiles''' (5 of each type), each worth '''1 point''' in a group.
+* '''6 large tiles''' (1 of each type), each 2×2 squares and worth '''2 points''' in a group.
 
 ==Your turn==
 
+Turn order is White, Black, then Red. On your turn, pick any tile from the supply and place it on the table:
+
 {| class="wikitable"
-! # !! Step !! What you do
+! Rule !! Details
 |-
-| 1 || '''Step name''' || What happens.
+| '''Grid''' || Tiles line up with a grid of small-tile squares.
+|-
+| '''Touch a small tile''' || Except for the first tile, every new tile must share a side with at least one '''small''' tile. Touching only at a corner is not enough.
+|-
+| '''Large tiles apart''' || A large tile may not share a side with another large tile (corners are fine).
+|-
+| '''First turn''' || White may not start with a large tile.
 |}
 
-==Game end==
+To play: tap a tile in the supply, tap a highlighted square, then press '''Place tile'''.
 
-* When the game ends and how the winner is found.
+==Game end and scoring==
+
+* The game ends when no tile can be placed.
+* For each player, find the most valuable connected group of tiles with '''your border colour''' and the most valuable connected group with '''your circle colour''' (small tile = 1, large tile = 2). Multiply the two numbers.
+* Example: a border group worth 6 and a circle group worth 4 score 6 × 4 = '''24'''.
+* The highest score wins. If two players tie for first, the '''third player wins'''.
+
+==Two players==
+
+All tiles are used, but only two colours belong to players; the third colour only blocks. You '''must play a different type of tile from the one your opponent just played''', if you can. Two tiles are different if they differ in size or in colour combination.

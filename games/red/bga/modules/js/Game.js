@@ -161,10 +161,10 @@ export class Game {
         this.bga.statusBar.removeActionButtons();
         if (!isActive) return;
         if (this.stage) {
-            this.bga.statusBar.addActionButton('red_confirm_btn', _('Place tile'), () => this.confirm(), { color: 'primary' });
+            this.bga.statusBar.addActionButton(_('Place tile'), () => this.confirm(), { id: 'red_confirm_btn', color: 'primary' });
         }
         if (this.selectedKey) {
-            this.bga.statusBar.addActionButton('red_cancel_btn', _('Cancel'), () => this.cancelChoice(), { color: 'alert' });
+            this.bga.statusBar.addActionButton(_('Cancel'), () => this.cancelChoice(), { id: 'red_cancel_btn', color: 'alert' });
         }
     }
 

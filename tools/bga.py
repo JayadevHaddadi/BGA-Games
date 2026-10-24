@@ -869,6 +869,11 @@ def contract_checks(rep, folder, bga, js_text, sound_ids):
     (rep.add('PASS', 'PossibleAction imported from GameFramework\\States') if not badpa
      else rep.add('FAIL', 'PossibleAction wrong namespace ("This move is not authorized now")', ', '.join(badpa)))
 
+    # statusBar.addActionButton(label, callback, options): an id as first argument shows the id as the label and the click does nothing
+    badbtn = re.findall(r"statusBar\.addActionButton\(\s*['\"][\w-]+['\"]\s*,\s*(?:_\(|['\"])", js_text)
+    (rep.add('PASS', 'statusBar.addActionButton(label, callback, options) signature') if not badbtn
+     else rep.add('FAIL', 'statusBar.addActionButton called with an id first (button shows the id, click does nothing)', f'{len(badbtn)} call(s); use addActionButton(_("Label"), cb, {{ id: "...", color }})'))
+
     # State ids are unique
     ids = {}
     for php in files_under(php_dir / 'States', ['php']) if (php_dir / 'States').exists() else []:
