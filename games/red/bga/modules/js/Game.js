@@ -15,6 +15,23 @@ const RED_GAP = 6;
 const RED_LABEL = 70;
 const RED_MAT = '#d8cfbd';
 const RED_INK = '#1e1d1b';
+const RED_CAP = 56;        // largest cell size in px at "fit"
+const RED_MIN_CELL = 22;   // smallest cell size in px at "fit"
+const RED_GUTTER = 14;     // px of space around the board for the coordinate labels
+const RED_LABEL_PX = 11;
+const RED_ZOOM_MIN = 0.4;
+const RED_ZOOM_MAX = 5;
+const RED_VIEW_KEY = 'red_view_v1';
+
+/** Rotates a point by r quarter turns clockwise (SVG coordinates, y down). */
+function redRot(x, y, r) {
+    switch (((r % 4) + 4) % 4) {
+        case 1: return [-y, x];
+        case 2: return [-x, -y];
+        case 3: return [y, -x];
+        default: return [x, y];
+    }
+}
 
 const redContrast = (colour) => (colour === 'white' ? RED_INK : RED_HEX.white);
 
@@ -53,16 +70,15 @@ function redTileSvg(size, bg, circle, x, y) {
 /** Panel icon: a tile showing only a coloured border (the player's border group). */
 function redBorderIcon(colour, px) {
     return `<svg class="red_icon" viewBox="0 0 40 40" width="${px}" height="${px}" aria-hidden="true">`
-        + `<rect x="0.5" y="0.5" width="39" height="39" fill="${RED_INK}"/>`
-        + `<rect x="2.5" y="2.5" width="35" height="35" fill="${RED_HEX[colour]}"/>`
-        + `<rect x="10" y="10" width="20" height="20" fill="${RED_MAT}"/></svg>`;
+        + `<rect x="0" y="0" width="40" height="40" fill="${RED_HEX[colour]}"/>`
+        + `<rect x="9" y="9" width="22" height="22" fill="${RED_MAT}"/></svg>`;
 }
 
 /** Panel icon: a dot in the player's colour (the circle group). */
 function redCircleIcon(colour, px) {
     return `<svg class="red_icon" viewBox="0 0 40 40" width="${px}" height="${px}" aria-hidden="true">`
-        + `<rect x="0.5" y="0.5" width="39" height="39" fill="${RED_MAT}" stroke="${RED_INK}"/>`
-        + `<circle cx="20" cy="20" r="13" fill="${RED_HEX[colour]}" stroke="${RED_INK}" stroke-width="2.5"/></svg>`;
+        + `<rect x="0" y="0" width="40" height="40" fill="${RED_MAT}"/>`
+        + `<circle cx="20" cy="20" r="14" fill="${RED_HEX[colour]}"/></svg>`;
 }
 
 /** Small drawing for the help dialog: tiles are [size, bg, circle, x, y]; marks are extra SVG in cell units x100. */
@@ -71,6 +87,12 @@ function redMini(tiles, w, h, marks = '') {
     return `<svg class="red_mini" viewBox="0 0 ${w * 100} ${h * 100}" width="${w * 26}" height="${h * 26}" aria-hidden="true">`
         + `<rect width="${w * 100}" height="${h * 100}" fill="${RED_MAT}"/>${body}${marks}</svg>`;
 }
+
+const RED_SVG_ICON = (body) => `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true">${body}</svg>`;
+const RED_ICON_PLUS = RED_SVG_ICON('<path d="M12 5v14M5 12h14"/>');
+const RED_ICON_MINUS = RED_SVG_ICON('<path d="M5 12h14"/>');
+const RED_ICON_FIT = RED_SVG_ICON('<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/>');
+const RED_ICON_ROT = RED_SVG_ICON('<path d="M19 12a7 7 0 1 1-2.1-5"/><path d="M19 4v4.5h-4.5"/>');
 
 const RED_OK = '<svg class="red_mark" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#2e7d32"/><path d="M6 12.5l4 4 8-9" stroke="#fff" stroke-width="3" fill="none"/></svg>';
 const RED_NO = '<svg class="red_mark" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#b71c1c"/><path d="M7 7l10 10M17 7L7 17" stroke="#fff" stroke-width="3"/></svg>';
@@ -97,6 +119,9 @@ export class Game {
         this.stage = null;
         this.pending = false;
         this.lastSound = {};
+        this.zoom = 1;
+        this.rot = 0;
+        this.loadView();
         this.bga.states.register('PlayerTurn', new PlayerTurnState(this));
     }
 
@@ -115,8 +140,16 @@ export class Game {
         root.id = 'red_root';
         root.innerHTML = `
             <div id="red_board_wrap">
-                <svg id="red_board" viewBox="0 0 100 100" role="img" aria-label="${_('Tile board. Tap a highlighted square to place the chosen tile.')}"></svg>
-                <button type="button" id="red_help_btn" aria-haspopup="dialog" aria-label="${_('Rules')}" title="${_('Rules')}">?</button>
+                <div id="red_ctrl" role="group" aria-label="${_('Board view')}">
+                    <button type="button" id="red_help_btn" class="red_vbtn" aria-haspopup="dialog" aria-label="${_('Rules')}" title="${_('Rules')}">?</button>
+                    <button type="button" id="red_zoom_in" class="red_vbtn" aria-label="${_('Zoom in')}" title="${_('Zoom in (+)')}">${RED_ICON_PLUS}</button>
+                    <button type="button" id="red_zoom_out" class="red_vbtn" aria-label="${_('Zoom out')}" title="${_('Zoom out (-)')}">${RED_ICON_MINUS}</button>
+                    <button type="button" id="red_zoom_fit" class="red_vbtn" aria-label="${_('Fit board')}" title="${_('Fit board')}">${RED_ICON_FIT}</button>
+                    <button type="button" id="red_rotate" class="red_vbtn" aria-label="${_('Rotate board 90 degrees')}" title="${_('Rotate board 90 degrees (R)')}">${RED_ICON_ROT}</button>
+                </div>
+                <div id="red_board_scroll">
+                    <svg id="red_board" viewBox="0 0 100 100" role="img" aria-label="${_('Tile board. Tap a highlighted square to place the chosen tile.')}"></svg>
+                </div>
             </div>
             <div id="red_help" hidden></div>
             <div id="red_pool" role="group" aria-label="${_('Tile pool')}"></div>`;
@@ -128,18 +161,24 @@ export class Game {
         document.getElementById('red_help').addEventListener('click', (e) => {
             if (e.target.id === 'red_help' || e.target.closest('.red_help_close')) this.toggleHelp(false);
         });
+        document.getElementById('red_zoom_in').addEventListener('click', () => this.zoomBy(1.25));
+        document.getElementById('red_zoom_out').addEventListener('click', () => this.zoomBy(0.8));
+        document.getElementById('red_zoom_fit').addEventListener('click', () => this.setView({ zoom: 1 }));
+        document.getElementById('red_rotate').addEventListener('click', () => this.setView({ rot: (this.rot + 1) % 4 }));
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') this.toggleHelp(false);
         });
+        this.installKeys();
         this.renderPanels();
         this.fitContainerToScreen(root);
         const onResize = () => {
             this.fitContainerToScreen(root);
             this.updateLayout(root);
+            this.scheduleRelayout();
         };
         window.addEventListener('resize', onResize);
         if (typeof ResizeObserver !== 'undefined') {
-            new ResizeObserver(() => this.updateLayout(root)).observe(root.parentElement || root);
+            new ResizeObserver(() => { this.updateLayout(root); this.scheduleRelayout(); }).observe(root.parentElement || root);
         }
         onResize();
         this.renderAll();
@@ -167,6 +206,67 @@ export class Game {
         const host = root.parentElement || root;
         const w = Math.max(host.clientWidth, window.innerWidth > 800 ? host.getBoundingClientRect().width : 0);
         root.classList.toggle('red_wide', w >= 900);
+    }
+
+    /* ------------------------------------------------------------------------ view (zoom / rotation) */
+
+    loadView() {
+        try {
+            const v = JSON.parse(window.localStorage.getItem(RED_VIEW_KEY) || '{}');
+            const z = Number(v.zoom);
+            const r = Number(v.rot);
+            if (z >= RED_ZOOM_MIN && z <= RED_ZOOM_MAX) this.zoom = z;
+            if (Number.isInteger(r) && r >= 0 && r < 4) this.rot = r;
+        } catch (e) {
+            // storage unavailable: keep defaults
+        }
+    }
+
+    setView(v) {
+        if (v.zoom !== undefined) this.zoom = Math.min(RED_ZOOM_MAX, Math.max(RED_ZOOM_MIN, v.zoom));
+        if (v.rot !== undefined) this.rot = v.rot;
+        try {
+            window.localStorage.setItem(RED_VIEW_KEY, JSON.stringify({ zoom: this.zoom, rot: this.rot }));
+        } catch (e) {
+            // storage unavailable: the view just is not remembered
+        }
+        this.renderBoard();
+    }
+
+    zoomBy(f) {
+        this.setView({ zoom: Math.round(this.zoom * f * 1000) / 1000 });
+    }
+
+    scheduleRelayout() {
+        if (this.relayoutQueued) return;
+        this.relayoutQueued = true;
+        const run = () => { this.relayoutQueued = false; this.renderBoard(); };
+        if (typeof requestAnimationFrame === 'function') requestAnimationFrame(run); else setTimeout(run, 0);
+    }
+
+    /** Desktop shortcuts: + / - zoom, R rotate. Capture phase, because the BGA chat steals letter keys. */
+    installKeys() {
+        if (this.keysInstalled) return;
+        this.keysInstalled = true;
+        window.addEventListener('keydown', (e) => {
+            const root = document.getElementById('red_root');
+            if (!root || !root.isConnected) return;
+            if (e.ctrlKey || e.metaKey || e.altKey) return;
+            const t = e.target;
+            const tag = (t && t.tagName) || '';
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) return;
+            const help = document.getElementById('red_help');
+            if (help && !help.hidden) return;
+            const k = e.key || '';
+            let action = null;
+            if (k === '+' || k === '=') action = () => this.zoomBy(1.25);
+            else if (k === '-' || k === '_') action = () => this.zoomBy(0.8);
+            else if (k === 'r' || k === 'R') action = () => this.setView({ rot: (this.rot + (e.shiftKey ? 3 : 1)) % 4 });
+            if (!action) return;
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            if (!e.repeat) action();
+        }, { capture: true });
     }
 
     renderPanels() {
@@ -318,10 +418,12 @@ export class Game {
     /** Which legal square a tap means. A large tile is staged by tapping any of its four cells. */
     anchorAt(clientX, clientY) {
         const svg = document.getElementById('red_board');
+        const world = svg.querySelector('#red_world') || svg;
         const pt = svg.createSVGPoint();
         pt.x = clientX;
         pt.y = clientY;
-        const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+        // the world group carries the rotation, so its inverse matrix yields unrotated board coordinates
+        const p = pt.matrixTransform(world.getScreenCTM().inverse());
         const cx = p.x / RED_CELL;
         const cy = p.y / RED_CELL;
         const size = this.selectedTile().size;
@@ -398,24 +500,44 @@ export class Game {
         const x1 = maxX + 1;
         const y1 = maxY + 1;
         const C = RED_CELL;
-        const vbX = x0 * C - RED_LABEL;
-        const vbY = y0 * C - RED_LABEL;
-        const vbW = (x1 - x0) * C + RED_LABEL + 10;
-        const vbH = (y1 - y0) * C + RED_LABEL + 10;
-        svg.setAttribute('viewBox', `${vbX} ${vbY} ${vbW} ${vbH}`);
+        const r = this.rot;
 
-        let html = `<rect x="${x0 * C}" y="${y0 * C}" width="${(x1 - x0) * C}" height="${(y1 - y0) * C}" fill="${RED_MAT}"/>`;
+        // Bounds after rotation, in board units; then the cell size in px (fit, capped, times zoom).
+        const corners = [[x0 * C, y0 * C], [x1 * C, y0 * C], [x0 * C, y1 * C], [x1 * C, y1 * C]].map(([px, py]) => redRot(px, py, r));
+        const rx0 = Math.min(...corners.map((c) => c[0]));
+        const rx1 = Math.max(...corners.map((c) => c[0]));
+        const ry0 = Math.min(...corners.map((c) => c[1]));
+        const ry1 = Math.max(...corners.map((c) => c[1]));
+        const cols = (rx1 - rx0) / C;
+        const rows = (ry1 - ry0) / C;
+
+        const scroll = document.getElementById('red_board_scroll');
+        const desktop = window.innerWidth > 800;
+        const availH = desktop
+            ? Math.min(760, Math.max(380, window.innerHeight - 200))
+            : Math.max(260, window.innerHeight * 0.7);
+        if (scroll) {
+            scroll.style.height = desktop ? `${availH}px` : '';
+            scroll.style.maxHeight = desktop ? '' : `${availH}px`;
+        }
+        const availW = (scroll && scroll.clientWidth) || 600;
+        const fit = Math.max(RED_MIN_CELL, Math.min(RED_CAP, (availW - 2 * RED_GUTTER) / cols, (availH - 2 * RED_GUTTER) / rows));
+        const cell = fit * this.zoom;
+        const u = 100 / cell;              // board units per screen px
+        const G = RED_GUTTER * u;
+        const vbW = rx1 - rx0 + 2 * G;
+        const vbH = ry1 - ry0 + 2 * G;
+        svg.setAttribute('viewBox', `${rx0 - G} ${ry0 - G} ${vbW} ${vbH}`);
+        svg.style.width = `${Math.round(vbW / u)}px`;
+        svg.style.height = `${Math.round(vbH / u)}px`;
+
+        let html = `<g id="red_world" transform="rotate(${90 * r})">`;
+        html += `<rect x="${x0 * C}" y="${y0 * C}" width="${(x1 - x0) * C}" height="${(y1 - y0) * C}" fill="${RED_MAT}"/>`;
         for (let x = x0; x <= x1; x++) {
             html += `<line x1="${x * C}" y1="${y0 * C}" x2="${x * C}" y2="${y1 * C}" stroke="#bfb5a0" stroke-width="2"/>`;
         }
         for (let y = y0; y <= y1; y++) {
             html += `<line x1="${x0 * C}" y1="${y * C}" x2="${x1 * C}" y2="${y * C}" stroke="#bfb5a0" stroke-width="2"/>`;
-        }
-        for (let x = x0; x < x1; x++) {
-            html += `<text class="red_label" x="${x * C + C / 2}" y="${y0 * C - 16}" text-anchor="middle">${x}</text>`;
-        }
-        for (let y = y0; y < y1; y++) {
-            html += `<text class="red_label" x="${x0 * C - 16}" y="${y * C + C / 2 + 12}" text-anchor="end">${y}</text>`;
         }
 
         this.tiles.forEach((t) => {
@@ -424,11 +546,11 @@ export class Game {
 
         const lastTile = this.tiles.find((t) => t.id === this.last);
         if (lastTile) {
+            const sw = 3 * u;
             const side = lastTile.size * C - RED_GAP * 2;
             const ox = lastTile.x * C + RED_GAP;
             const oy = lastTile.y * C + RED_GAP;
-            html += `<rect class="red_last" x="${ox - 4}" y="${oy - 4}" width="${side + 8}" height="${side + 8}" fill="none" stroke="#f2b705" stroke-width="8"/>`;
-            html += `<rect class="red_last" x="${ox + 4}" y="${oy + 4}" width="${side - 8}" height="${side - 8}" fill="none" stroke="#f2b705" stroke-width="4"/>`;
+            html += `<rect class="red_last" x="${ox - sw / 2}" y="${oy - sw / 2}" width="${side + sw}" height="${side + sw}" fill="none" stroke="#f2b705" stroke-width="${sw}"/>`;
         }
 
         cand.forEach(([x, y]) => {
@@ -442,6 +564,16 @@ export class Game {
             html += `<g class="red_ghost" opacity="0.7">${redTileSvg(s.size, s.bg, s.circle, s.x, s.y)}</g>`;
             html += `<rect x="${s.x * C + RED_GAP}" y="${s.y * C + RED_GAP}" width="${side}" height="${side}" fill="none" stroke="${RED_INK}" stroke-width="7"/>`;
         }
+        html += `</g>`;
+
+        // Coordinate labels sit in the thin gutter outside the board edge, upright, at the rotated position.
+        const fs = RED_LABEL_PX * u;
+        const label = (text, lx, ly) => {
+            const [vx, vy] = redRot(lx, ly, r);
+            return `<text class="red_label" x="${vx}" y="${vy}" font-size="${fs}" text-anchor="middle" dominant-baseline="central">${text}</text>`;
+        };
+        for (let x = x0; x < x1; x++) html += label(x, x * C + C / 2, y0 * C - G / 2);
+        for (let y = y0; y < y1; y++) html += label(y, x0 * C - G / 2, y * C + C / 2);
 
         svg.innerHTML = html;
     }
@@ -455,7 +587,7 @@ export class Game {
             counts[`${p.size}|${p.bg}|${p.circle}`] = p.count;
         });
         const types = [...this.pool].sort((a, b) => a.size - b.size);
-        host.innerHTML = types.map((p) => {
+        const item = (p) => {
             const key = `${p.size}|${p.bg}|${p.circle}`;
             const available = this.isActive && p.count > 0 && (anchors[key] || []).length > 0;
             const pressed = this.selectedKey === key;
@@ -469,7 +601,8 @@ export class Game {
                 + redTileSvg(p.size, p.bg, p.circle, 0, 0)
                 + `</svg></button>`
                 + `<span class="red_count">${p.count === 0 ? '' : `x${p.count}`}</span></div>`;
-        }).join('');
+        };
+        host.innerHTML = [1, 2].map((sz) => `<div class="red_pool_group">${types.filter((p) => p.size === sz).map(item).join('')}</div>`).join('');
         host.querySelectorAll('.red_pool_btn').forEach((btn) => {
             btn.addEventListener('click', () => this.selectType(btn.dataset.key));
         });

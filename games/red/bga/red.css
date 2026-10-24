@@ -36,9 +36,11 @@ body.red_page_bg #game_play_area_background {
 }
 
 #red_root.red_wide #red_pool {
-    margin-top: 8px;
-    justify-content: flex-start;
-    gap: 10px 14px;
+    grid-column: 2;
+    grid-row: 1;
+    align-self: center;
+    margin-top: 0;
+    gap: 22px;
 }
 
 @media (max-width: 800px) {
@@ -51,16 +53,22 @@ body.red_page_bg #game_play_area_background {
     }
 }
 
+#red_board_scroll {
+    display: flex;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
 #red_board {
     display: block;
-    width: 100%;
-    height: auto;
+    flex: none;
+    margin: auto;
     touch-action: manipulation;
 }
 
 #red_board .red_label {
-    font-size: 30px;
-    fill: #1e1d1b;
+    fill: #9d907a;
+    user-select: none;
 }
 
 #red_board .red_last {
@@ -70,10 +78,19 @@ body.red_page_bg #game_play_area_background {
 #red_pool {
     display: flex;
     flex-wrap: wrap;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
+    margin-top: 12px;
+}
+
+.red_pool_group {
+    display: flex;
+    flex-wrap: wrap;
     justify-content: center;
     align-items: flex-start;
     gap: 10px 14px;
-    margin-top: 12px;
 }
 
 .red_pool_item {
@@ -123,6 +140,10 @@ body.red_page_bg #game_play_area_background {
     flex-wrap: wrap;
     gap: 6px;
     margin-top: 6px;
+    padding: 4px 6px;
+    border-radius: 3px;
+    background: #3a2a1f;
+    color: #f1ede3;
     font-size: 20px;
     line-height: 1;
 }
@@ -156,11 +177,30 @@ body.red_page_bg #game_play_area_background {
     position: relative;
 }
 
-#red_help_btn {
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    z-index: 5;
+#red_ctrl {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    gap: 6px;
+    padding-bottom: 4px;
+}
+
+@media (min-width: 801px) {
+    #red_ctrl {
+        position: absolute;
+        top: 6px;
+        right: 18px;
+        z-index: 5;
+        flex-direction: column;
+        padding: 0;
+    }
+}
+
+.red_vbtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
     width: 44px;
     height: 44px;
     margin: 0;
@@ -259,13 +299,16 @@ body.red_page_bg #game_play_area_background {
 .red_mini {
     flex: none;
     display: block;
-    border: 1px solid #1e1d1b;
 }
 
 .red_eq {
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    padding: 4px 6px;
+    border-radius: 3px;
+    background: #3a2a1f;
+    color: #f1ede3;
 }
 
 .red_eq i {
