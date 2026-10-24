@@ -401,10 +401,10 @@ export class Game {
         return best;
     }
 
-    /** Small picture of the piece in the given rotation, for the status bar (8 px per cell). */
+    /** Picture of the piece in the given rotation, for the status bar (20 px per cell). */
     titleIcon(species, rot) {
         const base = { hippo: [4, 3], crocodile: [3, 6], trunk: [3, 1] }[species] || [3, 3];
-        const px = 8;
+        const px = 20;
         const [w, h] = [base[0] * px, base[1] * px];
         const [bw, bh] = rot % 2 ? [h, w] : [w, h];
         return `<span class="hippos_title_icon" style="width:${bw}px;height:${bh}px">`
