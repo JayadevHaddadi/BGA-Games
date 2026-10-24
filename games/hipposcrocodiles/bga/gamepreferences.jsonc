@@ -38,6 +38,6 @@
       "1": { "name": "Natural (brown hippos, green crocodiles)", "cssPref": "hippos_colors_natural" },
       "2": { "name": "Bright (pink hippos, bright green crocodiles)", "cssPref": "hippos_colors_bright" }
     },
-    "default": 1
+    "default": 2
   }
 }
