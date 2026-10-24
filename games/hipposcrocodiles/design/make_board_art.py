@@ -109,9 +109,11 @@ SP = 118.0
 # Each pixel is a blend of the cyan tile and the animal colour; keep the blend, swap the colour.
 CYAN = (0, 204, 255)
 ANIMAL = {'hippo': (124, 92, 72), 'crocodile': (74, 112, 52)}
-def recolor(im, name):
+# Preference "Animal colours: Bright": happy, childish colours
+BRIGHT = {'hippo': (255, 92, 184), 'crocodile': (60, 210, 60)}
+def recolor(im, name, palette=ANIMAL):
     px = im.load()
-    new = ANIMAL[name]
+    new = palette[name]
     for y in range(im.height):
         for x in range(im.width):
             r, g, b, a = px[x, y]
@@ -123,9 +125,9 @@ def recolor(im, name):
     return im
 
 def tile(name, box, cols, rows):
-    im = pieces.crop(box).resize((cols * CELL, rows * CELL), Image.LANCZOS)
-    im = recolor(im, name)
-    im.save(OUT / f'piece_{name}.png', optimize=True)
+    src = pieces.crop(box).resize((cols * CELL, rows * CELL), Image.LANCZOS)
+    recolor(src.copy(), name).save(OUT / f'piece_{name}.png', optimize=True)
+    recolor(src.copy(), name, BRIGHT).save(OUT / f'piece_{name}_bright.png', optimize=True)
 tile('hippo', (437, 609, 909, 963), 4, 3)
 tile('crocodile', (488, 1032, 843, 1741), 3, 6)
 

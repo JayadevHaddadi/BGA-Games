@@ -239,3 +239,9 @@
     left: 50%;
     top: 50%;
 }
+
+/* Preference 104 "Animal colours: Bright" */
+.hippos_colors_bright .hippos_piece_hippo .hippos_tile,
+.hippos_colors_bright .hippos_panel_icon.hippos_species_hippo { background-image: url(img/piece_hippo_bright.png); }
+.hippos_colors_bright .hippos_piece_crocodile .hippos_tile,
+.hippos_colors_bright .hippos_panel_icon.hippos_species_crocodile { background-image: url(img/piece_crocodile_bright.png); }
