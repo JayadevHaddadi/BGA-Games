@@ -533,7 +533,8 @@ export class Game {
         const bar = this.bga.statusBar;
         const isTrunk = args?.species === 'trunk';
         const desk = this.isDesktop();
-        const rotBtn = (label, key, delta) => bar.addActionButton(label, () => this.onRotate(delta), {
+        // On desktop the button shows its keyboard shortcut as a small keycap
+        const rotBtn = (label, key, delta) => bar.addActionButton(desk ? `${label} <kbd class="hippos_key">${key}</kbd>` : label, () => this.onRotate(delta), {
             color: 'secondary', classes: 'hippos_rot_btn', tooltip: desk ? `${label} (${key})` : undefined,
         });
         if (this.stage) bar.addActionButton(isTrunk ? _('Confirm trunk') : _('Confirm placement'), () => this.onConfirm(), { color: 'primary', classes: 'hippos_rot_btn' });
