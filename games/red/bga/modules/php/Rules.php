@@ -223,4 +223,23 @@ final class Rules
         $circle = self::largestGroup($tiles, fn($t) => $t['circle'] === $colour);
         return ['border' => $border, 'circle' => $circle, 'score' => $border * $circle];
     }
+
+    /**
+     * Red's tie rule (3 players): when exactly two players share the highest score, the third player wins.
+     * $scores is [playerId => score]. Returns null when no special rule applies, otherwise
+     * ['winner' => id, 'tied' => [id, id], 'top' => int, 'new_score' => int].
+     */
+    public static function tieWinner(array $scores): ?array
+    {
+        if (count($scores) !== 3) {
+            return null;
+        }
+        $top = max($scores);
+        $leaders = array_keys(array_filter($scores, fn($v) => $v === $top));
+        if (count($leaders) !== 2) {
+            return null;
+        }
+        $others = array_values(array_diff(array_keys($scores), $leaders));
+        return ['winner' => $others[0], 'tied' => $leaders, 'top' => $top, 'new_score' => $top + 1];
+    }
 }

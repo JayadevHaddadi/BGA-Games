@@ -116,8 +116,8 @@ export class Game {
         root.innerHTML = `
             <div id="red_board_wrap">
                 <svg id="red_board" viewBox="0 0 100 100" role="img" aria-label="${_('Tile board. Tap a highlighted square to place the chosen tile.')}"></svg>
+                <button type="button" id="red_help_btn" aria-haspopup="dialog" aria-label="${_('Rules')}" title="${_('Rules')}">?</button>
             </div>
-            <button type="button" id="red_help_btn" aria-haspopup="dialog" aria-label="${_('Rules')}" title="${_('Rules')}">?</button>
             <div id="red_help" hidden></div>
             <div id="red_pool" role="group" aria-label="${_('Tile pool')}"></div>`;
         this.bga.gameArea.getElement().appendChild(root);
@@ -133,7 +133,15 @@ export class Game {
         });
         this.renderPanels();
         this.fitContainerToScreen(root);
-        window.addEventListener('resize', () => this.fitContainerToScreen(root));
+        const onResize = () => {
+            this.fitContainerToScreen(root);
+            this.updateLayout(root);
+        };
+        window.addEventListener('resize', onResize);
+        if (typeof ResizeObserver !== 'undefined') {
+            new ResizeObserver(() => this.updateLayout(root)).observe(root.parentElement || root);
+        }
+        onResize();
         this.renderAll();
 
         // Without this call the interface only updates after a page refresh.
@@ -152,6 +160,13 @@ export class Game {
         root.style.width = `${viewportW}px`;
         const left = root.getBoundingClientRect().left;
         root.style.marginLeft = `${-left}px`;
+    }
+
+    /** Wide containers put the tile supply to the right of the board; narrow ones keep it under the board. */
+    updateLayout(root) {
+        const host = root.parentElement || root;
+        const w = Math.max(host.clientWidth, window.innerWidth > 800 ? host.getBoundingClientRect().width : 0);
+        root.classList.toggle('red_wide', w >= 900);
     }
 
     renderPanels() {
@@ -412,8 +427,8 @@ export class Game {
             const side = lastTile.size * C - RED_GAP * 2;
             const ox = lastTile.x * C + RED_GAP;
             const oy = lastTile.y * C + RED_GAP;
-            html += `<rect class="red_last" x="${ox - 3}" y="${oy - 3}" width="${side + 6}" height="${side + 6}" fill="none" stroke="${RED_INK}" stroke-width="7"/>`;
-            html += `<rect class="red_last" x="${ox + 2}" y="${oy + 2}" width="${side - 4}" height="${side - 4}" fill="none" stroke="#ffffff" stroke-width="3"/>`;
+            html += `<rect class="red_last" x="${ox - 4}" y="${oy - 4}" width="${side + 8}" height="${side + 8}" fill="none" stroke="#f2b705" stroke-width="8"/>`;
+            html += `<rect class="red_last" x="${ox + 4}" y="${oy + 4}" width="${side - 8}" height="${side - 8}" fill="none" stroke="#f2b705" stroke-width="4"/>`;
         }
 
         cand.forEach(([x, y]) => {
@@ -519,6 +534,15 @@ export class Game {
         const a = notif.args ?? notif;
         this.scores[a.player_id] = { border: a.border, circle: a.circle, score: a.score };
         this.renderScores();
+    }
+
+    notif_scoreAdjusted(notif) {
+        const a = notif.args ?? notif;
+        try {
+            this.bga.playerPanels.getScoreCounter(a.player_id)?.toValue(Number(a.new_score));
+        } catch (e) {
+            // the framework counter is optional here
+        }
     }
 
     notif_gameEndTriggered(notif) {

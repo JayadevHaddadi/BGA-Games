@@ -43,7 +43,7 @@ BGA project: `red`. Local files: `games/red/bga/`.
 | D3 | Group connectivity | Orthogonal adjacency between tiles that share the property. Value = sum of points | High (reproduces the rulebook example) |
 | D4 | Turn order in 2 players | Alternate between the two players. Each may place any tile, including Red | Medium: the rulebook does not say |
 | D5 | 2-player "different type" rule | Enforced whenever a different-type placement exists. Otherwise any tile | High ("if possible") |
-| D6 | Tie for first | Shared victory (BGA default). Not the rulebook's "third player wins" | **Low: see section 3** |
+| D6 | Tie for first | Designer rule (Néstor): 3 players, exactly two tie for first -> the THIRD player wins (BGA score raised to top + 1, logged). Three-way tie = shared draw. 2 players: ties are ties | High |
 | D7 | Face-down pool variant | Not implemented in this version | Open: see section 3 |
 | D8 | Live scores | The score counter shows the current border × circle product for each player during the game | Medium (public information, helps players) |
 | D9 | Scoring breakdown | One log line per player at game end (border, circle, product) | High |
@@ -51,7 +51,7 @@ BGA project: `red`. Local files: `games/red/bga/`.
 
 ## 3. Open questions for the owner
 
-1. **Tie-break wording.** The rulebook says "If two players tie, the third player wins! If all three tie, play again!" When two players tie for the top score, the third player is not tied and is usually lower. That makes the sentence contradictory as written. The game uses shared victory (Ian's rule: no invented tie-breakers). Confirm which rule you want.
+1. **Tie-break.** Resolved by the designer: if two players tie for first, the third player wins (see D6).
 2. **2-player turn order and colours.** The rulebook does not say who places the blocker colour or who takes which player colour. The game uses White and Black as players and alternates turns.
 3. **Face-down variant.** The rulebook offers placing the pool face down. Implementing it needs a design for drawing a hidden tile and checking that it can be placed. Not in this version.
 4. **Licence.** Red is not in the BGA licence export of 5 October 2026. Confirm the licence with nestorgames before publisher sign-off.

@@ -112,5 +112,15 @@ check(count($moves) === 4, 'the repeated type is played when no other type can b
 $moves = Rules::moves($one, $types, null);
 check(count($moves) === 8, 'without the variant both types are offered everywhere');
 
+// Tie rule: two tie for first in a 3-player game -> the third wins
+$t = Rules::tieWinner([1 => 12, 2 => 12, 3 => 4]);
+check($t && $t['winner'] === 3 && $t['tied'] === [1, 2] && $t['new_score'] === 13, 'tie: 3p two-way tie for first, third wins');
+$t = Rules::tieWinner([1 => 4, 2 => 9, 3 => 9]);
+check($t && $t['winner'] === 1 && $t['new_score'] === 10, 'tie: third wins even when first in order');
+check(Rules::tieWinner([1 => 6, 2 => 6, 3 => 6]) === null, 'tie: three-way tie is a shared draw');
+check(Rules::tieWinner([1 => 9, 2 => 6, 3 => 6]) === null, 'tie: tie for second is ignored');
+check(Rules::tieWinner([1 => 9, 2 => 6, 3 => 3]) === null, 'tie: no tie');
+check(Rules::tieWinner([1 => 6, 2 => 6]) === null, 'tie: 2p tie stays a tie');
+
 echo $failures === 0 ? "OK: $checks checks\n" : "$failures of $checks checks failed\n";
 exit($failures === 0 ? 0 : 1);
