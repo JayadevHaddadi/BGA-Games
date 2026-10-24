@@ -344,3 +344,51 @@ body.vaultn_cb_on .vaultn_tone_3::before {
         transition: none !important;
     }
 }
+
+/* Mobile responsive layout */
+@media (max-width: 480px) {
+    #vaultn_root {
+        padding: 4px 0;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    .vaultn_info_bar {
+        font-size: 12px;
+        padding: 4px 6px;
+        margin-left: 2px;
+        margin-right: 2px;
+        width: calc(100% - 4px);
+    }
+
+    .vaultn_board_frame {
+        padding: 0;
+        border: none;
+        border-radius: 0;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .vaultn_rank_labels_top,
+    .vaultn_rank_labels_bottom {
+        grid-template-columns: 12px repeat(10, 1fr) 12px;
+        font-size: 10px;
+        line-height: 14px;
+        box-sizing: border-box;
+    }
+
+    .vaultn_board_mid {
+        grid-template-columns: 12px 1fr 12px;
+        box-sizing: border-box;
+    }
+
+    .vaultn_col_labels_left,
+    .vaultn_col_labels_right {
+        font-size: 10px;
+        box-sizing: border-box;
+    }
+}
+
+
+

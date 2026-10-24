@@ -193,7 +193,8 @@ export class Game {
         // Board is capped at 640px, full responsive on mobile
         const board = document.getElementById('vaultn_board');
         if (board) {
-            const avail = Math.min(width - 56, 600);
+            const gutter = width <= 480 ? 24 : 56;
+            const avail = Math.min(width - gutter, 600);
             board.style.maxWidth = `${avail}px`;
             board.style.maxHeight = `${avail}px`;
         }

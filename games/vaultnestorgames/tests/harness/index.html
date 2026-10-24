@@ -163,7 +163,7 @@ try {
       hasConfirm,
       hasUndo,
       jsErrors: window.errors,
-      ok: window.errors.length === 0 && horizontalOverflow === 0 && minCellSize >= 30 && hasConfirm && hasUndo,
+      ok: window.errors.length === 0 && horizontalOverflow === 0 && minCellSize >= 32 && hasConfirm && hasUndo,
     };
 
     document.getElementById('out').textContent = JSON.stringify(report, null, 2);
