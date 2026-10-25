@@ -371,4 +371,10 @@ class Game extends \Bga\GameFramework\Table
             'player_colors' => $newColors,
         ]);
     }
+
+    /** Studio debug menu: zombie-driven autoplay to the end of the game (used by tools/e2e/studio_play.py). */
+    public function debug_playToEnd()
+    {
+        $this->debug->playUntil(fn(int $count) => ($this->gamestate->getCurrentMainStateId() ?? 0) >= 90 || $count >= 800);
+    }
 }
