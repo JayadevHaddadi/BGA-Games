@@ -41,3 +41,7 @@ tools/e2e/out/
 # Chat exports contain secrets: keep them outside the repo
 *chats_export.zip
 *chat_export.zip
+*chat*export*.zip
+*chats*.zip
+.env
+.env.*

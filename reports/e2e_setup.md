@@ -8,7 +8,7 @@
   - `--selftest`: checks the runner itself without logging in (passes).
 - `debug_playToEnd()` in `games/gardensofenceladus/bga/modules/php/Game.php` (pilot game). It uses the framework's `$this->debug->playUntil(...)`, which drives the game with each active player's `zombie()`. **Limitation:** this tests the server state machine, zombie handling, end scoring and replay, not the client UI. Real clicks are not generic across games; a per-game "play a few real moves" step is the next addition.
 - `.github/workflows/e2e.yml`: runs after a successful "BGA Studio Deployer" for the games the push changed (diff of `HEAD~1..HEAD`; the nightly run covers the rest), nightly at 02:00 UTC for all games in `tools/e2e/games.json`, or by hand. One table at a time (shared test accounts). 2 players and max players per game. Uploads screenshots and reports as an artifact. On failure it opens or updates one issue per game labelled `e2e-failure` (step, error text, run link). Without the secret it logs a warning and skips.
-- `tools/e2e/games.json`: games enabled for E2E (only `gardensofenceladus` so far).
+- `tools/e2e/games.json`: games enabled for E2E (current list in the file; results in `reports/e2e_status.md`).
 
 ## How it runs
 - **Only in GitHub Actions.** The password is the repo secret `BGA_STUDIO_PASSWORD` (added by the user), passed as the env var of the same name. Optional secret `BGA_STUDIO_USERNAME` (default `JayadevHaddadi0`).

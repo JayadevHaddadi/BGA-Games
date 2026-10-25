@@ -73,4 +73,7 @@ This document defines the unified testing strategy across development agents and
 2. **Microchip** (`microchip`): Passed Level 1, 2, 3. Ready for Studio live session.
 3. **Gardens of Enceladus** (`gardensofenceladus`): Passed Level 1, 2, 3. Ready for Studio live session.
 4. **Red** (`red`): Passed Level 1, 2, 3. Ready for Studio live session.
-5. **Hippos & Crocodiles** (`hipposcrocodiles`): Original assets in hand (`hc.zip`). Ready for implementation.
+5. **Hippos & Crocodiles** (`hipposcrocodiles`), **Gardens of Io**, **Pent-Up**, **Vault**: implemented; live results in `reports/e2e_status.md`.
+
+Live Studio verification (Level 4) is automated by `tools/e2e/studio_play.py` (nightly and after deploy, for the slugs in
+`tools/e2e/games.json`); the whole offline pyramid runs with `python3 tools/test_all.py`.
