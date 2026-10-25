@@ -871,6 +871,10 @@ def contract_checks(rep, folder, bga, js_text, sound_ids):
     (rep.add('PASS', f'client actions exist on the server ({len(sent)})') if not missing
      else rep.add('FAIL', 'client actions exist on the server', 'no PHP method for: ' + ', '.join(missing) + ' ("This move is not authorized now")'))
 
+    # UserException lives in Bga\\GameFramework (the ...\\Actions\\ one does not exist: "Class not found" on the first refused move)
+    baduser = [f.name for f in php_files if 'GameFramework\\Actions\\UserException' in f.read_text(encoding='utf-8')]
+    (rep.add('PASS', 'UserException imported from GameFramework') if not baduser
+     else rep.add('FAIL', 'UserException wrong namespace (Bga\\GameFramework\\UserException)', ', '.join(baduser)))
     # PossibleAction must come from ...\States\ (the ...\Actions\ one is silently ignored -> "not authorized now")
     badpa = [f.name for f in php_files if 'GameFramework\\Actions\\PossibleAction' in f.read_text(encoding='utf-8')]
     (rep.add('PASS', 'PossibleAction imported from GameFramework\\States') if not badpa
