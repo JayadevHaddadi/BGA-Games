@@ -442,8 +442,9 @@ export class Game {
                 // One entry per direction (up, left, down, right): the count and the animal at half size pointing that way
                 parts = [0, 3, 2, 1].map((d) => {
                     const rot = HEAD_DIR[species].indexOf(d);
-                    return bold(String(this.legalIn(rot).length), rot === this.currentRot) + this.titleIcon(species, rot, 10);
-                }).join(' ');
+                    const cls = rot === this.currentRot ? 'hippos_dir hippos_dir_current' : 'hippos_dir';
+                    return `<span class="${cls}">${this.legalIn(rot).length}${this.titleIcon(species, rot, 10)}</span>`;
+                }).join('');
             }
             text = sub(_('You must place a ${animal} ${icon}  Possible spots: ${spots}'), { animal: name, icon, spots: parts });
         }
