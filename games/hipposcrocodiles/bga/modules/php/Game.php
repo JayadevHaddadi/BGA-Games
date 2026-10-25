@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Bga\Games\hipposcrocodiles;
 
-use Bga\GameFramework\Actions\UserException;
+use Bga\GameFramework\UserException;
 use Bga\Games\hipposcrocodiles\States\PlaceTrunk;
 use Bga\Games\hipposcrocodiles\States\PlayerTurn;
 
