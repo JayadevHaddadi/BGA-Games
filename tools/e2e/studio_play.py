@@ -76,8 +76,9 @@ def load_creds():
 
 def game_players(game):
     """(min, max) from gameinfos.jsonc (comments and trailing commas tolerated)."""
+    root = next((d for d in (REPO / 'games').iterdir() if d.name.lower() == game.lower()), REPO / 'games' / game)  # KILN
     for folder in ('bga', 'bga-prod'):
-        info = REPO / 'games' / game / folder / 'gameinfos.jsonc'
+        info = root / folder / 'gameinfos.jsonc'
         if info.exists():
             text = re.sub(r'^\s*//.*$', '', info.read_text(encoding='utf-8'), flags=re.M)
             m = re.search(r'"players"\s*:\s*\[([^\]]*)\]', text)

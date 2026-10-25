@@ -54,7 +54,7 @@ jobs:
             # games touched by the pushed commit(s); the nightly run covers anything this misses
             changed=$(git diff --name-only HEAD~1 HEAD | awk -F/ '$1=="games"{print $2}' | sort -u)
             games=""
-            for g in $enabled; do echo "$changed" | grep -qx "$g" && games="$games $g"; done
+            for g in $enabled; do echo "$changed" | grep -qxi "$g" && games="$games $g"; done
           elif [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.game }}" != "all" ]; then
             games="${{ github.event.inputs.game }}"
           else
