@@ -247,6 +247,20 @@ class Game extends \Bga\GameFramework\Table
         return $empty;
     }
 
+    public function assertCellFree(int $q, int $r): void
+    {
+        if (!$this->isValidCoord($q, $r)) {
+            throw new UserException(clienttranslate("Invalid board coordinate."));
+        }
+        $row = static::getObjectFromDb("SELECT `color` FROM `board` WHERE `coord_q` = {$q} AND `coord_r` = {$r}");
+        if (!$row) {
+            throw new UserException(clienttranslate("Invalid board space."));
+        }
+        if ($row['color'] !== null) {
+            throw new UserException(clienttranslate("This space is already occupied."));
+        }
+    }
+
     public function placeStone(int $q, int $r, string $color, int $playerId): void
     {
         if (!$this->isValidCoord($q, $r)) {

@@ -59,6 +59,10 @@ class PlayerTurn extends GameState
         $allColors = $this->game->getActiveColorsInGame();
         $expectedCount = count($allColors);
 
+        if (!empty($this->globals->get('placed_this_turn', []))) {
+            throw new UserException(clienttranslate("You have already started placing stones this turn. Reset the turn first."));
+        }
+
         if (count($stones) !== $expectedCount) {
             throw new UserException(clienttranslate("You must place exactly one stone of each color."));
         }
@@ -84,7 +88,11 @@ class PlayerTurn extends GameState
             }
             $coordsInMove[$key] = true;
 
-            $this->game->placeStone($q, $r, $color, $activePlayerId);
+            // Validate every stone before touching the board: a refused move must change nothing.
+            $this->game->assertCellFree($q, $r);
+        }
+        foreach ($stones as $st) {
+            $this->game->placeStone((int) $st['q'], (int) $st['r'], (string) $st['color'], $activePlayerId);
         }
 
         $this->globals->set('placed_this_turn', []);
@@ -241,13 +249,25 @@ class PlayerTurn extends GameState
 
     public function zombie(int $playerId): string
     {
-        $allPlayers = array_keys($this->game->loadPlayersBasicInfos());
-        $surviving = array_values(array_diff($allPlayers, [$playerId]));
-        if (!empty($surviving)) {
-            $winnerId = (int) $surviving[0];
-            $this->bga->playerScore->set($winnerId, 1);
-            $this->bga->playerScore->set($playerId, 0);
+        // Play a real turn on random empty cells (one stone of each colour), so the game keeps going
+        // and ends through the normal "no room for a full round" rule.
+        $placedCoords = $this->globals->get('placed_coords_this_turn', []);
+        foreach ($placedCoords as $pt) {
+            $this->game->clearCell((int) $pt['q'], (int) $pt['r']);
         }
-        return EndScore::class;
+        $this->globals->set('placed_this_turn', []);
+        $this->globals->set('placed_coords_this_turn', []);
+
+        $colors = $this->game->getPlacementOrderForPlayer($playerId);
+        $empty = $this->game->getEmptyCells();
+        shuffle($empty);
+        $stones = [];
+        foreach ($colors as $i => $color) {
+            if (!isset($empty[$i])) {
+                return EndScore::class;
+            }
+            $stones[] = ['q' => $empty[$i]['q'], 'r' => $empty[$i]['r'], 'color' => $color];
+        }
+        return $this->actPlaceStones($stones, $playerId, []);
     }
 }
