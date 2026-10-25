@@ -130,11 +130,6 @@ class PlayerTurn extends GameState
 
         if ($movesRemaining <= 0) {
             $this->globals->set('turn_phase', 'push');
-
-            // Check if player has any legal push available
-            if (!$this->game->playerHasAnyLegalPush($activePlayerId)) {
-                return $this->handleTrappedPlayer($activePlayerId);
-            }
         }
 
         $playerName = $this->game->getPlayerNameById($activePlayerId);
@@ -162,6 +157,11 @@ class PlayerTurn extends GameState
         ]);
 
         $this->playerStats->inc('moves_number', 1, $activePlayerId);
+
+        // Out of moves and no legal push left: the player is trapped (after the move was notified to everyone)
+        if ($movesRemaining <= 0 && !$this->game->playerHasAnyLegalPush($activePlayerId)) {
+            return $this->handleTrappedPlayer($activePlayerId);
+        }
 
         return PlayerTurn::class;
     }

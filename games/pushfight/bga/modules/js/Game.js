@@ -254,7 +254,7 @@ export class Game {
         const anchoredId = this.gamedatas.anchored_piece_id;
 
         pieces.forEach(p => {
-            if (!p.is_alive || p.pos_x === null || p.pos_y === null) return;
+            if (!Number(p.is_alive) || p.pos_x === null || p.pos_y === null) return;
 
             const r = parseInt(p.pos_y, 10);
             const c = parseInt(p.pos_x, 10);
@@ -400,7 +400,7 @@ export class Game {
                 if (!cell) continue;
 
                 const hasPiece = (this.gamedatas.pieces || []).some(
-                    p => p.is_alive && parseInt(p.pos_x, 10) === c && parseInt(p.pos_y, 10) === r
+                    p => Number(p.is_alive) && parseInt(p.pos_x, 10) === c && parseInt(p.pos_y, 10) === r
                 );
 
                 if (!hasPiece && (kingsRem > 0 || pawnsRem > 0)) {
@@ -526,7 +526,7 @@ export class Game {
             const maxCol = this.currentSetupArgs.max_col || 4;
             if (c >= minCol && c <= maxCol && this.isValidSquare(r, c)) {
                 const existing = (this.gamedatas.pieces || []).find(
-                    x => x.is_alive && parseInt(x.pos_x, 10) === c && parseInt(x.pos_y, 10) === r
+                    x => Number(x.is_alive) && parseInt(x.pos_x, 10) === c && parseInt(x.pos_y, 10) === r
                 );
                 if (!existing) {
                     const type = this.selectedSetupType || 'king';

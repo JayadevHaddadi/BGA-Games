@@ -28,12 +28,7 @@ class SetupPlacement extends GameState
     public function getArgs(): array
     {
         $activePlayerId = (int) $this->game->getActivePlayerId();
-        $players = $this->game->getCollectionFromDb(
-            "SELECT `player_id` AS `id`, `player_color` AS `color`, `player_no` FROM `player` ORDER BY `player_no` ASC"
-        );
-
-        $orderedIds = array_keys($players);
-        $isWhite = ($activePlayerId === (int)$orderedIds[0]);
+        $isWhite = ($activePlayerId === $this->game->getWhitePlayerId());
 
         $minCol = $isWhite ? 1 : 5;
         $maxCol = $isWhite ? 4 : 8;
@@ -82,11 +77,7 @@ class SetupPlacement extends GameState
             throw new UserException(clienttranslate('This board square is not valid'));
         }
 
-        $players = $this->game->getCollectionFromDb(
-            "SELECT `player_id` AS `id`, `player_no` FROM `player` ORDER BY `player_no` ASC"
-        );
-        $orderedIds = array_keys($players);
-        $isWhite = ($activePlayerId === (int)$orderedIds[0]);
+        $isWhite = ($activePlayerId === $this->game->getWhitePlayerId());
 
         if ($isWhite && ($c < 1 || $c > 4)) {
             throw new UserException(clienttranslate('White pieces must be placed on the left side of the center line (columns 1 to 4)'));
@@ -201,12 +192,8 @@ class SetupPlacement extends GameState
             throw new UserException(clienttranslate('You must place exactly 3 square Kings and 2 round Pawns before confirming.'));
         }
 
-        $players = $this->game->getCollectionFromDb(
-            "SELECT `player_id` AS `id`, `player_no` FROM `player` ORDER BY `player_no` ASC"
-        );
-        $orderedIds = array_keys($players);
-        $p1 = (int) $orderedIds[0];
-        $p2 = (int) $orderedIds[1];
+        $p1 = $this->game->getWhitePlayerId();
+        $p2 = $this->game->getBrownPlayerId();
 
         if ($activePlayerId === $p1) {
             // White finished; advance to Brown
@@ -275,12 +262,8 @@ class SetupPlacement extends GameState
     {
         $this->applyStandardPresetForPlayer($playerId);
 
-        $players = $this->game->getCollectionFromDb(
-            "SELECT `player_id` AS `id`, `player_no` FROM `player` ORDER BY `player_no` ASC"
-        );
-        $orderedIds = array_keys($players);
-        $p1 = (int) $orderedIds[0];
-        $p2 = (int) $orderedIds[1];
+        $p1 = $this->game->getWhitePlayerId();
+        $p2 = $this->game->getBrownPlayerId();
 
         if ($playerId === $p1) {
             $this->game->gamestate->changeActivePlayer($p2);
@@ -296,11 +279,7 @@ class SetupPlacement extends GameState
     {
         Game::DbQuery("DELETE FROM `piece` WHERE `player_id` = $playerId");
 
-        $players = $this->game->getCollectionFromDb(
-            "SELECT `player_id` AS `id`, `player_no` FROM `player` ORDER BY `player_no` ASC"
-        );
-        $orderedIds = array_keys($players);
-        $isWhite = ($playerId === (int)$orderedIds[0]);
+        $isWhite = ($playerId === $this->game->getWhitePlayerId());
 
         $pieces = $isWhite
             ? [

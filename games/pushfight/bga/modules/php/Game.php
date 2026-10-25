@@ -113,6 +113,19 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
+     * White (moves first) is the player holding the white colour; independent of player_no ordering.
+     */
+    public function getWhitePlayerId(): int
+    {
+        return (int) $this->getUniqueValueFromDb("SELECT `player_id` FROM `player` WHERE `player_color` = 'f5eedc'");
+    }
+
+    public function getBrownPlayerId(): int
+    {
+        return (int) $this->getUniqueValueFromDb("SELECT `player_id` FROM `player` WHERE `player_color` <> 'f5eedc'");
+    }
+
+    /**
      * Retrieve all pieces from database.
      */
     public function getAllPieces(): array
