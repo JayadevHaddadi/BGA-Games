@@ -78,13 +78,13 @@ class PlayerTurn extends GameState
     {
         $activePlayerId = $activePlayerId ?? (int) $this->game->getActivePlayerId();
 
-        // Stone placed on turn 2 or later; pie rule window closes
+        $color = $this->game->placeStone($q, $r, $activePlayerId);
+
+        // Stone placed on turn 2 or later; pie rule window closes (only once the move is accepted)
         $turnCount = (int) $this->globals->get('turn_count', 1);
         if ($turnCount >= 2) {
             $this->globals->set('pie_rule_used', true);
         }
-
-        $color = $this->game->placeStone($q, $r, $activePlayerId);
         $result = $this->game->evaluateMove($q, $r, $color);
 
         $this->playerStats->inc('stones_placed', 1, $activePlayerId);
@@ -135,6 +135,15 @@ class PlayerTurn extends GameState
                 'player_name' => $playerName,
                 'len' => $loseLen,
             ]);
+
+            // The eliminated player may have filled the last cell: nobody can move any more, so it is a draw
+            // (otherwise the next player would start a turn on a full board).
+            $emptyLeft = (int) $this->game->getUniqueValueFromDb("SELECT COUNT(*) FROM `board` WHERE `color` IS NULL");
+            if ($emptyLeft === 0) {
+                $this->globals->set('winner_id', 0);
+                $this->globals->set('end_reason', 'board_full_draw');
+                return EndScore::class;
+            }
             return NextPlayer::class;
         }
 

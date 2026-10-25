@@ -1,5 +1,6 @@
 -- DB model for Yavalath
 
+DROP TABLE IF EXISTS `board`;
 CREATE TABLE IF NOT EXISTS `board` (
     `coord_q` smallint(5) NOT NULL,
     `coord_r` smallint(5) NOT NULL,
