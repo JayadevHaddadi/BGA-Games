@@ -580,7 +580,9 @@ export class Game {
     /* ---------------------------------------------------------------------------------------------- */
 
     notif_walkMove(notif) {
-        const { from, to, role, player_id } = notif.args;
+        const args = notif?.args || notif || {};
+        const { from, to, role, player_id } = args;
+        if (!from || !to) return;
         this.board[from.y][from.x] = { color: 0, playerId: null };
         this.board[to.y][to.x] = { color: role, playerId: player_id };
 
@@ -593,7 +595,9 @@ export class Game {
     }
 
     notif_jumpMove(notif) {
-        const { from, pivot, to, role, player_id, captured } = notif.args;
+        const args = notif?.args || notif || {};
+        const { from, pivot, to, role, player_id, captured } = args;
+        if (!from || !to) return;
         this.board[from.y][from.x] = { color: 0, playerId: null };
         this.board[to.y][to.x] = { color: role, playerId: player_id };
 
@@ -614,7 +618,8 @@ export class Game {
     }
 
     notif_endGameScores(notif) {
-        const { winner_id, loser_id } = notif.args;
+        const args = notif?.args || notif || {};
+        const { winner_id, loser_id } = args;
         if (winner_id) {
             const counter = this.bga.playerPanels.getScoreCounter(winner_id);
             if (counter) counter.toValue(1);

@@ -133,6 +133,12 @@ try {
   const piece44 = document.getElementById('vaultn_piece_4_4');
   if (piece44) piece44.click();
 
+  // 3. Test notification handlers with both unpacked args and wrapped notif.args
+  game.notif_walkMove({ from: { x: 0, y: 0 }, to: { x: 0, y: 1 }, role: 1, player_id: 1 });
+  game.notif_jumpMove({ from: { x: 3, y: 3 }, pivot: { x: 4, y: 4 }, to: { x: 5, y: 5 }, role: 1, player_id: 1, captured: true });
+  game.notif_walkMove({ args: { from: { x: 0, y: 1 }, to: { x: 0, y: 2 }, role: 1, player_id: 1 } });
+  game.notif_jumpMove({ args: { from: { x: 5, y: 5 }, pivot: { x: 6, y: 6 }, to: { x: 7, y: 7 }, role: 1, player_id: 1, captured: false } });
+
   setTimeout(() => {
     const board = document.querySelector('#vaultn_board');
     const boardRect = board ? board.getBoundingClientRect() : { width: 0, height: 0, left: 0 };
