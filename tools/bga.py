@@ -808,9 +808,16 @@ def cmd_check(args):
 
     # 14. Rules tests and the browser harness
     for test in sorted((folder / 'tests').glob('*_test.php')) if have_php else []:
-        out = subprocess.run(['php', str(test)], capture_output=True, text=True)
-        last = (out.stdout.strip().splitlines() or ['no output'])[-1]
-        (rep.add('PASS', f'{test.name}: {last}') if out.returncode == 0 else rep.add('FAIL', f'{test.name}', last))
+        try:
+            out = subprocess.run(['php', str(test)], capture_output=True, text=True, timeout=180)
+            last = (out.stdout.strip().splitlines() or out.stderr.strip().splitlines() or ['no output'])[-1]
+            ok = out.returncode == 0
+        except subprocess.TimeoutExpired:
+            last, ok = 'timed out after 180 s', False
+        (rep.add('PASS', f'{test.name}: {last}') if ok else rep.add('FAIL', f'{test.name}', last))
+    # game-level test: real Game.php + States/*.php against the offline BGA stub (tools/php_stub/zombie_run.php)
+    if have_php and (folder / 'bga' / 'modules' / 'php' / 'Game.php').exists() and not (folder / 'tests' / 'zombie_test.php').exists():
+        rep.add('WARN', 'zombie_test.php', 'missing: create games/<slug>/tests/zombie_test.php (3 lines, see top of tools/php_stub/zombie_run.php)')
     if not list((folder / 'tests').glob('*_test.php')):
         rep.add('WARN', 'rules tests', 'no tests/*_test.php: write the pure rules as CLI checks first')
     if not (folder / 'tests' / 'harness' / 'index.html').exists():
