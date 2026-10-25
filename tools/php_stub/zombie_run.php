@@ -309,7 +309,7 @@ function zr_game(array $ctx, int $seed, int $count, bool $randomOptions, bool $p
     Stub::$gameinfos = $ctx['gameinfos'];
     Stub::$statDefs = $ctx['stats'];
     Stub::$prefDefaults = $ctx['prefs'];
-    Stub::$options = zr_defaults($ctx['options'], $randomOptions);
+    Stub::$options = ($GLOBALS['zr_options'] ?? []) + zr_defaults($ctx['options'], $randomOptions);   // $GLOBALS['zr_options'] = [id => value]: per-test option overrides
     Stub::loadSchema($ctx['sql']);
 
     $r = new ZRun();

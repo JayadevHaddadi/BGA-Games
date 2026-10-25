@@ -347,6 +347,11 @@ namespace Bga\GameFramework {
                 $set = preg_replace('/\b' . $a . '\./', '', $set);
                 $s = "UPDATE $t AS $a SET $set WHERE EXISTS (SELECT 1 FROM $t2 $a2 WHERE $on AND ($where))";
             }
+            // MySQL DELETE ... [ORDER BY ..] LIMIT n (SQLite is built without it) and GREATEST/LEAST (SQLite: scalar MAX/MIN)
+            if (preg_match('/^DELETE\s+FROM\s+(`?\w+`?)\s+(WHERE\s+.+?)(\s+ORDER\s+BY\s+.+?)?\s+LIMIT\s+(\d+)$/is', $s, $m)) {
+                $s = "DELETE FROM {$m[1]} WHERE rowid IN (SELECT rowid FROM {$m[1]} {$m[2]}" . ($m[3] ?? '') . " LIMIT {$m[4]})";
+            }
+            $s = preg_replace(['/\bGREATEST\s*\(/i', '/\bLEAST\s*\(/i'], ['MAX(', 'MIN('], $s);
             return self::restore($s, $lits);
         }
 
