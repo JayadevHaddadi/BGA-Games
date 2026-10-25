@@ -1,9 +1,13 @@
 /* Vault (nestorgames): play area styles.
    Guidelines: no shadows, no looping animation, no emoji, corners <= 3px (or 50% for circles). */
 
+/* Dark slate table with a faint grid; only the background is set so the BGA status bar and log stay readable. */
 body.vaultn_page_bg {
     background-color: #21252b;
-    color: #e0e0e0;
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+    background-size: 40px 40px;
 }
 
 body.vaultn_page_bg #page-content,
@@ -215,7 +219,7 @@ body.vaultn_cb_on .vaultn_tone_3::before {
 }
 
 .vaultn_piece_white {
-    background: radial-gradient(circle at 35% 35%, #ffffff 0%, #ede8de 70%, #d8d0c2 100%);
+    background: #f1ece2;
     border: 2px solid #6b6356;
 }
 
@@ -228,7 +232,7 @@ body.vaultn_cb_on .vaultn_tone_3::before {
 }
 
 .vaultn_piece_black {
-    background: radial-gradient(circle at 35% 35%, #474747 0%, #292929 70%, #151515 100%);
+    background: #2a2a2a;
     border: 2px solid #111111;
 }
 

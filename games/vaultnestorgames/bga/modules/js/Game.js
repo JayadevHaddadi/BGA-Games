@@ -51,6 +51,7 @@ export class Game {
             new ResizeObserver(() => this.fitLayout()).observe(root);
         }
         this.fitLayout();
+        this.installKeys();
 
         // Promise notifications setup (mandatory for board updates)
         this.bga.notifications.setupPromiseNotifications({});
@@ -58,6 +59,30 @@ export class Game {
         if (gamedatas.last_move) {
             this.highlightLastMove(gamedatas.last_move);
         }
+    }
+
+    /** Enter = confirm the staged move, Escape = deselect. Capture phase so the page's own shortcuts do not interfere. */
+    installKeys() {
+        if (this.keysInstalled) return;
+        this.keysInstalled = true;
+        window.addEventListener('keydown', (e) => {
+            if (!this.isActive || !this.args || e.ctrlKey || e.metaKey || e.altKey) return;
+            const t = e.target;
+            const tag = (t && t.tagName) || '';
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) return;
+            if (e.key === 'Escape' && (this.stage || this.selectedFrom)) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                this.cancelSelection();
+            } else if (e.key === 'Enter' && this.stage) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                if (e.repeat) return;
+                const st = this.stage;
+                if (st.type === 'walk') this.bga.actions.performAction('actWalk', { from: st.from, to: st.to });
+                else this.bga.actions.performAction('actJump', { from: st.from, pivot: st.pivot, to: st.to });
+            }
+        }, true);
     }
 
     initBoardModel(pieces) {
@@ -77,25 +102,6 @@ export class Game {
     }
 
     buildDom(root) {
-        // Info bar
-        const infoBar = document.createElement('div');
-        infoBar.className = 'vaultn_info_bar';
-
-        const myRole = this.getMyRole();
-        const roleName = myRole === 1 ? _('White (starts at row 1, goal row 10)') : (myRole === 2 ? _('Black (starts at row 10, goal row 1)') : _('Spectator'));
-        const badgeClass = myRole === 1 ? 'vaultn_badge_white' : (myRole === 2 ? 'vaultn_badge_black' : '');
-
-        infoBar.innerHTML = `
-            <div class="vaultn_info_item">
-                <span>${_('You are:')}</span>
-                <span class="vaultn_badge ${badgeClass}">${roleName}</span>
-            </div>
-            <div class="vaultn_info_item" id="vaultn_status_note">
-                <span>${_('Goal: Start turn with a pawn on opponent back rank')}</span>
-            </div>
-        `;
-        root.appendChild(infoBar);
-
         // Board Frame with coordinates
         const frame = document.createElement('div');
         frame.className = 'vaultn_board_frame';
@@ -354,8 +360,14 @@ export class Game {
             }
         }
 
-        // Highlight legal pivot pawns
+        // Highlight every jump landing square (captures marked with a ring) and the pivot pawns
         const jumps = (this.args.jumps || []).filter(j => j.from.x === x && j.from.y === y);
+        for (const j of jumps) {
+            const cell = document.getElementById(`vaultn_cell_${j.to.x}_${j.to.y}`);
+            if (cell) {
+                cell.classList.add('vaultn_cell_selectable', j.capture ? 'vaultn_target_capture' : 'vaultn_target_jump');
+            }
+        }
         const pivotSet = new Set();
         for (const j of jumps) {
             pivotSet.add(`${j.pivot.x},${j.pivot.y}`);

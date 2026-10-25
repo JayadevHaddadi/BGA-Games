@@ -43,7 +43,7 @@ class EndScore extends GameState
 
         $msg = clienttranslate('The game is over.');
         if ($reason === 'back_rank') {
-            $msg = clienttranslate("${player_name} has a pawn on the opponent's back rank and wins!");
+            $msg = clienttranslate('${player_name} starts the turn with a pawn on the opponent\'s back rank and wins!');
         } elseif ($reason === 'stalemate') {
             $msg = clienttranslate('${player_name} wins! - ${loser_name} has no legal moves remaining.');
         } elseif ($reason === 'zombie_forfeit') {

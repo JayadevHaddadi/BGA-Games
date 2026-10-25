@@ -318,6 +318,154 @@ $rendered = renderBoard($demoBoard);
 check(str_contains($rendered, 'W W W W W W W W W W'), "Rank 0 rendered with 10 W");
 check(str_contains($rendered, 'B B B B B B B B B B'), "Rank 9 rendered with 10 B");
 
+echo "\n=== 7. Edge cases from the rulebook ===\n";
+
+function rejects(array $board, int $player, array $action): bool
+{
+    try {
+        Rules::applyMove($board, $player, $action);
+    } catch (\InvalidArgumentException $e) {
+        return true;
+    }
+    return false;
+}
+
+// Initial position: 10 W + 10 B, White's first-move options.
+$init = Rules::initialBoard();
+$firstWalks = Rules::getLegalWalks($init, Rules::WHITE);
+// Rank 0 pawns: corners have 2 forward targets (x+1 diagonal and straight), edges/middle 3.
+check(count($firstWalks) === 2 * 2 + 8 * 3, "White has 28 walks at the start");
+// Jumps at the start: all pawns on one row; mirror lands on the same row, only empty cells off-board or friendly.
+check(count(Rules::getLegalJumps($init, Rules::WHITE)) === 0, "No jumps at the start (landing squares are friendly or off board)");
+
+// Walking onto an occupied (enemy or friendly) square or capturing by walking is illegal.
+$b = emptyBoard();
+$b[4][4] = Rules::WHITE;
+$b[5][5] = Rules::BLACK;
+$b[4][5] = Rules::WHITE;
+check(rejects($b, Rules::WHITE, ['type' => 'walk', 'from' => ['x' => 4, 'y' => 4], 'to' => ['x' => 5, 'y' => 5]]), "Walk cannot capture");
+check(rejects($b, Rules::WHITE, ['type' => 'walk', 'from' => ['x' => 4, 'y' => 4], 'to' => ['x' => 5, 'y' => 4]]), "Walk cannot enter friendly square");
+check(rejects($b, Rules::WHITE, ['type' => 'walk', 'from' => ['x' => 4, 'y' => 4], 'to' => ['x' => 6, 'y' => 4]]), "Walk of 2 steps rejected");
+check(rejects($b, Rules::WHITE, ['type' => 'walk', 'from' => ['x' => 4, 'y' => 4], 'to' => ['x' => 4, 'y' => 4]]), "Walk in place rejected");
+check(rejects($b, Rules::BLACK, ['type' => 'walk', 'from' => ['x' => 4, 'y' => 4], 'to' => ['x' => 3, 'y' => 4]]), "Cannot move opponent's pawn");
+check(rejects($b, Rules::WHITE, ['type' => 'walk', 'from' => ['x' => 0, 'y' => 0], 'to' => ['x' => 1, 'y' => 0]]), "Cannot move from an empty square");
+// Walking off the board is rejected.
+$b2 = emptyBoard();
+$b2[0][0] = Rules::WHITE;
+check(rejects($b2, Rules::WHITE, ['type' => 'walk', 'from' => ['x' => 0, 'y' => 0], 'to' => ['x' => -1, 'y' => 0]]), "Walk off board rejected");
+check(count(Rules::getLegalWalks($b2, Rules::WHITE)) === 3, "Corner pawn has 3 walks");
+
+// A single pawn has no jump (needs a pivot), jump needs landing = 2B - A exactly.
+check(count(Rules::getLegalJumps($b2, Rules::WHITE)) === 0, "A lone pawn cannot jump");
+$b3 = emptyBoard();
+$b3[2][2] = Rules::WHITE;
+$b3[3][4] = Rules::WHITE; // vector (2,1): landing (6,4)
+check(rejects($b3, Rules::WHITE, ['type' => 'jump', 'from' => ['x' => 2, 'y' => 2], 'pivot' => ['x' => 4, 'y' => 3], 'to' => ['x' => 5, 'y' => 4]]), "Wrong landing square rejected");
+check(rejects($b3, Rules::WHITE, ['type' => 'jump', 'from' => ['x' => 2, 'y' => 2], 'pivot' => ['x' => 2, 'y' => 2], 'to' => ['x' => 2, 'y' => 2]]), "Pawn cannot pivot over itself");
+$r = Rules::applyMove($b3, Rules::WHITE, ['type' => 'jump', 'from' => ['x' => 2, 'y' => 2], 'pivot' => ['x' => 4, 'y' => 3], 'to' => ['x' => 6, 'y' => 4]]);
+check($r['board'][4][6] === Rules::WHITE && $r['board'][2][2] === Rules::EMPTY, "Knight-vector jump to (6,4)");
+// Both directions of a pair are distinct jumps; second pawn jumping the other way lands at (0,1).
+check(count(Rules::getLegalJumps($b3, Rules::WHITE)) === 2, "Pair gives two mirrored jumps");
+// The pivot never moves and a jump never removes a friendly piece.
+check($r['board'][3][4] === Rules::WHITE, "Pivot stays");
+// Exactly one jump per turn: a jump result is a plain board, no chaining flag.
+check(!isset($r['chain']), "No multi-jump");
+// Captured pawn: count drops by one, only the landing piece removed.
+$b4 = emptyBoard();
+$b4[0][0] = Rules::WHITE; $b4[1][1] = Rules::WHITE; $b4[2][2] = Rules::BLACK; $b4[1][0] = Rules::BLACK;
+$cr = Rules::applyMove($b4, Rules::WHITE, ['type' => 'jump', 'from' => ['x' => 0, 'y' => 0], 'pivot' => ['x' => 1, 'y' => 1], 'to' => ['x' => 2, 'y' => 2]]);
+$cnt = ['w' => 0, 'b' => 0];
+foreach ($cr['board'] as $row) { foreach ($row as $v) { if ($v === 1) $cnt['w']++; if ($v === 2) $cnt['b']++; } }
+check($cnt['w'] === 2 && $cnt['b'] === 1, "Capture removes exactly one Black pawn");
+// Jump to board edges (index 0 and 9) is allowed.
+$b5 = emptyBoard();
+$b5[8][4] = Rules::WHITE; $b5[9][5] = Rules::WHITE; // vector (1,1) -> (6,10) out; reverse: from (5,9) over (4,8) -> (3,7)
+check(count(Rules::getLegalJumps($b5, Rules::WHITE)) === 1, "Jump off the top edge illegal, reverse jump legal");
+$b6 = emptyBoard();
+$b6[7][4] = Rules::WHITE; $b6[8][4] = Rules::WHITE; // (4,7) over (4,8) lands (4,9)
+$j6 = Rules::getLegalJumps($b6, Rules::WHITE);
+check(count($j6) === 2 && Rules::applyMove($b6, Rules::WHITE, ['type' => 'jump', 'from' => ['x' => 4, 'y' => 7], 'pivot' => ['x' => 4, 'y' => 8], 'to' => ['x' => 4, 'y' => 9]])['board'][9][4] === Rules::WHITE, "Jump landing on rank 9 allowed");
+
+// Win condition timing: reaching the back rank does NOT win on that turn; the opponent gets one turn.
+$w = emptyBoard();
+$w[8][4] = Rules::WHITE; $w[5][1] = Rules::BLACK;
+$moved = Rules::applyMove($w, Rules::WHITE, ['type' => 'walk', 'from' => ['x' => 4, 'y' => 8], 'to' => ['x' => 4, 'y' => 9]]);
+check(Rules::checkVictoryAtTurnStart($moved['board'], Rules::BLACK) === null, "Black (to move) sees no win yet when White just arrived");
+check(Rules::hasPieceOnBackRank($moved['board'], Rules::WHITE), "White pawn is on the back rank");
+// Opponent can capture the pawn by a jump: then White does not win at the start of its turn.
+$c = emptyBoard();
+$c[9][4] = Rules::WHITE; $c[5][4] = Rules::BLACK; $c[7][4] = Rules::BLACK; $c[8][0] = Rules::WHITE;
+// Black jumps from (4,5) over (4,7) landing on (4,9), capturing White.
+$cap = Rules::applyMove($c, Rules::BLACK, ['type' => 'jump', 'from' => ['x' => 4, 'y' => 5], 'pivot' => ['x' => 4, 'y' => 7], 'to' => ['x' => 4, 'y' => 9]]);
+check($cap['captured'] !== null, "Back-rank pawn captured by jump");
+check(Rules::checkVictoryAtTurnStart($cap['board'], Rules::WHITE) === null, "White does not win after the back-rank pawn is captured");
+// Both sides on the opponent's back rank: the player whose turn starts wins first.
+$both = emptyBoard();
+$both[9][0] = Rules::WHITE; $both[0][9] = Rules::BLACK;
+check(Rules::checkVictoryAtTurnStart($both, Rules::BLACK) === Rules::BLACK, "Mover with a pawn on the goal row wins even if opponent also has one");
+// Back-rank win takes priority over having no moves.
+check(Rules::checkVictoryAtTurnStart($both, Rules::WHITE) === Rules::WHITE, "Symmetric: White to move wins");
+// Own home rank is not a goal.
+check(Rules::checkVictoryAtTurnStart(Rules::initialBoard(), Rules::WHITE) === null, "Home rank is not a win");
+check(Rules::checkVictoryAtTurnStart(Rules::initialBoard(), Rules::BLACK) === null, "Black home rank is not a win");
+// Malformed actions
+check(rejects($b3, Rules::WHITE, ['type' => 'fly']), "Unknown move type rejected");
+check(rejects($b3, Rules::WHITE, ['type' => 'jump', 'from' => ['x' => 2, 'y' => 2], 'to' => ['x' => 6, 'y' => 4]]), "Jump without pivot rejected");
+check(rejects($b3, Rules::WHITE, ['type' => 'walk', 'from' => ['x' => 2, 'y' => 2], 'to' => ['x' => 2, 'y' => 12]]), "Out of bounds target rejected");
+
+echo "\n=== 8. Random full-game fuzz ===\n";
+
+mt_srand(20261025);
+$games = 300;
+$ends = ['back_rank' => 0, 'stalemate' => 0, 'cap' => 0];
+for ($g = 0; $g < $games; $g++) {
+    $board = Rules::initialBoard();
+    $player = Rules::WHITE;
+    $ended = false;
+    for ($turn = 0; $turn < 600; $turn++) {
+        $win = Rules::checkVictoryAtTurnStart($board, $player);
+        $legal = Rules::getAllLegalMoves($board, $player);
+        if ($win !== null) {
+            $ended = true;
+            if (Rules::hasPieceOnBackRank($board, $player)) {
+                check($win === $player, "Fuzz: back rank at turn start means mover wins");
+                $ends['back_rank']++;
+            } else {
+                check(empty($legal) && $win !== $player, "Fuzz: stalemate loses for the mover");
+                $ends['stalemate']++;
+            }
+            break;
+        }
+        check(!empty($legal), "Fuzz: ongoing game always has a legal move (g=$g t=$turn)");
+        // Prefer winning-ish moves 30% of the time so games finish
+        $m = $legal[mt_rand(0, count($legal) - 1)];
+        $forward = array_values(array_filter($legal, fn($x) => abs($x['to']['y'] - Rules::targetRank($player)) < abs($x['from']['y'] - Rules::targetRank($player))));
+        if (!empty($forward) && mt_rand(0, 99) < 70) {
+            $m = $forward[mt_rand(0, count($forward) - 1)];
+        }
+        $before = $board;
+        $res = Rules::applyMove($board, $player, $m);
+        $board = $res['board'];
+        // Invariants: own pawn count unchanged; opponent count drops by capture only; 4-tone preserved for jumps.
+        $count = function (array $bd, int $p): int {
+            $n = 0;
+            foreach ($bd as $row) { foreach ($row as $v) { if ($v === $p) $n++; } }
+            return $n;
+        };
+        $opp = $player === Rules::WHITE ? Rules::BLACK : Rules::WHITE;
+        if ($count($board, $player) !== $count($before, $player)) { check(false, "Fuzz: own pawn count changed"); }
+        $expectedOpp = $count($before, $opp) - ($res['captured'] !== null ? 1 : 0);
+        if ($count($board, $opp) !== $expectedOpp) { check(false, "Fuzz: opponent count mismatch"); }
+        if (($m['capture'] ?? false) !== ($res['captured'] !== null)) { check(false, "Fuzz: capture flag mismatch"); }
+        if ($m['type'] === Rules::MOVE_JUMP && Rules::tone($m['from']['x'], $m['from']['y']) !== Rules::tone($m['to']['x'], $m['to']['y'])) { check(false, "Fuzz: tone changed on jump"); }
+        if ($m['type'] === Rules::MOVE_WALK && $res['captured'] !== null) { check(false, "Fuzz: walk captured"); }
+        $player = $opp;
+    }
+    if (!$ended) { $ends['cap']++; }
+}
+check($ends['back_rank'] > 0, "Fuzz: some games end by back rank");
+echo "Fuzz games: $games, back rank endings: {$ends['back_rank']}, stalemates: {$ends['stalemate']}, unfinished: {$ends['cap']}\n";
+
 echo "\nTotal checks: $checks, Failures: $failures\n";
 if ($failures > 0) {
     exit(1);
