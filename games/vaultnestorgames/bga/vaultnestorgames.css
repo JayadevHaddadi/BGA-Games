@@ -97,6 +97,37 @@ body.vaultn_page_bg #game_play_area_background {
     line-height: 18px;
 }
 
+.vaultn_corner_ctrl {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.vaultn_flip_btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 16px;
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    border: 1px solid #3e4451;
+    border-radius: 3px;
+    color: #8b92a2;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+@media (hover: hover) {
+    .vaultn_flip_btn:hover {
+        background: #282c34;
+        color: #abb2bf;
+        border-color: #61afef;
+    }
+}
+
 .vaultn_board_mid {
     display: grid;
     grid-template-columns: 24px 1fr 24px;
@@ -396,6 +427,17 @@ body.vaultn_cb_on .vaultn_tone_3::before {
     .vaultn_col_labels_right {
         font-size: 10px;
         box-sizing: border-box;
+    }
+
+    .vaultn_flip_btn {
+        width: 12px;
+        height: 12px;
+        border: none;
+    }
+
+    .vaultn_flip_btn svg {
+        width: 10px;
+        height: 10px;
     }
 }
 

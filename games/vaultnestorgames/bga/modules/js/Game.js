@@ -45,7 +45,20 @@ export class Game {
         this.bga.gameArea.getElement().appendChild(root);
         document.body.classList.add('vaultn_page_bg');
 
+        const pref102 = Number(this.bga?.userPreferences?.get?.(102) ?? 1);
+        this.isFlipped = pref102 === 1 ? (this.getMyRole() === 2) : false;
+
         this.buildDom(root);
+
+        if (this.bga?.userPreferences) {
+            this.bga.userPreferences.onChange = (prefId) => {
+                if (prefId === 102) {
+                    const p = Number(this.bga?.userPreferences?.get?.(102) ?? 1);
+                    this.isFlipped = p === 1 ? (this.getMyRole() === 2) : false;
+                    this.rebuildBoard();
+                }
+            };
+        }
 
         if (typeof ResizeObserver !== 'undefined') {
             new ResizeObserver(() => this.fitLayout()).observe(root);
@@ -79,8 +92,28 @@ export class Game {
                 e.stopImmediatePropagation();
                 if (e.repeat) return;
                 const st = this.stage;
-                if (st.type === 'walk') this.bga.actions.performAction('actWalk', { from: st.from, to: st.to });
-                else this.bga.actions.performAction('actJump', { from: st.from, pivot: st.pivot, to: st.to });
+                if (st.type === 'walk') {
+                    this.bga.actions.performAction('actWalk', {
+                        from_x: st.from.x,
+                        from_y: st.from.y,
+                        to_x: st.to.x,
+                        to_y: st.to.y,
+                        from: st.from,
+                        to: st.to,
+                    });
+                } else {
+                    this.bga.actions.performAction('actJump', {
+                        from_x: st.from.x,
+                        from_y: st.from.y,
+                        pivot_x: st.pivot.x,
+                        pivot_y: st.pivot.y,
+                        to_x: st.to.x,
+                        to_y: st.to.y,
+                        from: st.from,
+                        pivot: st.pivot,
+                        to: st.to,
+                    });
+                }
             }
         }, true);
     }
@@ -102,23 +135,60 @@ export class Game {
     }
 
     buildDom(root) {
+        if (!root) root = this.root;
+        this.root = root;
+        root.innerHTML = '';
+
+        const cols = this.isFlipped ? [9, 8, 7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+        const rows = this.isFlipped ? [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] : [9, 8, 7, 6, 5, 4, 3, 2, 1, 0];
+
         // Board Frame with coordinates
         const frame = document.createElement('div');
         frame.className = 'vaultn_board_frame';
 
-        // Top rank labels (A to J)
+        // Top rank labels
         const topLabels = document.createElement('div');
         topLabels.className = 'vaultn_rank_labels_top';
-        topLabels.innerHTML = '<div></div>' + Array.from({ length: 10 }, (_, i) => `<div>${String.fromCharCode(65 + i)}</div>`).join('') + '<div></div>';
+
+        // Top-left corner spacer
+        topLabels.appendChild(document.createElement('div'));
+
+        // Column letters (A-J or J-A)
+        for (const cx of cols) {
+            const lbl = document.createElement('div');
+            lbl.textContent = String.fromCharCode(65 + cx);
+            topLabels.appendChild(lbl);
+        }
+
+        // Top-right corner flip perspective button
+        const topRightCorner = document.createElement('div');
+        topRightCorner.className = 'vaultn_corner_ctrl';
+        const flipBtn = document.createElement('button');
+        flipBtn.type = 'button';
+        flipBtn.className = 'vaultn_flip_btn';
+        flipBtn.setAttribute('aria-label', _('Flip board perspective'));
+        flipBtn.title = _('Flip board perspective');
+        flipBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16V4m0 0L3 8m4-4l4 4m10 4v12m0 0l4-4m-4 4l-4-4"/></svg>';
+        flipBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleOrientation();
+        });
+        topRightCorner.appendChild(flipBtn);
+        topLabels.appendChild(topRightCorner);
+
         frame.appendChild(topLabels);
 
-        // Mid section (Left ranks 10..1, Grid, Right ranks 10..1)
+        // Mid section (Left ranks, Grid, Right ranks)
         const mid = document.createElement('div');
         mid.className = 'vaultn_board_mid';
 
         const leftCol = document.createElement('div');
         leftCol.className = 'vaultn_col_labels_left';
-        leftCol.innerHTML = Array.from({ length: 10 }, (_, i) => `<div>${10 - i}</div>`).join('');
+        for (const ry of rows) {
+            const lbl = document.createElement('div');
+            lbl.textContent = String(ry + 1);
+            leftCol.appendChild(lbl);
+        }
         mid.appendChild(leftCol);
 
         // Grid (10x10)
@@ -126,9 +196,8 @@ export class Game {
         grid.className = 'vaultn_board';
         grid.id = 'vaultn_board';
 
-        // In chess/grid display: rank 9 is top row (row index 0 in DOM), rank 0 is bottom row (row index 9)
-        for (let ry = 9; ry >= 0; ry--) {
-            for (let rx = 0; rx < 10; rx++) {
+        for (const ry of rows) {
+            for (const rx of cols) {
                 const cell = document.createElement('div');
                 cell.className = `vaultn_cell vaultn_tone_${(rx & 1) + ((ry & 1) << 1)}`;
                 cell.id = `vaultn_cell_${rx}_${ry}`;
@@ -142,20 +211,56 @@ export class Game {
 
         const rightCol = document.createElement('div');
         rightCol.className = 'vaultn_col_labels_right';
-        rightCol.innerHTML = Array.from({ length: 10 }, (_, i) => `<div>${10 - i}</div>`).join('');
+        for (const ry of rows) {
+            const lbl = document.createElement('div');
+            lbl.textContent = String(ry + 1);
+            rightCol.appendChild(lbl);
+        }
         mid.appendChild(rightCol);
 
         frame.appendChild(mid);
 
-        // Bottom rank labels (A to J)
+        // Bottom rank labels
         const botLabels = document.createElement('div');
         botLabels.className = 'vaultn_rank_labels_bottom';
-        botLabels.innerHTML = '<div></div>' + Array.from({ length: 10 }, (_, i) => `<div>${String.fromCharCode(65 + i)}</div>`).join('') + '<div></div>';
+        botLabels.appendChild(document.createElement('div'));
+        for (const cx of cols) {
+            const lbl = document.createElement('div');
+            lbl.textContent = String.fromCharCode(65 + cx);
+            botLabels.appendChild(lbl);
+        }
+        botLabels.appendChild(document.createElement('div'));
         frame.appendChild(botLabels);
 
         root.appendChild(frame);
 
         this.renderAllPieces();
+    }
+
+    toggleOrientation() {
+        this.isFlipped = !this.isFlipped;
+        this.rebuildBoard();
+    }
+
+    rebuildBoard() {
+        if (!this.root) return;
+        this.buildDom(this.root);
+        this.fitLayout();
+        if (this.isActive) {
+            this.highlightSelectablePieces();
+        }
+        if (this.stage) {
+            if (this.stage.type === 'walk') {
+                this.stageWalk(this.stage);
+            } else if (this.stage.type === 'jump') {
+                this.stageJump(this.stage);
+            }
+        } else if (this.selectedFrom) {
+            this.onPieceClick(this.selectedFrom.x, this.selectedFrom.y);
+        }
+        if (this.gamedatas?.last_move) {
+            this.highlightLastMove(this.gamedatas.last_move);
+        }
     }
 
     renderAllPieces() {
@@ -187,8 +292,8 @@ export class Game {
     }
 
     getMyRole() {
-        const pid = this.bga.playerPanels.getCurrentPlayerId();
-        const roles = this.gamedatas.player_roles || {};
+        const pid = this.bga?.players?.getCurrentPlayerId?.() || this.bga?.playerPanels?.getCurrentPlayerId?.() || this.player_id;
+        const roles = this.gamedatas?.player_roles || {};
         return Number(roles[String(pid)] || 0);
     }
 
@@ -251,14 +356,31 @@ export class Game {
             if (this.stage.type === 'walk') {
                 this.bga.statusBar.addActionButton(
                     _('Confirm Walk'),
-                    () => this.bga.actions.performAction('actWalk', { from: this.stage.from, to: this.stage.to }),
+                    () => this.bga.actions.performAction('actWalk', {
+                        from_x: this.stage.from.x,
+                        from_y: this.stage.from.y,
+                        to_x: this.stage.to.x,
+                        to_y: this.stage.to.y,
+                        from: this.stage.from,
+                        to: this.stage.to,
+                    }),
                     { color: 'primary' }
                 );
             } else if (this.stage.type === 'jump') {
                 const label = this.stage.isCapture ? _('Confirm Vault (Capture)') : _('Confirm Vault');
                 this.bga.statusBar.addActionButton(
                     label,
-                    () => this.bga.actions.performAction('actJump', { from: this.stage.from, pivot: this.stage.pivot, to: this.stage.to }),
+                    () => this.bga.actions.performAction('actJump', {
+                        from_x: this.stage.from.x,
+                        from_y: this.stage.from.y,
+                        pivot_x: this.stage.pivot.x,
+                        pivot_y: this.stage.pivot.y,
+                        to_x: this.stage.to.x,
+                        to_y: this.stage.to.y,
+                        from: this.stage.from,
+                        pivot: this.stage.pivot,
+                        to: this.stage.to,
+                    }),
                     { color: 'primary' }
                 );
             }
@@ -475,7 +597,8 @@ export class Game {
         this.renderCellPiece(from.x, from.y);
         this.renderCellPiece(to.x, to.y);
 
-        this.highlightLastMove({ from, to });
+        this.gamedatas.last_move = { from, to };
+        this.highlightLastMove(this.gamedatas.last_move);
         this.sfx('vault_walk');
     }
 
@@ -487,7 +610,8 @@ export class Game {
         this.renderCellPiece(from.x, from.y);
         this.renderCellPiece(to.x, to.y);
 
-        this.highlightLastMove({ from, pivot, to });
+        this.gamedatas.last_move = { from, pivot, to, captured };
+        this.highlightLastMove(this.gamedatas.last_move);
         if (captured) {
             this.sfx('vault_capture');
         } else {

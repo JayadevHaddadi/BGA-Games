@@ -92,17 +92,38 @@ class PlayerTurn extends GameState
      * Walk action: move 1 friendly piece to an adjacent empty square.
      */
     #[PossibleAction]
-    public function actWalk(int $activePlayerId, array $args): string
+    public function actWalk(
+        ?int $from_x = null,
+        ?int $from_y = null,
+        ?int $to_x = null,
+        ?int $to_y = null,
+        ?array $from = null,
+        ?array $to = null,
+        ?int $activePlayerId = null
+    ): string {
+        $activePlayerId = $activePlayerId ?? (int) $this->game->getActivePlayerId();
+
+        $fx = $from_x ?? ($from['x'] ?? ($_POST['from_x'] ?? ($_POST['from']['x'] ?? null)));
+        $fy = $from_y ?? ($from['y'] ?? ($_POST['from_y'] ?? ($_POST['from']['y'] ?? null)));
+        $tx = $to_x ?? ($to['x'] ?? ($_POST['to_x'] ?? ($_POST['to']['x'] ?? null)));
+        $ty = $to_y ?? ($to['y'] ?? ($_POST['to_y'] ?? ($_POST['to']['y'] ?? null)));
+
+        if ($fx === null || $fy === null || $tx === null || $ty === null) {
+            throw new UserException(clienttranslate('Missing coordinates for walk move'));
+        }
+
+        return $this->executeWalk(
+            $activePlayerId,
+            ['x' => (int) $fx, 'y' => (int) $fy],
+            ['x' => (int) $tx, 'y' => (int) $ty],
+        );
+    }
+
+    public function executeWalk(int $activePlayerId, array $from, array $to): string
     {
         $role = $this->game->getPlayerRole($activePlayerId);
         if ($role !== Rules::WHITE && $role !== Rules::BLACK) {
             throw new UserException(clienttranslate('You are not a player in this game'));
-        }
-
-        $from = $args['from'] ?? null;
-        $to = $args['to'] ?? null;
-        if (!is_array($from) || !is_array($to)) {
-            throw new UserException(clienttranslate('Missing coordinates for walk move'));
         }
 
         $board = $this->game->getBoard();
@@ -122,8 +143,7 @@ class PlayerTurn extends GameState
         $ty = $res['to']['y'];
 
         // Update database
-        static::DbQuery("UPDATE `board` SET `player_color` = " . Rules::EMPTY . ", `player_id` = NULL WHERE `x` = $fx AND `y` = $fy");
-        static::DbQuery("UPDATE `board` SET `player_color` = $role, `player_id` = $activePlayerId WHERE `x` = $tx AND `y` = $ty");
+        $this->game->movePiece($fx, $fy, $tx, $ty, $role, $activePlayerId);
 
         // Update stats
         $this->tableStats->inc('turns_number', 1);
@@ -168,19 +188,44 @@ class PlayerTurn extends GameState
      * Jump action: vault 1 friendly piece over another friendly pivot, landing at 2B - A.
      */
     #[PossibleAction]
-    public function actJump(int $activePlayerId, array $args): string
+    public function actJump(
+        ?int $from_x = null,
+        ?int $from_y = null,
+        ?int $pivot_x = null,
+        ?int $pivot_y = null,
+        ?int $to_x = null,
+        ?int $to_y = null,
+        ?array $from = null,
+        ?array $pivot = null,
+        ?array $to = null,
+        ?int $activePlayerId = null
+    ): string {
+        $activePlayerId = $activePlayerId ?? (int) $this->game->getActivePlayerId();
+
+        $fx = $from_x ?? ($from['x'] ?? ($_POST['from_x'] ?? ($_POST['from']['x'] ?? null)));
+        $fy = $from_y ?? ($from['y'] ?? ($_POST['from_y'] ?? ($_POST['from']['y'] ?? null)));
+        $px = $pivot_x ?? ($pivot['x'] ?? ($_POST['pivot_x'] ?? ($_POST['pivot']['x'] ?? null)));
+        $py = $pivot_y ?? ($pivot['y'] ?? ($_POST['pivot_y'] ?? ($_POST['pivot']['y'] ?? null)));
+        $tx = $to_x ?? ($to['x'] ?? ($_POST['to_x'] ?? ($_POST['to']['x'] ?? null)));
+        $ty = $to_y ?? ($to['y'] ?? ($_POST['to_y'] ?? ($_POST['to']['y'] ?? null)));
+
+        if ($fx === null || $fy === null || $px === null || $py === null || $tx === null || $ty === null) {
+            throw new UserException(clienttranslate('Missing coordinates for jump move'));
+        }
+
+        return $this->executeJump(
+            $activePlayerId,
+            ['x' => (int) $fx, 'y' => (int) $fy],
+            ['x' => (int) $px, 'y' => (int) $py],
+            ['x' => (int) $tx, 'y' => (int) $ty],
+        );
+    }
+
+    public function executeJump(int $activePlayerId, array $from, array $pivot, array $to): string
     {
         $role = $this->game->getPlayerRole($activePlayerId);
         if ($role !== Rules::WHITE && $role !== Rules::BLACK) {
             throw new UserException(clienttranslate('You are not a player in this game'));
-        }
-
-        $from = $args['from'] ?? null;
-        $pivot = $args['pivot'] ?? null;
-        $to = $args['to'] ?? null;
-
-        if (!is_array($from) || !is_array($pivot) || !is_array($to)) {
-            throw new UserException(clienttranslate('Missing coordinates for jump move'));
         }
 
         $board = $this->game->getBoard();
@@ -204,8 +249,7 @@ class PlayerTurn extends GameState
         $captured = $res['captured'];
 
         // Update database: origin becomes empty, target becomes active piece
-        static::DbQuery("UPDATE `board` SET `player_color` = " . Rules::EMPTY . ", `player_id` = NULL WHERE `x` = $fx AND `y` = $fy");
-        static::DbQuery("UPDATE `board` SET `player_color` = $role, `player_id` = $activePlayerId WHERE `x` = $tx AND `y` = $ty");
+        $this->game->movePiece($fx, $fy, $tx, $ty, $role, $activePlayerId);
 
         // Update stats
         $this->tableStats->inc('turns_number', 1);
@@ -269,47 +313,63 @@ class PlayerTurn extends GameState
     {
         $role = $this->game->getPlayerRole($playerId);
         $board = $this->game->getBoard();
+        $targetY = Rules::targetRank($role);
 
-        // 1. Try legal jumps first (preferring forward jumps towards target rank)
         $jumps = Rules::getLegalJumps($board, $role);
-        if (!empty($jumps)) {
-            $targetY = Rules::targetRank($role);
-            // Sort by proximity to target rank
-            usort($jumps, function ($a, $b) use ($targetY) {
-                $distA = abs($a['to']['y'] - $targetY);
-                $distB = abs($b['to']['y'] - $targetY);
-                return $distA <=> $distB;
-            });
-            $chosen = $jumps[0];
-            return $this->actJump($playerId, [
-                'from' => $chosen['from'],
-                'pivot' => $chosen['pivot'],
-                'to' => $chosen['to'],
-            ]);
-        }
-
-        // 2. Try legal walks
         $walks = Rules::getLegalWalks($board, $role);
-        if (!empty($walks)) {
-            $targetY = Rules::targetRank($role);
-            usort($walks, function ($a, $b) use ($targetY) {
-                $distA = abs($a['to']['y'] - $targetY);
-                $distB = abs($b['to']['y'] - $targetY);
-                return $distA <=> $distB;
-            });
-            $chosen = $walks[0];
-            return $this->actWalk($playerId, [
-                'from' => $chosen['from'],
-                'to' => $chosen['to'],
-            ]);
+        $allMoves = array_merge($jumps, $walks);
+
+        if (empty($allMoves)) {
+            $opponentRole = ($role === Rules::WHITE) ? Rules::BLACK : Rules::WHITE;
+            $opponentId = $this->game->getPlayerIdByRole($opponentRole);
+            $this->globals->set('winner_id', $opponentId);
+            $this->globals->set('loser_id', $playerId);
+            $this->globals->set('end_reason', 'zombie_forfeit');
+            return EndScore::class;
         }
 
-        // 3. No legal moves: forfeit
-        $opponentRole = ($role === Rules::WHITE) ? Rules::BLACK : Rules::WHITE;
-        $opponentId = $this->game->getPlayerIdByRole($opponentRole);
-        $this->globals->set('winner_id', $opponentId);
-        $this->globals->set('loser_id', $playerId);
-        $this->globals->set('end_reason', 'zombie_forfeit');
-        return EndScore::class;
+        $evalMove = function (array $m) use ($targetY): int {
+            $fromY = $m['from']['y'];
+            $toY = $m['to']['y'];
+            $distFrom = abs($fromY - $targetY);
+            $distTo = abs($toY - $targetY);
+            $progress = $distFrom - $distTo; // positive = forward progress towards target rank
+
+            $score = 0;
+            // 1. Reaching back rank (win)
+            if ($distTo === 0) {
+                $score += 1000000;
+            }
+            // 2. Capturing enemy piece
+            if (!empty($m['capture'])) {
+                $score += 50000;
+            }
+            // 3. Forward progress (heavily reward forward moves, heavily penalize backward)
+            $score += $progress * 1000;
+            // 4. Closer to target rank
+            $score += (10 - $distTo) * 50;
+            // 5. Prefer jumping over walking when forward
+            if ($m['type'] === Rules::MOVE_JUMP && $progress > 0) {
+                $score += 100;
+            }
+            return $score;
+        };
+
+        usort($allMoves, function ($a, $b) use ($evalMove) {
+            $sA = $evalMove($a);
+            $sB = $evalMove($b);
+            if ($sA !== $sB) {
+                return $sB <=> $sA; // descending score
+            }
+            $kA = $a['from']['x'] * 1000 + $a['from']['y'] * 100 + $a['to']['x'] * 10 + $a['to']['y'];
+            $kB = $b['from']['x'] * 1000 + $b['from']['y'] * 100 + $b['to']['x'] * 10 + $b['to']['y'];
+            return $kA <=> $kB;
+        });
+
+        $chosen = $allMoves[0];
+        if ($chosen['type'] === Rules::MOVE_JUMP) {
+            return $this->executeJump($playerId, $chosen['from'], $chosen['pivot'], $chosen['to']);
+        }
+        return $this->executeWalk($playerId, $chosen['from'], $chosen['to']);
     }
 }

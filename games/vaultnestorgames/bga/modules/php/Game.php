@@ -151,6 +151,12 @@ class Game extends \Bga\GameFramework\Table
         return $pieces;
     }
 
+    public function movePiece(int $fx, int $fy, int $tx, int $ty, int $role, int $playerId): void
+    {
+        static::DbQuery("UPDATE `board` SET `player_color` = " . Rules::EMPTY . ", `player_id` = NULL WHERE `x` = $fx AND `y` = $fy");
+        static::DbQuery("UPDATE `board` SET `player_color` = $role, `player_id` = $playerId WHERE `x` = $tx AND `y` = $ty");
+    }
+
     public function getPlayerRole(int $playerId): int
     {
         $roles = $this->globals->get('player_roles', []);
