@@ -98,8 +98,6 @@ export class Game {
                         from_y: st.from.y,
                         to_x: st.to.x,
                         to_y: st.to.y,
-                        from: st.from,
-                        to: st.to,
                     });
                 } else {
                     this.bga.actions.performAction('actJump', {
@@ -109,9 +107,6 @@ export class Game {
                         pivot_y: st.pivot.y,
                         to_x: st.to.x,
                         to_y: st.to.y,
-                        from: st.from,
-                        pivot: st.pivot,
-                        to: st.to,
                     });
                 }
             }
@@ -361,8 +356,6 @@ export class Game {
                         from_y: this.stage.from.y,
                         to_x: this.stage.to.x,
                         to_y: this.stage.to.y,
-                        from: this.stage.from,
-                        to: this.stage.to,
                     }),
                     { color: 'primary' }
                 );
@@ -377,9 +370,6 @@ export class Game {
                         pivot_y: this.stage.pivot.y,
                         to_x: this.stage.to.x,
                         to_y: this.stage.to.y,
-                        from: this.stage.from,
-                        pivot: this.stage.pivot,
-                        to: this.stage.to,
                     }),
                     { color: 'primary' }
                 );

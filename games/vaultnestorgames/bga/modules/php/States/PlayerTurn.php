@@ -92,30 +92,13 @@ class PlayerTurn extends GameState
      * Walk action: move 1 friendly piece to an adjacent empty square.
      */
     #[PossibleAction]
-    public function actWalk(
-        ?int $from_x = null,
-        ?int $from_y = null,
-        ?int $to_x = null,
-        ?int $to_y = null,
-        ?array $from = null,
-        ?array $to = null,
-        ?int $activePlayerId = null
-    ): string {
-        $activePlayerId = $activePlayerId ?? (int) $this->game->getActivePlayerId();
-
-        $fx = $from_x ?? ($from['x'] ?? ($_POST['from_x'] ?? ($_POST['from']['x'] ?? null)));
-        $fy = $from_y ?? ($from['y'] ?? ($_POST['from_y'] ?? ($_POST['from']['y'] ?? null)));
-        $tx = $to_x ?? ($to['x'] ?? ($_POST['to_x'] ?? ($_POST['to']['x'] ?? null)));
-        $ty = $to_y ?? ($to['y'] ?? ($_POST['to_y'] ?? ($_POST['to']['y'] ?? null)));
-
-        if ($fx === null || $fy === null || $tx === null || $ty === null) {
-            throw new UserException(clienttranslate('Missing coordinates for walk move'));
-        }
-
+    public function actWalk(int $from_x, int $from_y, int $to_x, int $to_y): string
+    {
+        $activePlayerId = (int) $this->game->getActivePlayerId();
         return $this->executeWalk(
             $activePlayerId,
-            ['x' => (int) $fx, 'y' => (int) $fy],
-            ['x' => (int) $tx, 'y' => (int) $ty],
+            ['x' => $from_x, 'y' => $from_y],
+            ['x' => $to_x, 'y' => $to_y],
         );
     }
 
@@ -188,36 +171,14 @@ class PlayerTurn extends GameState
      * Jump action: vault 1 friendly piece over another friendly pivot, landing at 2B - A.
      */
     #[PossibleAction]
-    public function actJump(
-        ?int $from_x = null,
-        ?int $from_y = null,
-        ?int $pivot_x = null,
-        ?int $pivot_y = null,
-        ?int $to_x = null,
-        ?int $to_y = null,
-        ?array $from = null,
-        ?array $pivot = null,
-        ?array $to = null,
-        ?int $activePlayerId = null
-    ): string {
-        $activePlayerId = $activePlayerId ?? (int) $this->game->getActivePlayerId();
-
-        $fx = $from_x ?? ($from['x'] ?? ($_POST['from_x'] ?? ($_POST['from']['x'] ?? null)));
-        $fy = $from_y ?? ($from['y'] ?? ($_POST['from_y'] ?? ($_POST['from']['y'] ?? null)));
-        $px = $pivot_x ?? ($pivot['x'] ?? ($_POST['pivot_x'] ?? ($_POST['pivot']['x'] ?? null)));
-        $py = $pivot_y ?? ($pivot['y'] ?? ($_POST['pivot_y'] ?? ($_POST['pivot']['y'] ?? null)));
-        $tx = $to_x ?? ($to['x'] ?? ($_POST['to_x'] ?? ($_POST['to']['x'] ?? null)));
-        $ty = $to_y ?? ($to['y'] ?? ($_POST['to_y'] ?? ($_POST['to']['y'] ?? null)));
-
-        if ($fx === null || $fy === null || $px === null || $py === null || $tx === null || $ty === null) {
-            throw new UserException(clienttranslate('Missing coordinates for jump move'));
-        }
-
+    public function actJump(int $from_x, int $from_y, int $pivot_x, int $pivot_y, int $to_x, int $to_y): string
+    {
+        $activePlayerId = (int) $this->game->getActivePlayerId();
         return $this->executeJump(
             $activePlayerId,
-            ['x' => (int) $fx, 'y' => (int) $fy],
-            ['x' => (int) $px, 'y' => (int) $py],
-            ['x' => (int) $tx, 'y' => (int) $ty],
+            ['x' => $from_x, 'y' => $from_y],
+            ['x' => $pivot_x, 'y' => $pivot_y],
+            ['x' => $to_x, 'y' => $to_y],
         );
     }
 
