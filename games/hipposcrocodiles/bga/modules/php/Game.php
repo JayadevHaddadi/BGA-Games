@@ -136,6 +136,11 @@ class Game extends \Bga\GameFramework\Table
         return (int) $this->globals->get('trunk_mode', Rules::TRUNKS_OFF);
     }
 
+    public function isEasy(): bool
+    {
+        return ((int) $this->tableOptions->get(103, 1)) !== 2;
+    }
+
     public function getBoardDimensions(): array
     {
         return Rules::boardDimensions($this->getMapId());
@@ -327,7 +332,7 @@ class Game extends \Bga\GameFramework\Table
             'placed_pieces' => $this->getPlacedPieces(),
             'species' => $species,
             'reserves' => $reserves,
-            'easy' => ((int) $this->tableOptions->get(103, 1)) !== 2,
+            'easy' => $this->isEasy(),
         ];
     }
 

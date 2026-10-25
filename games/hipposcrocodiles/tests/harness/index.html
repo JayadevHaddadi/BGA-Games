@@ -173,8 +173,20 @@ try {
     desk.hoverGhost = document.querySelectorAll('.hippos_ghost_hover').length;
     const key = (k) => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
     chat.blur();
+    // Absolute directions: hippo head dir per rot = [1,2,3,0] (rot 0 = looks right); W up, D right, S down, A left
+    const HD = [1, 2, 3, 0];
+    const wasd = {};
+    for (const [k, d] of [['w', 0], ['a', 3], ['s', 2], ['d', 1]]) { key(k); wasd[k] = HD[game.currentRot] === d; }
+    desk.wasdHippo = wasd.w && wasd.a && wasd.s && wasd.d;
+    const sp0 = game.args.species;
+    game.args.species = 'crocodile'; // croc head dir per rot = [2,3,0,1]
+    const CD = [2, 3, 0, 1];
+    const wasdC = {};
+    for (const [k, d] of [['w', 0], ['a', 3], ['s', 2], ['d', 1]]) { key(k); wasdC[k] = CD[game.currentRot] === d; }
+    desk.wasdCroc = wasdC.w && wasdC.a && wasdC.s && wasdC.d;
+    game.args.species = sp0;
     key('d'); desk.afterD = game.currentRot;
-    key('a'); key('a'); desk.afterA = game.currentRot;
+    key('a'); desk.afterA = game.currentRot;
     key('s'); desk.afterS = game.currentRot;
     desk.chatFocused = document.activeElement === chat;
     desk.ghostAfterKeys = document.querySelectorAll('.hippos_ghost_hover').length;
@@ -219,9 +231,9 @@ try {
       const before = JSON.stringify(game.stage);
       const stagedGhostBefore = document.querySelector('.hippos_ghost')?.className;
       const rotBefore = game.currentRot;
-      key('d');
+      key('s');
       desk.stageKept = !!game.stage && JSON.stringify(game.stage) === before && game.stage.rot === 0;
-      desk.hoverRotChanged = game.currentRot !== rotBefore && game.currentRot === 1;
+      desk.hoverRotChanged = game.currentRot !== rotBefore && game.currentRot === 1; // S = looks down = hippo rot 1
       desk.stagedGhostKept = document.querySelectorAll('.hippos_ghost').length === 1
         && document.querySelector('.hippos_ghost')?.className === stagedGhostBefore;
       // Hint preference
@@ -240,22 +252,36 @@ try {
       // Button order
       game.updateButtons(game.args, true);
       const order = buttons.map((b) => b.text.replace(/<[^>]*>/g, '').trim());
-      const iL = order.findIndex((t) => /Left/.test(t)), i180 = order.findIndex((t) => /180/.test(t)), iR = order.findIndex((t) => /Right/.test(t));
       desk.order = order.join('|');
-      desk.orderOk = game.args.species === 'trunk' || (iL >= 0 && iL < i180 && i180 < iR);
+      const dirs = order.filter((t) => /^[↑←↓→]/.test(t)).map((t) => t[0]).join('');
+      desk.orderOk = game.args.species === 'trunk' || dirs === '↑←↓→';
+      // Surrender only in Hard mode
+      desk.surrenderEasy = !buttons.some((b) => /Surrender/.test(b.text));
+      game.easy = false; game.updateButtons(game.args, true);
+      const sb = buttons.find((b) => /Surrender/.test(b.text));
+      desk.surrenderHard = !!sb && sb.opts.color === 'alert';
+      calls.length = 0;
+      game.bga.dialogs = { confirmation: async () => true };
+      await game.onSurrender();
+      desk.surrenderAction = calls.length === 1 && calls[0].name === 'actSurrender';
+      game.bga.dialogs = { confirmation: async () => false };
+      calls.length = 0; await game.onSurrender();
+      desk.surrenderCancel = calls.length === 0;
+      delete game.bga.dialogs;
+      game.easy = true; game.updateButtons(game.args, true);
       // Touch: rotation buttons still rotate the staged animal
       game.desktopOverride = false; game.hover = null; game.clearHoverGhost();
       game.currentRot = 0; game.onCellClicked(sr, sc);
-      game.onRotate(1);
+      game.onDirection(2);
       desk.touchRotatesStage = !game.stage || game.stage.rot === 1;
       game.desktopOverride = true;
     }
     desk.extra = desk.stageKept !== false && desk.hoverRotChanged !== false && desk.stagedGhostKept !== false
       && desk.noLegalTarget !== false && desk.pivotHints !== false && desk.hintsOff !== false && desk.easyText !== false && desk.hintsBack !== false
-      && desk.orderOk !== false && desk.touchRotatesStage !== false;
-    desk.ok = desk.extra && desk.hoverGhost === 1 && desk.afterD === 1 && desk.afterA === 3 && desk.afterS === 1 && !desk.chatFocused
+      && desk.orderOk !== false && desk.surrenderEasy !== false && desk.surrenderHard !== false && desk.surrenderAction !== false && desk.surrenderCancel !== false && desk.touchRotatesStage !== false;
+    desk.ok = desk.extra && desk.hoverGhost === 1 && desk.wasdHippo && desk.wasdCroc && desk.afterD === 0 && desk.afterA === 2 && desk.afterS === 1 && !desk.chatFocused
       && desk.ghostAfterKeys === 1 && desk.chatKeyUntouched && (params.get('shot') === 'desktop' || desk.clickPlaced)
-      && /A/.test(desk.tooltips) && /S/.test(desk.tooltips) && !touchHasTooltip;
+      && /\(A\)/.test(desk.tooltips) && /\(S\)/.test(desk.tooltips) && /\(W\)/.test(desk.tooltips) && !touchHasTooltip;
   }
 
   // Measure layout

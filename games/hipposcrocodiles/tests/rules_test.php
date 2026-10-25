@@ -346,5 +346,13 @@ foreach ([Rules::TRUNKS_OFF, Rules::TRUNKS_RANDOM] as $mode) {
     }
 }
 
+// Surrender: Hard mode only; the surrendering player loses, the other wins
+assertCheck(Rules::canSurrender(false) === true, "Surrender allowed in Hard mode");
+assertCheck(Rules::canSurrender(true) === false, "Surrender refused in Easy mode");
+assertCheck(Rules::surrenderOutcome([10, 20], 10) === [20, 10], "Surrender by first player: second wins");
+assertCheck(Rules::surrenderOutcome([10, 20], 20) === [10, 20], "Surrender by second player: first wins");
+$ps = file_get_contents(__DIR__ . '/../bga/modules/php/States/PlayerTurn.php');
+assertCheck(str_contains($ps, 'actSurrender') && str_contains($ps, 'canSurrender') && str_contains($ps, 'return 90'), "PlayerTurn::actSurrender guards on Hard and ends the game");
+
 echo "rules_test.php: $checks checks, $failures failed\n";
 exit($failures === 0 ? 0 : 1);

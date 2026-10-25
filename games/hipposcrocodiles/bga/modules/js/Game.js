@@ -71,7 +71,7 @@ export class Game {
                     }
     }
 
-    // Mouse-driven devices get hover ghost + click-to-place + A/D/S keys; touch keeps tap, stage and Confirm.
+    // Mouse-driven devices get hover ghost + click-to-place + W/A/S/D keys; touch keeps tap, stage and Confirm.
     isDesktop() {
         if (this.desktopOverride !== null) return this.desktopOverride;
         try { return !!window.matchMedia('(hover: hover) and (pointer: fine)').matches; } catch (e) { return false; }
@@ -89,15 +89,15 @@ export class Game {
             const tag = (t && t.tagName) || '';
             if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) return;
             const k = (e.key || '').toLowerCase();
-            if (k !== 'a' && k !== 'd' && k !== 's') return;
-            if (k === 's' && this.args.species === 'trunk') return;
+            const dir = { w: 0, d: 1, s: 2, a: 3 }[k];
+            if (dir === undefined) return;
             e.preventDefault();
             e.stopImmediatePropagation();
             if (e.repeat) return;
             if (document.activeElement && document.activeElement !== document.body && document.activeElement.blur) {
                 try { document.activeElement.blur(); } catch (err) {}
             }
-            this.onRotate(k === 'a' ? 3 : (k === 'd' ? 1 : 2));
+            this.onDirection(dir);
         }, { capture: true });
     }
 
@@ -534,6 +534,19 @@ export class Game {
         let rot = (this.currentRot + delta) % rn;
         // Skip rotations with no legal placement at all
         for (let i = 0; this.easy && i < rn && !this.legalIn(rot).length; i++) rot = (rot + (delta === 3 ? rn - 1 : 1)) % rn;
+        this.applyRotation(rot);
+    }
+
+    // Absolute direction (0 up, 1 right, 2 down, 3 left): animals look that way; trunks W/S = vertical, A/D = horizontal.
+    onDirection(dir) {
+        if (!this.isActive || !this.args?.species) return;
+        const sp = this.args.species;
+        const rot = sp === 'trunk' ? (dir % 2 === 0 ? 1 : 0) : HEAD_DIR[sp].indexOf(dir);
+        if (rot < 0) return;
+        this.applyRotation(rot);
+    }
+
+    applyRotation(rot) {
         const oldRot = this.currentRot;
         // Desktop: the staged animal stays put; only the hover ghost / next hover rotation changes.
         // Touch: no hover, so rotating the staged animal is the only way to rotate.
@@ -562,6 +575,16 @@ export class Game {
         this.bga.actions.performAction(action, { rotation: rot, r, c });
     }
 
+    async onSurrender() {
+        if (!this.isActive || this.easy || this.args?.species === 'trunk') return;
+        const msg = _('Surrender? You lose the game if you cannot find a place for your animal.');
+        if (typeof this.bga?.dialogs?.confirmation === 'function') {
+            const ok = await this.bga.dialogs.confirmation(msg);
+            if (!ok) return;
+        }
+        this.bga.actions.performAction('actSurrender', {});
+    }
+
     onCancel() {
         this.stage = null;
         this.clearPreviews();
@@ -578,14 +601,21 @@ export class Game {
         const isTrunk = args?.species === 'trunk';
         const desk = this.isDesktop();
         // On desktop the button shows its keyboard shortcut as a small keycap
-        const rotBtn = (label, key, delta) => bar.addActionButton(desk ? `${label} <kbd class="hippos_key">${key}</kbd>` : label, () => this.onRotate(delta), {
+        const dirBtn = (label, key, dir) => bar.addActionButton(desk ? `${label} <kbd class="hippos_key">${key}</kbd>` : label, () => this.onDirection(dir), {
             color: 'secondary', classes: 'hippos_rot_btn', tooltip: desk ? `${label} (${key})` : undefined,
         });
         if (this.stage) bar.addActionButton(isTrunk ? _('Confirm trunk') : _('Confirm placement'), () => this.onConfirm(), { color: 'primary', classes: 'hippos_rot_btn' });
-        rotBtn(_('⟲ Left'), 'A', 3);
-        if (!isTrunk) rotBtn(_('180°'), 'S', 2);
-        rotBtn(_('⟳ Right'), 'D', 1);
+        if (isTrunk) {
+            dirBtn(_('↔ Horizontal'), 'A/D', 1);
+            dirBtn(_('↕ Vertical'), 'W/S', 0);
+        } else {
+            dirBtn(_('↑ Up'), 'W', 0);
+            dirBtn(_('← Left'), 'A', 3);
+            dirBtn(_('↓ Down'), 'S', 2);
+            dirBtn(_('→ Right'), 'D', 1);
+        }
         if (this.stage) bar.addActionButton(_('Cancel'), () => this.onCancel(), { color: 'alert', classes: 'hippos_rot_btn' });
+        if (!isTrunk && !this.easy) bar.addActionButton(_('Surrender'), () => this.onSurrender(), { color: 'alert', classes: 'hippos_rot_btn', id: 'hippos_surrender' });
     }
 
     /* ------------------------------------------------------------------------ Notifications */

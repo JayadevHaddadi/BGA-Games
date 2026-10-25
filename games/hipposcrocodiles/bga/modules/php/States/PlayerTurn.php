@@ -6,6 +6,7 @@ namespace Bga\Games\hipposcrocodiles\States;
 
 use Bga\GameFramework\States\PossibleAction;
 use Bga\GameFramework\StateType;
+use Bga\GameFramework\UserException;
 use Bga\GameFramework\States\GameState;
 use Bga\Games\hipposcrocodiles\Game;
 use Bga\Games\hipposcrocodiles\Rules;
@@ -44,6 +45,23 @@ class PlayerTurn extends GameState
         $playerId = (int) $this->game->getActivePlayerId();
         $this->game->placePiece($playerId, $rotation, $r, $c);
         return 20; // NextPlayer
+    }
+
+    #[PossibleAction]
+    public function actSurrender(): int
+    {
+        if (!Rules::canSurrender($this->game->isEasy())) {
+            throw new UserException(clienttranslate('You can only surrender in Hard mode.'));
+        }
+        $playerId = (int) $this->game->getActivePlayerId();
+        $species = $this->game->getSpeciesOf($playerId);
+        $this->notify->all('surrender', clienttranslate('${player_name} surrenders: no place found for the ${animal}'), [
+            'player_id' => $playerId,
+            'player_name' => $this->game->getPlayerNameById($playerId),
+            'animal' => $this->game->getSpeciesName($species),
+            'i18n' => ['animal'],
+        ]);
+        return 90; // EndScore: the active player (the surrenderer) loses
     }
 
     public function zombie(int $playerId): ?int

@@ -23,13 +23,13 @@ Table option '''Animal distribution''':
 
 Table option '''Difficulty''':
 * '''Easy''' (default): the cells where the centre of the animal can go are highlighted, and the status bar tells how many spots are possible in each direction (where the animal's head points) for all four rotations.
-* '''Hard''': no highlights and no counts. Place the animal where you think it fits; a spot that does not fit is shown in red and cannot be confirmed.
+* '''Hard''': no highlights and no counts. Place the animal where you think it fits; a spot that does not fit is shown in red and cannot be confirmed. If you cannot find a place for your animal, press '''Surrender''' (red button, with a confirmation): you lose the game immediately. In Easy mode there is no Surrender button: the game ends by itself when you have no legal move.
 
 ==Trunks (optional)==
 
 Trunks are brown rectangles of 3×1 squares that act as obstacles: no animal can be placed on top of them. They can be placed horizontally or vertically, must fit completely inside the map and cannot overlap another trunk. The more trunks, the shorter the game. Table option '''Trunks''':
 * '''Off''': no trunks (default).
-* '''On - players place 2 each''': before the first animal, the players take turns placing trunks, the first player starting, until each has placed 2. Tap a square, use '''Left'''/'''Right''' to switch between horizontal and vertical, then '''Confirm trunk'''.
+* '''On - players place 2 each''': before the first animal, the players take turns placing trunks, the first player starting, until each has placed 2. Tap a square, use '''Horizontal'''/'''Vertical''' (keys '''W'''/'''S''' and '''A'''/'''D''') to switch between horizontal and vertical, then '''Confirm trunk'''.
 * '''On - randomly placed''': 4 trunks are placed at random before the game, never touching each other, so that both players can still move.
 
 ==Animals==
@@ -45,12 +45,12 @@ Each animal occupies exactly 10 squares on the board:
 |-
 | 1 || '''Pick placement''' || On a touch screen: tap an unoccupied board cell where your animal can fit. Animals can be placed in any of the 4 cardinal orientations (0°, 90°, 180°, 270°). The marked circle is the pivot: it stays on the same square when you rotate.
 |-
-| 2 || '''Rotate''' || Use the '''Left''', '''Right''' and '''180°''' buttons to change orientation.
+| 2 || '''Rotate''' || Use the '''↑ Up''', '''← Left''', '''↓ Down''' and '''→ Right''' buttons to choose the direction your animal looks (its head points that way).
 |-
 | 3 || '''Confirm''' || (Touch screens.) Click '''Confirm placement''' to lock in your move. Animals cannot overlap each other or a trunk, or extend beyond the map.
 |}
 
-'''With a mouse''': move the pointer over a square to see a transparent preview of your animal with its pivot on that square, and click to place it at once (no Confirm step). Press '''A''' (rotate left), '''D''' (rotate right) or '''S''' (rotate 180°) to turn the preview; the Left/Right/180° buttons work too.
+'''With a mouse''': move the pointer over a square to see a transparent preview of your animal with its pivot on that square, and click to place it at once (no Confirm step). Press '''W''' (look up), '''A''' (look left), '''S''' (look down) or '''D''' (look right) to turn the preview; the four direction buttons work too.
 
 ==Game end==
 

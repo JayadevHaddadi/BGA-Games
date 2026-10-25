@@ -7,6 +7,7 @@ namespace Bga\Games\hipposcrocodiles\States;
 use Bga\GameFramework\StateType;
 use Bga\GameFramework\States\GameState;
 use Bga\Games\hipposcrocodiles\Game;
+use Bga\Games\hipposcrocodiles\Rules;
 
 const ST_END_GAME = 99;
 
@@ -31,7 +32,7 @@ class EndScore extends GameState
 
         // The player who is currently active in NextPlayer was unable to place or out of pieces
         $loserId = $activePlayerId;
-        $winnerId = ($loserId === (int) $allPlayers[0]) ? (int) $allPlayers[1] : (int) $allPlayers[0];
+        [$winnerId, $loserId] = Rules::surrenderOutcome($allPlayers, $loserId);
 
         $this->game->playerScore->set($winnerId, 1);
         $this->game->playerScore->set($loserId, 0);

@@ -424,4 +424,23 @@ class Rules
         }
         return false;
     }
+
+    /** Surrender is only offered in Hard mode (Easy ends the game by itself when no move exists). */
+    public static function canSurrender(bool $easy): bool
+    {
+        return !$easy;
+    }
+
+    /** @return array{0:int,1:int} [winnerId, loserId] when $surrenderer gives up. */
+    public static function surrenderOutcome(array $playerIds, int $surrenderer): array
+    {
+        $winner = $surrenderer;
+        foreach ($playerIds as $id) {
+            if ((int) $id !== $surrenderer) {
+                $winner = (int) $id;
+                break;
+            }
+        }
+        return [$winner, $surrenderer];
+    }
 }
