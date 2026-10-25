@@ -142,8 +142,12 @@ class QualifyingTurn extends GameState
 
     public function zombie(int $playerId): string
     {
-        // Give 0 qualifying score to zombie player and advance
+        // A zombie qualifies with 0: drop any half-rolled dice (they must not count as its grid score) and advance
         $this->globals->set('current_roll_dice', []);
+        $rolls = $this->globals->get('qualifying_rolls', []);
+        $rolls[$playerId] = ['dice' => [], 'score' => 0, 'status' => 'busted'];
+        $this->globals->set('qualifying_rolls', $rolls);
+        $this->game->zeroQualifyingScore($playerId);
         return $this->advanceQualifying();
     }
 }

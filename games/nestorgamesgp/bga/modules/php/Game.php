@@ -374,6 +374,11 @@ class Game extends \Bga\GameFramework\Table
         ];
     }
 
+    public function zeroQualifyingScore(int $playerId): void
+    {
+        static::DbQuery(sprintf("UPDATE `racer` SET `qualifying_score` = 0 WHERE `player_id` = %d", $playerId));
+    }
+
     public function stopQualifying(int $playerId): int
     {
         $currentDice = $this->globals->get('current_roll_dice', []);
@@ -496,7 +501,7 @@ class Game extends \Bga\GameFramework\Table
                 "SELECT `item_id`, `item_type`, `space_id` FROM `track_item` WHERE `item_type` = 'mine' AND `space_id` = $currentSpace"
             );
             if ($mineItem) {
-                $mineRoll = random_int(1, 6);
+                $mineRoll = bga_rand(1, 6);
                 if ($mineRoll <= 3) {
                     // Detonation! Car crashes on this space and stops immediately
                     static::DbQuery("DELETE FROM `track_item` WHERE `item_id` = " . (int)$mineItem['item_id']);
@@ -903,7 +908,12 @@ class Game extends \Bga\GameFramework\Table
 
     public function getTrackItems(): array
     {
-        return static::getObjectListFromDb("SELECT `item_id`, `item_type`, `space_id`, `placed_by` FROM `track_item`");
+        $items = static::getObjectListFromDb("SELECT `item_id`, `item_type`, `space_id`, `placed_by` FROM `track_item`");
+        foreach ($items as &$it) {
+            $it['item_id'] = (int) $it['item_id'];
+            $it['space_id'] = (int) $it['space_id'];
+        }
+        return $items;
     }
 
     public function getPlayerInventories(): array
@@ -972,7 +982,7 @@ class Game extends \Bga\GameFramework\Table
                 foreach ($spaceIds as $fixedSpace) {
                     if ($randomPlacement) {
                         $free = array_values(array_diff($candidates, array_keys($taken)));
-                        $spaceId = $free[random_int(0, count($free) - 1)];
+                        $spaceId = $free[bga_rand(0, count($free) - 1)];
                     } else {
                         $spaceId = $fixedSpace;
                     }
@@ -998,7 +1008,7 @@ class Game extends \Bga\GameFramework\Table
                     }
                     // Random: any free straight space. Fixed: evenly spaced around the circuit.
                     $idx = $randomPlacement
-                        ? random_int(0, count($candidates) - 1)
+                        ? bga_rand(0, count($candidates) - 1)
                         : (int) floor(($k + 0.5) * count($candidates) / $total);
                     $idx = min($idx, count($candidates) - 1);
                     $spaceId = $candidates[$idx];

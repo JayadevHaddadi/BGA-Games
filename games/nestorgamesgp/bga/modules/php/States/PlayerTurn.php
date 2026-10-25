@@ -321,7 +321,7 @@ class PlayerTurn extends GameState
         Game::DbQuery("DELETE FROM `player_inventory` WHERE `racer_id` = $activeRacerId AND `item_type` = 'rocket' LIMIT 1");
         $recycledSpace = $this->game->recycleItem('rocket', (int)$racer['space_id']);
 
-        $roll = random_int(1, 6);
+        $roll = bga_rand(1, 6);
         $hit = ($roll >= $distance);
 
         $playerName = $this->game->loadPlayersBasicInfos()[$activePlayerId]['player_name'];
