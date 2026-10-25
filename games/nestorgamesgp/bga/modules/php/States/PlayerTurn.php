@@ -521,7 +521,16 @@ class PlayerTurn extends GameState
 
     public function zombie(int $playerId): string
     {
-        $this->globals->set('current_roll_dice', []);
-        return NextPlayer::class;
+        // Play a minimal real turn so a race of zombies still ends: flip a crashed car, otherwise roll once and drive.
+        $racerId = (int) $this->globals->get('active_racer_id', $playerId);
+        $racer = $this->game->getRacer($racerId);
+        if ($racer && $racer['is_belly_up']) {
+            return $this->actFlipCar();
+        }
+        $next = $this->actRoll();
+        if ($next !== null) {
+            return $next;
+        }
+        return $this->actStop();
     }
 }
