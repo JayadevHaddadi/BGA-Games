@@ -122,7 +122,7 @@ class PlayerTurn extends GameState
     public function zombie(int $playerId): string
     {
         $args = $this->getArgs();
-        $targetSlot = $args['valid_slots'][0];
+        $targetSlot = $args['valid_slots'][bga_rand(0, count($args['valid_slots']) - 1)];
         return $this->actPushTile($targetSlot, $playerId);
     }
 }

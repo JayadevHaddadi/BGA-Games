@@ -120,6 +120,52 @@ class PlayerTurnPlaceShape extends GameState
         $shape = $this->game->globals->get('selected_group', []);
         $anchors = $this->game->getValidPlacementAnchors($playerId, $shape);
         if (!empty($anchors)) {
+            // Prefer the anchor that completes the most warehouse lines (so the zombie keeps selling and never jams).
+            $norm = $this->game->normalizeShapeForPlayer($playerId, $shape);
+            $wh = $this->game->getPlayerWarehouse($playerId);
+            $best = $anchors[0];
+            $bestScore = -1;
+            foreach ($anchors as $a) {
+                $g = $wh;
+                foreach ($norm as $n) {
+                    $g[$a['oy'] + $n['dy']][$a['ox'] + $n['dx']] = 1;
+                }
+                $score = 0;
+                for ($i = 0; $i < Game::WAREHOUSE_SIZE; $i++) {
+                    $r = true;
+                    $c = true;
+                    for ($j = 0; $j < Game::WAREHOUSE_SIZE; $j++) {
+                        if ($g[$i][$j] === 0) $r = false;
+                        if ($g[$j][$i] === 0) $c = false;
+                    }
+                    $score += ($r ? 1 : 0) + ($c ? 1 : 0);
+                }
+                if ($score > $bestScore) {
+                    $bestScore = $score;
+                    $best = $a;
+                }
+            }
+            return $this->actPlaceShape($best['ox'], $best['oy'], $playerId);
+        }
+        // A zombie cannot sell from a jammed warehouse, so the game would never end: it empties the warehouse and starts over.
+        $wh = $this->game->getPlayerWarehouse($playerId);
+        $updated = $wh;
+        for ($wy = 0; $wy < Game::WAREHOUSE_SIZE; $wy++) {
+            for ($wx = 0; $wx < Game::WAREHOUSE_SIZE; $wx++) {
+                if ($wh[$wy][$wx] === 1) {
+                    $updated = $this->game->eraseWarehouseCell($playerId, $wx, $wy);
+                }
+            }
+        }
+        $this->notify->all('cellErased', clienttranslate('${player_name} clears their jammed warehouse'), [
+            'player_id' => $playerId,
+            'player_name' => $this->game->getPlayerNameById($playerId),
+            'wx' => 0,
+            'wy' => 0,
+            'warehouse' => $updated,
+        ]);
+        $anchors = $this->game->getValidPlacementAnchors($playerId, $shape);
+        if (!empty($anchors)) {
             return $this->actPlaceShape($anchors[0]['ox'], $anchors[0]['oy'], $playerId);
         }
         return $this->actSkipPlacement($playerId);
