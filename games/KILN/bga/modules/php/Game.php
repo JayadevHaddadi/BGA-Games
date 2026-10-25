@@ -1016,4 +1016,10 @@ class Game extends \Bga\GameFramework\Table
         $score = $this->playerScore->get($playerId);
         return $score >= $target;
     }
+
+    /** Studio debug menu: zombie-driven autoplay to the end of the game (used by tools/e2e/studio_play.py). */
+    public function debug_playToEnd()
+    {
+        $this->debug->playUntil(fn(int $count) => ($this->gamestate->getCurrentMainStateId() ?? 0) >= 90 || $count >= 800);
+    }
 }
