@@ -395,4 +395,10 @@ class Game extends \Bga\GameFramework\Table
         $score = $this->getUniqueValueFromDb("SELECT COALESCE(SUM(`tile_value`), 0) FROM `board_tile` WHERE `location` = 'reserve' AND `player_id` = {$playerId}");
         return (int) $score;
     }
+
+    /** Studio debug menu: zombie-driven autoplay to the end of the game (used by tools/e2e/studio_play.py). */
+    public function debug_playToEnd()
+    {
+        $this->debug->playUntil(fn(int $count) => ($this->gamestate->getCurrentMainStateId() ?? 0) >= 90 || $count >= 800);
+    }
 }
