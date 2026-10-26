@@ -264,8 +264,8 @@ class PlayerTurn extends GameState
                 }
                 return NextPlayer::class;
 
-            case 'fergusson': // Swap with another clan
-                $otherArmyCards = (int) Game::getUniqueValueFromDb("SELECT COUNT(*) FROM `card` WHERE `location` = 'army' AND `card_id` != $card_id");
+            case 'fergusson': // Swap with a card of an OPPONENT's army (nothing to swap with: the power fizzles)
+                $otherArmyCards = (int) Game::getUniqueValueFromDb("SELECT COUNT(*) FROM `card` WHERE `location` = 'army' AND `card_id` != $card_id AND `location_arg` != $activePlayerId");
                 if ($otherArmyCards > 0) {
                     return ResolvePowerFergusson::class;
                 }

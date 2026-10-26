@@ -99,10 +99,21 @@ class ResolvePowerScott extends GameState
                 return ResolvePowerWemyss::class;
 
             case 'fergusson':
-                return ResolvePowerFergusson::class;
+                // Fergusson swaps into an opponent's army only: with no opponent card the copied power fizzles
+                $opponentCards = (int) Game::getUniqueValueFromDb("SELECT COUNT(*) FROM `card` WHERE `location` = 'army' AND `card_id` != $pendingCardId AND `location_arg` != $activePlayerId");
+                if ($opponentCards > 0) {
+                    return ResolvePowerFergusson::class;
+                }
+                $extraMuster = (int) $this->game->globals->get('extra_muster_active', 0) === 1;
+                return $extraMuster ? PlayerTurn::class : NextPlayer::class;
 
             case 'cockburn':
-                return ResolvePowerCockburn::class;
+                $supporterCount = (int) Game::getUniqueValueFromDb("SELECT COUNT(*) FROM `card` WHERE `location` = 'supporter'");
+                if ($supporterCount > 0) {
+                    return ResolvePowerCockburn::class;
+                }
+                $extraMuster = (int) $this->game->globals->get('extra_muster_active', 0) === 1;
+                return $extraMuster ? PlayerTurn::class : NextPlayer::class;
 
             case 'cochrane':
             case 'macdonnell':
