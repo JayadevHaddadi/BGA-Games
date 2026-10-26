@@ -226,6 +226,17 @@ async function run() {
     root.querySelector('#mc_board_me .mc_placed[data-id="41"]').click();
     check(game.sel && game.sel.id === 41 && !game.sel.swapWith, 'different colour does not exchange; selects clicked tile instead');
     game.clearSel();
+
+    // 8. Auto-draw: when remaining pool tiles <= player count (X tiles among X players), checkAutoDraw triggers actDraw
+    game.drawer = 1;
+    game.tiles.forEach((t) => { if (t.location === 'pool') t.location = 'box'; });
+    const poolT1 = game.tiles.get(50);
+    const poolT2 = game.tiles.get(51);
+    poolT1.location = 'pool'; poolT1.col = 0; poolT1.row = 0;
+    poolT2.location = 'pool'; poolT2.col = 0; poolT2.row = 1;
+    const callsBefore = calls.length;
+    game.checkAutoDraw();
+    check(calls.length === callsBefore + 1 && calls[calls.length - 1].name === 'actDraw', 'checkAutoDraw triggered automatically for X tiles among X players');
   } else {
     // 6. Build: pool empty. Finish asks for confirmation, then sends actFinish
     check(labels().includes('Finish'), `Finish offered when the pool is empty: ${labels()}`);

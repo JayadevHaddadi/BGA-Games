@@ -592,14 +592,15 @@ export class Game {
         this.checkAutoDraw();
     }
 
-    /** If the drawer has only 1 tile in the draw column (or all tiles in it are identical), take it automatically. */
+    /** If the drawer has only 1 tile in the draw column, or all tiles in it are identical, or X tiles remain among X players, take it automatically. */
     checkAutoDraw() {
         if (!this.canAct() || this.drawer !== this.me || this._autoDrawing) return;
         const colTiles = this.poolTiles().filter((t) => t.col === this.drawCol());
         if (colTiles.length === 0) return;
         const first = colTiles[0];
         const allSame = colTiles.every((t) => t.colour === first.colour && t.shape === first.shape);
-        if (colTiles.length === 1 || allSame) {
+        const xTilesForXPlayers = this.poolTiles().length <= this.order.length;
+        if (colTiles.length === 1 || allSame || xTilesForXPlayers) {
             this._autoDrawing = true;
             this.bga.actions.performAction('actDraw', { tileId: first.id })
                 .catch(() => {})

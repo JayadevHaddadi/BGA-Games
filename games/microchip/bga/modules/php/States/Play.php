@@ -93,13 +93,18 @@ class Play extends GameState
         return null;
     }
 
-    /** When a player has no option in the draw column (1 tile left, or all remaining tiles identical), take it automatically. */
+    /** When a player has no option in the draw column (1 tile left, or all remaining tiles identical), or X tiles remain among X players, take it automatically. */
     public function autoDrawIfSingle(): void
     {
         while (!$this->game->poolEmpty()) {
+            $poolCells = $this->game->poolCells();
+            $poolCount = count($poolCells);
+            $activePlayers = array_values(array_filter($this->game->playerOrder(), fn($id) => !$this->game->isFinished($id)));
+            $numPlayers = count($activePlayers);
+
             $drawCol = $this->game->drawColumn();
             $inCol = [];
-            foreach ($this->game->poolCells() as $tid => $pos) {
+            foreach ($poolCells as $tid => $pos) {
                 if ($pos['col'] === $drawCol) {
                     $inCol[] = (int) $tid;
                 }
@@ -107,8 +112,12 @@ class Play extends GameState
             if ($inCol === []) {
                 break;
             }
-            $noOption = count($inCol) === 1;
-            if (!$noOption) {
+
+            // 1. Only 1 tile in the draw column
+            $shouldAuto = count($inCol) === 1;
+
+            // 2. All tiles in the draw column look the same (e.g. last 2 tiles look the same)
+            if (!$shouldAuto) {
                 $firstTile = $this->game->getTile($inCol[0]);
                 $allSame = true;
                 for ($k = 1; $k < count($inCol); $k++) {
@@ -118,16 +127,23 @@ class Play extends GameState
                         break;
                     }
                 }
-                $noOption = $allSame;
+                $shouldAuto = $allSame;
             }
-            if (!$noOption) {
+
+            // 3. X tiles left in pool among X players (1 tile per player remaining in the draft)
+            if (!$shouldAuto && $poolCount <= $numPlayers) {
+                $shouldAuto = true;
+            }
+
+            if (!$shouldAuto) {
                 break;
             }
+
             $tileId = $inCol[0];
             $pid = $this->game->drawer();
             $info = $this->game->takeTile($pid, $tileId);
             $tile = $info['tile'];
-            $this->notify->all('tileDrawn', clienttranslate('${player_name} automatically receives the last tile in the draw column: ${colour_name} ${shape_name}.'), [
+            $this->notify->all('tileDrawn', clienttranslate('${player_name} automatically receives a tile: ${colour_name} ${shape_name}.'), [
                 'player_id' => $pid,
                 'player_name' => $this->game->getPlayerNameById($pid),
                 'tile' => $tile,
