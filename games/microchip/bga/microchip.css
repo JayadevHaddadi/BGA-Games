@@ -707,91 +707,223 @@ button.mc_space {
 }
 
 .mc_results_winner_banner {
-    padding: 8px 12px;
-    background: #f0ede4;
-    border: 1px solid #c9c4b8;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px 12px;
+    background:
+        linear-gradient(135deg, transparent 0 8px, #e0368a 8px 14px, transparent 14px) 0 0 / 28px 28px,
+        linear-gradient(45deg, transparent 0 8px, #1a8fe0 8px 14px, transparent 14px) 14px 14px / 28px 28px,
+        #ffd23f;
+    background-blend-mode: normal;
+    border: 3px solid #b8860b;
     border-radius: 3px;
-    font-size: 0.95rem;
+    font-size: 1.25rem;
+    font-weight: 800;
     color: #1d1d1b;
     text-align: center;
+    overflow: hidden;
+}
+
+.mc_banner_text {
+    padding: 3px 10px;
+    background: #fff8d6;
+    border: 2px solid #b8860b;
+    border-radius: 3px;
+    position: relative;
+}
+
+/* Trophy drawn with CSS: cup, stem and base */
+.mc_trophy {
+    position: relative;
+    flex: 0 0 auto;
+    width: 26px;
+    height: 30px;
+    border: 3px solid #8a6508;
+    border-radius: 0 0 3px 3px;
+    background: #ffc400;
+    margin-bottom: 8px;
+    box-sizing: border-box;
+}
+
+.mc_trophy::before {
+    content: "";
+    position: absolute;
+    left: 7px;
+    top: 24px;
+    width: 6px;
+    height: 8px;
+    background: #8a6508;
+}
+
+.mc_trophy::after {
+    content: "";
+    position: absolute;
+    left: 2px;
+    top: 30px;
+    width: 16px;
+    height: 5px;
+    background: #8a6508;
+    border-radius: 2px;
 }
 
 .mc_results_popup_table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0 4px;
     font-size: 0.9rem;
+    table-layout: auto;
 }
 
-.mc_results_popup_table th,
-.mc_results_popup_table td {
-    padding: 6px 4px;
-    border-bottom: 1px solid #c9c4b8;
-}
-
-.mc_results_popup_table th {
-    text-align: left;
-}
-
-.mc_results_popup_table td {
+.mc_results_popup_table thead th {
+    padding: 4px 6px;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #4a4740;
     text-align: right;
 }
 
-.mc_results_popup_table .mc_calc_cell {
-    font-size: 0.82rem;
-    color: #5d5a52;
+.mc_results_popup_table thead th:first-child {
+    text-align: left;
+}
+
+.mc_results_popup_table tbody th,
+.mc_results_popup_table tbody td {
+    padding: 8px 6px;
+    background: color-mix(in srgb, var(--mc-pc, #78716c) 16%, #ffffff);
+    border-top: 2px solid var(--mc-pc, #78716c);
+    border-bottom: 2px solid var(--mc-pc, #78716c);
+    text-align: right;
+    overflow-wrap: anywhere;
+}
+
+.mc_results_popup_table tbody th {
+    text-align: left;
+    border-left: 8px solid var(--mc-pc, #78716c);
+    border-radius: 3px 0 0 3px;
+}
+
+.mc_results_popup_table tbody td:last-child {
+    border-right: 2px solid var(--mc-pc, #78716c);
+    border-radius: 0 3px 3px 0;
+}
+
+.mc_res_winner th,
+.mc_res_winner td {
+    background: #ffe27a !important;
+    border-color: #b8860b !important;
+    border-top-width: 3px;
+    border-bottom-width: 3px;
+}
+
+.mc_res_winner th {
+    border-left: 8px solid #b8860b !important;
+}
+
+.mc_res_score {
+    font-size: 1.7rem;
+    line-height: 1;
+    font-weight: 800;
+    color: #1d1d1b;
+    white-space: nowrap;
 }
 
 .mc_sub_stat {
     font-size: 0.78rem;
-    color: #78716c;
+    color: #5d5a52;
     font-weight: normal;
+    white-space: nowrap;
 }
 
 .mc_win_tag {
     display: inline-block;
-    padding: 1px 5px;
-    font-size: 0.75rem;
+    padding: 1px 6px;
+    font-size: 0.72rem;
     font-weight: 700;
-    background: #1a56db;
+    background: #b8860b;
     color: #ffffff;
     border-radius: 2px;
     margin-left: 4px;
     vertical-align: middle;
 }
 
-.mc_results_rules_note {
-    font-size: 0.82rem;
-    line-height: 1.35;
-    color: #4a4740;
-    background: #f5f4ef;
-    padding: 8px 12px;
-    border-radius: 3px;
-    border: 1px solid #dedad2;
-}
+@media (max-width: 480px) {
+    .mc_results_card {
+        padding: 10px;
+    }
 
-.mc_results_rules_note p {
-    margin: 0 0 4px;
-}
+    .mc_results_winner_banner {
+        font-size: 1.05rem;
+        gap: 6px;
+    }
 
-.mc_results_rules_note ul {
-    margin: 0;
-    padding-left: 18px;
-}
+    .mc_results_popup_table,
+    .mc_results_popup_table tbody,
+    .mc_results_popup_table tr,
+    .mc_results_popup_table tbody th,
+    .mc_results_popup_table tbody td {
+        display: block;
+    }
 
-.mc_results_rules_note li {
-    margin-bottom: 2px;
+    .mc_results_popup_table thead {
+        display: none;
+    }
+
+    .mc_results_popup_table tbody tr {
+        display: grid;
+        grid-template-columns: 1fr 1fr auto;
+        grid-template-areas: "name name score" "chip unused score";
+        margin-bottom: 6px;
+        border: 2px solid var(--mc-pc, #78716c);
+        border-left-width: 8px;
+        border-radius: 3px;
+        background: color-mix(in srgb, var(--mc-pc, #78716c) 16%, #ffffff);
+    }
+
+    .mc_results_popup_table tbody th,
+    .mc_results_popup_table tbody td {
+        background: none;
+        border: 0 !important;
+        border-radius: 0;
+        padding: 4px 6px;
+        text-align: left;
+    }
+
+    .mc_results_popup_table tbody th { grid-area: name; font-weight: 700; }
+    .mc_results_popup_table tbody td:nth-of-type(1) { grid-area: chip; }
+    .mc_results_popup_table tbody td:nth-of-type(2) { grid-area: unused; }
+    .mc_results_popup_table tbody td.mc_res_score { grid-area: score; align-self: center; font-size: 2rem; text-align: right; }
+
+    .mc_results_popup_table tbody td[data-label]::before {
+        content: attr(data-label) ": ";
+        font-size: 0.72rem;
+        color: #4a4740;
+    }
+
+    .mc_results_popup_table tbody td.mc_res_score::before {
+        content: none;
+    }
+
+    .mc_res_winner {
+        background: #ffe27a !important;
+        border-color: #b8860b !important;
+    }
 }
 
 .mc_results_footer {
     display: flex;
-    justify-content: flex-end;
+    justify-content: stretch;
     margin-top: 14px;
     padding-top: 10px;
     border-top: 1px solid #d6d3cd;
 }
 
 .mc_results_dismiss_btn {
-    padding: 6px 16px;
+    width: 100%;
+    padding: 8px 16px;
     border-radius: 3px;
     border: 1px solid #78716c;
     background: #ffffff;

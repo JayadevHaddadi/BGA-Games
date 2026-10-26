@@ -1157,7 +1157,36 @@ export class Game {
             this.rotateSel(); // the selected tile again: turn it
             return;
         }
+        // A tray tile is selected and this is a board tile of the same colour: replace it
+        const selT = this.sel ? this.tiles.get(this.sel.id) : null;
+        if (selT && selT.location === 'hand' && t.location === 'board' && t.colour === selT.colour) {
+            this.replaceTile(selT, t);
+            return;
+        }
         this.selectTile(id);
+    }
+
+    /** Swaps the selected tray tile with a same-colour board tile; the incoming tile stays selected. */
+    replaceTile(inTile, outTile) {
+        if (this._actionPending) return;
+        const options = this.getLegalSwapRotations(inTile.id, outTile.id);
+        if (options.length === 0) {
+            this.hint(_('That tile cannot replace the one there: no rotation fits.'));
+            return;
+        }
+        // Prefer a rotation that matches every neighbour
+        const placed = this.placedMine(outTile.id);
+        const fits = (rot) => {
+            const conn = mcConn(inTile.shape, rot);
+            return [0, 1, 2, 3].every((side) => {
+                const other = placed[mcKey(outTile.r + MC_STEP[side][0], outTile.c + MC_STEP[side][1])];
+                return !other || mcConn(other.shape, other.rot)[(side + 2) % 4] === conn[side];
+            });
+        };
+        const best = options.find((o) => fits(o.rotA)) || options[0];
+        this.ghost = null;
+        this.hint('');
+        this.sendAction('actSwap', { tileId: inTile.id, targetTileId: outTile.id, rot: best.rotA, targetRot: 0 });
     }
 
     onSpace(r, c) {
@@ -1493,7 +1522,12 @@ export class Game {
             }
         }
         if (this.sel && (this.sel.id === args.tile_a.id || this.sel.id === args.tile_b.id) && Number(args.player_id) === this.me) {
-            this.sel = null;
+            if (args.type === 'tray_board' && this.sel.id === args.tile_a.id) {
+                // The incoming tile stays selected so it can be turned
+                this.sel = { id: args.tile_a.id, from: 'board', rot: args.rot, r: args.r, c: args.c };
+            } else {
+                this.sel = null;
+            }
         }
         this.renderAll();
         if (args.score !== undefined) {
@@ -1699,20 +1733,20 @@ export class Game {
         // 2. Score breakdown popup modal
         const isTie = sorted.length > 1 && sorted[1].score === topRow.score && sorted[1].chip_tiles === topRow.chip_tiles;
         const winnerBanner = isTie
-            ? `<div class="mc_results_winner_banner">${_('Tie for first place!')}</div>`
-            : `<div class="mc_results_winner_banner"><strong>${this.escape(this.playerName(topRow.player_id))}</strong> ${_('wins!')}</div>`;
+            ? `<div class="mc_results_winner_banner"><span class="mc_trophy" aria-hidden="true"></span><span class="mc_banner_text">${_('Tie for first place!')}</span></div>`
+            : `<div class="mc_results_winner_banner"><span class="mc_trophy" aria-hidden="true"></span><span class="mc_banner_text"><strong>${this.escape(this.playerName(topRow.player_id))}</strong> ${_('wins!')}</span></div>`;
 
         const modalRowsHtml = sorted.map((row) => {
-            const isWinner = row.score === topRow.score && row.chip_tiles === topRow.chip_tiles;
-            return `<tr>
-                <th scope="row">
-                    ${this.escape(this.playerName(row.player_id))}
-                    ${isWinner ? ` <span class="mc_win_tag">${_('Winner')}</span>` : ''}
+            const isWinner = !isTie && row.score === topRow.score && row.chip_tiles === topRow.chip_tiles;
+            const col = this.playerColour(row.player_id);
+            return `<tr class="mc_res_row${isWinner ? ' mc_res_winner' : ''}" style="--mc-pc:${col}">
+                <th scope="row" data-label="${_('Player')}">
+                    <span class="mc_res_name">${this.escape(this.playerName(row.player_id))}</span>
+                    ${isWinner ? `<span class="mc_win_tag">${_('Winner')}</span>` : ''}
                 </th>
-                <td>+${row.value} <span class="mc_sub_stat">(${row.chip_tiles} ${_('tiles')})</span></td>
-                <td>-${row.unused * 2} <span class="mc_sub_stat">(${row.unused} ${_('tiles')})</span></td>
-                <td class="mc_calc_cell">${row.value} − ${row.unused * 2}</td>
-                <td><strong>${row.score}</strong></td>
+                <td data-label="${_('Microchip')}">+${row.value} <span class="mc_sub_stat">(${row.chip_tiles} ${_('tiles')})</span></td>
+                <td data-label="${_('Unused')}">−${row.unused * 2} <span class="mc_sub_stat">(${row.unused} ${_('tiles')})</span></td>
+                <td class="mc_res_score" data-label="${_('Score')}"><strong>${row.score}</strong></td>
             </tr>`;
         }).join('');
 
@@ -1725,20 +1759,11 @@ export class Game {
                             <th scope="col">${_('Player')}</th>
                             <th scope="col">${_('Microchip')}</th>
                             <th scope="col">${_('Unused')}</th>
-                            <th scope="col">${_('Calculation')}</th>
                             <th scope="col">${_('Score')}</th>
                         </tr>
                     </thead>
                     <tbody>${modalRowsHtml}</tbody>
-                </table>
-                <div class="mc_results_rules_note">
-                    <p><strong>${_('How scores are calculated:')}</strong></p>
-                    <ul>
-                        <li>${_('Each connection in your biggest closed microchip is worth +1 point.')}</li>
-                        <li>${_('Each unused tile outside your microchip (on your board or in your tray) costs −2 points.')}</li>
-                        <li>${_('Ties are broken by the player with more tiles in their microchip.')}</li>
-                    </ul>
-                </div>`;
+                </table>`;
         }
 
         if (this.el.scoresBtn) {
@@ -1747,6 +1772,12 @@ export class Game {
         if (this.el.resultsModal) {
             this.el.resultsModal.hidden = false;
         }
+    }
+
+    /** The player's BGA colour as a CSS colour (falls back to grey). */
+    playerColour(pid) {
+        const raw = String(this.gd?.players?.[pid]?.color || '').replace('#', '');
+        return /^[0-9a-fA-F]{6}$/.test(raw) ? '#' + raw : '#78716c';
     }
 
     escape(text) {

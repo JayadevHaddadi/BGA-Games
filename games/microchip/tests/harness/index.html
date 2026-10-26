@@ -249,6 +249,26 @@ async function run() {
     game.onPoolTile(51);
     check(calls.length === callsBefore + 1 && calls[calls.length - 1].args.tileId === 50, 'rapid pool tile clicks are guarded against concurrent actDraw');
     game._actionPending = false;
+
+    // 9. Replace: a selected tray tile + a same-colour board tile -> actSwap; different colour -> just selects
+    game.tiles.forEach((t) => { if (t.owner === 1 && t.location === 'board') { t.location = 'hand'; t.r = null; t.c = null; t.rot = 0; } });
+    Object.assign(game.tiles.get(44), { location: 'board', r: 1, c: 4, rot: 3, colour: 'red', shape: 'end' });
+    Object.assign(game.tiles.get(40), { location: 'board', r: 3, c: 4, rot: 0, colour: 'blue', shape: 'end' });
+    game.sel = null; game.ghost = null; game._actionPending = false;
+    game.renderAll();
+    game.onTrayTile(42); // green straight in the tray
+    const nSw = calls.length;
+    root.querySelector('#mc_board_me .mc_placed[data-id="40"]').click(); // blue board tile
+    check(calls.length === nSw && game.sel && game.sel.id === 40, 'different colour: just selects the board tile');
+    game.onTrayTile(41); // red tee in the tray
+    root.querySelector('#mc_board_me .mc_placed[data-id="44"]').click();
+    await Promise.resolve();
+    const sw = calls[calls.length - 1];
+    check(sw.name === 'actSwap' && sw.args.tileId === 41 && sw.args.targetTileId === 44 && sw.args.rot >= 0 && sw.args.rot < 4, `same colour: actSwap sent (${JSON.stringify(sw)})`);
+    game.notif_tileSwapped({ player_id: 1, type: 'tray_board', tile_a: { id: 41, colour: 'red', shape: 'tee' }, tile_b: { id: 44, colour: 'red', shape: 'end' }, r: 1, c: 4, rot: sw.args.rot, coord: 'E2' });
+    check(game.tiles.get(44).location === 'hand' && game.tiles.get(41).location === 'board' && game.tiles.get(41).r === 1 && game.tiles.get(41).c === 4, 'board tile went back to the tray, incoming tile placed');
+    check(game.sel && game.sel.id === 41 && game.sel.from === 'board' && root.querySelector('#mc_board_me .mc_placed.mc_sel[data-id="41"]'), 'incoming tile stays selected');
+    check(root.querySelector('.mc_tray .mc_tile_btn[data-id="44"]'), 'replaced tile shows in the tray');
   } else {
     // 6. Build: pool empty. Temporary mismatches show ! and block Finish
     const t44 = game.tiles.get(44);
@@ -296,6 +316,11 @@ async function run() {
     check(!root.querySelector('#mc_results').hidden && root.querySelectorAll('#mc_results tbody tr').length === 2, 'results table shows both players');
     check(!root.querySelector('#mc_results_modal').hidden, 'results modal popup is shown after final scoring');
     check(!root.querySelector('#mc_scores_btn').hidden, 'scores button is visible after final scoring');
+    const modalCard = root.querySelector('.mc_results_card');
+    check(!root.querySelector('.mc_results_popup_table').textContent.includes('Calculation') && !root.querySelector('.mc_results_rules_note') && !root.querySelector('.mc_calc_cell'), 'score popup has no Calculation column and no explanation box');
+    check(root.querySelectorAll('.mc_results_popup_table thead th').length === 4, 'score popup has four columns');
+    check(modalCard.scrollWidth <= modalCard.clientWidth && modalCard.getBoundingClientRect().right <= window.innerWidth + 0.5 && doc.scrollWidth <= window.innerWidth, `score popup fits the width without horizontal overflow (card ${modalCard.scrollWidth}/${modalCard.clientWidth}, window ${window.innerWidth})`);
+    check(root.querySelectorAll('.mc_res_winner').length === 1, 'winner row highlighted');
     root.querySelector('.mc_results_close_btn').click();
     check(root.querySelector('#mc_results_modal').hidden, 'results modal is hidden after clicking close');
     root.querySelector('#mc_scores_btn').click();
