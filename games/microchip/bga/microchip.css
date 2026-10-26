@@ -26,6 +26,15 @@ body.microc_page_bg #game_play_area_background {
     padding: 8px 8px 16px;
     color: #1d1d1b;
     box-sizing: border-box;
+    overflow-anchor: none;
+}
+
+html, body, #microc_root, .mc_root, .mc_pool, .mc_main, .mc_mine, .mc_grid {
+    overflow-anchor: none;
+}
+
+.mc_tile_btn, .mc_space, .mc_placed {
+    touch-action: manipulation;
 }
 
 .mc_root *,
@@ -284,7 +293,8 @@ button.mc_space {
 
 .mc_placed.mc_ghost {
     opacity: 0.6;
-    pointer-events: none;
+    pointer-events: auto;
+    cursor: pointer;
 }
 
 .mc_placed.mc_ghost.mc_bad {
@@ -311,6 +321,41 @@ button.mc_space {
     height: 56px;
     min-width: 56px;
     min-height: 56px;
+}
+
+.mc_return_tray_btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    min-height: 44px;
+    padding: 8px 14px;
+    background: #fdf5ea;
+    border: 2px dashed #b45309;
+    border-radius: 3px;
+    color: #92400e;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-sizing: border-box;
+    touch-action: manipulation;
+}
+
+@media (hover: hover) {
+    .mc_return_tray_btn:hover {
+        background: #fde8cd;
+        border-color: #92400e;
+    }
+}
+
+.mc_flying_tile {
+    position: fixed;
+    z-index: 9999;
+    pointer-events: none;
+    border-radius: 3px;
+    border: 1px solid #1d1d1b;
+    transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.25, 1), opacity 0.45s ease;
 }
 
 .mc_boards {

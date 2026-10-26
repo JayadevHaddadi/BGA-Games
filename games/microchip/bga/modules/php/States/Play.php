@@ -83,8 +83,47 @@ class Play extends GameState
         ]);
         if ($info['pool_left'] === 0) {
             $this->notify->all('poolEmpty', clienttranslate('The pool is empty. Build your microchips, then press Finish.'), []);
+        } else {
+            $this->autoDrawIfSingle();
         }
         return null;
+    }
+
+    /** When only 1 tile is left in the draw column, give it automatically to the next drawer. */
+    private function autoDrawIfSingle(): void
+    {
+        while (!$this->game->poolEmpty()) {
+            $drawCol = $this->game->drawColumn();
+            $inCol = [];
+            foreach ($this->game->poolCells() as $tid => $pos) {
+                if ($pos['col'] === $drawCol) {
+                    $inCol[] = (int) $tid;
+                }
+            }
+            if (count($inCol) !== 1) {
+                break;
+            }
+            $tileId = $inCol[0];
+            $pid = $this->game->drawer();
+            $info = $this->game->takeTile($pid, $tileId);
+            $tile = $info['tile'];
+            $this->notify->all('tileDrawn', clienttranslate('${player_name} automatically receives the last tile in the draw column: ${colour_name} ${shape_name}.'), [
+                'player_id' => $pid,
+                'player_name' => $this->game->getPlayerNameById($pid),
+                'tile' => $tile,
+                'colour_name' => $this->game->colourName($tile['colour']),
+                'shape_name' => $this->game->shapeName($tile['shape']),
+                'from' => $info['from'],
+                'next_drawer' => $info['next_drawer'],
+                'draw_column' => $info['draw_column'],
+                'pool_left' => $info['pool_left'],
+                'i18n' => ['colour_name', 'shape_name'],
+            ]);
+            if ($info['pool_left'] === 0) {
+                $this->notify->all('poolEmpty', clienttranslate('The pool is empty. Build your microchips, then press Finish.'), []);
+                break;
+            }
+        }
     }
 
     #[PossibleAction]
@@ -181,6 +220,9 @@ class Play extends GameState
                     ]);
                     break;
                 }
+            }
+            if (!$this->game->poolEmpty()) {
+                $this->autoDrawIfSingle();
             }
         }
         $this->game->setFinished($playerId);

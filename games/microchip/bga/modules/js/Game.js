@@ -173,17 +173,49 @@ export class Game {
             this.el.mine.hidden = true;
         }
 
+        const preventFocusScroll = (e) => {
+            if (e.target.closest('button, [role="button"], .mc_tile_btn, .mc_space, .mc_placed')) {
+                e.preventDefault();
+            }
+        };
+        this.el.pool.addEventListener('pointerdown', preventFocusScroll);
+        this.el.board.addEventListener('pointerdown', preventFocusScroll);
+        this.el.tray.addEventListener('pointerdown', preventFocusScroll);
+        this.el.pool.addEventListener('mousedown', preventFocusScroll);
+        this.el.board.addEventListener('mousedown', preventFocusScroll);
+        this.el.tray.addEventListener('mousedown', preventFocusScroll);
+
         this.el.pool.addEventListener('click', (e) => {
             const btn = e.target.closest('.mc_tile_btn');
             if (btn) this.onPoolTile(Number(btn.dataset.id));
         });
         this.el.board.addEventListener('click', (e) => this.onBoardClick(e));
         this.el.tray.addEventListener('click', (e) => {
+            const retBtn = e.target.closest('.mc_return_tray_btn');
+            if (retBtn || (this.sel && this.sel.from === 'board' && !e.target.closest('.mc_tile_btn'))) {
+                this.doReturn();
+                return;
+            }
+            if (this.sel && this.sel.from === 'tray' && this.sel.r !== null && !e.target.closest('.mc_tile_btn')) {
+                this.sel.r = null;
+                this.sel.c = null;
+                this.hint('');
+                this.renderAll();
+                return;
+            }
             const btn = e.target.closest('.mc_tile_btn');
             if (btn) this.onTrayTile(Number(btn.dataset.id));
         });
+
         if (typeof ResizeObserver !== 'undefined') {
-            new ResizeObserver(() => this.renderPool()).observe(this.el.pool);
+            let lastW = 0;
+            new ResizeObserver((entries) => {
+                const w = Math.round(entries[0]?.contentRect?.width || 0);
+                if (w && Math.abs(w - lastW) > 10) {
+                    lastW = w;
+                    this.renderPool();
+                }
+            }).observe(root);
         }
     }
 
@@ -288,7 +320,6 @@ export class Game {
 
     renderPool() {
         const wrap = this.el.pool;
-        wrap.textContent = '';
         const width = wrap.clientWidth || 340;
         const cols = this.poolCols;
         const rows = this.poolRows;
@@ -298,6 +329,18 @@ export class Game {
         const at = new Map(this.poolTiles().map((t) => [mcKey(t.row, t.col), t]));
         const draw = this.drawCol();
         const canDraw = this.me !== null && this.drawer === this.me && !this.finished[this.me];
+        const selId = this.sel && this.sel.from === 'pool' ? this.sel.id : null;
+
+        const poolKey = [...at.keys()].sort().join(';') + `|b=${blocks}|d=${draw}|c=${canDraw}`;
+        if (this._lastPoolKey === poolKey && wrap.children.length > 0) {
+            wrap.querySelectorAll('.mc_tile_btn').forEach((btn) => {
+                const id = Number(btn.dataset.id);
+                btn.classList.toggle('mc_sel', id === selId);
+            });
+            return;
+        }
+        this._lastPoolKey = poolKey;
+        wrap.textContent = '';
 
         for (let start = 0; start < cols; start += per) {
             const n = Math.min(per, cols - start);
@@ -379,7 +422,7 @@ export class Game {
         });
         if (staged && staged.r !== null) {
             const cls = 'mc_placed mc_ghost' + (problem ? ' mc_bad' : '');
-            grid += this.placedHTML({ id: staged.id, r: staged.r, c: staged.c, rot: staged.rot, colour: stagedTile.colour, shape: stagedTile.shape }, cls, false);
+            grid += this.placedHTML({ id: staged.id, r: staged.r, c: staged.c, rot: staged.rot, colour: stagedTile.colour, shape: stagedTile.shape }, cls, true);
         }
         grid += '</div>';
         if (!mine) {
@@ -408,7 +451,14 @@ export class Game {
         if (this.me === null) return;
         const tray = this.trayTiles(this.me);
         this.el.tray.textContent = '';
-        if (tray.length === 0) {
+        if (this.sel && this.sel.from === 'board') {
+            const retBtn = document.createElement('button');
+            retBtn.type = 'button';
+            retBtn.className = 'mc_return_tray_btn';
+            retBtn.innerHTML = `&#x21A9; ${_('Click here to put tile back in tray')}`;
+            this.el.tray.appendChild(retBtn);
+        }
+        if (tray.length === 0 && !(this.sel && this.sel.from === 'board')) {
             const p = document.createElement('p');
             p.className = 'mc_empty';
             p.textContent = _('No tiles waiting. Draw one from the pool.');
@@ -514,13 +564,25 @@ export class Game {
         const t = this.tiles.get(id);
         if (!t || t.owner !== this.me) return;
         this.hint('');
-        this.sel = this.sel && this.sel.id === id ? null : { id, from: 'board', rot: t.rot, r: t.r, c: t.c };
+        if (this.sel && this.sel.id === id) {
+            if (this.rotation) {
+                this.rotateSel();
+            }
+            return;
+        }
+        this.sel = { id, from: 'board', rot: t.rot, r: t.r, c: t.c };
         this.renderAll();
     }
 
     onSpace(r, c) {
         if (!this.sel || this.sel.from === 'pool') {
             this.hint(_('Tap a tile in your tray or on your board first.'));
+            return;
+        }
+        if (this.sel.r === r && this.sel.c === c) {
+            if (this.rotation) {
+                this.rotateSel();
+            }
             return;
         }
         if (this.spaceOccupied(r, c, this.sel.id)) {
@@ -630,8 +692,56 @@ export class Game {
     /* Notifications (the server sends the changes; the client keeps its copy in step)             */
     /* ------------------------------------------------------------------------------------------ */
 
-    notif_tileDrawn(args) {
+    animateTileDrawn(tile, pid) {
+        if (!tile || !this.el?.pool) return Promise.resolve();
+        const fromBtn = this.el.pool.querySelector(`.mc_tile_btn[data-id="${tile.id}"]`);
+        if (!fromBtn) return Promise.resolve();
+        const fromRect = fromBtn.getBoundingClientRect();
+        if (fromRect.width === 0 || fromRect.height === 0) return Promise.resolve();
+
+        let targetEl = null;
+        if (Number(pid) === this.me) {
+            targetEl = this.el.tray;
+        } else {
+            targetEl = this.el.boards?.querySelector?.(`.mc_other[title="${this.playerName(pid)}"]`)
+                || this.bga?.playerPanels?.getElement?.(pid);
+        }
+        if (!targetEl) return Promise.resolve();
+        const targetRect = targetEl.getBoundingClientRect();
+        if (targetRect.width === 0 && targetRect.height === 0) return Promise.resolve();
+
+        const clone = document.createElement('div');
+        clone.className = 'mc_flying_tile';
+        clone.style.left = `${fromRect.left}px`;
+        clone.style.top = `${fromRect.top}px`;
+        clone.style.width = `${fromRect.width}px`;
+        clone.style.height = `${fromRect.height}px`;
+        clone.innerHTML = mcTileHTML(tile.colour, tile.shape, 0);
+        document.body.appendChild(clone);
+
+        const targetX = targetRect.left + Math.max(10, Math.min(targetRect.width / 2, 40)) - fromRect.width / 2;
+        const targetY = targetRect.top + Math.max(10, Math.min(targetRect.height / 2, 40)) - fromRect.height / 2;
+        const dx = targetX - fromRect.left;
+        const dy = targetY - fromRect.top;
+        const scale = targetRect.width < fromRect.width ? 0.75 : 1.0;
+
+        return new Promise((resolve) => {
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    clone.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
+                    clone.style.opacity = '0.9';
+                });
+            });
+            setTimeout(() => {
+                clone.remove();
+                resolve();
+            }, 450);
+        });
+    }
+
+    async notif_tileDrawn(args) {
         const t = this.tiles.get(args.tile.id);
+        const animPromise = this.animateTileDrawn(args.tile, args.player_id);
         if (t) {
             t.location = 'hand';
             t.owner = Number(args.player_id);
@@ -640,6 +750,7 @@ export class Game {
         }
         this.drawer = Number(args.next_drawer);
         this.renderAll();
+        await animPromise;
     }
 
     notif_poolEmpty() {
