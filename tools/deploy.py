@@ -169,6 +169,14 @@ def build_version(page, slug, comment):
         statuses = b.get('statuses', [])
         if any(s != 1 for s in statuses):
             print(f"  [!] Build step failed: {title} (statuses: {statuses})")
+            # Show what BGA reported for this step (messages are HTML snippets)
+            import re as _re
+            for key in ('content', 'lines', 'messages', 'html', 'logs'):
+                if b.get(key):
+                    txt = _re.sub(r'<[^>]+>', ' ', json.dumps(b[key]) if not isinstance(b[key], str) else b[key])
+                    print('      ' + _re.sub(r'\s+', ' ', txt)[:1500])
+            if not any(b.get(k) for k in ('content', 'lines', 'messages', 'html', 'logs')):
+                print('      ' + json.dumps(b)[:1500])
             has_failure = True
 
     if has_failure:

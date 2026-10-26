@@ -100,8 +100,7 @@ class PlayerTurn extends GameState
                 }
             }
             if (!$ok) {
-                $name = $this->game->loadPlayersBasicInfos()[$forced['player_id']]['player_name'];
-                throw new UserException(str_replace('${player_name}', $name, $this->game->_('You must block ${player_name}\'s winning move')));
+                throw new UserException(clienttranslate("You must block the next player's winning move"));
             }
         }
 

@@ -890,6 +890,11 @@ def contract_checks(rep, folder, bga, js_text, sound_ids):
     (rep.add('PASS', 'no player_score / player_score_aux text in PHP') if not ps
      else rep.add('WARN', 'player_score text in PHP (BGA build warning; use the playerScore counters, reword comments)', ', '.join(ps)))
 
+    # BGA's build checker rejects $this->_() / ->_( in PHP: use clienttranslate (W_PHP_translate_with_underscore)
+    us = [f.name for f in php_files if re.search(r'->_\(', f.read_text(encoding='utf-8'))]
+    (rep.add('PASS', 'no deprecated ->_() translation in PHP') if not us
+     else rep.add('FAIL', 'deprecated ->_() in PHP (BGA build check fails): use clienttranslate()', ', '.join(us)))
+
     # State ids are unique
     ids = {}
     for php in files_under(php_dir / 'States', ['php']) if (php_dir / 'States').exists() else []:
