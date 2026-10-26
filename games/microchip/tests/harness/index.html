@@ -68,9 +68,9 @@ function fixture() {
   hand.forEach((id) => { tiles[id].location = 'hand'; tiles[id].owner = 1; });
   // Tiles not used by this fixture are in the box
   if (mode === 'build') for (let id = 45; id < 60; id++) tiles[id].location = 'box';
-  // Board of player 1: two tiles placed (an end facing east at A1 pairs with a tee at B1? keep it simple)
+  // Board of player 1: two tiles placed
   tiles[43].location = 'board'; tiles[43].owner = 1; tiles[43].r = 0; tiles[43].c = 0; tiles[43].shape = 'end'; tiles[43].colour = 'blue'; tiles[43].rot = 1;
-  tiles[44].location = 'board'; tiles[44].owner = 1; tiles[44].r = 0; tiles[44].c = 1; tiles[44].shape = 'end'; tiles[44].colour = 'red'; tiles[44].rot = 3;
+  tiles[44].location = 'board'; tiles[44].owner = 1; tiles[44].r = 1; tiles[44].c = 4; tiles[44].shape = 'end'; tiles[44].colour = 'red'; tiles[44].rot = 3;
   // Tray tiles: blue end, red tee, green straight (ids 40, 41, 42 are colour blue/red/green by id)
   tiles[40].colour = 'blue'; tiles[40].shape = 'end';
   tiles[41].colour = 'red'; tiles[41].shape = 'tee';
@@ -158,14 +158,13 @@ async function run() {
     check(labels().includes('Confirm(off)'), `Confirm is off on a wrong colour: ${labels()}`);
     check(/colour/i.test(root.querySelector('#mc_hint').textContent), `reason shown: ${root.querySelector('#mc_hint').textContent}`);
 
-    // (3,4) is blue on the east edge. Pointing north it is fine; pointing east it is refused; south is fine again.
+    // (3,4) is blue on the east edge. Pointing north is legal; east points to edge (illegal, skipped); south is legal.
     space(3, 4).click();
-    check(game.stageProblem() === null && labels().includes('Confirm'), `(3,4) north is legal (${game.stageProblem()})`);
+    check(game.stageProblem() === null && game.sel.rot === 0 && labels().includes('Confirm'), `(3,4) north is legal (${game.stageProblem()})`);
     game.rotateSel();
-    check(game.stageProblem() === 'edge', `(3,4) east points at the edge (${game.stageProblem()})`);
-    check(labels().includes('Confirm(off)'), 'Confirm off for an edge connection');
+    check(game.stageProblem() === null && game.sel.rot === 2 && labels().includes('Confirm'), `(3,4) skips illegal east rotation and rotates directly to south (${game.sel.rot})`);
     game.rotateSel();
-    check(game.stageProblem() === null, `(3,4) south is legal again (${game.stageProblem()})`);
+    check(game.stageProblem() === null && game.sel.rot === 3 && labels().includes('Confirm'), `(3,4) rotates to west (${game.sel.rot})`);
     press('Cancel');
     check(game.sel === null, 'Cancel clears the staged tile');
 

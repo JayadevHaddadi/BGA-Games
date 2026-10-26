@@ -347,6 +347,35 @@ export class Game {
         return out;
     }
 
+    /**
+     * Legal rotations for tileId at space (r, c) on my board.
+     * Deduplicates visually/functionally identical connection signatures (e.g. straight, plus).
+     */
+    getLegalRotations(tileId, r, c) {
+        const t = this.tiles.get(tileId);
+        if (!t || this.me === null) return [];
+        const spaces = this.spaces[this.me];
+        if (!spaces || !mcInside(r, c)) return [];
+        if (spaces[r][c] !== t.colour) return [];
+        if (this.spaceOccupied(r, c, tileId)) return [];
+
+        const placed = this.placedMine(tileId);
+        const candidates = this.rotation ? [0, 1, 2, 3] : [0];
+        const legal = [];
+        const seenSignatures = new Set();
+
+        for (const rot of candidates) {
+            if (mcProblem(spaces, placed, t.colour, t.shape, rot, r, c) === null) {
+                const sig = mcConn(t.shape, rot).map((b) => (b ? '1' : '0')).join('');
+                if (!seenSignatures.has(sig)) {
+                    seenSignatures.add(sig);
+                    legal.push(rot);
+                }
+            }
+        }
+        return legal;
+    }
+
     stageProblem() {
         const s = this.sel;
         if (!s || s.from === 'pool' || s.r === null) return 'pick';
@@ -481,7 +510,7 @@ export class Game {
         for (let r = 0; r < MC_SIZE; r++) {
             for (let c = 0; c < MC_SIZE; c++) {
                 const colour = spaces[r][c];
-                const target = stagedTile && !this.spaceOccupied(r, c, staged.id) && colour === stagedTile.colour;
+                const target = stagedTile && this.getLegalRotations(staged.id, r, c).length > 0;
                 const cls = `mc_space mc_sp_${colour}` + (target ? ' mc_target' : '');
                 const label = `${mcCoord(r, c)}, ${this.colourLabel(colour)}`;
                 if (mine) {
@@ -648,6 +677,14 @@ export class Game {
             return;
         }
         this.sel = { id, from: 'board', rot: t.rot, r: t.r, c: t.c };
+        const legal = this.getLegalRotations(id, t.r, t.c);
+        if (legal.length > 0) {
+            const curSig = mcConn(t.shape, this.sel.rot).map((b) => (b ? '1' : '0')).join('');
+            const matchRot = legal.find((rot) => mcConn(t.shape, rot).map((b) => (b ? '1' : '0')).join('') === curSig);
+            if (matchRot !== undefined) {
+                this.sel.rot = matchRot;
+            }
+        }
         this.renderAll();
     }
 
@@ -666,17 +703,45 @@ export class Game {
             this.hint(this.problemText('occupied'));
             return;
         }
-        // A wrong colour is still staged, so the player sees the ghost and why Confirm is off
         this.sel.r = r;
         this.sel.c = c;
+        const legal = this.getLegalRotations(this.sel.id, r, c);
+        if (legal.length > 0) {
+            const t = this.tiles.get(this.sel.id);
+            const curSig = mcConn(t.shape, this.sel.rot).map((b) => (b ? '1' : '0')).join('');
+            const matchRot = legal.find((rot) => mcConn(t.shape, rot).map((b) => (b ? '1' : '0')).join('') === curSig);
+            this.sel.rot = matchRot !== undefined ? matchRot : legal[0];
+        }
         const problem = this.stageProblem();
-        this.hint(problem ? this.problemText(problem) : _('Tap Confirm to place the tile here.'));
+        if (problem) {
+            this.hint(this.problemText(problem));
+        } else {
+            const canRotate = this.rotation && legal.length > 1;
+            this.hint(canRotate ? _('Tap Confirm to place the tile here, or Rotate to change orientation.') : _('Tap Confirm to place the tile here.'));
+        }
         this.renderAll();
     }
 
     rotateSel() {
         if (!this.sel || !this.rotation || this.sel.from === 'pool') return;
-        this.sel.rot = (this.sel.rot + 1) % 4;
+        if (this.sel.r === null) {
+            this.sel.rot = (this.sel.rot + 1) % 4;
+            this.renderAll();
+            return;
+        }
+        const legal = this.getLegalRotations(this.sel.id, this.sel.r, this.sel.c);
+        if (legal.length <= 1) return;
+        const t = this.tiles.get(this.sel.id);
+        const curSig = mcConn(t.shape, this.sel.rot).map((b) => (b ? '1' : '0')).join('');
+        const curIdx = legal.findIndex((rot) => mcConn(t.shape, rot).map((b) => (b ? '1' : '0')).join('') === curSig);
+        const nextIdx = curIdx >= 0 ? (curIdx + 1) % legal.length : 0;
+        this.sel.rot = legal[nextIdx];
+        const problem = this.stageProblem();
+        if (problem) {
+            this.hint(this.problemText(problem));
+        } else {
+            this.hint(_('Tap Confirm to place the tile here, or Rotate to change orientation.'));
+        }
         this.renderAll();
     }
 
@@ -708,7 +773,8 @@ export class Game {
             const moved = s.r !== null && (s.from === 'tray' || s.r !== t.r || s.c !== t.c || s.rot !== t.rot);
             this.bga.statusBar.addActionButton(_('Confirm'), () => this.doPlace(), { color: 'primary', disabled: problem !== null || !moved });
             if (this.rotation) {
-                this.bga.statusBar.addActionButton(_('Rotate'), () => this.rotateSel(), { color: 'secondary' });
+                const canRotate = s.r === null || this.getLegalRotations(s.id, s.r, s.c).length > 1;
+                this.bga.statusBar.addActionButton(_('Rotate'), () => this.rotateSel(), { color: 'secondary', disabled: !canRotate });
             }
             if (s.from === 'board') {
                 this.bga.statusBar.addActionButton(_('Remove'), () => this.doReturn(), { color: 'alert' });
