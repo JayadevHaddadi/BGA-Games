@@ -287,24 +287,7 @@ class Game extends \Bga\GameFramework\Table
         // Determine Starting Player:
         // "For each colour, look for the biggest group of connected tiles in the kiln.
         // The owner of the smallest group among those groups becomes the starting player."
-        $startingPlayerId = (int) $playerIds[0];
-        $bestKey = null;
-
-        foreach ($playerIds as $pId) {
-            $pCol = $playerColorMap[$pId];
-            $groups = $this->getConnectedGroups($pCol);
-            // Collect sizes sorted descending
-            $sizes = array_map(fn($g) => count($g), $groups);
-            rsort($sizes);
-            if (empty($sizes)) {
-                $sizes = [0];
-            }
-            // Comparison key: smaller largest group is better (i.e. starts first)
-            if ($bestKey === null || $sizes < $bestKey) {
-                $bestKey = $sizes;
-                $startingPlayerId = (int) $pId;
-            }
-        }
+        $startingPlayerId = $this->determineStartingPlayer($playerIds, $playerColorMap);
 
         $this->gamestate->changeActivePlayer($startingPlayerId);
 
@@ -315,6 +298,42 @@ class Game extends \Bga\GameFramework\Table
         ]);
 
         return PlayerTurn::class;
+    }
+
+    /**
+     * Rulebook: the owner of the smallest of the colours' biggest groups starts; on a tie compare the next larger
+     * group and so on. Group-size lists are compared element by element (PHP's array "<" would compare the number
+     * of groups first, which is not the rule). A full tie keeps the earlier seat.
+     */
+    public function determineStartingPlayer(array $playerIds, array $playerColorMap): int
+    {
+        $startingPlayerId = (int) $playerIds[0];
+        $bestKey = null;
+        foreach ($playerIds as $pId) {
+            $sizes = array_map(fn($g) => count($g), $this->getConnectedGroups($playerColorMap[$pId]));
+            rsort($sizes);
+            if (empty($sizes)) {
+                $sizes = [0];
+            }
+            if ($bestKey === null || self::compareSizeLists($sizes, $bestKey) < 0) {
+                $bestKey = $sizes;
+                $startingPlayerId = (int) $pId;
+            }
+        }
+        return $startingPlayerId;
+    }
+
+    public static function compareSizeLists(array $a, array $b): int
+    {
+        $n = max(count($a), count($b));
+        for ($i = 0; $i < $n; $i++) {
+            $x = $a[$i] ?? 0;
+            $y = $b[$i] ?? 0;
+            if ($x !== $y) {
+                return $x <=> $y;
+            }
+        }
+        return 0;
     }
 
     protected function getAllDatas(): array

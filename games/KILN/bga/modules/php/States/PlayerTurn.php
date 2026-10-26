@@ -43,6 +43,13 @@ class PlayerTurn extends GameState
     #[PossibleAction]
     public function actPushTile(int $targetSlot, int $activePlayerId): string
     {
+        // Validate before touching any state.
+        if ($targetSlot < 0 || $targetSlot >= 24) {
+            throw new UserException(clienttranslate("Invalid border slot selected."));
+        }
+        if ($targetSlot === $this->game->getOuterTile()['border_slot']) {
+            throw new UserException(clienttranslate("You must move the outer tile to a different border slot."));
+        }
         $this->game->saveTurnSnapshot($activePlayerId);
         $this->game->globals->set('fix_mess_used', false);
         $res = $this->game->executePush($targetSlot);
