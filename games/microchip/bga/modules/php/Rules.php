@@ -193,7 +193,9 @@ final class Rules
 
     /**
      * Returns null when the tile may be placed at (r, c) with rotation $rot, or a short code for the reason.
-     * Codes: outside, occupied, colour, edge, mismatch.
+     * Allowed during building/rearranging: mismatches with adjacent tiles.
+     * Forbidden: outside board, space occupied, wrong colour, or connection pointing off the edge of the board.
+     * Codes: outside, occupied, colour, edge.
      *
      * @param string[][]                                 $spaces board colours
      * @param array<string, array{shape:string, rot:int}> $placed other tiles on the board, keyed by "r,c"
@@ -219,16 +221,43 @@ final class Rules
                 }
                 continue;
             }
-            $key = self::key($nr, $nc);
-            if (!isset($placed[$key])) {
-                continue;
-            }
-            $other = self::connections($placed[$key]['shape'], $placed[$key]['rot']);
-            if ($other[($side + 2) % 4] !== $conn[$side]) {
-                return 'mismatch';
-            }
         }
         return null;
+    }
+
+    /**
+     * Returns a list of "r,c" keys for placed tiles that have connection errors (pointing off-board or mismatching an adjacent tile).
+     *
+     * @param array<string, array{shape:string, rot:int}> $placed
+     * @return string[]
+     */
+    public static function tileErrors(array $placed): array
+    {
+        $errors = [];
+        foreach ($placed as $key => $tile) {
+            [$r, $c] = array_map('intval', explode(',', $key));
+            $conn = self::connections($tile['shape'], $tile['rot']);
+            foreach (self::STEP as $side => [$dr, $dc]) {
+                $nr = $r + $dr;
+                $nc = $c + $dc;
+                if (!self::inBoard($nr, $nc)) {
+                    if ($conn[$side]) {
+                        $errors[$key] = true;
+                    }
+                    continue;
+                }
+                $nkey = self::key($nr, $nc);
+                if (!isset($placed[$nkey])) {
+                    continue;
+                }
+                $other = self::connections($placed[$nkey]['shape'], $placed[$nkey]['rot']);
+                if ($other[($side + 2) % 4] !== $conn[$side]) {
+                    $errors[$key] = true;
+                    $errors[$nkey] = true;
+                }
+            }
+        }
+        return array_keys($errors);
     }
 
     /** Groups of placed tiles that touch along matching connections, as lists of "r,c" keys. */
@@ -287,8 +316,14 @@ final class Rules
                 foreach (self::STEP as $side => [$dr, $dc]) {
                     if ($conn[$side]) {
                         $value++;
-                        if (!isset($placed[self::key($r + $dr, $c + $dc)])) {
+                        $nkey = self::key($r + $dr, $c + $dc);
+                        if (!isset($placed[$nkey])) {
                             $open++;
+                        } else {
+                            $other = self::connections($placed[$nkey]['shape'], $placed[$nkey]['rot']);
+                            if (!$other[($side + 2) % 4]) {
+                                $open++;
+                            }
                         }
                     }
                 }

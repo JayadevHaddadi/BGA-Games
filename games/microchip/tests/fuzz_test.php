@@ -70,6 +70,13 @@ $hook = function (object $state, int $pid, object $game) use (&$fuzzStats) {
     Stub::$current = $pid;
     for ($k = 0; $k < 25; $k++) { fuzz_build($state, $game, $pid, $fuzzStats); }
     if (mt_rand(0, 4) === 0) { return false; } // let zombie() finish this one
+    // If random building created temporary mismatches, return those tiles to tray before finishing
+    foreach (\Bga\Games\microchip\Rules::tileErrors($game->placedOf($pid)) as $errKey) {
+        $placed = $game->placedOf($pid);
+        if (isset($placed[$errKey])) {
+            $game->returnTile($pid, $placed[$errKey]['id']);
+        }
+    }
     return $state->actFinish();
 };
 

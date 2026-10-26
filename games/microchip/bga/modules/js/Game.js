@@ -59,11 +59,36 @@ function mcProblem(spaces, placed, colour, shape, rot, r, c) {
             if (conn[side]) return 'edge';
             continue;
         }
-        const other = placed[mcKey(nr, nc)];
-        if (!other) continue;
-        if (mcConn(other.shape, other.rot)[(side + 2) % 4] !== conn[side]) return 'mismatch';
     }
     return null;
+}
+
+/** Returns a Set of "r,c" keys for placed tiles that have connection errors (pointing off-board or mismatching an adjacent tile). */
+function mcTileErrors(placed) {
+    const errors = new Set();
+    const keys = Object.keys(placed);
+    for (const key of keys) {
+        const [r, c] = key.split(',').map(Number);
+        const tile = placed[key];
+        const conn = mcConn(tile.shape, tile.rot);
+        for (let side = 0; side < 4; side++) {
+            const nr = r + MC_STEP[side][0];
+            const nc = c + MC_STEP[side][1];
+            if (!mcInside(nr, nc)) {
+                if (conn[side]) errors.add(key);
+                continue;
+            }
+            const nKey = mcKey(nr, nc);
+            const other = placed[nKey];
+            if (!other) continue;
+            const otherConn = mcConn(other.shape, other.rot);
+            if (otherConn[(side + 2) % 4] !== conn[side]) {
+                errors.add(key);
+                errors.add(nKey);
+            }
+        }
+    }
+    return errors;
 }
 
 /** Connected groups of placed tiles that match connections (same as Rules::structures). */
@@ -115,7 +140,9 @@ function mcScoreBoard(placed, owned) {
                     value++;
                     const nr = r + MC_STEP[side][0];
                     const nc = c + MC_STEP[side][1];
-                    if (!placed[mcKey(nr, nc)]) {
+                    const nKey = mcKey(nr, nc);
+                    const other = placed[nKey];
+                    if (!other || !mcConn(other.shape, other.rot)[(side + 2) % 4]) {
                         open++;
                     }
                 }
@@ -213,6 +240,7 @@ export class Game {
         this.amActive = false;
         this.finishPending = false;
         this.chipKeys = {};
+        this.errorKeys = {};
         // The tile placed or moved last: marked on its board so it is easy to find after a move
         this.lastId = null;
         this.bga.states.register('Play', new PlayState(this));
@@ -613,7 +641,7 @@ export class Game {
         if (!s || s.from === 'pool' || s.r === null) return 'pick';
         if (s.swapWith) {
             const swaps = this.getLegalSwapRotations(s.id, s.swapWith);
-            return swaps.some((sw) => sw.rotA === s.rot) ? null : 'mismatch';
+            return swaps.some((sw) => sw.rotA === s.rot) ? null : 'edge';
         }
         const t = this.tiles.get(s.id);
         return mcProblem(this.spaces[this.me], this.placedMine(s.id), t.colour, t.shape, s.rot, s.r, s.c);
@@ -626,7 +654,7 @@ export class Game {
             occupied: _('That space already has a tile.'),
             colour: _('The tile colour must match the colour of the space.'),
             edge: _('A connection cannot point to the edge of the board.'),
-            mismatch: _('The connections must match the tiles next to it.'),
+            mismatch: _('Mismatched tiles (!) must be fixed before finishing.'),
         }[code] || _('That placement is not legal.');
     }
 
@@ -636,12 +664,14 @@ export class Game {
 
     computeScores() {
         if (!this.order) return;
+        this.errorKeys = {};
         this.order.forEach((pid) => {
             const placedList = this.boardTiles(pid);
             const placedMap = {};
             placedList.forEach((t) => {
                 placedMap[mcKey(t.r, t.c)] = { shape: t.shape, rot: t.rot };
             });
+            this.errorKeys[pid] = mcTileErrors(placedMap);
             const owned = placedList.length + this.trayTiles(pid).length;
             const s = mcScoreBoard(placedMap, owned);
             this.chipKeys[pid] = new Set(s.chip);
@@ -807,6 +837,7 @@ export class Game {
             }
         }
         const chip = this.chipKeys[pid] || null;
+        const errs = this.errorKeys ? this.errorKeys[pid] : null;
         this.boardTiles(pid).forEach((t) => {
             if (staged && t.id === staged.id) return; // the staged tile is drawn as the ghost below
             if (staged && staged.swapWith && t.id === staged.swapWith) {
@@ -817,8 +848,14 @@ export class Game {
                 return;
             }
             const canSwap = mine && staged && staged.id !== t.id && !staged.swapWith && this.getLegalSwapRotations(staged.id, t.id).length > 0;
-            const cls = 'mc_placed' + (chip && chip.has(mcKey(t.r, t.c)) ? ' mc_chip' : '') + (t.id === this.lastId ? ' mc_last' : '') + (mine && staged && staged.id === t.id ? ' mc_sel' : '') + (canSwap ? ' mc_can_swap' : '');
-            grid += this.placedHTML(t, cls, mine);
+            const hasErr = errs && errs.has(mcKey(t.r, t.c));
+            const cls = 'mc_placed'
+                + (chip && chip.has(mcKey(t.r, t.c)) ? ' mc_chip' : '')
+                + (t.id === this.lastId ? ' mc_last' : '')
+                + (mine && staged && staged.id === t.id ? ' mc_sel' : '')
+                + (canSwap ? ' mc_can_swap' : '')
+                + (hasErr ? ' mc_err' : '');
+            grid += this.placedHTML(t, cls, mine, hasErr);
         });
         if (staged && staged.r !== null) {
             const cls = 'mc_placed mc_ghost' + (problem ? ' mc_bad' : '');
@@ -837,10 +874,11 @@ export class Game {
             + `</div>`;
     }
 
-    placedHTML(t, cls, interactive) {
+    placedHTML(t, cls, interactive, hasErr = false) {
         const pos = `left:${t.c * 20}%;top:${t.r * 20}%`;
         const attrs = interactive ? ` role="button" tabindex="0" aria-label="${this.colourLabel(t.colour)} ${this.shapeLabel(t.shape)}"` : '';
-        return `<div class="${cls}" style="${pos}" data-id="${t.id}" data-key="${t.r},${t.c}"${attrs}>${mcTileHTML(t.colour, t.shape, t.rot)}</div>`;
+        const errBadge = hasErr ? `<div class="mc_tile_err" aria-label="${_('Mismatched connection')}" title="${_('Mismatched connection')}">!</div>` : '';
+        return `<div class="${cls}" style="${pos}" data-id="${t.id}" data-key="${t.r},${t.c}"${attrs}>${mcTileHTML(t.colour, t.shape, t.rot)}${errBadge}</div>`;
     }
 
     spaceOccupied(r, c, exceptId) {
@@ -1167,7 +1205,12 @@ export class Game {
             return;
         }
         if (this.poolTiles().length === 0) {
-            this.bga.statusBar.addActionButton(_('Finish'), () => this.doFinish(), { color: 'primary' });
+            const hasErrors = Boolean(this.errorKeys && this.errorKeys[this.me] && this.errorKeys[this.me].size > 0);
+            this.bga.statusBar.addActionButton(_('Finish'), () => this.doFinish(), {
+                color: 'primary',
+                disabled: hasErrors,
+                tooltip: hasErrors ? _('Fix mismatched tiles (!) before finishing.') : undefined,
+            });
         }
     }
 
@@ -1202,6 +1245,11 @@ export class Game {
 
     doFinish() {
         if (this._actionPending) return;
+        const hasErrors = Boolean(this.errorKeys && this.errorKeys[this.me] && this.errorKeys[this.me].size > 0);
+        if (hasErrors) {
+            this.hint(_('You cannot submit your final answer while there are mismatched tiles (!) on your board.'));
+            return;
+        }
         this.clearSel();
         this.finishPending = false;
         this.sendAction('actFinish', {});

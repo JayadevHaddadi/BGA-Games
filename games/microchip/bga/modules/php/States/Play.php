@@ -9,6 +9,7 @@ use Bga\GameFramework\States\GameState;
 use Bga\GameFramework\States\PossibleAction;
 use Bga\GameFramework\UserException;
 use Bga\Games\microchip\Game;
+use Bga\Games\microchip\Rules;
 
 /**
  * The whole game. Every player is active all the time: anyone may arrange their own tiles, but only the drawer
@@ -268,6 +269,10 @@ class Play extends GameState
         $pid = $this->currentPlayer();
         if (!$this->game->poolEmpty()) {
             throw new UserException(clienttranslate('You can finish once the pool is empty.'));
+        }
+        $errors = Rules::tileErrors($this->game->placedOf($pid));
+        if (!empty($errors)) {
+            throw new UserException(clienttranslate('You cannot submit your final answer while there are mismatched tiles (!) on your board.'));
         }
         $this->game->setFinished($pid);
         $this->notify->all('playerFinished', clienttranslate('${player_name} has finished building.'), [

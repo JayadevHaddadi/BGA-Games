@@ -228,7 +228,24 @@ async function run() {
     check(calls.length === callsBefore + 1 && calls[calls.length - 1].args.tileId === 50, 'rapid pool tile clicks are guarded against concurrent actDraw');
     game._actionPending = false;
   } else {
-    // 6. Build: pool empty. Finish sends actFinish directly without confirm button
+    // 6. Build: pool empty. Temporary mismatches show ! and block Finish
+    const t44 = game.tiles.get(44);
+    t44.r = 0; t44.c = 1; t44.rot = 2; // (0,1) faces south, mismatch with (0,0) facing east
+    game.renderAll();
+    const errCount = root.querySelectorAll('#mc_board_me .mc_placed.mc_err').length;
+    const badgeCount = root.querySelectorAll('#mc_board_me .mc_tile_err').length;
+    check(errCount === 2 && badgeCount === 2, `mismatched tiles show red outline and ! badge (errCount=${errCount}, badgeCount=${badgeCount})`);
+
+    const callsBeforeFin = calls.length;
+    game.doFinish();
+    check(calls.length === callsBeforeFin, 'doFinish is blocked while errors exist on board');
+    check(game.el.hint.textContent.includes('!'), 'hint warns about mismatched tiles');
+
+    // Fix the mismatch by turning t44 to face west (rot 3) to meet (0,0)
+    t44.rot = 3;
+    game.renderAll();
+    check(root.querySelectorAll('#mc_board_me .mc_placed.mc_err').length === 0, 'fixing orientation clears errors');
+
     check(labels().includes('Finish'), `Finish offered when the pool is empty: ${labels()}`);
     press('Finish');
     const fin = calls[calls.length - 1];

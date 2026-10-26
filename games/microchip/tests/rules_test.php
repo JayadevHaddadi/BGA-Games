@@ -103,16 +103,16 @@ check(Rules::placementProblem($board, ['2,2' => tile('end')], 'blue', 'end', 0, 
 // A straight at (2,2) has north and south connections (drawn orientation)
 $placed = ['2,2' => tile('straight', 0)];
 check(Rules::placementProblem($board, $placed, 'blue', 'end', 2, 2, 3) === null, 'east of a straight: an end pointing south has no west side, so it fits');
-check(Rules::placementProblem($board, $placed, 'blue', 'tee', 2, 2, 3) === 'mismatch', 'east of a straight: a tee with a west side is refused');
-check(Rules::placementProblem($board, $placed, 'blue', 'end', 2, 3, 2) === 'mismatch', 'south of a straight: an end pointing south has no north side, so it is refused');
-check(Rules::placementProblem($board, $placed, 'blue', 'end', 0, 3, 2) === null, 'south of a straight: an end pointing north meets the straight');
-check(Rules::placementProblem($board, $placed, 'blue', 'end', 0, 1, 2) === 'mismatch', 'north of a straight: an end pointing north has no south side, so it is refused');
-check(Rules::placementProblem($board, $placed, 'blue', 'end', 2, 1, 2) === null, 'north of a straight: an end pointing south meets the straight');
+check(Rules::placementProblem($board, $placed, 'blue', 'tee', 2, 2, 3) === null, 'east of a straight: a tee with a west side is allowed to be placed (temporary error)');
+$withTee = ['2,2' => tile('straight', 0), '2,3' => tile('tee', 2)];
+$errs = Rules::tileErrors($withTee);
+check(in_array('2,2', $errs, true) && in_array('2,3', $errs, true), 'mismatched adjacent tiles are flagged as errors');
 
-// Placing a tile that meets a matching neighbour on both sides is legal
+// Placing a tile that meets a matching neighbour on both sides is legal and error-free
 $placed = ['2,2' => tile('end', 1)]; // connection east
 check(Rules::placementProblem($board, $placed, 'blue', 'end', 3, 2, 3) === null, 'end with a west connection meets an end with an east connection');
-check(Rules::placementProblem($board, $placed, 'blue', 'end', 1, 2, 3) === 'mismatch', 'end with an east connection next to an east connection is refused');
+$matching = ['2,2' => tile('end', 1), '2,3' => tile('end', 3)];
+check(Rules::tileErrors($matching) === [], 'matching neighbours have no errors');
 
 // 6. Scoring: a closed 2 x 2 loop of corners has value 8 and no open paths
 $loop = [

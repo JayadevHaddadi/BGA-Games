@@ -23,8 +23,8 @@ BGA project: `microchip` (local: `games/microchip/bga/`).
 ### Placement legality (checked on every placement)
 1. The space is empty and inside the board.
 2. The tile colour equals the space colour.
-3. For each side of the tile facing a placed tile: the connection on the tile equals the connection on the neighbour (both have a path or both have none).
-4. No connection faces the board edge.
+3. No connection faces the board edge.
+Temporary connection mismatches between adjacent tiles are permitted during placement and rearranging, marked with a red outline and a red "!" in the corner. All errors must be resolved before the final answer can be submitted.
 Open connections towards empty spaces are allowed while building.
 
 ### Scoring
@@ -42,7 +42,7 @@ Open connections towards empty spaces are allowed while building.
 | D2 | Board layout | Generated per the rulebook recipe, one per player. The printed boards are not in the zip | High: the rulebook gives the recipe |
 | D3 | Pool columns | Rightmost non-empty column is the draw column. Column-major fill | High |
 | D4 | Turn vs arranging | Drawing is turn-based. Arranging is free for all players at any time (multi-active state) | High: rulebook says so |
-| D5 | Illegal placements | Rejected by the server (not allowed to stage). Open paths facing empty spaces are allowed while building | High |
+| D5 | Illegal placements & rearranging | Placements/rotations must match space colour and stay within board bounds. Temporary mismatches between adjacent tiles are permitted and flagged with a red '!' badge; all '!' errors must be resolved before final submission | High: user decision |
 | D6 | "Biggest" microchip | The most valuable closed microchip counts, ties by tile count | Medium |
 | D7 | Unused tiles | Every tile not in the scored chip costs 2, including tiles placed outside it | Medium: example in rulebook is consistent |
 | D8 | Tie | Tile count of the chip, then shared win | Medium |
