@@ -1042,6 +1042,13 @@ def cmd_sync(args):
     raise SystemExit(subprocess.run(cmd).returncode)
 
 
+# ------------------------------------------------------------------------------------ deploy
+
+def cmd_deploy(args):
+    cmd = [sys.executable, str(REPO / 'tools' / 'deploy.py')] + args.deploy_args
+    raise SystemExit(subprocess.run(cmd).returncode)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest='command', required=True)
@@ -1078,6 +1085,10 @@ def main():
     p.add_argument('slug')
     p.add_argument('--dry-run', action='store_true')
     p.set_defaults(func=cmd_sync)
+
+    p = sub.add_parser('deploy', help='inspect, build and auto-deploy games on Studio')
+    p.add_argument('deploy_args', nargs=argparse.REMAINDER, help='arguments passed to deploy.py (status, auto, <slug>, etc.)')
+    p.set_defaults(func=cmd_deploy)
 
     args = parser.parse_args()
     result = args.func(args)
