@@ -225,9 +225,27 @@ final class Rules
         return null;
     }
 
+    /** True when a connection of this tile meets a neighbour without the matching connection, or the reverse. */
+    public static function mismatchesNeighbour(array $placed, string $shape, int $rot, int $r, int $c): bool
+    {
+        $conn = self::connections($shape, $rot);
+        foreach (self::STEP as $side => [$dr, $dc]) {
+            $nkey = self::key($r + $dr, $c + $dc);
+            if (!isset($placed[$nkey])) {
+                continue;
+            }
+            $other = self::connections($placed[$nkey]['shape'], $placed[$nkey]['rot']);
+            if ($other[($side + 2) % 4] !== $conn[$side]) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
-     * "r,c" keys of tiles whose placement is illegal: wrong colour for the space, or a connection pointing off the
-     * board. Open connections (to an empty cell or a non-matching neighbour) are legal; such structures just do not score.
+     * "r,c" keys of tiles whose placement is illegal: wrong colour for the space, a connection pointing off the
+     * board, or a mismatch with a neighbouring tile (rulebook: creating an open end for a neighbour is illegal).
+     * Open connections to an empty cell are legal; such structures just do not score.
      *
      * @param string[][]                                          $spaces
      * @param array<string, array{colour:string, shape:string, rot:int}> $placed
@@ -240,7 +258,8 @@ final class Rules
             [$r, $c] = array_map('intval', explode(',', $key));
             $others = $placed;
             unset($others[$key]);
-            if (self::placementProblem($spaces, $others, $tile['colour'], $tile['shape'], $tile['rot'], $r, $c) !== null) {
+            if (self::placementProblem($spaces, $others, $tile['colour'], $tile['shape'], $tile['rot'], $r, $c) !== null
+                || self::mismatchesNeighbour($placed, $tile['shape'], $tile['rot'], $r, $c)) {
                 $bad[] = $key;
             }
         }

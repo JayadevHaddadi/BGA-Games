@@ -108,11 +108,15 @@ $withTee = ['2,2' => tile('straight', 0), '2,3' => tile('tee', 2)];
 $errs = Rules::tileErrors($withTee);
 check(in_array('2,2', $errs, true) && in_array('2,3', $errs, true), 'mismatched adjacent tiles are flagged as errors');
 
-// Open connections are legal (they just do not score); only wrong colour or off-board connections are invalid
+// Rulebook: a mismatch with a neighbour is an illegal placement (both tiles flagged); an open end to an empty cell is legal
 $ip = ['2,2' => ['colour' => 'blue', 'shape' => 'straight', 'rot' => 0], '2,3' => ['colour' => 'blue', 'shape' => 'tee', 'rot' => 2]];
-check(Rules::invalidPlacements($board, $ip) === [], 'mismatched neighbours / open connections are not invalid placements');
-$ip['2,3']['colour'] = 'red';
-check(Rules::invalidPlacements($board, $ip) === ['2,3'], 'a wrong-colour tile is an invalid placement');
+$bad = Rules::invalidPlacements($board, $ip);
+sort($bad);
+check($bad === ['2,2', '2,3'], 'mismatched neighbours are invalid placements');
+$ip = ['2,2' => ['colour' => 'blue', 'shape' => 'straight', 'rot' => 0]];
+check(Rules::invalidPlacements($board, $ip) === [], 'an open end to an empty cell is not an invalid placement');
+$ip['2,2']['colour'] = 'red';
+check(Rules::invalidPlacements($board, $ip) === ['2,2'], 'a wrong-colour tile is an invalid placement');
 $ip = ['0,0' => ['colour' => 'blue', 'shape' => 'end', 'rot' => 0]];
 check(Rules::invalidPlacements($board, $ip) === ['0,0'], 'a connection pointing off the board is an invalid placement');
 

@@ -91,7 +91,7 @@ function mcTileErrors(placed) {
     return errors;
 }
 
-/** "r,c" keys of tiles with an open connection: a connection to an empty cell or to a neighbour without the matching one. */
+/** "r,c" keys of tiles with an open connection: a connection to an empty cell (the circuit is not closed yet). */
 function mcOpenTiles(placed) {
     const open = new Set();
     Object.keys(placed).forEach((key) => {
@@ -101,14 +101,14 @@ function mcOpenTiles(placed) {
             if (!conn[side]) continue;
             const nr = r + MC_STEP[side][0];
             const nc = c + MC_STEP[side][1];
-            const other = mcInside(nr, nc) ? placed[mcKey(nr, nc)] : null;
-            if (!other || !mcConn(other.shape, other.rot)[(side + 2) % 4]) open.add(key);
+            // A mismatch with a neighbour is an invalid placement (red), not just an open connection
+            if (mcInside(nr, nc) && !placed[mcKey(nr, nc)]) open.add(key);
         }
     });
     return open;
 }
 
-/** "r,c" keys of tiles whose placement is illegal (wrong colour, or a connection pointing off the board). */
+/** "r,c" keys of tiles whose placement is illegal (wrong colour, a connection off the board, or a mismatch with a neighbour). */
 function mcInvalidTiles(spaces, placed) {
     const bad = new Set();
     Object.keys(placed).forEach((key) => {
@@ -117,6 +117,8 @@ function mcInvalidTiles(spaces, placed) {
         delete others[key];
         if (mcProblem(spaces, others, placed[key].colour, placed[key].shape, placed[key].rot, r, c) !== null) bad.add(key);
     });
+    // Rulebook: a tile that creates an open end against a neighbouring tile is an illegal placement too
+    mcTileErrors(placed).forEach((key) => bad.add(key));
     return bad;
 }
 
@@ -628,7 +630,15 @@ export class Game {
                 }
             }
         }
-        return legal;
+        // Rotations that match every neighbour first, so the automatic choice is a fully legal one
+        const fits = (rot) => {
+            const conn = mcConn(t.shape, rot);
+            return [0, 1, 2, 3].every((side) => {
+                const other = placed[mcKey(r + MC_STEP[side][0], c + MC_STEP[side][1])];
+                return !other || mcConn(other.shape, other.rot)[(side + 2) % 4] === conn[side];
+            });
+        };
+        return [...legal.filter(fits), ...legal.filter((rot) => !fits(rot))];
     }
 
     /**
