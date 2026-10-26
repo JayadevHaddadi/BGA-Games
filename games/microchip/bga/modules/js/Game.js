@@ -298,7 +298,10 @@ export class Game {
         root.id = 'microc_root';
         root.className = 'mc_root';
         root.innerHTML = `
-            <button type="button" id="mc_rules_btn" class="mc_rules_btn" aria-label="${_('Rules summary')}" title="${_('Rules summary')}">?</button>
+            <div class="mc_top_controls">
+                <button type="button" id="mc_scores_btn" class="mc_scores_btn" hidden aria-label="${_('Score breakdown')}">${_('Scores')}</button>
+                <button type="button" id="mc_rules_btn" class="mc_rules_btn" aria-label="${_('Rules summary')}" title="${_('Rules summary')}">?</button>
+            </div>
             <div id="mc_rules_modal" class="mc_rules_modal" hidden>
                 <div class="mc_rules_backdrop"></div>
                 <div class="mc_rules_card" role="dialog" aria-modal="true" aria-labelledby="mc_rules_title">
@@ -352,7 +355,20 @@ export class Game {
                     </div>
                 </div>
             </div>
-            <section class="mc_block" aria-labelledby="mc_h_pool">
+            <div id="mc_results_modal" class="mc_results_modal" hidden>
+                <div class="mc_results_backdrop"></div>
+                <div class="mc_results_card" role="dialog" aria-modal="true" aria-labelledby="mc_results_title">
+                    <div class="mc_results_header">
+                        <h3 id="mc_results_title" class="mc_results_title">${_('Final Score Calculation')}</h3>
+                        <button type="button" class="mc_results_close_btn" aria-label="${_('Close')}">&times;</button>
+                    </div>
+                    <div class="mc_results_content" id="mc_results_content"></div>
+                    <div class="mc_results_footer">
+                        <button type="button" class="mc_results_dismiss_btn">${_('Close')}</button>
+                    </div>
+                </div>
+            </div>
+            <section class="mc_block" id="mc_pool_section" aria-labelledby="mc_h_pool">
                 <div class="mc_head"><h3 id="mc_h_pool">${_('Pool')}</h3></div>
                 <div class="mc_pool" id="mc_pool"></div>
             </section>
@@ -376,6 +392,7 @@ export class Game {
 
         this.el = {
             root,
+            poolSection: root.querySelector('#mc_pool_section'),
             pool: root.querySelector('#mc_pool'),
             main: root.querySelector('.mc_main'),
             mine: root.querySelector('#mc_mine'),
@@ -385,6 +402,9 @@ export class Game {
             others: root.querySelector('.mc_others'),
             boards: root.querySelector('#mc_boards'),
             results: root.querySelector('#mc_results'),
+            scoresBtn: root.querySelector('#mc_scores_btn'),
+            resultsModal: root.querySelector('#mc_results_modal'),
+            resultsContent: root.querySelector('#mc_results_content'),
         };
         if (this.me === null) {
             this.el.mine.hidden = true;
@@ -475,6 +495,17 @@ export class Game {
             }).observe(root);
         }
 
+        const scoresBtn = root.querySelector('#mc_scores_btn');
+        const resultsModal = root.querySelector('#mc_results_modal');
+        const closeResults = () => { resultsModal.hidden = true; };
+        scoresBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            resultsModal.hidden = false;
+        });
+        resultsModal.querySelector('.mc_results_close_btn').addEventListener('click', closeResults);
+        resultsModal.querySelector('.mc_results_dismiss_btn').addEventListener('click', closeResults);
+        resultsModal.querySelector('.mc_results_backdrop').addEventListener('click', closeResults);
+
         const rulesBtn = root.querySelector('#mc_rules_btn');
         const rulesModal = root.querySelector('#mc_rules_modal');
         const closeRules = () => { rulesModal.hidden = true; };
@@ -486,7 +517,10 @@ export class Game {
         rulesModal.querySelector('.mc_rules_backdrop').addEventListener('click', closeRules);
         window.addEventListener('keydown', (e) => {
             if (e.target?.matches?.('input, textarea, [contenteditable]')) return;
-            if (e.key === 'Escape' && !rulesModal.hidden) closeRules();
+            if (e.key === 'Escape') {
+                if (!resultsModal.hidden) closeResults();
+                else if (!rulesModal.hidden) closeRules();
+            }
         });
     }
 
@@ -719,9 +753,19 @@ export class Game {
 
     renderPool() {
         const wrap = this.el.pool;
+        const poolSection = this.el.poolSection;
+        const poolTiles = this.poolTiles();
+        if (poolTiles.length === 0) {
+            if (poolSection) poolSection.hidden = true;
+            if (wrap) wrap.textContent = '';
+            this._lastPoolKey = null;
+            return;
+        }
+        if (poolSection) poolSection.hidden = false;
+
         const cols = this.poolCols;
         const rows = this.poolRows;
-        const at = new Map(this.poolTiles().map((t) => [mcKey(t.row, t.col), t]));
+        const at = new Map(poolTiles.map((t) => [mcKey(t.row, t.col), t]));
         const draw = this.drawCol();
         const canDraw = this.me !== null && this.drawer === this.me && !this.finished[this.me];
         const selId = this.sel && this.sel.from === 'pool' ? this.sel.id : null;
@@ -1610,6 +1654,10 @@ export class Game {
     }
 
     renderResults(rows) {
+        const sorted = [...rows].sort((a, b) => b.score - a.score || b.chip_tiles - a.chip_tiles);
+        const topRow = sorted[0];
+
+        // 1. In-page results table (for scrolling view and harness test)
         const box = this.el.results;
         const body = rows.map((row) => `<tr>
                 <th scope="row">${this.escape(this.playerName(row.player_id))}</th>
@@ -1631,6 +1679,58 @@ export class Game {
             </table>
             <p class="mc_note">${_('Score = microchip value minus 2 for each unused tile. Ties: more tiles in the microchip wins.')}</p>`;
         box.hidden = false;
+
+        // 2. Score breakdown popup modal
+        const isTie = sorted.length > 1 && sorted[1].score === topRow.score && sorted[1].chip_tiles === topRow.chip_tiles;
+        const winnerBanner = isTie
+            ? `<div class="mc_results_winner_banner">${_('Tie for first place!')}</div>`
+            : `<div class="mc_results_winner_banner"><strong>${this.escape(this.playerName(topRow.player_id))}</strong> ${_('wins!')}</div>`;
+
+        const modalRowsHtml = sorted.map((row) => {
+            const isWinner = row.score === topRow.score && row.chip_tiles === topRow.chip_tiles;
+            return `<tr>
+                <th scope="row">
+                    ${this.escape(this.playerName(row.player_id))}
+                    ${isWinner ? ` <span class="mc_win_tag">${_('Winner')}</span>` : ''}
+                </th>
+                <td>+${row.value} <span class="mc_sub_stat">(${row.chip_tiles} ${_('tiles')})</span></td>
+                <td>-${row.unused * 2} <span class="mc_sub_stat">(${row.unused} ${_('tiles')})</span></td>
+                <td class="mc_calc_cell">${row.value} − ${row.unused * 2}</td>
+                <td><strong>${row.score}</strong></td>
+            </tr>`;
+        }).join('');
+
+        if (this.el.resultsContent) {
+            this.el.resultsContent.innerHTML = `
+                ${winnerBanner}
+                <table class="mc_results_popup_table">
+                    <thead>
+                        <tr>
+                            <th scope="col">${_('Player')}</th>
+                            <th scope="col">${_('Microchip')}</th>
+                            <th scope="col">${_('Unused')}</th>
+                            <th scope="col">${_('Calculation')}</th>
+                            <th scope="col">${_('Score')}</th>
+                        </tr>
+                    </thead>
+                    <tbody>${modalRowsHtml}</tbody>
+                </table>
+                <div class="mc_results_rules_note">
+                    <p><strong>${_('How scores are calculated:')}</strong></p>
+                    <ul>
+                        <li>${_('Each connection in your largest connected microchip is worth +1 point.')}</li>
+                        <li>${_('Each unused tile outside your microchip (on your board or in your tray) costs −2 points.')}</li>
+                        <li>${_('Ties are broken by the player with more tiles in their microchip.')}</li>
+                    </ul>
+                </div>`;
+        }
+
+        if (this.el.scoresBtn) {
+            this.el.scoresBtn.hidden = false;
+        }
+        if (this.el.resultsModal) {
+            this.el.resultsModal.hidden = false;
+        }
     }
 
     escape(text) {

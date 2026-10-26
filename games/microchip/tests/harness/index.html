@@ -265,7 +265,16 @@ async function run() {
         { player_id: 2, score: -4, value: 0, chip_tiles: 0, unused: 2, owned: 2, chip: [] },
       ],
     });
+    check(root.querySelector('#mc_pool_section').hidden, 'pool section is hidden when pool is empty');
     check(!root.querySelector('#mc_results').hidden && root.querySelectorAll('#mc_results tbody tr').length === 2, 'results table shows both players');
+    check(!root.querySelector('#mc_results_modal').hidden, 'results modal popup is shown after final scoring');
+    check(!root.querySelector('#mc_scores_btn').hidden, 'scores button is visible after final scoring');
+    root.querySelector('.mc_results_close_btn').click();
+    check(root.querySelector('#mc_results_modal').hidden, 'results modal is hidden after clicking close');
+    root.querySelector('#mc_scores_btn').click();
+    check(!root.querySelector('#mc_results_modal').hidden, 'results modal is reopened after clicking scores button');
+    root.querySelector('.mc_results_dismiss_btn').click();
+    check(root.querySelector('#mc_results_modal').hidden, 'results modal is hidden after clicking dismiss button');
     check(root.querySelectorAll('#mc_board_me .mc_placed.mc_chip').length === 2, `the two chip tiles are highlighted (${root.querySelectorAll('#mc_board_me .mc_placed.mc_chip').length})`);
   }
 
