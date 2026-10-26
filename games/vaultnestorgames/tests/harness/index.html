@@ -33,11 +33,30 @@ const calls = [];
 const buttons = [];
 let statusTitle = '';
 
-let lastDialog = null;
+let lastTurnBannerMessage = null;
 
 const bga = {
   states: { register() {} },
-  gameArea: { getElement: () => document.getElementById('game_play_area') },
+  gameArea: {
+    getElement: () => document.getElementById('game_play_area'),
+    addLastTurnBanner(message) {
+      lastTurnBannerMessage = message;
+      let el = document.getElementById('last_turn_banner');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'last_turn_banner';
+        el.className = 'last_turn_banner';
+        document.getElementById('game_play_area').prepend(el);
+      }
+      el.textContent = message;
+      el.style.display = 'block';
+    },
+    removeLastTurnBanner() {
+      lastTurnBannerMessage = null;
+      const el = document.getElementById('last_turn_banner');
+      if (el) el.remove();
+    },
+  },
   notifications: { setupPromiseNotifications() {} },
   userPreferences: { get: (id) => (id === 101 ? 1 : 1) },
   sounds: { play() {} },
@@ -163,10 +182,13 @@ try {
   game.notif_walkMove({ args: { from: { x: 0, y: 1 }, to: { x: 0, y: 2 }, role: 1, player_id: 1 } });
   game.notif_jumpMove({ args: { from: { x: 5, y: 5 }, pivot: { x: 6, y: 6 }, to: { x: 7, y: 7 }, role: 1, player_id: 1, captured: false } });
 
-  // 7. Test warning banner when opponent invades home area (Black reaches White's home row y=0)
+  // 7. Test official last turn banner when opponent invades home area (Black reaches White's home row y=0)
   game.notif_walkMove({ from: { x: 5, y: 1 }, to: { x: 5, y: 0 }, role: 2, player_id: 2 });
-  game.notif_reachedBackRank({ threat_role: 2, player_id: 2 });
-  const bannerVisible = !!(lastDialog && lastDialog.type === 'error' && lastDialog.msg.includes('WARNING'));
+  const bannerVisible = !!(lastTurnBannerMessage && lastTurnBannerMessage.includes('WARNING') && document.getElementById('last_turn_banner'));
+
+  // 8. Test banner removal when game ends
+  game.notif_endGameScores({ winner_id: 2, loser_id: 1 });
+  const bannerRemoved = !document.getElementById('last_turn_banner');
 
   const board = document.querySelector('#vaultn_board');
   const boardRect = board ? board.getBoundingClientRect() : { width: 0, height: 0, left: 0 };
@@ -202,13 +224,14 @@ try {
     hasUndo,
     hasPanels,
     bannerVisible,
+    bannerRemoved,
     selectionSwitched,
     modalOpened,
     modalClosed,
     p1Count,
     p2Count,
     jsErrors: window.errors,
-    ok: window.errors.length === 0 && horizontalOverflow === 0 && minCellSize >= 32 && hasConfirm && hasUndo && hasPanels && bannerVisible && selectionSwitched && modalOpened && modalClosed,
+    ok: window.errors.length === 0 && horizontalOverflow === 0 && minCellSize >= 32 && hasConfirm && hasUndo && hasPanels && bannerVisible && bannerRemoved && selectionSwitched && modalOpened && modalClosed,
   };
 
   document.getElementById('out').textContent = JSON.stringify(report, null, 2);

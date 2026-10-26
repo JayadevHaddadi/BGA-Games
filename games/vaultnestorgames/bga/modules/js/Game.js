@@ -75,7 +75,7 @@ export class Game {
         }
 
         this.renderPanels();
-        this.checkHomeAreaThreat(this.isActive);
+        this.updateBackRankBanner();
     }
 
     /** Enter = confirm the staged move, Escape = close help / deselect. Capture phase so the page's own shortcuts do not interfere. */
@@ -281,7 +281,7 @@ export class Game {
             this.highlightLastMove(this.gamedatas.last_move);
         }
         this.renderPanels();
-        this.checkHomeAreaThreat(this.isActive);
+        this.updateBackRankBanner();
     }
 
     renderAllPieces() {
@@ -354,8 +354,8 @@ export class Game {
         this.clearHighlights();
         if (this.isActive) {
             this.highlightSelectablePieces();
-            this.checkHomeAreaThreat(true);
         }
+        this.updateBackRankBanner();
         this.updateButtons(args, isActive);
     }
 
@@ -630,7 +630,7 @@ export class Game {
         this.gamedatas.last_move = { from, to };
         this.highlightLastMove(this.gamedatas.last_move);
         this.renderPanels();
-        this.checkHomeAreaThreat(false);
+        this.updateBackRankBanner();
     }
 
     notif_jumpMove(notif) {
@@ -646,11 +646,11 @@ export class Game {
         this.gamedatas.last_move = { from, pivot, to, captured };
         this.highlightLastMove(this.gamedatas.last_move);
         this.renderPanels();
-        this.checkHomeAreaThreat(false);
+        this.updateBackRankBanner();
     }
 
     notif_reachedBackRank(notif) {
-        this.checkHomeAreaThreat(true);
+        this.updateBackRankBanner();
     }
 
     notif_endGameScores(notif) {
@@ -664,48 +664,81 @@ export class Game {
             const counter = this.bga.playerPanels.getScoreCounter(loser_id);
             if (counter) counter.toValue(0);
         }
+        this.hideLastTurnBanner();
     }
 
     /* ---------------------------------------------------------------------------------------------- */
-    /* Warning / Threat Notification (Standard BGA Banner)                                            */
+    /* Official BGA Last Turn / Threat Banner                                                         */
     /* ---------------------------------------------------------------------------------------------- */
 
-    showBgaWarning(msg) {
-        if (this.bga?.dialogs?.showMessage) {
-            this.bga.dialogs.showMessage(msg, 'error');
-        } else if (typeof gameui !== 'undefined' && typeof gameui.showMessage === 'function') {
-            gameui.showMessage(msg, 'error');
-        } else if (typeof this.showMessage === 'function') {
-            this.showMessage(msg, 'error');
+    showLastTurnBanner(message) {
+        if (this.bga?.gameArea?.addLastTurnBanner) {
+            this.bga.gameArea.addLastTurnBanner(message);
+        } else if (typeof gameui !== 'undefined' && typeof gameui.addLastTurnBanner === 'function') {
+            gameui.addLastTurnBanner(message);
         }
     }
 
-    checkHomeAreaThreat(triggerBanner = false) {
-        if (!this.board) return;
-        const myRole = this.getMyRole();
-        if (myRole !== 1 && myRole !== 2) return;
+    hideLastTurnBanner() {
+        if (this.bga?.gameArea?.removeLastTurnBanner) {
+            this.bga.gameArea.removeLastTurnBanner();
+        } else if (typeof gameui !== 'undefined' && typeof gameui.removeLastTurnBanner === 'function') {
+            gameui.removeLastTurnBanner();
+        }
+    }
 
-        let threatInHome = false;
+    updateBackRankBanner() {
+        if (!this.board) return;
+
+        // Check back ranks:
+        // White's home row is y = 0. Black pawn (color 2) on y = 0 means Black reached White's home area.
+        let blackInWhiteHome = false;
+        for (let x = 0; x < 10; x++) {
+            if (this.board[0]?.[x]?.color === 2) {
+                blackInWhiteHome = true;
+                break;
+            }
+        }
+
+        // Black's home row is y = 9. White pawn (color 1) on y = 9 means White reached Black's home area.
+        let whiteInBlackHome = false;
+        for (let x = 0; x < 10; x++) {
+            if (this.board[9]?.[x]?.color === 1) {
+                whiteInBlackHome = true;
+                break;
+            }
+        }
+
+        if (!blackInWhiteHome && !whiteInBlackHome) {
+            this.hideLastTurnBanner();
+            return;
+        }
+
+        const myRole = this.getMyRole();
+
         if (myRole === 1) {
-            // White's home row is y = 0. Threat is Black (color 2)
-            for (let x = 0; x < 10; x++) {
-                if (this.board[0]?.[x]?.color === 2) {
-                    threatInHome = true;
-                    break;
-                }
+            // Viewing player is White
+            if (blackInWhiteHome) {
+                this.showLastTurnBanner(_('WARNING: An opponent piece has reached your home area! You must capture it on this turn or you will lose!'));
+            } else if (whiteInBlackHome) {
+                this.showLastTurnBanner(_('THREAT: Your piece has reached the opponent\'s home area! Opponent must capture it on their turn or you win!'));
             }
         } else if (myRole === 2) {
-            // Black's home row is y = 9. Threat is White (color 1)
-            for (let x = 0; x < 10; x++) {
-                if (this.board[9]?.[x]?.color === 1) {
-                    threatInHome = true;
-                    break;
-                }
+            // Viewing player is Black
+            if (whiteInBlackHome) {
+                this.showLastTurnBanner(_('WARNING: An opponent piece has reached your home area! You must capture it on this turn or you will lose!'));
+            } else if (blackInWhiteHome) {
+                this.showLastTurnBanner(_('THREAT: Your piece has reached the opponent\'s home area! Opponent must capture it on their turn or you win!'));
             }
-        }
-
-        if (threatInHome && triggerBanner) {
-            this.showBgaWarning(_('WARNING: An opponent piece has reached your home area! You must capture it on this turn or you will lose!'));
+        } else {
+            // Spectator
+            if (blackInWhiteHome && whiteInBlackHome) {
+                this.showLastTurnBanner(_('WARNING: Both players have pieces in the opponent\'s home area!'));
+            } else if (blackInWhiteHome) {
+                this.showLastTurnBanner(_('WARNING: Black has reached White\'s home area! White must capture it on their turn or lose!'));
+            } else if (whiteInBlackHome) {
+                this.showLastTurnBanner(_('WARNING: White has reached Black\'s home area! Black must capture it on their turn or lose!'));
+            }
         }
     }
 
