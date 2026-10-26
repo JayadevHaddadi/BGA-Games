@@ -153,7 +153,18 @@ class PlayerTurn extends GameState
             'to_label' => $toLabel,
         ]);
 
-        // Check if pawn reached opponent back rank (one turn reaction warning)
+        $opponentRole = ($role === Rules::WHITE) ? Rules::BLACK : Rules::WHITE;
+        $opponentId = $this->game->getPlayerIdByRole($opponentRole);
+
+        // Check if move results in an immediate unpreventable back-rank victory
+        if (Rules::isUnpreventableBackRankWin($res['board'], $role)) {
+            $this->globals->set('winner_id', $activePlayerId);
+            $this->globals->set('loser_id', $opponentId);
+            $this->globals->set('end_reason', 'back_rank_uncapturable');
+            return EndScore::class;
+        }
+
+        // Check if pawn reached opponent back rank (one turn reaction warning if counter-capture is possible)
         $targetY = Rules::targetRank($role, $this->game->getBoardSize());
         if ($ty === $targetY) {
             $this->game->notifyAllPlayers('reachedBackRank', clienttranslate('${player_name} has reached the back rank at ${to_label}! Opponent has 1 turn to react!'), [
@@ -252,7 +263,18 @@ class PlayerTurn extends GameState
             'to_label' => $toLabel,
         ]);
 
-        // Check if pawn reached opponent back rank
+        $opponentRole = ($role === Rules::WHITE) ? Rules::BLACK : Rules::WHITE;
+        $opponentId = $this->game->getPlayerIdByRole($opponentRole);
+
+        // Check if move results in an immediate unpreventable back-rank victory
+        if (Rules::isUnpreventableBackRankWin($res['board'], $role)) {
+            $this->globals->set('winner_id', $activePlayerId);
+            $this->globals->set('loser_id', $opponentId);
+            $this->globals->set('end_reason', 'back_rank_uncapturable');
+            return EndScore::class;
+        }
+
+        // Check if pawn reached opponent back rank (one turn reaction warning if counter-capture is possible)
         $targetY = Rules::targetRank($role, $this->game->getBoardSize());
         if ($ty === $targetY) {
             $this->game->notifyAllPlayers('reachedBackRank', clienttranslate('${player_name} has reached the back rank at ${to_label}! Opponent has 1 turn to react!'), [

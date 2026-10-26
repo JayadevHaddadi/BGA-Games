@@ -29,5 +29,5 @@ On your turn, you must perform exactly one action: '''Walk''' or '''Jump''' (Vau
 
 ==Game end==
 
-* '''Back Rank Victory''': If at the start of your turn you have at least one pawn on the opponent's back rank (Rank 10 for White, Rank 1 for Black), you win immediately! (Reaching the back rank on your turn gives the opponent one turn to respond).
+* '''Back Rank Victory''': If you reach the opponent's back rank and they cannot capture your pawn with a legal jump, you win immediately! If they can capture it, they have one turn to respond; if they fail to capture it, you win at the start of your next turn.
 * '''Stalemate''': If at the start of your turn you have no legal moves remaining (neither walk nor jump), you lose and your opponent wins.

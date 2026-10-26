@@ -71,6 +71,7 @@ Checked at the **start of each player's turn**:
 | D7 | Stalemate / Inactivity | Standard BGA draw proposal and turn limit counter to prevent infinite cycles. | High |
 | D8 | Zombie mode | Level 1: plays a legal move if available (preferring forward/jump moves), or passes/resigns. | High |
 | D9 | Last move indicators | Non-darkening border indicators: dashed amber inner border (`::after` inset) on origin cell, solid warm gold inner border on destination cell, dashed outline on pivot. Leaves cell background tones completely intact and clear. | High: requested by user |
+| D10 | Unpreventable back rank win | If a player moves or vaults to the opponent's back rank and the opponent has no legal jump to capture that pawn (or multiple invading pawns exist), victory cannot be prevented and the game ends immediately without requiring a futile turn. | High: requested by user, mathematically deterministic |
 
 ---
 

@@ -665,6 +665,7 @@ export class Game {
         const args = notif?.args || notif || {};
         const { winner_id, loser_id } = args;
         if (winner_id) {
+            if (this.gamedatas) this.gamedatas.winner_id = Number(winner_id);
             const counter = this.bga.playerPanels.getScoreCounter(winner_id);
             if (counter) counter.toValue(1);
         }
@@ -696,7 +697,10 @@ export class Game {
     }
 
     updateBackRankBanner() {
-        if (!this.board) return;
+        if (!this.board || (this.gamedatas && Number(this.gamedatas.winner_id || 0) > 0)) {
+            this.hideLastTurnBanner();
+            return;
+        }
         const size = this.boardSize || 8;
 
         // Check back ranks:
@@ -816,7 +820,7 @@ export class Game {
             {
                 icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="none"/></svg>',
                 title: _('Victory'),
-                desc: _('Reach the opponent\'s home row (Row 1 for Black, Row ' + (this.boardSize || 8) + ' for White). If the opponent does not capture that pawn on their immediately following turn, you win! (Or capture all opponent pawns).')
+                desc: _('Reach the opponent\'s home row (Row 1 for Black, Row ' + (this.boardSize || 8) + ' for White). If the opponent cannot capture that pawn, you win immediately! (Otherwise opponent has 1 turn to capture it or lose).')
             }
         ];
 

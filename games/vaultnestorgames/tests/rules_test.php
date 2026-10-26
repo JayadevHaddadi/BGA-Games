@@ -291,6 +291,54 @@ $stalemateMoves = Rules::getAllLegalMoves($bStalemate, Rules::WHITE);
 check(count($stalemateMoves) === 0, "Trapped white pawn has 0 legal moves");
 check(Rules::checkVictoryAtTurnStart($bStalemate, Rules::WHITE) === Rules::BLACK, "Player with no legal moves loses at start of turn");
 
+echo "\n=== 5b. Immediate Unpreventable Back-Rank Victory ===\n";
+
+// 1. White pawn on rank 7 (8x8 board), Black has NO way to capture it
+$bUncap = emptyBoard(8);
+$bUncap[7][4] = Rules::WHITE;
+$bUncap[0][0] = Rules::WHITE;
+$bUncap[5][1] = Rules::BLACK;
+$bUncap[2][2] = Rules::BLACK;
+check(Rules::isUnpreventableBackRankWin($bUncap, Rules::WHITE) === true, "White back-rank pawn is uncapturable -> immediate win");
+
+// 2. White pawn on rank 7 (8x8 board), but Black CAN capture it via jump
+$bCap = emptyBoard(8);
+$bCap[7][4] = Rules::WHITE;
+$bCap[0][0] = Rules::WHITE;
+$bCap[3][4] = Rules::BLACK;
+$bCap[5][4] = Rules::BLACK;
+check(Rules::isUnpreventableBackRankWin($bCap, Rules::WHITE) === false, "White back-rank pawn is capturable by Black jump -> game continues");
+
+// 3. Two White pawns on rank 7 (8x8 board): Black can capture at most 1, so victory is unpreventable
+$bTwo = emptyBoard(8);
+$bTwo[7][2] = Rules::WHITE;
+$bTwo[7][4] = Rules::WHITE;
+$bTwo[3][4] = Rules::BLACK;
+$bTwo[5][4] = Rules::BLACK;
+check(Rules::isUnpreventableBackRankWin($bTwo, Rules::WHITE) === true, "Multiple invading back-rank pawns -> immediate win (opponent can only capture 1)");
+
+// 4. White on rank 7, but Black ALREADY has a piece on rank 0 (White's back rank)
+$bBothRanks = emptyBoard(8);
+$bBothRanks[7][4] = Rules::WHITE;
+$bBothRanks[0][1] = Rules::BLACK;
+$bBothRanks[5][1] = Rules::BLACK;
+check(Rules::isUnpreventableBackRankWin($bBothRanks, Rules::WHITE) === false, "Opponent already on our back rank will win at their turn start -> not an immediate win for mover");
+
+// 5. Symmetric test for Black reaching rank 0 on 8x8
+$bBlackUncap = emptyBoard(8);
+$bBlackUncap[0][3] = Rules::BLACK;
+$bBlackUncap[7][7] = Rules::BLACK;
+$bBlackUncap[2][6] = Rules::WHITE;
+$bBlackUncap[4][5] = Rules::WHITE;
+check(Rules::isUnpreventableBackRankWin($bBlackUncap, Rules::BLACK) === true, "Black uncapturable on rank 0 -> immediate win for Black");
+
+$bBlackCap = emptyBoard(8);
+$bBlackCap[0][3] = Rules::BLACK;
+$bBlackCap[7][7] = Rules::BLACK;
+$bBlackCap[4][3] = Rules::WHITE;
+$bBlackCap[2][3] = Rules::WHITE;
+check(Rules::isUnpreventableBackRankWin($bBlackCap, Rules::BLACK) === false, "Black on rank 0 capturable by White jump -> game continues");
+
 echo "\n=== 6. Concrete ASCII Grid Representation ===\n";
 function renderBoard(array $b): string
 {

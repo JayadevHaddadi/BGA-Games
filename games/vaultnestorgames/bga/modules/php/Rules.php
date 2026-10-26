@@ -146,6 +146,57 @@ final class Rules
     }
 
     /**
+     * Check if a player who just moved has achieved an unpreventable back-rank victory.
+     *
+     * Occurs when:
+     * 1. The moving player has at least one piece on the opponent's back rank.
+     * 2. The opponent does NOT already have a piece on the moving player's back rank (which would win for the opponent at the start of their turn).
+     * 3. The opponent cannot eliminate all invading back-rank pieces on their immediately upcoming turn:
+     *    - If there are 2 or more invading pieces, the opponent can capture at most 1, so at least 1 remains.
+     *    - If there is 1 invading piece, the opponent has no legal jump landing on that square.
+     *
+     * @param array<int, array<int, int>> $board
+     */
+    public static function isUnpreventableBackRankWin(array $board, int $movingPlayer): bool
+    {
+        $size = count($board);
+        $opponent = $movingPlayer === self::WHITE ? self::BLACK : self::WHITE;
+
+        // If opponent already has a piece on our back rank, opponent would win at the start of their turn
+        if (self::hasPieceOnBackRank($board, $opponent)) {
+            return false;
+        }
+
+        $targetY = self::targetRank($movingPlayer, $size);
+        $invadingPieces = [];
+        for ($x = 0; $x < $size; $x++) {
+            if ($board[$targetY][$x] === $movingPlayer) {
+                $invadingPieces[] = ['x' => $x, 'y' => $targetY];
+            }
+        }
+
+        if (empty($invadingPieces)) {
+            return false;
+        }
+
+        if (count($invadingPieces) > 1) {
+            // Opponent can only make 1 move, capturing at most 1 piece. At least 1 piece remains.
+            return true;
+        }
+
+        // Exactly 1 invading piece: check if opponent has any legal jump landing on that piece
+        $targetPiece = $invadingPieces[0];
+        $oppJumps = self::getLegalJumps($board, $opponent);
+        foreach ($oppJumps as $jump) {
+            if ($jump['to']['x'] === $targetPiece['x'] && $jump['to']['y'] === $targetPiece['y']) {
+                return false; // Opponent can capture it!
+            }
+        }
+
+        return true; // Opponent has no way to capture it!
+    }
+
+    /**
      * Get all legal walks for a player.
      * A walk moves 1 friendly piece to an adjacent empty cell (8 directions).
      * Captures are NEVER made by walking.
