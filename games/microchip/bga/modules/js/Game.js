@@ -367,22 +367,57 @@ export class Game {
             this.el.others.hidden = true;
         }
 
+        let isDown = false;
+        let startX = 0;
+        let scrollStart = 0;
+        let hasMoved = false;
+
+        this.el.pool.addEventListener('pointerdown', (e) => {
+            if (e.button !== 0) return;
+            isDown = true;
+            hasMoved = false;
+            startX = e.clientX;
+            scrollStart = this.el.pool.scrollLeft;
+        });
+
+        window.addEventListener('pointermove', (e) => {
+            if (!isDown) return;
+            const dx = e.clientX - startX;
+            if (Math.abs(dx) > 4) {
+                hasMoved = true;
+                this.el.pool.classList.add('mc_dragging');
+                this.el.pool.scrollLeft = scrollStart - dx;
+            }
+        });
+
+        window.addEventListener('pointerup', () => {
+            if (!isDown) return;
+            isDown = false;
+            setTimeout(() => {
+                this.el.pool.classList.remove('mc_dragging');
+                hasMoved = false;
+            }, 50);
+        });
+
         const preventFocusScroll = (e) => {
             if (e.target.closest('button, [role="button"], .mc_tile_btn, .mc_space, .mc_placed')) {
                 e.preventDefault();
             }
         };
-        this.el.pool.addEventListener('pointerdown', preventFocusScroll);
         this.el.board.addEventListener('pointerdown', preventFocusScroll);
         this.el.tray.addEventListener('pointerdown', preventFocusScroll);
-        this.el.pool.addEventListener('mousedown', preventFocusScroll);
         this.el.board.addEventListener('mousedown', preventFocusScroll);
         this.el.tray.addEventListener('mousedown', preventFocusScroll);
 
         this.el.pool.addEventListener('click', (e) => {
+            if (hasMoved) {
+                e.stopPropagation();
+                e.preventDefault();
+                return;
+            }
             const btn = e.target.closest('.mc_tile_btn');
             if (btn) this.onPoolTile(Number(btn.dataset.id));
-        });
+        }, true);
         this.el.board.addEventListener('click', (e) => this.onBoardClick(e));
         this.el.tray.addEventListener('click', (e) => {
             const retBtn = e.target.closest('.mc_return_tray_btn');
@@ -654,18 +689,14 @@ export class Game {
 
     renderPool() {
         const wrap = this.el.pool;
-        const width = wrap.clientWidth || 340;
         const cols = this.poolCols;
         const rows = this.poolRows;
-        // Wrap the columns into blocks when they would not fit with a usable tap size
-        const blocks = Math.max(1, Math.ceil((cols * MC_MIN_TAP) / width));
-        const per = Math.ceil(cols / blocks);
         const at = new Map(this.poolTiles().map((t) => [mcKey(t.row, t.col), t]));
         const draw = this.drawCol();
         const canDraw = this.me !== null && this.drawer === this.me && !this.finished[this.me];
         const selId = this.sel && this.sel.from === 'pool' ? this.sel.id : null;
 
-        const poolKey = [...at.keys()].sort().join(';') + `|b=${blocks}|d=${draw}|c=${canDraw}`;
+        const poolKey = [...at.keys()].sort().join(';') + `|d=${draw}|c=${canDraw}`;
         if (this._lastPoolKey === poolKey && wrap.children.length > 0) {
             wrap.querySelectorAll('.mc_tile_btn').forEach((btn) => {
                 const id = Number(btn.dataset.id);
@@ -676,46 +707,59 @@ export class Game {
         this._lastPoolKey = poolKey;
         wrap.textContent = '';
 
-        for (let start = 0; start < cols; start += per) {
-            const n = Math.min(per, cols - start);
-            const block = document.createElement('div');
-            block.className = 'mc_pool_block';
-            block.style.gridTemplateColumns = `repeat(${n}, minmax(0, 1fr))`;
-            const hasDraw = draw >= start && draw < start + n;
-            if (hasDraw) {
-                const colIdx = draw - start + 1;
-                const arrowCell = document.createElement('div');
-                arrowCell.className = 'mc_draw_arrow';
-                arrowCell.style.gridColumn = String(colIdx);
-                arrowCell.style.gridRow = '1';
-                arrowCell.setAttribute('aria-label', _('Draw column'));
-                arrowCell.setAttribute('title', _('Draw column'));
-                arrowCell.innerHTML = `<svg viewBox="0 0 24 24" class="mc_draw_arrow_svg" aria-hidden="true"><path d="M12 22L3 13h5.5V2h7v11H21L12 22z" fill="#d32f2f"/></svg>`;
-                block.appendChild(arrowCell);
-            }
-            for (let c = start; c < start + n; c++) {
-                for (let r = 0; r < rows; r++) {
-                    const cell = document.createElement('div');
-                    cell.className = 'mc_pool_cell' + (c === draw ? ' mc_draw_col' : '');
-                    cell.style.gridColumn = String(c - start + 1);
-                    cell.style.gridRow = String(hasDraw ? r + 2 : r + 1);
-                    const t = at.get(mcKey(r, c));
-                    if (t) {
-                        const btn = document.createElement('button');
-                        const takable = canDraw && c === draw;
-                        const staged = this.sel && this.sel.from === 'pool' && this.sel.id === t.id;
-                        btn.type = 'button';
-                        btn.className = 'mc_tile_btn' + (takable ? ' mc_can' : '') + (staged ? ' mc_sel' : '');
-                        btn.dataset.id = String(t.id);
-                        btn.disabled = !takable;
-                        btn.setAttribute('aria-label', `${this.colourLabel(t.colour)} ${this.shapeLabel(t.shape)}`);
-                        btn.innerHTML = mcTileHTML(t.colour, t.shape, 0);
-                        cell.appendChild(btn);
-                    }
-                    block.appendChild(cell);
+        const grid = document.createElement('div');
+        grid.className = 'mc_pool_grid';
+        grid.style.gridTemplateColumns = `repeat(${cols}, 50px)`;
+        grid.style.gridTemplateRows = `28px repeat(${rows}, 50px)`;
+
+        if (draw >= 0) {
+            const arrowCell = document.createElement('div');
+            arrowCell.className = 'mc_draw_arrow';
+            arrowCell.style.gridColumn = String(draw + 1);
+            arrowCell.style.gridRow = '1';
+            arrowCell.setAttribute('aria-label', _('Draw column'));
+            arrowCell.setAttribute('title', _('Draw column'));
+            arrowCell.innerHTML = `<svg viewBox="0 0 24 24" class="mc_draw_arrow_svg" aria-hidden="true"><path d="M12 22L3 13h5.5V2h7v11H21L12 22z" fill="#d32f2f"/></svg>`;
+            grid.appendChild(arrowCell);
+        }
+
+        for (let c = 0; c < cols; c++) {
+            for (let r = 0; r < rows; r++) {
+                const cell = document.createElement('div');
+                cell.className = 'mc_pool_cell' + (c === draw ? ' mc_draw_col' : '');
+                cell.style.gridColumn = String(c + 1);
+                cell.style.gridRow = String(r + 2);
+                const t = at.get(mcKey(r, c));
+                if (t) {
+                    const btn = document.createElement('button');
+                    const takable = canDraw && c === draw;
+                    const staged = this.sel && this.sel.from === 'pool' && this.sel.id === t.id;
+                    btn.type = 'button';
+                    btn.className = 'mc_tile_btn' + (takable ? ' mc_can' : '') + (staged ? ' mc_sel' : '');
+                    btn.dataset.id = String(t.id);
+                    btn.disabled = !takable;
+                    btn.setAttribute('aria-label', `${this.colourLabel(t.colour)} ${this.shapeLabel(t.shape)}`);
+                    btn.innerHTML = mcTileHTML(t.colour, t.shape, 0);
+                    cell.appendChild(btn);
                 }
+                grid.appendChild(cell);
             }
-            wrap.appendChild(block);
+        }
+        wrap.appendChild(grid);
+
+        // Auto-scroll so draw column is visible
+        if (draw >= 0) {
+            const drawColCell = grid.querySelector('.mc_pool_cell.mc_draw_col');
+            if (drawColCell) {
+                requestAnimationFrame(() => {
+                    const wrapWidth = wrap.clientWidth;
+                    if (wrapWidth > 0) {
+                        const cellLeft = drawColCell.offsetLeft;
+                        const cellWidth = drawColCell.offsetWidth;
+                        wrap.scrollLeft = Math.max(0, cellLeft - Math.round((wrapWidth - cellWidth) / 2));
+                    }
+                });
+            }
         }
     }
 
@@ -733,7 +777,7 @@ export class Game {
             card.className = 'mc_other';
             card.dataset.pid = String(pid);
             card.title = this.playerName(pid);
-            card.innerHTML = this.boardHTML(pid, false);
+            card.innerHTML = this.boardHTML(pid, false) + this.panelTrayHTML(pid);
             this.el.boards.appendChild(card);
         });
         this.el.boards.hidden = list.length === 0;
@@ -846,7 +890,18 @@ export class Game {
         }
     }
 
-    /** Short persistent line in each player's panel: tiles on the board, tiles in the tray, finished, and opponent board. */
+    panelTrayHTML(pid) {
+        const tray = this.trayTiles(pid);
+        if (!tray.length) return '';
+        const tilesHtml = tray.map((t) => (
+            `<div class="mc_panel_tile" data-id="${t.id}" title="${this.colourLabel(t.colour)} ${this.shapeLabel(t.shape)}">`
+            + mcTileHTML(t.colour, t.shape, t.rot || 0)
+            + `</div>`
+        )).join('');
+        return `<div class="mc_panel_tray" aria-label="${_('Tiles in tray')}">${tilesHtml}</div>`;
+    }
+
+    /** Short persistent line in each player's panel: finished status, opponent board, and opponent tray tiles. */
     renderPanels() {
         this.order.forEach((pid) => {
             const el = this.bga?.playerPanels?.getElement?.(pid);
@@ -857,12 +912,13 @@ export class Game {
                 line.className = 'mc_panel_line';
                 el.appendChild(line);
             }
-            const placed = this.boardTiles(pid).length;
-            const tray = this.trayTiles(pid).length;
-            const text = this.finished[pid]
-                ? _('Finished')
-                : _('${placed} on board, ${tray} in tray').replace('${placed}', placed).replace('${tray}', tray);
-            line.textContent = text;
+            if (this.finished[pid]) {
+                line.textContent = _('Finished');
+                line.hidden = false;
+            } else {
+                line.textContent = '';
+                line.hidden = true;
+            }
 
             if (this.me !== null && pid !== this.me) {
                 let boardEl = el.querySelector('.mc_panel_board');
@@ -871,7 +927,7 @@ export class Game {
                     boardEl.className = 'mc_panel_board';
                     el.appendChild(boardEl);
                 }
-                boardEl.innerHTML = this.boardHTML(pid, false);
+                boardEl.innerHTML = this.boardHTML(pid, false) + this.panelTrayHTML(pid);
             } else {
                 const boardEl = el.querySelector('.mc_panel_board');
                 if (boardEl) boardEl.remove();
@@ -1451,17 +1507,26 @@ export class Game {
                             trayTileEl.appendChild(pop);
                         }
                     } else if (panelEl) {
-                        const panelLine = panelEl.querySelector('.mc_panel_line');
-                        if (panelLine) {
-                            const pop = document.createElement('span');
+                        const panelTile = panelEl.querySelector(`.mc_panel_tile[data-id="${step.tile.id}"]`);
+                        if (panelTile) {
+                            const pop = document.createElement('div');
                             pop.className = 'mc_score_pop mc_pop_neg';
-                            pop.style.position = 'relative';
-                            pop.style.display = 'inline-block';
-                            pop.style.verticalAlign = 'middle';
-                            pop.style.transform = 'none';
-                            pop.style.margin = '1px 2px';
                             pop.textContent = '-2';
-                            panelLine.appendChild(pop);
+                            panelTile.appendChild(pop);
+                        } else {
+                            const panelLine = panelEl.querySelector('.mc_panel_line');
+                            if (panelLine) {
+                                panelLine.hidden = false;
+                                const pop = document.createElement('span');
+                                pop.className = 'mc_score_pop mc_pop_neg';
+                                pop.style.position = 'relative';
+                                pop.style.display = 'inline-block';
+                                pop.style.verticalAlign = 'middle';
+                                pop.style.transform = 'none';
+                                pop.style.margin = '1px 2px';
+                                pop.textContent = '-2';
+                                panelLine.appendChild(pop);
+                            }
                         }
                     }
                 }

@@ -67,11 +67,12 @@ function fixture() {
     tiles.push({ id, colour: COLOURS[Math.floor(id / 12)], shape: SET[id % 12], location: 'pool', owner: 0, col: null, row: null, r: null, c: null, rot: 0 });
   }
   // Pool: column-major from the right (col 11 is the draw column)
-  const poolIds = mode === 'build' ? [] : [...Array(40).keys(), ...Array.from({ length: 15 }, (_, i) => 45 + i)];
+  const poolIds = mode === 'build' ? [] : [...Array(40).keys(), ...Array.from({ length: 14 }, (_, i) => 45 + i)];
   poolIds.forEach((id, k) => { tiles[id].location = 'pool'; tiles[id].col = 11 - Math.floor(k / 5); tiles[id].row = k % 5; });
   if (mode === 'build') tiles.forEach((t) => { if (t.id < 40) t.location = 'box'; });
   const hand = [40, 41, 42];
   hand.forEach((id) => { tiles[id].location = 'hand'; tiles[id].owner = 1; });
+  tiles[59].location = 'hand'; tiles[59].owner = 2; tiles[59].colour = 'yellow'; tiles[59].shape = 'end';
   // Tiles not used by this fixture are in the box
   if (mode === 'build') for (let id = 45; id < 60; id++) tiles[id].location = 'box';
   // Board of player 1: two tiles placed
@@ -145,14 +146,14 @@ async function run() {
   const traySizes = trayBtns.map((b) => Math.min(b.getBoundingClientRect().width, b.getBoundingClientRect().height));
   check(traySizes.every((s) => s >= 32), `tray tiles at least 32px (${traySizes.map((s) => s.toFixed(0)).join(',')})`);
 
-  // Panel lines, opponent boards in panels, and live scores
-  const p1Line = document.querySelector('#panel_1 .mc_panel_line');
-  check(p1Line && /on board/i.test(p1Line.textContent), `panel 1 has line text: ${p1Line?.textContent}`);
+  // Opponent boards and tray tiles in panels, and live scores
   check(!document.querySelector('#panel_1 .mc_panel_board'), 'active player panel does not duplicate own board');
   const p2Board = document.querySelector('#panel_2 .mc_panel_board');
   const p3Board = document.querySelector('#panel_3 .mc_panel_board');
   check(p2Board && p2Board.querySelector('.mc_grid'), 'opponent 2 board rendered inside player panel');
   check(p3Board && p3Board.querySelector('.mc_grid'), 'opponent 3 board rendered inside player panel');
+  const p2Tray = document.querySelector('#panel_2 .mc_panel_tray');
+  check(p2Tray && p2Tray.querySelectorAll('.mc_panel_tile').length > 0, 'opponent 2 tray tiles rendered underneath their board');
   check(typeof scores[1] === 'number', `live score computed for player 1: ${scores[1]}`);
 
   if (mode === 'turn') {
@@ -251,7 +252,7 @@ async function run() {
     check(root.querySelectorAll('#mc_board_me .mc_placed.mc_chip').length === 2, `the two chip tiles are highlighted (${root.querySelectorAll('#mc_board_me .mc_placed.mc_chip').length})`);
   }
 
-  const blocksInfo = [...root.querySelectorAll('.mc_pool_block')].map((b) => {
+  const blocksInfo = [...root.querySelectorAll('.mc_pool_grid')].map((b) => {
     const r = b.getBoundingClientRect();
     return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height), cells: b.children.length, cols: b.style.gridTemplateColumns };
   });

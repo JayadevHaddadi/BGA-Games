@@ -98,39 +98,54 @@ html, body, #microc_root, .mc_root, .mc_pool, .mc_main, .mc_mine, .mc_grid {
 /* ---------- Pool ---------- */
 
 .mc_pool {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+    scrollbar-width: thin;
+    padding-bottom: 6px;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    box-sizing: border-box;
 }
 
-.mc_pool_block {
+.mc_pool.mc_dragging {
+    cursor: grabbing;
+}
+
+.mc_pool_grid {
     display: grid;
-    grid-auto-rows: auto;
     gap: 4px;
-    width: 100%;
-    max-width: 640px;
+    width: max-content;
+    margin: 0 auto;
+    padding: 2px 8px;
+    box-sizing: border-box;
 }
 
 .mc_draw_arrow {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 32px;
+    height: 28px;
     pointer-events: none;
 }
 
 .mc_draw_arrow_svg {
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     display: block;
 }
 
 .mc_pool_cell {
     position: relative;
     aspect-ratio: 1 / 1;
+    width: 50px;
+    height: 50px;
     min-width: 0;
     border-radius: 3px;
+    box-sizing: border-box;
 }
 
 .mc_pool_cell.mc_draw_col {
@@ -437,6 +452,29 @@ button.mc_space {
 .mc_panel_board .mc_board_wrap {
     width: 100%;
     max-width: 100%;
+}
+
+.mc_panel_tray {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: center;
+    align-items: center;
+    margin-top: 6px;
+    padding: 4px;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 3px;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.mc_panel_tile {
+    width: 26px;
+    height: 26px;
+    position: relative;
+    flex-shrink: 0;
+    border-radius: 3px;
+    overflow: hidden;
 }
 
 /* ---------- Results ---------- */
