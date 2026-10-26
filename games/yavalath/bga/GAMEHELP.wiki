@@ -1,0 +1,64 @@
+== Summary ==
+'''Yavalath''' is an acclaimed abstract strategy game invented in 2007 by computer scientist '''Cameron Browne''' using his evolutionary game-generation program '''LUDI''', and published by '''nestorgames'''. It holds historical distinction as the first commercially published board game designed by artificial intelligence.
+
+The game is renowned for its deceptively simple yet diabolical twist on connection games: '''Connect 4 to WIN, but connect 3 and you LOSE!'''
+
+== Overview & Objective ==
+* '''Players''': 2 or 3 players
+* '''Board''': Hexagonal grid of varying sizes (Standard: 5 cells per side, 61 total cells)
+* '''Pieces''': Stones in White, Black (and Red for 3-player games)
+* '''Objective''': Be the first to create an unbroken straight line of '''4 of your stones''' while avoiding ever forming a line of '''3 of your stones'''.
+
+== Core Gameplay ==
+Players start with an empty board and take turns placing one stone of their color onto any unoccupied hexagonal cell.
+
+=== Winning and Losing ===
+After placing a stone, all lines extending in the three hexagonal axes passing through that stone are evaluated:
+# '''WIN (4-in-a-row)''': If you create a straight line of '''4 or more''' stones of your color, you immediately '''WIN''' the game.
+# '''LOSE (3-in-a-row)''': If you create a straight line of '''exactly 3''' stones of your color (without simultaneously completing 4), you immediately '''LOSE''' the game!
+# '''Simultaneous Win/Loss Rule''': If a single stone placement simultaneously forms both a line of 4 and a line of 3, the '''WIN takes precedence''' and you win the game.
+# '''Draw''': If all cells on the board are filled without any winning or losing line being completed, the game ends in a tie.
+
+== Three-Player Rules ==
+When 3 players play Yavalath, the game uses elimination rules:
+* If a player creates a line of 3 stones, that player is '''immediately eliminated'''.
+* '''Stones remain on the board''': The eliminated player's stones stay on the board for the rest of the game as neutral obstacles/blockers.
+* The remaining players continue playing in clockwise order.
+* The game ends when:
+** A player connects 4-in-a-row (that player wins 1st place), OR
+** A second player is eliminated (the sole survivor wins 1st place).
+
+=== 3-Player Victory Points & Ranking ===
+BGA ranks all three positions individually for fair ELO rating calculation:
+* '''1st Place (Winner)''': '''2 VP''' (Won against both 2nd and 3rd place)
+* '''2nd Place (Runner-Up / Later Survivor)''': '''1 VP''' (Won against 3rd place, lost to 1st place)
+* '''3rd Place (First Player Eliminated)''': '''0 VP''' (Lost against both players)
+
+== Game Options & Variants ==
+When creating a table on Board Game Arena, several official rulesets and options are available:
+
+=== 1. Board Size & Ruleset ===
+* '''Standard (Side 5 / 61 cells)''' ''(Default)'':
+** Classic game board. Connect 4 to WIN, 3 to LOSE.
+* '''Five-not-four (Side 6 / 91 cells)''':
+** The official large-board variant designed by Cameron Browne.
+** On this spacious board, the goals scale up: '''Connect 5 to WIN''', and '''Connect 4 to LOSE'''!
+* '''Compact (Side 4 / 37 cells)''':
+** A high-speed, tactical blitz board with tighter margins and intense sudden-death tension. Connect 4 to WIN, 3 to LOSE.
+
+=== 2. The Pie Rule (Swap Rule) ===
+* '''Disabled''' ''(Default)'': Standard opening.
+* '''Enabled''': In 2-player games, Player 1 has a natural first-move initiative. To ensure tournament fairness, Player 2 on Turn 2 is given an opening choice:
+** Make a normal move with Black, '''OR'''
+** Click '''"Swap Colors (Pie Rule)"''': Steal Player 1's opening stone and take over as White! Player 1 then receives Black and plays the next move.
+
+== Strategy & Tactical Tips ==
+* '''Forcing Traps''': The core tactic of Yavalath is forcing your opponent into a position where every legal move completes 3-in-a-row.
+* '''Mind the Gap''': Placing stones with 1-cell gaps (e.g. stone - empty - stone) creates powerful future connection threats without triggering the 3-in-a-row penalty prematurely.
+* '''The Double Threat''': If you can create a move that threatens to make 4-in-a-row in two different directions, your opponent can only block one, securing your victory on the following turn.
+* '''Triangle Awareness''': Be careful when building compact clusters of stones; tight clusters often accidentally form lines of 3 along unexpected diagonal axes.
+
+== Credits ==
+* '''Game Design''': Cameron Browne & LUDI
+* '''Original Publisher''': [https://nestorgames.com nestorgames] (Néstor Romeral Andrés)
+* '''BGA Digital Adaptation''': Jayadev Haddadi

@@ -1,0 +1,45 @@
+==Overview==
+
+'''Push Fight''' is a fast, purely abstract 2-player game of positioning and leverage. There are no dice, no cards, and no hidden information — every decision is visible to both players. Each side controls 5 pieces on a 26-square board split by a center line. On your turn you reposition your pieces, then '''must''' use one of your square pieces to shove an opposing piece (or a whole line of pieces) one space. Shove your opponent off either edge of the board and you win instantly.
+
+==Goal==
+
+Push '''one''' of your opponent's pieces completely off the board, at either end. The moment a piece falls off, the game ends immediately — it doesn't matter what the rest of the board looks like.
+
+==The pieces==
+
+Each player controls 5 pieces:
+* '''3 square "King" pieces''' — these can move like the others, and are the only pieces that can push.
+* '''2 round "Pawn" pieces''' — these can move freely, but can never push. They can still be pushed by the opponent.
+
+Teams are '''White''' and '''Brown'''. All pieces move and push horizontally or vertically only — there are no diagonal moves or pushes, and pieces cannot jump over each other.
+
+==Setup==
+
+Depending on the table's "Starting Setup" option:
+* '''Standard Opening (Beginner, default)''' — pieces are placed automatically in the standard tournament opening position.
+* '''Free Placement (Pro Variant)''' — starting with White, each player places their 3 Kings and 2 Pawns anywhere on their own side of the center line before Turn 1.
+
+==Your turn: 2 Moves, then 1 Push==
+
+Every turn has two parts, in order:
+
+'''1. Up to 2 moves.''' Move any of your pieces (King or Pawn) any number of empty, orthogonally-connected squares — horizontally or vertically, no diagonals, no jumping. You may move a different piece for each of your two moves, move the same piece twice, or skip moving entirely and go straight to the push using the '''Skip to Mandatory Push''' button.
+
+'''2. 1 mandatory push.''' You must then push with one of your square Kings. Pushing shoves the piece directly in front of it one space in that direction — and if there's an unbroken line of pieces (yours and/or your opponent's) in the way with no gap, the whole line shifts one space together. Round Pawns can never push, only Kings can.
+
+If you can't legally make a push at the end of your turn, you lose — always leave yourself a way to push.
+
+'''Undo:''' while you still have moves or a push left to make, an '''Undo Moves / Restart Turn''' button lets you take back everything and restart your turn from scratch, as long as you haven't confirmed your push yet.
+
+==The Anchor==
+
+After your push, the piece that just did the pushing gets marked with the '''red anchor ring (⚓)'''. There is only one anchor, shared by both players. The anchored piece cannot be pushed on your opponent's very next turn — it's the one piece on the board that's temporarily safe. As soon as your opponent pushes with one of their own pieces, the anchor moves to that piece instead, and your previously-anchored piece becomes pushable again.
+
+==The rails and falling off==
+
+The board has 26 valid squares in a cross-like shape, with a raised '''side rail''' along part of each long edge (marked RAIL in the interface). Pieces cannot be pushed or moved off the board across a rail — those spaces are safe from that direction. The only ways off the board are through the open squares at the two narrow ends and the short unrailed stretches on the sides. Use this shape to your advantage: herd your opponent's pieces toward an opening, not away from one.
+
+==Winning==
+
+The instant any piece — yours or your opponent's — is pushed completely off the board, the game ends and whoever pushed it off wins. A player can also concede if they're hopelessly trapped with no legal push available.

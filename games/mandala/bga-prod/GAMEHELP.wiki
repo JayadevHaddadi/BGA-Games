@@ -1,0 +1,55 @@
+===Overview===
+
+Play coloured sand cards to build and deconstruct Mandalas, whilst determining how many points the sand colours are worth to you.
+
+=== Play Area ===
+Each player has a "River" and a "Cup", and there are two "Mandalas" in the middle. Players each take turns playing cards from their hand into the Mandalas.
+
+Once a Mandala contains all 6 colours, it is considered "completed" and players will take turns moving cards from the Mandala into their River/Cup to score points.
+
+===Placement Rules===
+
+Each of the two Mandalas has 3 areas: your Field, your opponent's Field, and the neutral Mountain.
+
+Within a single Mandala, a colour can only be represented in a single area of it - but as many times as you wish, e.g. if there are two greens in your opponent's Field, neither your Field nor the Mountain can have greens, but your opponent can add more greens to their Field later.
+
+However, the separate Mandalas do not affect each other.
+===Turn===
+
+On your turn, you have three options:
+
+• '''Build Mountain & Draw''' - Play one card into one Mountain, then draw up to 3 cards if able (hand limit is 8, you cannot draw and discard to meet this limit)
+
+• '''Grow Field & No Draw ''' - Play as many cards of one colour as you wish into one of your Fields. (However, you must retain a single card in your hand; so if your hand consists only of 3 reds, you could only play 2 reds.)
+
+• '''Discard & Redraw''' - Discard as many cards of one colour then draw the same quantity
+===Completing a Mandala===
+
+If after your turn a Mandala contains all six colours, it is completed, and a completion stage takes place.
+
+Regardless of who triggered it, whoever has the most cards in their respective Fields begins (if tied, the player who did '''not''' just play the 6th different colour goes first).
+
+Alternating turns, each player picks a colour and takes all of that colour from the Mountain.
+
+If the colour chosen is '''not''' already in your River, place one card of it on your next available river space, and any remaining copies will go face down into your Cup, where they will be worth points.
+
+If the colour chosen is already in your River, all of them go in your Cup.
+
+When the final colour is taken from the mountain, discard the two players' field cards and draw two new cards for the empty Mountain.
+
+If the Completion phase was triggered and a player has NO cards in their field, the above more or less stays the same, except when that player picks a colour, they discard them and do NOT gain river or cup cards. In the strange instance that this is true for both players, it is best to just discard the mountain and not take turns.
+===Game End===
+
+The game ends either when the draw deck is exhausted or a player adds a 6th card to their River.
+
+(If the draw deck is exhausted, reshuffle and continue playing until the next time a Mandala Completion phase resolves.)
+
+If a player adds a 6th card to their River, finish the current Mandala Completion phase in its entirety then end.
+
+Either way, any cards in hand and on incomplete Mandalas are discarded from play.
+
+Take all the cards from your cup and lay them below their respective colour on the river, each copy gains points equal to their position on your River ''(e.g. if you have 3 Red cards and Red was in position 1 on River, that's 3 points, but if red was in position 5 that's 15 points - the river card itself does '''not''' score).''
+
+The player with the most points wins!
+
+If tied, the player with the least Cup cards wins!

@@ -1,0 +1,56 @@
+==Goal==
+
+The throne of Scotland lies empty and the clans fight for the crown. As a Lord of Scotland, you gather the loyalty of clans by showing your prowess in skirmishes. The first player to accumulate '''40 or more strength''' in Supporters wins the game.
+
+==Setup==
+
+* Each player is dealt '''5 cards'''.
+* A draw pile is formed in the center.
+* '''5 face-down cards''' are placed to the right of the draw pile as '''Recruits'''.
+* Face-up cards equal to the number of players are placed to the left as '''Supporters'''.
+* The starting player receives the '''Victor’s Initiative''' token.
+
+==Round Structure==
+
+A game consists of several rounds (skirmishes). Players take turns starting with the holder of the Victor's Initiative token and going clockwise. On your turn, you must perform one action:
+
+# '''Muster Face-Up:''' Play a card face-up from your hand into your army. If eligible, you may activate its Clan power.
+# '''Muster Face-Down:''' Play a card face-down into your army. Face-down cards add their strength to your army at the end of the round, but cannot activate powers. You may look at your face-down cards at any time.
+# '''Recruit:''' Take one face-down card from the Recruit row into your hand, OR draw the top card from the draw pile. Then your turn ends.
+# '''Pass:''' If you cannot or choose not to play or recruit, you pass. Once you pass, you can take no further actions during this round.
+
+The round ends when all players have passed.
+
+==Clan Powers==
+
+When you play a card face-up, you may activate its power if the activation condition is met:
+* '''2 or 3 players:''' There must be '''no other face-up Follower in any army with lower strength''' at that moment.
+* '''4 or 5 players:''' There must be '''no other face-up Follower of the same Clan with equal or lower strength'''.
+
+===Immediate Powers===
+* '''Cockburn:''' Swap this card with one of the available face-up Supporters. The chosen Supporter becomes a Follower in your army.
+* '''Fergusson:''' Swap this card with any Follower in an opponent's army. If you take a face-down card, it remains face-down.
+* '''Forsyth:''' Draw the top card from the draw pile into your hand.
+* '''Makgill:''' Muster another Follower from your hand immediately (which may also activate if conditions are met).
+* '''Scott:''' Copy the power of any other face-up Follower in play.
+* '''Wemyss:''' Choose and discard one Follower from any player's army.
+
+===End-of-Round Powers===
+Turn the card sideways when activated. The effect triggers at the end of the round if the card is still in your army:
+* '''Bruce:''' Counts as any Clan of your choice to double clan strength or help scoring.
+* '''Cochrane:''' Claim two Supporters instead of one when it is your turn to claim.
+* '''MacDonnell:''' This card is not discarded at the end of the round; it stays in your army for the next round (its power cannot activate again).
+
+==Winning the Skirmish==
+
+When all players have passed:
+1. Reveal all face-down Followers.
+2. If an army has Followers from the same Clan, double the strength of those matching cards (unless otherwise modified).
+3. Sum the total strength of each army.
+4. The player with the highest total strength chooses first from the available Supporters and places it into their victory pile. The second highest chooses next, and so on. Ties are broken by the highest rank number on any single card in the army.
+5. The player with the highest strength receives the Victor's Initiative token for the next round.
+6. All remaining Followers (except MacDonnell) are discarded. Refresh the Recruit row to 5 cards and deal new Supporters equal to the number of players.
+
+==Game End==
+
+Rounds continue until at least one player reaches '''40 or more strength''' in Supporters. The player with the highest total Supporter strength wins. If tied, the player who placed higher in the final round wins.

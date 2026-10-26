@@ -1,0 +1,42 @@
+==Goal==
+
+Race around the circuit and be the first driver to complete '''3 laps''' (or the agreed number of laps) by crossing the finish line!
+
+==Setup==
+
+* Players start in the pit lane based on a qualifying roll.
+* Each player begins with a car, '''6 dice''', and '''3 lap discs''' in their pit box.
+
+==Your Turn==
+
+If your car is currently '''belly-up (crashed)''', your turn is spent righting it: flip your car upright and pass your turn. It does not move.
+
+Otherwise, you may choose to '''Fix''' or '''Roll''':
+
+===Fixing Your Car===
+Instead of moving, you may retrieve one die from your pit box back into your pool. Your car remains stationary this turn.
+
+===Rolling the Dice===
+Roll your dice one at a time, up to the number of dice you currently have:
+* After each roll, you may choose to '''stop''' or '''roll another die'''.
+* '''Success (no duplicate numbers):''' Sum all rolled dice values and move your car forward exactly that many spaces along the track.
+* '''Duplicate number on a straight track:''' Your turn ends immediately and your car does not move.
+* '''Duplicate number on a corner:''' Your car '''crashes'''! Flip your car belly-up, lose one die to your pit box, and end your turn.
+
+==Bumping and Collisions==
+
+* When your car ends its movement on a space occupied by another car on a straight section, you '''bump''' that car forward 1 space. Cascading bumps occur if multiple cars are adjacent.
+* If a car is bumped into a corner, it crashes!
+* Cars already sitting on corners cannot be pushed forward; if another car enters or bumps that corner, a collision occurs and cars crash.
+
+==Special Features & Items==
+
+* '''Shortcut:''' Once per race, you may steer through the shortcut to save distance. Using the shortcut expends your shortcut cylinder.
+* '''Turbine:''' Extra speed boost forward.
+* '''Rocket:''' Target and disrupt vehicles ahead of you.
+* '''Bomb & Oil Spill:''' Drop hazards behind you on the track.
+* '''Wrench:''' Instantly repair and recover a lost die.
+
+==Winning the Race==
+
+Each time you cross the finish line after completing a circuit, remove one lap disc from your box. The first player to remove all 3 discs wins the Grand Prix! Remaining players continue racing to determine podium positions.
