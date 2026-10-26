@@ -339,21 +339,46 @@ body.vaultn_cb_on .vaultn_tone_3::before {
     z-index: 3;
 }
 
-/* Jump capture marker on enemy space */
+/* Jump capture marker on enemy cell */
 .vaultn_target_capture {
     cursor: pointer;
+    background-color: rgba(220, 38, 38, 0.32) !important;
+    border: 1.5px dashed #ef4444;
 }
 
-.vaultn_target_capture::before {
+@media (hover: hover) {
+    .vaultn_target_capture:hover {
+        background-color: rgba(220, 38, 38, 0.48) !important;
+    }
+}
+
+/* Capturable enemy piece indicator */
+.vaultn_piece_capturable {
+    cursor: pointer;
+    outline: 3px solid #ef4444 !important;
+    outline-offset: 2px;
+    z-index: 5;
+}
+
+@media (hover: hover) {
+    .vaultn_piece_capturable:hover {
+        transform: scale(1.08);
+        outline-color: #dc2626 !important;
+    }
+}
+
+/* Capturable reticle indicator in center of enemy piece */
+.vaultn_piece_capturable::before {
     content: "";
     position: absolute;
-    width: 90%;
-    height: 90%;
+    width: 44%;
+    height: 44%;
     border-radius: 50%;
-    border: 3px solid #ffffff;
-    outline: 2px solid #b71c1c;
+    border: 2px solid #ef4444;
+    background: radial-gradient(circle, #ef4444 35%, transparent 40%);
     box-sizing: border-box;
-    z-index: 4;
+    z-index: 6;
+    pointer-events: none;
 }
 
 /* Staged destination indicators */
@@ -362,7 +387,28 @@ body.vaultn_cb_on .vaultn_tone_3::before {
 }
 
 .vaultn_staged_capture {
-    background-color: rgba(229, 57, 53, 0.4) !important;
+    background-color: rgba(220, 38, 38, 0.45) !important;
+    border: 2px solid #dc2626;
+}
+
+.vaultn_piece_staged_capture {
+    opacity: 0.38 !important;
+    outline: 3px dashed #dc2626 !important;
+    outline-offset: 2px;
+    z-index: 5;
+}
+
+/* Diagonal red "X" across staged captured piece */
+.vaultn_piece_staged_capture::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background:
+        linear-gradient(45deg, transparent 43%, #dc2626 43%, #dc2626 57%, transparent 57%),
+        linear-gradient(-45deg, transparent 43%, #dc2626 43%, #dc2626 57%, transparent 57%);
+    z-index: 6;
+    pointer-events: none;
 }
 
 /* Last move highlights */
@@ -441,5 +487,46 @@ body.vaultn_cb_on .vaultn_tone_3::before {
     }
 }
 
+/* Player Panel piece count */
+.vaultn_panel_line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    padding: 3px 6px;
+    margin-top: 4px;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 3px;
+    color: #e0e6ed;
+    line-height: 1.2;
+}
 
+.vaultn_panel_pip {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    box-sizing: border-box;
+    flex-shrink: 0;
+}
 
+.vaultn_panel_pip_white {
+    background: #f1ece2;
+    border: 1.5px solid #6b6356;
+}
+
+.vaultn_panel_pip_black {
+    background: #2a2a2a;
+    border: 1.5px solid #666666;
+}
+
+.vaultn_panel_label {
+    font-weight: 500;
+    color: #a0aec0;
+}
+
+.vaultn_panel_count {
+    font-weight: 700;
+    font-size: 13px;
+    color: #ffffff;
+}

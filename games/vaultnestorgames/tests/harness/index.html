@@ -139,42 +139,47 @@ try {
   game.notif_walkMove({ args: { from: { x: 0, y: 1 }, to: { x: 0, y: 2 }, role: 1, player_id: 1 } });
   game.notif_jumpMove({ args: { from: { x: 5, y: 5 }, pivot: { x: 6, y: 6 }, to: { x: 7, y: 7 }, role: 1, player_id: 1, captured: false } });
 
-  setTimeout(() => {
-    const board = document.querySelector('#vaultn_board');
-    const boardRect = board ? board.getBoundingClientRect() : { width: 0, height: 0, left: 0 };
-    const vp = window.innerWidth;
-    const horizontalOverflow = Math.max(0, document.documentElement.scrollWidth - vp);
+  const board = document.querySelector('#vaultn_board');
+  const boardRect = board ? board.getBoundingClientRect() : { width: 0, height: 0, left: 0 };
+  const vp = window.innerWidth;
+  const horizontalOverflow = Math.max(0, document.documentElement.scrollWidth - vp);
 
-    // Measure cell tap targets
-    const cells = document.querySelectorAll('.vaultn_cell');
-    let minCellSize = 999;
-    cells.forEach(c => {
-      const r = c.getBoundingClientRect();
-      const s = Math.min(r.width, r.height);
-      if (s > 0 && s < minCellSize) minCellSize = s;
-    });
+  // Measure cell tap targets
+  const cells = document.querySelectorAll('.vaultn_cell');
+  let minCellSize = 999;
+  cells.forEach(c => {
+    const r = c.getBoundingClientRect();
+    const s = Math.min(r.width, r.height);
+    if (s > 0 && s < minCellSize) minCellSize = s;
+  });
 
-    // Check button state
-    const hasConfirm = buttons.some(b => b.label.includes('Confirm'));
-    const hasUndo = buttons.some(b => b.label.includes('Undo'));
+  const p1Count = document.querySelector('#panel_1 .vaultn_panel_count')?.textContent;
+  const p2Count = document.querySelector('#panel_2 .vaultn_panel_count')?.textContent;
+  const hasPanels = !!(p1Count && p2Count);
 
-    const report = {
-      viewport: vp,
-      boardWidth: Math.round(boardRect.width),
-      minTapTarget: Math.round(minCellSize),
-      horizontalOverflow: Math.round(horizontalOverflow),
-      stagedType: game.stage?.type,
-      stagedCapture: game.stage?.isCapture,
-      buttonsCount: buttons.length,
-      hasConfirm,
-      hasUndo,
-      jsErrors: window.errors,
-      ok: window.errors.length === 0 && horizontalOverflow === 0 && minCellSize >= 32 && hasConfirm && hasUndo,
-    };
+  // Check button state
+  const hasConfirm = buttons.some(b => b.label.includes('Confirm'));
+  const hasUndo = buttons.some(b => b.label.includes('Undo'));
 
-    document.getElementById('out').textContent = JSON.stringify(report, null, 2);
-    document.body.dataset.done = '1';
-  }, 250);
+  const report = {
+    viewport: vp,
+    boardWidth: Math.round(boardRect.width),
+    minTapTarget: Math.round(minCellSize),
+    horizontalOverflow: Math.round(horizontalOverflow),
+    stagedType: game.stage?.type,
+    stagedCapture: game.stage?.isCapture,
+    buttonsCount: buttons.length,
+    hasConfirm,
+    hasUndo,
+    hasPanels,
+    p1Count,
+    p2Count,
+    jsErrors: window.errors,
+    ok: window.errors.length === 0 && horizontalOverflow === 0 && minCellSize >= 32 && hasConfirm && hasUndo && hasPanels,
+  };
+
+  document.getElementById('out').textContent = JSON.stringify(report, null, 2);
+  document.body.dataset.done = '1';
 
 } catch (err) {
   window.errors.push(err.stack || err.message);

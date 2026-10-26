@@ -72,6 +72,8 @@ export class Game {
         if (gamedatas.last_move) {
             this.highlightLastMove(gamedatas.last_move);
         }
+
+        this.renderPanels();
     }
 
     /** Enter = confirm the staged move, Escape = deselect. Capture phase so the page's own shortcuts do not interfere. */
@@ -256,6 +258,7 @@ export class Game {
         if (this.gamedatas?.last_move) {
             this.highlightLastMove(this.gamedatas.last_move);
         }
+        this.renderPanels();
     }
 
     renderAllPieces() {
@@ -402,8 +405,8 @@ export class Game {
     }
 
     clearHighlights() {
-        document.querySelectorAll('.vaultn_piece_selectable, .vaultn_piece_selected, .vaultn_piece_pivot_target, .vaultn_piece_selected_pivot')
-            .forEach(el => el.classList.remove('vaultn_piece_selectable', 'vaultn_piece_selected', 'vaultn_piece_pivot_target', 'vaultn_piece_selected_pivot'));
+        document.querySelectorAll('.vaultn_piece_selectable, .vaultn_piece_selected, .vaultn_piece_pivot_target, .vaultn_piece_selected_pivot, .vaultn_piece_capturable, .vaultn_piece_staged_capture')
+            .forEach(el => el.classList.remove('vaultn_piece_selectable', 'vaultn_piece_selected', 'vaultn_piece_pivot_target', 'vaultn_piece_selected_pivot', 'vaultn_piece_capturable', 'vaultn_piece_staged_capture'));
         document.querySelectorAll('.vaultn_cell_selectable, .vaultn_target_walk, .vaultn_target_jump, .vaultn_target_capture, .vaultn_staged_dest, .vaultn_staged_capture')
             .forEach(el => el.classList.remove('vaultn_cell_selectable', 'vaultn_target_walk', 'vaultn_target_jump', 'vaultn_target_capture', 'vaultn_staged_dest', 'vaultn_staged_capture'));
     }
@@ -478,6 +481,12 @@ export class Game {
             const cell = document.getElementById(`vaultn_cell_${j.to.x}_${j.to.y}`);
             if (cell) {
                 cell.classList.add('vaultn_cell_selectable', j.capture ? 'vaultn_target_capture' : 'vaultn_target_jump');
+            }
+            if (j.capture) {
+                const enemyPiece = document.getElementById(`vaultn_piece_${j.to.x}_${j.to.y}`);
+                if (enemyPiece) {
+                    enemyPiece.classList.add('vaultn_piece_capturable');
+                }
             }
         }
         const pivotSet = new Set();
@@ -555,6 +564,13 @@ export class Game {
             toCell.classList.add(jump.capture ? 'vaultn_staged_capture' : 'vaultn_staged_dest');
         }
 
+        if (jump.capture) {
+            const capturedPiece = document.getElementById(`vaultn_piece_${jump.to.x}_${jump.to.y}`);
+            if (capturedPiece) {
+                capturedPiece.classList.add('vaultn_piece_staged_capture');
+            }
+        }
+
         this.updateButtons(this.args, this.isActive);
     }
 
@@ -591,6 +607,7 @@ export class Game {
 
         this.gamedatas.last_move = { from, to };
         this.highlightLastMove(this.gamedatas.last_move);
+        this.renderPanels();
         this.sfx('vault_walk');
     }
 
@@ -606,6 +623,7 @@ export class Game {
 
         this.gamedatas.last_move = { from, pivot, to, captured };
         this.highlightLastMove(this.gamedatas.last_move);
+        this.renderPanels();
         if (captured) {
             this.sfx('vault_capture');
         } else {
@@ -629,5 +647,55 @@ export class Game {
             if (counter) counter.toValue(0);
         }
         this.sfx('vault_win');
+    }
+
+    /* ---------------------------------------------------------------------------------------------- */
+    /* Player Panels                                                                                  */
+    /* ---------------------------------------------------------------------------------------------- */
+
+    getPieceCount(role) {
+        if (!this.board) return 0;
+        let count = 0;
+        for (let y = 0; y < 10; y++) {
+            for (let x = 0; x < 10; x++) {
+                if (this.board[y]?.[x]?.color === role) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
+    renderPanels() {
+        if (!this.bga?.playerPanels?.getElement || !this.gamedatas?.players) return;
+        Object.keys(this.gamedatas.players).forEach((pid) => {
+            let panel = null;
+            try {
+                panel = this.bga.playerPanels.getElement(pid);
+            } catch (e) {
+                return;
+            }
+            if (!panel) return;
+
+            let line = panel.querySelector('.vaultn_panel_line');
+            if (!line) {
+                line = document.createElement('div');
+                line.className = 'vaultn_panel_line';
+                panel.appendChild(line);
+            }
+
+            const role = Number(this.gamedatas?.player_roles?.[String(pid)] || 0);
+            const count = this.getPieceCount(role);
+            const isWhite = role === 1;
+            const colorName = isWhite ? _('White') : _('Black');
+            const roleClass = isWhite ? 'vaultn_panel_pip_white' : 'vaultn_panel_pip_black';
+
+            line.innerHTML = `
+                <span class="vaultn_panel_pip ${roleClass}"></span>
+                <span class="vaultn_panel_label">${_('Pawns')}:</span>
+                <b class="vaultn_panel_count">${count}</b>
+            `;
+            line.title = `${colorName}: ${count} ${_('pawns')}`;
+        });
     }
 }
