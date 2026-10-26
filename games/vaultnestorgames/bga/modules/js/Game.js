@@ -39,6 +39,7 @@ export class Game {
 
     setup(gamedatas) {
         this.gamedatas = gamedatas;
+        this.boardSize = Number(gamedatas.board_size || 8);
         this.initBoardModel(gamedatas.board || []);
 
         const root = document.createElement('div');
@@ -124,16 +125,17 @@ export class Game {
     }
 
     initBoardModel(pieces) {
+        const size = this.boardSize || 8;
         this.board = [];
-        for (let y = 0; y < 10; y++) {
+        for (let y = 0; y < size; y++) {
             const row = [];
-            for (let x = 0; x < 10; x++) {
+            for (let x = 0; x < size; x++) {
                 row.push({ color: 0, playerId: null });
             }
             this.board.push(row);
         }
         for (const p of pieces) {
-            if (p.x >= 0 && p.x < 10 && p.y >= 0 && p.y < 10) {
+            if (p.x >= 0 && p.x < size && p.y >= 0 && p.y < size) {
                 this.board[p.y][p.x] = { color: p.color, playerId: p.playerId };
             }
         }
@@ -144,12 +146,16 @@ export class Game {
         this.root = root;
         root.innerHTML = '';
 
-        const cols = this.isFlipped ? [9, 8, 7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-        const rows = this.isFlipped ? [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] : [9, 8, 7, 6, 5, 4, 3, 2, 1, 0];
+        const size = this.boardSize || 8;
+        const forward = Array.from({ length: size }, (_, i) => i);
+        const reverse = Array.from({ length: size }, (_, i) => size - 1 - i);
+        const cols = this.isFlipped ? reverse : forward;
+        const rows = this.isFlipped ? forward : reverse;
 
         // Board Frame with coordinates
         const frame = document.createElement('div');
         frame.className = 'vaultn_board_frame';
+        frame.style.setProperty('--vaultn-size', String(size));
 
         // Top rank labels
         const topLabels = document.createElement('div');
@@ -285,8 +291,9 @@ export class Game {
     }
 
     renderAllPieces() {
-        for (let y = 0; y < 10; y++) {
-            for (let x = 0; x < 10; x++) {
+        const size = this.boardSize || 8;
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
                 this.renderCellPiece(x, y);
             }
         }
@@ -297,8 +304,9 @@ export class Game {
         if (!cell) return;
         cell.innerHTML = '';
 
-        const data = this.board[y][x];
-        const isThreatOnBackRank = (y === 0 && data.color === 2) || (y === 9 && data.color === 1);
+        const size = this.boardSize || 8;
+        const data = this.board[y]?.[x] || { color: 0, playerId: null };
+        const isThreatOnBackRank = (y === 0 && data.color === 2) || (y === size - 1 && data.color === 1);
         if (isThreatOnBackRank) {
             cell.classList.add('vaultn_cell_backrank_threat');
         } else {
@@ -689,21 +697,22 @@ export class Game {
 
     updateBackRankBanner() {
         if (!this.board) return;
+        const size = this.boardSize || 8;
 
         // Check back ranks:
         // White's home row is y = 0. Black pawn (color 2) on y = 0 means Black reached White's home area.
         let blackInWhiteHome = false;
-        for (let x = 0; x < 10; x++) {
+        for (let x = 0; x < size; x++) {
             if (this.board[0]?.[x]?.color === 2) {
                 blackInWhiteHome = true;
                 break;
             }
         }
 
-        // Black's home row is y = 9. White pawn (color 1) on y = 9 means White reached Black's home area.
+        // Black's home row is y = size - 1. White pawn (color 1) on y = size - 1 means White reached Black's home area.
         let whiteInBlackHome = false;
-        for (let x = 0; x < 10; x++) {
-            if (this.board[9]?.[x]?.color === 1) {
+        for (let x = 0; x < size; x++) {
+            if (this.board[size - 1]?.[x]?.color === 1) {
                 whiteInBlackHome = true;
                 break;
             }
@@ -807,7 +816,7 @@ export class Game {
             {
                 icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="none"/></svg>',
                 title: _('Victory'),
-                desc: _('Reach the opponent\'s home row (Row 1 for Black, Row 10 for White). If the opponent does not capture that pawn on their immediately following turn, you win! (Or capture all opponent pawns).')
+                desc: _('Reach the opponent\'s home row (Row 1 for Black, Row ' + (this.boardSize || 8) + ' for White). If the opponent does not capture that pawn on their immediately following turn, you win! (Or capture all opponent pawns).')
             }
         ];
 
@@ -844,9 +853,10 @@ export class Game {
 
     getPieceCount(role) {
         if (!this.board) return 0;
+        const size = this.boardSize || 8;
         let count = 0;
-        for (let y = 0; y < 10; y++) {
-            for (let x = 0; x < 10; x++) {
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
                 if (this.board[y]?.[x]?.color === role) {
                     count++;
                 }

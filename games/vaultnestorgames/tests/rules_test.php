@@ -24,84 +24,79 @@ function check(bool $ok, string $what): void
     }
 }
 
-function emptyBoard(): array
+function emptyBoard(int $size = 10): array
 {
     $b = [];
-    for ($y = 0; $y < Rules::SIZE; $y++) {
-        $b[$y] = array_fill(0, Rules::SIZE, Rules::EMPTY);
+    for ($y = 0; $y < $size; $y++) {
+        $b[$y] = array_fill(0, $size, Rules::EMPTY);
     }
     return $b;
 }
 
 echo "=== 1. Board Geometry and Tone Invariance ===\n";
 
-// Test tone values (4 tones: 0, 1, 2, 3)
-for ($y = 0; $y < Rules::SIZE; $y++) {
-    for ($x = 0; $x < Rules::SIZE; $x++) {
+// Test tone values (4 tones: 0, 1, 2, 3) across 10x10
+for ($y = 0; $y < 10; $y++) {
+    for ($x = 0; $x < 10; $x++) {
         $tone = Rules::tone($x, $y);
         check($tone >= 0 && $tone <= 3, "Tone in range 0..3 at ($x, $y)");
         check($tone === (($x & 1) + (($y & 1) << 1)), "Tone formula matches parity at ($x, $y)");
     }
 }
 
-// Mathematical proof test: for EVERY possible pair of coordinates A and B in 10x10,
+// Mathematical proof test: for EVERY possible pair of coordinates A and B in 5x5 to 10x10,
 // if C = 2B - A is within bounds, tone(C) MUST EQUAL tone(A)!
 $totalJumpsTested = 0;
-for ($ay = 0; $ay < Rules::SIZE; $ay++) {
-    for ($ax = 0; $ax < Rules::SIZE; $ax++) {
-        for ($by = 0; $by < Rules::SIZE; $by++) {
-            for ($bx = 0; $bx < Rules::SIZE; $bx++) {
-                if ($ax === $bx && $ay === $by) {
-                    continue;
-                }
-                $cx = 2 * $bx - $ax;
-                $cy = 2 * $by - $ay;
-                if (Rules::inBounds($cx, $cy)) {
-                    $totalJumpsTested++;
-                    check(Rules::tone($ax, $ay) === Rules::tone($cx, $cy), "Tone invariance for jump ($ax,$ay) over ($bx,$by) -> ($cx,$cy)");
+for ($size = 5; $size <= 10; $size++) {
+    for ($ay = 0; $ay < $size; $ay++) {
+        for ($ax = 0; $ax < $size; $ax++) {
+            for ($by = 0; $by < $size; $by++) {
+                for ($bx = 0; $bx < $size; $bx++) {
+                    if ($ax === $bx && $ay === $by) {
+                        continue;
+                    }
+                    $cx = 2 * $bx - $ax;
+                    $cy = 2 * $by - $ay;
+                    if (Rules::inBounds($cx, $cy, $size)) {
+                        $totalJumpsTested++;
+                        check(Rules::tone($ax, $ay) === Rules::tone($cx, $cy), "Tone invariance for jump ($ax,$ay) over ($bx,$by) -> ($cx,$cy) on {$size}x{$size}");
+                    }
                 }
             }
         }
     }
 }
-echo "Verified tone invariance across $totalJumpsTested legal vector geometry jumps.\n";
+echo "Verified tone invariance across $totalJumpsTested legal vector geometry jumps (sizes 5x5 to 10x10).\n";
 
-echo "\n=== 2. Initial Setup ===\n";
-$init = Rules::initialBoard();
-$whiteCount = 0;
-$blackCount = 0;
-for ($y = 0; $y < Rules::SIZE; $y++) {
-    for ($x = 0; $x < Rules::SIZE; $x++) {
-        if ($y === 0) {
-            check($init[$y][$x] === Rules::WHITE, "White pawn at rank 0 ($x, 0)");
-            $whiteCount++;
-        } elseif ($y === 9) {
-            check($init[$y][$x] === Rules::BLACK, "Black pawn at rank 9 ($x, 9)");
-            $blackCount++;
-        } else {
-            check($init[$y][$x] === Rules::EMPTY, "Empty cell at ($x, $y)");
+echo "\n=== 2. Initial Setup (8x8 default and 5x5 to 10x10 variants) ===\n";
+
+for ($size = 5; $size <= 10; $size++) {
+    $initN = Rules::initialBoard($size);
+    $whiteCount = 0;
+    $blackCount = 0;
+    for ($y = 0; $y < $size; $y++) {
+        for ($x = 0; $x < $size; $x++) {
+            if ($y === 0) {
+                check($initN[$y][$x] === Rules::WHITE, "White pawn at rank 0 ($x, 0) on {$size}x{$size}");
+                $whiteCount++;
+            } elseif ($y === $size - 1) {
+                check($initN[$y][$x] === Rules::BLACK, "Black pawn at rank " . ($size - 1) . " ($x, $y) on {$size}x{$size}");
+                $blackCount++;
+            } else {
+                check($initN[$y][$x] === Rules::EMPTY, "Empty cell at ($x, $y) on {$size}x{$size}");
+            }
         }
     }
+    check($whiteCount === $size, "$size White pawns initially on {$size}x{$size}");
+    check($blackCount === $size, "$size Black pawns initially on {$size}x{$size}");
+
+    $expectedWalks = 2 * 2 + ($size - 2) * 3;
+    $whiteWalks = Rules::getLegalWalks($initN, Rules::WHITE);
+    check(count($whiteWalks) === $expectedWalks, "White has $expectedWalks opening walks on {$size}x{$size} (got " . count($whiteWalks) . ")");
+
+    $whiteJumps = Rules::getLegalJumps($initN, Rules::WHITE);
+    check(count($whiteJumps) === 0, "White has 0 legal jumps on move 1 on {$size}x{$size}");
 }
-check($whiteCount === 10, "10 White pawns initially");
-check($blackCount === 10, "10 Black pawns initially");
-
-// From initial position, White can walk forward into rank 1
-$whiteWalks = Rules::getLegalWalks($init, Rules::WHITE);
-// Each pawn on rank 0:
-// Pawns at ends (x=0, x=9) can walk to (0,1), (1,1), or (1,0) wait: (1,0) is occupied by friendly pawn!
-// So pawn 0 can walk to (0,1) and (1,1) = 2 walks.
-// Pawn 9 can walk to (9,1) and (8,1) = 2 walks.
-// Middle pawns (x=1..8): can walk to (x-1,1), (x,1), (x+1,1) = 3 walks each (8 * 3 = 24).
-// Total walks for White from starting line: 2 + 2 + 24 = 28 walks.
-check(count($whiteWalks) === 28, "White has exactly 28 opening walk moves (got " . count($whiteWalks) . ")");
-
-// Can White jump on move 1 from starting rank?
-// Pawns are all on rank 0: (x1, 0) over (x2, 0) lands on (2*x2 - x1, 0).
-// Since rank 0 is full of friendly pawns, any jump on rank 0 lands on a friendly pawn!
-// So White has 0 legal jumps on move 1!
-$whiteJumps = Rules::getLegalJumps($init, Rules::WHITE);
-check(count($whiteJumps) === 0, "White has 0 legal jumps on move 1 from starting line (rank 0 full)");
 
 echo "\n=== 3. Legal Walks and Edge Cases ===\n";
 $b = emptyBoard();
@@ -299,24 +294,31 @@ check(Rules::checkVictoryAtTurnStart($bStalemate, Rules::WHITE) === Rules::BLACK
 echo "\n=== 6. Concrete ASCII Grid Representation ===\n";
 function renderBoard(array $b): string
 {
-    $out = "  0 1 2 3 4 5 6 7 8 9\n";
-    for ($y = 9; $y >= 0; $y--) {
+    $size = count($b);
+    $headerCols = implode(' ', range(0, $size - 1));
+    $out = "  $headerCols\n";
+    for ($y = $size - 1; $y >= 0; $y--) {
         $out .= "$y ";
-        for ($x = 0; $x < Rules::SIZE; $x++) {
+        for ($x = 0; $x < $size; $x++) {
             $v = $b[$y][$x];
             $ch = $v === Rules::WHITE ? 'W' : ($v === Rules::BLACK ? 'B' : '.');
             $out .= "$ch ";
         }
         $out .= "$y\n";
     }
-    $out .= "  0 1 2 3 4 5 6 7 8 9\n";
+    $out .= "  $headerCols\n";
     return $out;
 }
 
-$demoBoard = Rules::initialBoard();
-$rendered = renderBoard($demoBoard);
-check(str_contains($rendered, 'W W W W W W W W W W'), "Rank 0 rendered with 10 W");
-check(str_contains($rendered, 'B B B B B B B B B B'), "Rank 9 rendered with 10 B");
+$demoBoard8 = Rules::initialBoard(8);
+$rendered8 = renderBoard($demoBoard8);
+check(str_contains($rendered8, 'W W W W W W W W'), "Rank 0 rendered with 8 W on 8x8");
+check(str_contains($rendered8, 'B B B B B B B B'), "Rank 7 rendered with 8 B on 8x8");
+
+$demoBoard10 = Rules::initialBoard(10);
+$rendered10 = renderBoard($demoBoard10);
+check(str_contains($rendered10, 'W W W W W W W W W W'), "Rank 0 rendered with 10 W on 10x10");
+check(str_contains($rendered10, 'B B B B B B B B B B'), "Rank 9 rendered with 10 B on 10x10");
 
 echo "\n=== 7. Edge cases from the rulebook ===\n";
 
@@ -330,13 +332,16 @@ function rejects(array $board, int $player, array $action): bool
     return false;
 }
 
-// Initial position: 10 W + 10 B, White's first-move options.
-$init = Rules::initialBoard();
-$firstWalks = Rules::getLegalWalks($init, Rules::WHITE);
-// Rank 0 pawns: corners have 2 forward targets (x+1 diagonal and straight), edges/middle 3.
-check(count($firstWalks) === 2 * 2 + 8 * 3, "White has 28 walks at the start");
-// Jumps at the start: all pawns on one row; mirror lands on the same row, only empty cells off-board or friendly.
-check(count(Rules::getLegalJumps($init, Rules::WHITE)) === 0, "No jumps at the start (landing squares are friendly or off board)");
+// Initial position: White's first-move options on default 8x8 and on 10x10
+$init8 = Rules::initialBoard(8);
+$firstWalks8 = Rules::getLegalWalks($init8, Rules::WHITE);
+check(count($firstWalks8) === 2 * 2 + 6 * 3, "White has 22 walks at the start of 8x8");
+check(count(Rules::getLegalJumps($init8, Rules::WHITE)) === 0, "No jumps at start of 8x8");
+
+$init10 = Rules::initialBoard(10);
+$firstWalks10 = Rules::getLegalWalks($init10, Rules::WHITE);
+check(count($firstWalks10) === 2 * 2 + 8 * 3, "White has 28 walks at the start of 10x10");
+check(count(Rules::getLegalJumps($init10, Rules::WHITE)) === 0, "No jumps at start of 10x10");
 
 // Walking onto an occupied (enemy or friendly) square or capturing by walking is illegal.
 $b = emptyBoard();
@@ -419,7 +424,8 @@ mt_srand(20261025);
 $games = 300;
 $ends = ['back_rank' => 0, 'stalemate' => 0, 'cap' => 0];
 for ($g = 0; $g < $games; $g++) {
-    $board = Rules::initialBoard();
+    $size = [5, 6, 7, 8, 9, 10][$g % 6];
+    $board = Rules::initialBoard($size);
     $player = Rules::WHITE;
     $ended = false;
     for ($turn = 0; $turn < 600; $turn++) {
@@ -436,10 +442,11 @@ for ($g = 0; $g < $games; $g++) {
             }
             break;
         }
-        check(!empty($legal), "Fuzz: ongoing game always has a legal move (g=$g t=$turn)");
+        check(!empty($legal), "Fuzz: ongoing game always has a legal move (g=$g t=$turn size=$size)");
         // Prefer winning-ish moves 30% of the time so games finish
         $m = $legal[mt_rand(0, count($legal) - 1)];
-        $forward = array_values(array_filter($legal, fn($x) => abs($x['to']['y'] - Rules::targetRank($player)) < abs($x['from']['y'] - Rules::targetRank($player))));
+        $targetY = Rules::targetRank($player, $size);
+        $forward = array_values(array_filter($legal, fn($x) => abs($x['to']['y'] - $targetY) < abs($x['from']['y'] - $targetY)));
         if (!empty($forward) && mt_rand(0, 99) < 70) {
             $m = $forward[mt_rand(0, count($forward) - 1)];
         }

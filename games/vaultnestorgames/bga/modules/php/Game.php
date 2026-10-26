@@ -22,22 +22,29 @@ class Game extends \Bga\GameFramework\Table
         parent::__construct();
     }
 
+    public function getBoardSize(): int
+    {
+        return (int) $this->globals->get('board_size', Rules::DEFAULT_SIZE);
+    }
+
     public function getGameProgression(): int
     {
         // Vault progression: calculate the maximum forward rank reached by either player.
-        // White starts at 0, target is 9. Max rank for White = max(y).
-        // Black starts at 9, target is 0. Max rank for Black = max(9 - y).
+        // White starts at 0, target is size - 1. Max rank for White = max(y).
+        // Black starts at size - 1, target is 0. Max rank for Black = max(size - 1 - y).
         $board = $this->getBoard();
+        $size = $this->getBoardSize();
+        $maxAdv = max(1, $size - 1);
         $whiteMax = 0;
         $blackMax = 0;
-        for ($y = 0; $y < Rules::SIZE; $y++) {
-            for ($x = 0; $x < Rules::SIZE; $x++) {
+        for ($y = 0; $y < $size; $y++) {
+            for ($x = 0; $x < $size; $x++) {
                 if ($board[$y][$x] === Rules::WHITE) {
                     if ($y > $whiteMax) {
                         $whiteMax = $y;
                     }
                 } elseif ($board[$y][$x] === Rules::BLACK) {
-                    $adv = 9 - $y;
+                    $adv = ($size - 1) - $y;
                     if ($adv > $blackMax) {
                         $blackMax = $adv;
                     }
@@ -45,7 +52,7 @@ class Game extends \Bga\GameFramework\Table
             }
         }
         $leadAdvance = max($whiteMax, $blackMax);
-        return (int) min(100, round(($leadAdvance / 9.0) * 100));
+        return (int) min(100, round(($leadAdvance / (float) $maxAdv) * 100));
     }
 
     protected function setupNewGame($players, $options = [])
@@ -81,13 +88,18 @@ class Game extends \Bga\GameFramework\Table
         $this->playerStats->init(['turns_number', 'walks_count', 'jumps_count', 'pieces_captured'], 0);
 
         // 3. Board setup
+        $boardSize = isset($options[100]) ? (int) $options[100] : (int) ($this->tableOptions ? $this->tableOptions->get(100, Rules::DEFAULT_SIZE) : Rules::DEFAULT_SIZE);
+        if ($boardSize < 5 || $boardSize > 10) {
+            $boardSize = Rules::DEFAULT_SIZE;
+        }
+
         static::DbQuery("DELETE FROM `board`");
         $cellValues = [];
-        for ($y = 0; $y < Rules::SIZE; $y++) {
-            for ($x = 0; $x < Rules::SIZE; $x++) {
+        for ($y = 0; $y < $boardSize; $y++) {
+            for ($x = 0; $x < $boardSize; $x++) {
                 if ($y === 0) {
                     $cellValues[] = "($x, $y, " . Rules::WHITE . ", $whitePid)";
-                } elseif ($y === 9) {
+                } elseif ($y === $boardSize - 1) {
                     $cellValues[] = "($x, $y, " . Rules::BLACK . ", $blackPid)";
                 } else {
                     $cellValues[] = "($x, $y, " . Rules::EMPTY . ", NULL)";
@@ -97,6 +109,7 @@ class Game extends \Bga\GameFramework\Table
         static::DbQuery("INSERT INTO `board` (`x`, `y`, `player_color`, `player_id`) VALUES " . implode(',', $cellValues));
 
         // 4. Globals
+        $this->globals->set('board_size', $boardSize);
         $this->globals->set('player_roles', [
             (string) $whitePid => Rules::WHITE,
             (string) $blackPid => Rules::BLACK,
@@ -115,18 +128,21 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
-     * Return 10x10 board as array [y][x] with values Rules::EMPTY, Rules::WHITE, Rules::BLACK.
+     * Return board as array [y][x] with values Rules::EMPTY, Rules::WHITE, Rules::BLACK.
      *
      * @return array<int, array<int, int>>
      */
     public function getBoard(): array
     {
-        $board = array_fill(0, Rules::SIZE, array_fill(0, Rules::SIZE, Rules::EMPTY));
+        $size = $this->getBoardSize();
+        $board = array_fill(0, $size, array_fill(0, $size, Rules::EMPTY));
         $rows = $this->getObjectListFromDb("SELECT `x`, `y`, `player_color` FROM `board` WHERE `player_color` > 0");
         foreach ($rows as $row) {
             $x = (int) $row['x'];
             $y = (int) $row['y'];
-            $board[$y][$x] = (int) $row['player_color'];
+            if ($x < $size && $y < $size) {
+                $board[$y][$x] = (int) $row['player_color'];
+            }
         }
         return $board;
     }
@@ -192,6 +208,7 @@ class Game extends \Bga\GameFramework\Table
         $result['black_player_id'] = (int) $this->globals->get('black_player_id', 0);
         $result['turn_number'] = (int) $this->globals->get('turn_number', 1);
         $result['last_move'] = $this->globals->get('last_move', null);
+        $result['board_size'] = $this->getBoardSize();
         $result['winner_id'] = (int) $this->globals->get('winner_id', 0);
         return $result;
     }

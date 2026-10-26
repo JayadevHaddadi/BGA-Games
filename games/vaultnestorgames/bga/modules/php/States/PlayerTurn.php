@@ -154,7 +154,7 @@ class PlayerTurn extends GameState
         ]);
 
         // Check if pawn reached opponent back rank (one turn reaction warning)
-        $targetY = Rules::targetRank($role);
+        $targetY = Rules::targetRank($role, $this->game->getBoardSize());
         if ($ty === $targetY) {
             $this->game->notifyAllPlayers('reachedBackRank', clienttranslate('${player_name} has reached the back rank at ${to_label}! Opponent has 1 turn to react!'), [
                 'player_name' => $playerName,
@@ -253,7 +253,7 @@ class PlayerTurn extends GameState
         ]);
 
         // Check if pawn reached opponent back rank
-        $targetY = Rules::targetRank($role);
+        $targetY = Rules::targetRank($role, $this->game->getBoardSize());
         if ($ty === $targetY) {
             $this->game->notifyAllPlayers('reachedBackRank', clienttranslate('${player_name} has reached the back rank at ${to_label}! Opponent has 1 turn to react!'), [
                 'player_name' => $playerName,
@@ -274,7 +274,8 @@ class PlayerTurn extends GameState
     {
         $role = $this->game->getPlayerRole($playerId);
         $board = $this->game->getBoard();
-        $targetY = Rules::targetRank($role);
+        $boardSize = count($board);
+        $targetY = Rules::targetRank($role, $boardSize);
 
         $jumps = Rules::getLegalJumps($board, $role);
         $walks = Rules::getLegalWalks($board, $role);
@@ -289,7 +290,7 @@ class PlayerTurn extends GameState
             return EndScore::class;
         }
 
-        $evalMove = function (array $m) use ($targetY): int {
+        $evalMove = function (array $m) use ($targetY, $boardSize): int {
             $fromY = $m['from']['y'];
             $toY = $m['to']['y'];
             $distFrom = abs($fromY - $targetY);
@@ -308,7 +309,7 @@ class PlayerTurn extends GameState
             // 3. Forward progress (heavily reward forward moves, heavily penalize backward)
             $score += $progress * 1000;
             // 4. Closer to target rank
-            $score += (10 - $distTo) * 50;
+            $score += ($boardSize - $distTo) * 50;
             // 5. Prefer jumping over walking when forward
             if ($m['type'] === Rules::MOVE_JUMP && $progress > 0) {
                 $score += 100;

@@ -63,13 +63,14 @@ Checked at the **start of each player's turn**:
 | # | Topic | Decision | Confidence |
 |---|---|---|---|
 | D1 | Studio project naming | `vaultnestorgames` with game name `"Vault (nestorgames)"`. The slug `vault` is already taken on BGA production by an unrelated game (*Vault: A Solitaire Dice Game*). BGA official convention uses publisher disambiguation. `re.sub(r'[^a-z0-9]', '', 'Vault (nestorgames)'.lower()) == 'vaultnestorgames'` satisfies Rule 25 with 0 errors. | High: aligns with BGA policy and Rule 25 |
-| D2 | Board dimensions | Fixed 10x10 board. While the rulebook mentions any even number of cells, the official nestorgames edition explicitly specifies a 10x10 board. | High: official edition standard |
+| D2 | Board dimensions | Configurable board size via game option 100: 5x5, 6x6, 7x7, 8x8, 9x9, 10x10, with 8x8 as the default. Parity and tone invariance hold identically for both even and odd grid dimensions. | High: requested by user, supported by rules |
 | D3 | Board coloring | 4 distinct checkered tones for the 4 parity classes $(x \bmod 2, y \bmod 2)$. Makes all jump landing squares immediately recognizable and verified mathematically. | High: official rulebook note |
 | D4 | Vector jump directions | All possible straight vectors $2B - A$ (orthogonal, diagonal, knight jumps, extended ratios). No path obstructions checked between start, pivot, and destination. | High: rulebook explicitly states jumping is like a mirror in any direction and intervening spaces need not be empty |
 | D5 | Win check timing | Checked strictly at the start of the player's turn (`onEnteringState`). | High: explicitly written in rulebook: *"If at the start of your turn you have at least one piece on your opponent's back rank then you have won."* |
-| D6 | Simultaneous back rank | If player 1 enters rank 9, and player 2 on their turn also enters player 1's back rank (rank 0), when player 1's turn begins, player 1 starts their turn with a pawn on rank 9 and wins first. | High: direct corollary of turn-start evaluation |
+| D6 | Simultaneous back rank | If player 1 enters rank $N-1$, and player 2 on their turn also enters player 1's back rank (rank 0), when player 1's turn begins, player 1 starts their turn with a pawn on rank $N-1$ and wins first. | High: direct corollary of turn-start evaluation |
 | D7 | Stalemate / Inactivity | Standard BGA draw proposal and turn limit counter to prevent infinite cycles. | High |
 | D8 | Zombie mode | Level 1: plays a legal move if available (preferring forward/jump moves), or passes/resigns. | High |
+| D9 | Last move indicators | Non-darkening border indicators: dashed amber inner border (`::after` inset) on origin cell, solid warm gold inner border on destination cell, dashed outline on pivot. Leaves cell background tones completely intact and clear. | High: requested by user |
 
 ---
 

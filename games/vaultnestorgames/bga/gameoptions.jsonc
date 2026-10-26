@@ -1,3 +1,32 @@
 {
-  // option ids should be between 100 and 199
+    "100": {
+        "name": "Board Size",
+        "values": {
+            "5": {
+                "name": "5x5",
+                "description": "5x5 board (5 pawns per player)"
+            },
+            "6": {
+                "name": "6x6",
+                "description": "6x6 board (6 pawns per player)"
+            },
+            "7": {
+                "name": "7x7",
+                "description": "7x7 board (7 pawns per player)"
+            },
+            "8": {
+                "name": "8x8 (Standard)",
+                "description": "8x8 board (8 pawns per player - default)"
+            },
+            "9": {
+                "name": "9x9",
+                "description": "9x9 board (9 pawns per player)"
+            },
+            "10": {
+                "name": "10x10",
+                "description": "10x10 board (10 pawns per player - nestorgames edition)"
+            }
+        },
+        "default": 8
+    }
 }

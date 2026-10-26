@@ -52,12 +52,13 @@ body.vaultn_page_bg #game_play_area_background {
     padding: 6px;
     box-sizing: border-box;
     width: 100%;
+    --vaultn-size: 8;
 }
 
 .vaultn_rank_labels_top,
 .vaultn_rank_labels_bottom {
     display: grid;
-    grid-template-columns: 24px repeat(10, 1fr) 24px;
+    grid-template-columns: 24px repeat(var(--vaultn-size, 8), 1fr) 24px;
     width: 100%;
     text-align: center;
     font-size: 11px;
@@ -113,7 +114,7 @@ body.vaultn_page_bg #game_play_area_background {
 .vaultn_col_labels_left,
 .vaultn_col_labels_right {
     display: grid;
-    grid-template-rows: repeat(10, 1fr);
+    grid-template-rows: repeat(var(--vaultn-size, 8), 1fr);
     height: 100%;
     text-align: center;
     font-size: 11px;
@@ -122,11 +123,11 @@ body.vaultn_page_bg #game_play_area_background {
     align-items: center;
 }
 
-/* 10x10 Board Grid */
+/* Dynamic Board Grid */
 .vaultn_board {
     display: grid;
-    grid-template-columns: repeat(10, 1fr);
-    grid-template-rows: repeat(10, 1fr);
+    grid-template-columns: repeat(var(--vaultn-size, 8), 1fr);
+    grid-template-rows: repeat(var(--vaultn-size, 8), 1fr);
     aspect-ratio: 1 / 1;
     width: 100%;
     border: 1px solid #4b5263;
@@ -390,17 +391,40 @@ body.vaultn_cb_on .vaultn_tone_3::before {
     pointer-events: none;
 }
 
-/* Last move highlights */
+/* Last move highlights (distinct non-darkening border markers) */
 .vaultn_last_from {
-    background-color: rgba(255, 235, 59, 0.28) !important;
+    position: relative;
+}
+
+.vaultn_last_from::after {
+    content: "";
+    position: absolute;
+    inset: 3px;
+    border: 2px dashed #f59e0b;
+    border-radius: 2px;
+    pointer-events: none;
+    box-sizing: border-box;
+    z-index: 1;
 }
 
 .vaultn_last_to {
-    background-color: rgba(255, 235, 59, 0.42) !important;
+    position: relative;
+}
+
+.vaultn_last_to::after {
+    content: "";
+    position: absolute;
+    inset: 2px;
+    border: 2.5px solid #fbbf24;
+    border-radius: 2px;
+    pointer-events: none;
+    box-sizing: border-box;
+    z-index: 1;
 }
 
 .vaultn_last_pivot {
-    outline: 2px dashed #ff9800;
+    outline: 2px dashed #f59e0b;
+    outline-offset: 1px;
 }
 
 /* Reduced motion preference */
@@ -435,7 +459,7 @@ body.vaultn_cb_on .vaultn_tone_3::before {
 
     .vaultn_rank_labels_top,
     .vaultn_rank_labels_bottom {
-        grid-template-columns: 12px repeat(10, 1fr) 12px;
+        grid-template-columns: 12px repeat(var(--vaultn-size, 8), 1fr) 12px;
         font-size: 10px;
         line-height: 14px;
         box-sizing: border-box;

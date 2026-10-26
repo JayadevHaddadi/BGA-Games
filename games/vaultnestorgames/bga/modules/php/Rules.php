@@ -23,6 +23,7 @@ namespace Bga\Games\vaultnestorgames;
 
 final class Rules
 {
+    public const DEFAULT_SIZE = 8;
     public const SIZE = 10;
 
     public const EMPTY = 0;
@@ -35,9 +36,9 @@ final class Rules
     /**
      * Coordinate bounds check.
      */
-    public static function inBounds(int $x, int $y): bool
+    public static function inBounds(int $x, int $y, int $size = self::DEFAULT_SIZE): bool
     {
-        return $x >= 0 && $x < self::SIZE && $y >= 0 && $y < self::SIZE;
+        return $x >= 0 && $x < $size && $y >= 0 && $y < $size;
     }
 
     /**
@@ -51,39 +52,39 @@ final class Rules
 
     /**
      * Target back rank for victory check:
-     * White wins by reaching rank 9.
+     * White wins by reaching rank size - 1.
      * Black wins by reaching rank 0.
      */
-    public static function targetRank(int $player): int
+    public static function targetRank(int $player, int $size = self::DEFAULT_SIZE): int
     {
-        return $player === self::WHITE ? 9 : 0;
+        return $player === self::WHITE ? ($size - 1) : 0;
     }
 
     /**
      * Home back rank:
      */
-    public static function homeRank(int $player): int
+    public static function homeRank(int $player, int $size = self::DEFAULT_SIZE): int
     {
-        return $player === self::WHITE ? 0 : 9;
+        return $player === self::WHITE ? 0 : ($size - 1);
     }
 
     /**
-     * Initial 10x10 board setup:
+     * Initial board setup:
      * Rank 0: White pawns.
-     * Rank 9: Black pawns.
-     * Ranks 1..8: Empty.
+     * Rank size - 1: Black pawns.
+     * Ranks 1..size-2: Empty.
      *
      * @return array<int, array<int, int>> [y][x]
      */
-    public static function initialBoard(): array
+    public static function initialBoard(int $size = self::DEFAULT_SIZE): array
     {
         $board = [];
-        for ($y = 0; $y < self::SIZE; $y++) {
+        for ($y = 0; $y < $size; $y++) {
             $row = [];
-            for ($x = 0; $x < self::SIZE; $x++) {
+            for ($x = 0; $x < $size; $x++) {
                 if ($y === 0) {
                     $row[$x] = self::WHITE;
-                } elseif ($y === 9) {
+                } elseif ($y === $size - 1) {
                     $row[$x] = self::BLACK;
                 } else {
                     $row[$x] = self::EMPTY;
@@ -101,8 +102,9 @@ final class Rules
      */
     public static function hasPieceOnBackRank(array $board, int $player): bool
     {
-        $targetY = self::targetRank($player);
-        for ($x = 0; $x < self::SIZE; $x++) {
+        $size = count($board);
+        $targetY = self::targetRank($player, $size);
+        for ($x = 0; $x < $size; $x++) {
             if ($board[$targetY][$x] === $player) {
                 return true;
             }
@@ -160,15 +162,16 @@ final class Rules
             [-1,  1], [0,  1], [1,  1]
         ];
 
-        for ($y = 0; $y < self::SIZE; $y++) {
-            for ($x = 0; $x < self::SIZE; $x++) {
+        $size = count($board);
+        for ($y = 0; $y < $size; $y++) {
+            for ($x = 0; $x < $size; $x++) {
                 if ($board[$y][$x] !== $player) {
                     continue;
                 }
                 foreach ($dirs as [$dx, $dy]) {
                     $nx = $x + $dx;
                     $ny = $y + $dy;
-                    if (self::inBounds($nx, $ny) && $board[$ny][$nx] === self::EMPTY) {
+                    if (self::inBounds($nx, $ny, $size) && $board[$ny][$nx] === self::EMPTY) {
                         $walks[] = [
                             'type' => self::MOVE_WALK,
                             'from' => ['x' => $x, 'y' => $y],
@@ -199,8 +202,9 @@ final class Rules
         $jumps = [];
         $friendlyPieces = [];
 
-        for ($y = 0; $y < self::SIZE; $y++) {
-            for ($x = 0; $x < self::SIZE; $x++) {
+        $size = count($board);
+        for ($y = 0; $y < $size; $y++) {
+            for ($x = 0; $x < $size; $x++) {
                 if ($board[$y][$x] === $player) {
                     $friendlyPieces[] = ['x' => $x, 'y' => $y];
                 }
@@ -219,7 +223,7 @@ final class Rules
                 $cx = 2 * $b['x'] - $a['x'];
                 $cy = 2 * $b['y'] - $a['y'];
 
-                if (!self::inBounds($cx, $cy)) {
+                if (!self::inBounds($cx, $cy, $size)) {
                     continue;
                 }
 
@@ -295,7 +299,8 @@ final class Rules
         $tx = (int)$to['x'];
         $ty = (int)$to['y'];
 
-        if (!self::inBounds($fx, $fy) || !self::inBounds($tx, $ty)) {
+        $size = count($board);
+        if (!self::inBounds($fx, $fy, $size) || !self::inBounds($tx, $ty, $size)) {
             throw new \InvalidArgumentException("Coordinates out of bounds");
         }
 
@@ -327,7 +332,7 @@ final class Rules
             $px = (int)$p['x'];
             $py = (int)$p['y'];
 
-            if (!self::inBounds($px, $py)) {
+            if (!self::inBounds($px, $py, $size)) {
                 throw new \InvalidArgumentException("Pivot coordinate out of bounds");
             }
 

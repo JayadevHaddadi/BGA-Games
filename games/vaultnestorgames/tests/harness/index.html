@@ -106,12 +106,12 @@ const bga = {
 function fixture() {
   const pieces = [];
   // White pawns on rank 0
-  for (let x = 0; x < 10; x++) {
+  for (let x = 0; x < 8; x++) {
     pieces.push({ x, y: 0, color: 1, playerId: 1 });
   }
-  // Black pawns on rank 9
-  for (let x = 0; x < 10; x++) {
-    pieces.push({ x, y: 9, color: 2, playerId: 2 });
+  // Black pawns on rank 7
+  for (let x = 0; x < 8; x++) {
+    pieces.push({ x, y: 7, color: 2, playerId: 2 });
   }
   // Midgame test pieces: White at (3, 3) and (4, 4), Black at (5, 5)
   pieces.push({ x: 3, y: 3, color: 1, playerId: 1 });
@@ -124,6 +124,7 @@ function fixture() {
       2: { id: 2, name: 'BlackPlayer', color: '222222' },
     },
     board: pieces,
+    board_size: 8,
     player_roles: { '1': 1, '2': 2 },
     turn_number: 1,
     last_move: null,
