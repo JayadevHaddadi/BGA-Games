@@ -32,6 +32,7 @@ export class Game {
         this.args = null;
         this.isActive = false;
         this.lastSound = {};
+        this.helpOpen = false;
 
         this.bga.states.register('PlayerTurn', new PlayerTurnState(this));
     }
@@ -74,14 +75,20 @@ export class Game {
         }
 
         this.renderPanels();
-        this.updateWarningBanner();
+        this.checkHomeAreaThreat(this.isActive);
     }
 
-    /** Enter = confirm the staged move, Escape = deselect. Capture phase so the page's own shortcuts do not interfere. */
+    /** Enter = confirm the staged move, Escape = close help / deselect. Capture phase so the page's own shortcuts do not interfere. */
     installKeys() {
         if (this.keysInstalled) return;
         this.keysInstalled = true;
         window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.helpOpen) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                this.toggleHelp(false);
+                return;
+            }
             if (!this.isActive || !this.args || e.ctrlKey || e.metaKey || e.altKey) return;
             const t = e.target;
             const tag = (t && t.tagName) || '';
@@ -137,13 +144,6 @@ export class Game {
         this.root = root;
         root.innerHTML = '';
 
-        // Top warning banner (shown when opponent reaches home area)
-        const banner = document.createElement('div');
-        banner.className = 'vaultn_warning_banner';
-        banner.id = 'vaultn_warning_banner';
-        banner.style.display = 'none';
-        root.appendChild(banner);
-
         const cols = this.isFlipped ? [9, 8, 7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
         const rows = this.isFlipped ? [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] : [9, 8, 7, 6, 5, 4, 3, 2, 1, 0];
 
@@ -155,19 +155,9 @@ export class Game {
         const topLabels = document.createElement('div');
         topLabels.className = 'vaultn_rank_labels_top';
 
-        // Top-left corner spacer
-        topLabels.appendChild(document.createElement('div'));
-
-        // Column letters (A-J or J-A)
-        for (const cx of cols) {
-            const lbl = document.createElement('div');
-            lbl.textContent = String.fromCharCode(65 + cx);
-            topLabels.appendChild(lbl);
-        }
-
-        // Top-right corner flip perspective button
-        const topRightCorner = document.createElement('div');
-        topRightCorner.className = 'vaultn_corner_ctrl';
+        // Top-left corner flip perspective button
+        const topLeftCorner = document.createElement('div');
+        topLeftCorner.className = 'vaultn_corner_ctrl';
         const flipBtn = document.createElement('button');
         flipBtn.type = 'button';
         flipBtn.className = 'vaultn_flip_btn';
@@ -178,7 +168,30 @@ export class Game {
             e.stopPropagation();
             this.toggleOrientation();
         });
-        topRightCorner.appendChild(flipBtn);
+        topLeftCorner.appendChild(flipBtn);
+        topLabels.appendChild(topLeftCorner);
+
+        // Column letters (A-J or J-A)
+        for (const cx of cols) {
+            const lbl = document.createElement('div');
+            lbl.textContent = String.fromCharCode(65 + cx);
+            topLabels.appendChild(lbl);
+        }
+
+        // Top-right corner rules & help button
+        const topRightCorner = document.createElement('div');
+        topRightCorner.className = 'vaultn_corner_ctrl';
+        const helpBtn = document.createElement('button');
+        helpBtn.type = 'button';
+        helpBtn.className = 'vaultn_help_btn';
+        helpBtn.setAttribute('aria-label', _('Rules and help'));
+        helpBtn.title = _('Rules and help');
+        helpBtn.textContent = '?';
+        helpBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleHelp();
+        });
+        topRightCorner.appendChild(helpBtn);
         topLabels.appendChild(topRightCorner);
 
         frame.appendChild(topLabels);
@@ -240,6 +253,7 @@ export class Game {
         root.appendChild(frame);
 
         this.renderAllPieces();
+        this.buildHelpModal(root);
     }
 
     toggleOrientation() {
@@ -267,7 +281,7 @@ export class Game {
             this.highlightLastMove(this.gamedatas.last_move);
         }
         this.renderPanels();
-        this.updateWarningBanner();
+        this.checkHomeAreaThreat(this.isActive);
     }
 
     renderAllPieces() {
@@ -327,17 +341,7 @@ export class Game {
     }
 
     sfx(id) {
-        try {
-            const g = this.bga?.gameui;
-            if (g?.isReplayMode?.() || g?.instantaneousMode) return;
-            if (Number(this.bga?.userPreferences?.get?.(101) ?? 1) === 0) return;
-            const now = Date.now();
-            if (now - (this.lastSound[id] || 0) < 300) return;
-            this.lastSound[id] = now;
-            this.bga.sounds.play(id);
-        } catch (e) {
-            // sounds optional
-        }
+        // Sounds removed per user request
     }
 
     enterTurn(args, isActive) {
@@ -348,9 +352,9 @@ export class Game {
         this.selectedPivot = null;
 
         this.clearHighlights();
-        this.updateWarningBanner();
         if (this.isActive) {
             this.highlightSelectablePieces();
+            this.checkHomeAreaThreat(true);
         }
         this.updateButtons(args, isActive);
     }
@@ -451,25 +455,19 @@ export class Game {
         const myRole = this.args.role;
         const pieceData = this.board[y][x];
 
-        // 1. If we have a piece selected and clicked a valid pivot pawn
-        if (this.selectedFrom && pieceData.color === myRole && !(this.selectedFrom.x === x && this.selectedFrom.y === y)) {
-            const jumps = (this.args.jumps || []).filter(
-                j => j.from.x === this.selectedFrom.x && j.from.y === this.selectedFrom.y && j.pivot.x === x && j.pivot.y === y
-            );
-            if (jumps.length > 0) {
-                const j = jumps[0];
-                this.stageJump(j);
+        // 1. If clicking a friendly piece
+        if (pieceData.color === myRole) {
+            // Clicking currently selected piece deselects it
+            if (this.selectedFrom && this.selectedFrom.x === x && this.selectedFrom.y === y) {
+                this.cancelSelection();
                 return;
             }
-        }
-
-        // 2. Select this piece if it belongs to the active player
-        if (pieceData.color === myRole) {
+            // Otherwise, switch selection directly to this piece
             this.selectSourcePiece(x, y);
             return;
         }
 
-        // 3. If clicking an enemy piece that is a legal jump capture landing square
+        // 2. If clicking an enemy piece that is a legal jump capture landing square
         if (this.selectedFrom && pieceData.color !== myRole && pieceData.color > 0) {
             this.onCellClick(x, y);
         }
@@ -481,8 +479,14 @@ export class Game {
         this.stage = null;
         this.clearHighlights();
 
+        // Keep all other selectable pieces highlighted
+        this.highlightSelectablePieces();
+
         const piece = document.getElementById(`vaultn_piece_${x}_${y}`);
-        if (piece) piece.classList.add('vaultn_piece_selected');
+        if (piece) {
+            piece.classList.remove('vaultn_piece_selectable');
+            piece.classList.add('vaultn_piece_selected');
+        }
 
         // Highlight legal walk destinations
         const walks = (this.args.walks || []).filter(w => w.from.x === x && w.from.y === y);
@@ -626,8 +630,7 @@ export class Game {
         this.gamedatas.last_move = { from, to };
         this.highlightLastMove(this.gamedatas.last_move);
         this.renderPanels();
-        this.updateWarningBanner();
-        this.sfx('vault_walk');
+        this.checkHomeAreaThreat(false);
     }
 
     notif_jumpMove(notif) {
@@ -643,23 +646,14 @@ export class Game {
         this.gamedatas.last_move = { from, pivot, to, captured };
         this.highlightLastMove(this.gamedatas.last_move);
         this.renderPanels();
-        this.updateWarningBanner();
-        if (captured) {
-            this.sfx('vault_capture');
-        } else {
-            this.sfx('vault_jump');
-        }
+        this.checkHomeAreaThreat(false);
     }
 
     notif_reachedBackRank(notif) {
-        this.updateWarningBanner();
+        this.checkHomeAreaThreat(true);
     }
 
     notif_endGameScores(notif) {
-        const banner = document.getElementById('vaultn_warning_banner');
-        if (banner) {
-            banner.style.display = 'none';
-        }
         const args = notif?.args || notif || {};
         const { winner_id, loser_id } = args;
         if (winner_id) {
@@ -670,88 +664,145 @@ export class Game {
             const counter = this.bga.playerPanels.getScoreCounter(loser_id);
             if (counter) counter.toValue(0);
         }
-        this.sfx('vault_win');
     }
 
     /* ---------------------------------------------------------------------------------------------- */
-    /* Warning / Threat Banner                                                                        */
+    /* Warning / Threat Notification (Standard BGA Banner)                                            */
     /* ---------------------------------------------------------------------------------------------- */
 
-    updateWarningBanner() {
-        const banner = document.getElementById('vaultn_warning_banner');
-        if (!banner || !this.board) return;
-
-        // Check back ranks:
-        // White's home row is y = 0. Black pawn (color 2) on y = 0 means Black reached White's home area.
-        let blackInWhiteHome = false;
-        for (let x = 0; x < 10; x++) {
-            if (this.board[0]?.[x]?.color === 2) {
-                blackInWhiteHome = true;
-                break;
-            }
+    showBgaWarning(msg) {
+        if (this.bga?.dialogs?.showMessage) {
+            this.bga.dialogs.showMessage(msg, 'error');
+        } else if (typeof gameui !== 'undefined' && typeof gameui.showMessage === 'function') {
+            gameui.showMessage(msg, 'error');
+        } else if (typeof this.showMessage === 'function') {
+            this.showMessage(msg, 'error');
         }
+    }
 
-        // Black's home row is y = 9. White pawn (color 1) on y = 9 means White reached Black's home area.
-        let whiteInBlackHome = false;
-        for (let x = 0; x < 10; x++) {
-            if (this.board[9]?.[x]?.color === 1) {
-                whiteInBlackHome = true;
-                break;
-            }
-        }
-
+    checkHomeAreaThreat(triggerBanner = false) {
+        if (!this.board) return;
         const myRole = this.getMyRole();
-        const alertSvg = '<span class="vaultn_warning_icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>';
+        if (myRole !== 1 && myRole !== 2) return;
 
+        let threatInHome = false;
         if (myRole === 1) {
-            // Viewing player is White
-            if (blackInWhiteHome) {
-                banner.className = 'vaultn_warning_banner vaultn_warning_danger';
-                banner.innerHTML = `${alertSvg}<span>${_('WARNING: An opponent piece has reached your home area! You must capture it on this turn or you will lose!')}</span>`;
-                banner.style.display = 'flex';
-                return;
-            } else if (whiteInBlackHome) {
-                banner.className = 'vaultn_warning_banner vaultn_warning_threat';
-                banner.innerHTML = `${alertSvg}<span>${_('THREAT: Your piece has reached the opponent\'s home area! Opponent must capture it on their turn or you win!')}</span>`;
-                banner.style.display = 'flex';
-                return;
+            // White's home row is y = 0. Threat is Black (color 2)
+            for (let x = 0; x < 10; x++) {
+                if (this.board[0]?.[x]?.color === 2) {
+                    threatInHome = true;
+                    break;
+                }
             }
         } else if (myRole === 2) {
-            // Viewing player is Black
-            if (whiteInBlackHome) {
-                banner.className = 'vaultn_warning_banner vaultn_warning_danger';
-                banner.innerHTML = `${alertSvg}<span>${_('WARNING: An opponent piece has reached your home area! You must capture it on this turn or you will lose!')}</span>`;
-                banner.style.display = 'flex';
-                return;
-            } else if (blackInWhiteHome) {
-                banner.className = 'vaultn_warning_banner vaultn_warning_threat';
-                banner.innerHTML = `${alertSvg}<span>${_('THREAT: Your piece has reached the opponent\'s home area! Opponent must capture it on their turn or you win!')}</span>`;
-                banner.style.display = 'flex';
-                return;
-            }
-        } else {
-            // Spectator
-            if (blackInWhiteHome && whiteInBlackHome) {
-                banner.className = 'vaultn_warning_banner vaultn_warning_danger';
-                banner.innerHTML = `${alertSvg}<span>${_('WARNING: Both players have pieces in the opponent\'s home area!')}</span>`;
-                banner.style.display = 'flex';
-                return;
-            } else if (blackInWhiteHome) {
-                banner.className = 'vaultn_warning_banner vaultn_warning_danger';
-                banner.innerHTML = `${alertSvg}<span>${_('WARNING: Black has reached White\'s home area! White must capture it on their turn or lose!')}</span>`;
-                banner.style.display = 'flex';
-                return;
-            } else if (whiteInBlackHome) {
-                banner.className = 'vaultn_warning_banner vaultn_warning_danger';
-                banner.innerHTML = `${alertSvg}<span>${_('WARNING: White has reached Black\'s home area! Black must capture it on their turn or lose!')}</span>`;
-                banner.style.display = 'flex';
-                return;
+            // Black's home row is y = 9. Threat is White (color 1)
+            for (let x = 0; x < 10; x++) {
+                if (this.board[9]?.[x]?.color === 1) {
+                    threatInHome = true;
+                    break;
+                }
             }
         }
 
-        banner.className = 'vaultn_warning_banner';
-        banner.style.display = 'none';
-        banner.innerHTML = '';
+        if (threatInHome && triggerBanner) {
+            this.showBgaWarning(_('WARNING: An opponent piece has reached your home area! You must capture it on this turn or you will lose!'));
+        }
+    }
+
+    /* ---------------------------------------------------------------------------------------------- */
+    /* Rules Modal & Help                                                                             */
+    /* ---------------------------------------------------------------------------------------------- */
+
+    buildHelpModal(root) {
+        let modal = document.getElementById('vaultn_help_modal');
+        if (modal) modal.remove();
+
+        modal = document.createElement('div');
+        modal.className = 'vaultn_help_overlay';
+        modal.id = 'vaultn_help_modal';
+        modal.style.display = 'none';
+
+        const card = document.createElement('div');
+        card.className = 'vaultn_help_card';
+        card.setAttribute('role', 'dialog');
+        card.setAttribute('aria-modal', 'true');
+        card.setAttribute('aria-labelledby', 'vaultn_help_heading');
+
+        const header = document.createElement('div');
+        header.className = 'vaultn_help_header';
+
+        const title = document.createElement('h3');
+        title.className = 'vaultn_help_title';
+        title.id = 'vaultn_help_heading';
+        title.textContent = _('Vault - Rules');
+        header.appendChild(title);
+
+        const closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'vaultn_help_close';
+        closeBtn.setAttribute('aria-label', _('Close'));
+        closeBtn.innerHTML = '&times;';
+        closeBtn.addEventListener('click', () => this.toggleHelp(false));
+        header.appendChild(closeBtn);
+
+        card.appendChild(header);
+
+        const list = document.createElement('ul');
+        list.className = 'vaultn_help_list';
+
+        const items = [
+            {
+                icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="3" fill="#cbd5e1" stroke="none"/><path d="M9 15 L17 7" stroke="#38bdf8"/><polyline points="12 7 17 7 17 12" stroke="#38bdf8"/><rect x="15" y="5" width="4" height="4" fill="none" stroke="#94a3b8"/></svg>',
+                title: _('Walk'),
+                desc: _('Move 1 square in any direction (orthogonal or diagonal) to an empty square of a different shade.')
+            },
+            {
+                icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="4" cy="18" r="2.5" fill="#cbd5e1" stroke="none"/><circle cx="12" cy="18" r="2.5" fill="#64748b" stroke="none"/><path d="M4 15 Q 12 4 20 15" stroke="#38bdf8" fill="none"/><polyline points="16 14 20 15 20 11" stroke="#38bdf8"/><circle cx="20" cy="18" r="2.5" fill="none" stroke="#38bdf8"/></svg>',
+                title: _('Vault (Jump)'),
+                desc: _('Jump over any pawn (friend or foe) in a straight line, landing at an equal distance on the other side.')
+            },
+            {
+                icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7" stroke="#ef4444"/><line x1="8" y1="8" x2="16" y2="16" stroke="#ef4444"/><line x1="16" y1="8" x2="8" y2="16" stroke="#ef4444"/></svg>',
+                title: _('Capture'),
+                desc: _('A vault landing on an opponent\'s pawn captures and removes it. Walking cannot capture.')
+            },
+            {
+                icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="4" width="7" height="7" fill="#64748b"/><rect x="13" y="13" width="7" height="7" fill="#64748b"/><path d="M7.5 13 L7.5 16.5 L13 16.5" stroke="#38bdf8" stroke-width="2" fill="none"/></svg>',
+                title: _('Tone Invariance'),
+                desc: _('Vault jumps always land on the exact same board shade as where they started.')
+            },
+            {
+                icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="none"/></svg>',
+                title: _('Victory'),
+                desc: _('Reach the opponent\'s home row (Row 1 for Black, Row 10 for White). If the opponent does not capture that pawn on their immediately following turn, you win! (Or capture all opponent pawns).')
+            }
+        ];
+
+        items.forEach(it => {
+            const li = document.createElement('li');
+            li.className = 'vaultn_help_item';
+            li.innerHTML = `
+                <div class="vaultn_help_icon">${it.icon}</div>
+                <div class="vaultn_help_desc"><b>${it.title}:</b> ${it.desc}</div>
+            `;
+            list.appendChild(li);
+        });
+
+        card.appendChild(list);
+        modal.appendChild(card);
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) this.toggleHelp(false);
+        });
+
+        root.appendChild(modal);
+    }
+
+    toggleHelp(force) {
+        const modal = document.getElementById('vaultn_help_modal');
+        if (!modal) return;
+        this.helpOpen = typeof force === 'boolean' ? force : !this.helpOpen;
+        modal.style.display = this.helpOpen ? 'flex' : 'none';
     }
 
     /* ---------------------------------------------------------------------------------------------- */
@@ -797,7 +848,6 @@ export class Game {
 
             line.innerHTML = `
                 <span class="vaultn_panel_pip ${roleClass}"></span>
-                <span class="vaultn_panel_label">${_('Pawns')}:</span>
                 <b class="vaultn_panel_count">${count}</b>
             `;
             line.title = `${colorName}: ${count} ${_('pawns')}`;

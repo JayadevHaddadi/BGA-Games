@@ -33,12 +33,19 @@ const calls = [];
 const buttons = [];
 let statusTitle = '';
 
+let lastDialog = null;
+
 const bga = {
   states: { register() {} },
   gameArea: { getElement: () => document.getElementById('game_play_area') },
   notifications: { setupPromiseNotifications() {} },
   userPreferences: { get: (id) => (id === 101 ? 1 : 1) },
   sounds: { play() {} },
+  dialogs: {
+    showMessage(msg, type) {
+      lastDialog = { msg, type };
+    },
+  },
   statusBar: {
     setTitle(text, args) {
       statusTitle = text;
@@ -124,25 +131,42 @@ try {
   };
   game.enterTurn(turnArgs, true);
 
-  // Test tap-to-stage:
-  // 1. Click piece at (3, 3)
+  // Test tap-to-stage & selection switching:
+  // 1. Click piece at (3, 3) -> selected
   const piece33 = document.getElementById('vaultn_piece_3_3');
   if (piece33) piece33.click();
 
-  // 2. Click pivot piece at (4, 4) to stage jump
+  // 2. Click friendly piece at (4, 4) -> selection switches to (4, 4) without prompting a jump!
   const piece44 = document.getElementById('vaultn_piece_4_4');
   if (piece44) piece44.click();
+  const selectionSwitched = !!(piece44?.classList.contains('vaultn_piece_selected') && !piece33?.classList.contains('vaultn_piece_selected'));
 
-  // 3. Test notification handlers with both unpacked args and wrapped notif.args
+  // 3. Switch back to (3, 3)
+  if (piece33) piece33.click();
+
+  // 4. Click target landing square with enemy piece at (5, 5) to stage jump capture
+  const piece55 = document.getElementById('vaultn_piece_5_5');
+  if (piece55) piece55.click();
+
+  // 5. Test rules modal toggle
+  const helpBtn = document.querySelector('.vaultn_help_btn');
+  if (helpBtn) helpBtn.click();
+  const modal = document.getElementById('vaultn_help_modal');
+  const modalOpened = !!(modal && modal.style.display === 'flex');
+  const closeBtn = document.querySelector('.vaultn_help_close');
+  if (closeBtn) closeBtn.click();
+  const modalClosed = !!(modal && modal.style.display === 'none');
+
+  // 6. Test notification handlers with both unpacked args and wrapped notif.args
   game.notif_walkMove({ from: { x: 0, y: 0 }, to: { x: 0, y: 1 }, role: 1, player_id: 1 });
   game.notif_jumpMove({ from: { x: 3, y: 3 }, pivot: { x: 4, y: 4 }, to: { x: 5, y: 5 }, role: 1, player_id: 1, captured: true });
   game.notif_walkMove({ args: { from: { x: 0, y: 1 }, to: { x: 0, y: 2 }, role: 1, player_id: 1 } });
   game.notif_jumpMove({ args: { from: { x: 5, y: 5 }, pivot: { x: 6, y: 6 }, to: { x: 7, y: 7 }, role: 1, player_id: 1, captured: false } });
 
-  // 4. Test warning banner when opponent invades home area (Black reaches White's home row y=0)
+  // 7. Test warning banner when opponent invades home area (Black reaches White's home row y=0)
   game.notif_walkMove({ from: { x: 5, y: 1 }, to: { x: 5, y: 0 }, role: 2, player_id: 2 });
-  const banner = document.getElementById('vaultn_warning_banner');
-  const bannerVisible = !!(banner && banner.style.display === 'flex' && banner.textContent.includes('WARNING'));
+  game.notif_reachedBackRank({ threat_role: 2, player_id: 2 });
+  const bannerVisible = !!(lastDialog && lastDialog.type === 'error' && lastDialog.msg.includes('WARNING'));
 
   const board = document.querySelector('#vaultn_board');
   const boardRect = board ? board.getBoundingClientRect() : { width: 0, height: 0, left: 0 };
@@ -178,10 +202,13 @@ try {
     hasUndo,
     hasPanels,
     bannerVisible,
+    selectionSwitched,
+    modalOpened,
+    modalClosed,
     p1Count,
     p2Count,
     jsErrors: window.errors,
-    ok: window.errors.length === 0 && horizontalOverflow === 0 && minCellSize >= 32 && hasConfirm && hasUndo && hasPanels && bannerVisible,
+    ok: window.errors.length === 0 && horizontalOverflow === 0 && minCellSize >= 32 && hasConfirm && hasUndo && hasPanels && bannerVisible && selectionSwitched && modalOpened && modalClosed,
   };
 
   document.getElementById('out').textContent = JSON.stringify(report, null, 2);
