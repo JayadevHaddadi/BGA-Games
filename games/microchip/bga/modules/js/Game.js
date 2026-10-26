@@ -1004,7 +1004,7 @@ export class Game {
     sendAction(action, args) {
         if (this._actionPending) return Promise.resolve();
         this._actionPending = true;
-        const res = this.bga?.actions?.performAction?.(action, args);
+        const res = this.bga?.actions?.performAction?.(action, args, { checkAction: false });
         if (res && typeof res.then === 'function') {
             return res.catch((err) => {
                 console.warn('Action rejected:', action, err);
@@ -1179,9 +1179,7 @@ export class Game {
         if (this.me === null) return;
 
         if (this.finished[this.me]) {
-            if (this.amActive) {
-                this.bga.statusBar.addActionButton(_('Resume building'), () => this.doResume(), { color: 'alert' });
-            }
+            this.bga.statusBar.addActionButton(_('Resume building'), () => this.doResume(), { color: 'alert' });
             return;
         }
 

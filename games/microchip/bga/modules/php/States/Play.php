@@ -280,18 +280,17 @@ class Play extends GameState
             'player_name' => $this->game->getPlayerNameById($pid),
         ]);
 
-        $open = array_values(array_filter($this->game->playerOrder(), fn($id) => !$this->game->isFinished($id)));
-        if (empty($open)) {
-            $this->gamestate->setPlayersMultiactive([], EndScore::class, true);
-            return EndScore::class;
-        }
+        $this->gamestate->setPlayerNonMultiactive($pid, EndScore::class);
         return null;
     }
 
     #[PossibleAction]
     public function actResume(): ?string
     {
-        $pid = $this->currentPlayer();
+        $pid = (int) $this->game->getCurrentPlayerId(true);
+        if ($pid === 0) {
+            throw new UserException(clienttranslate('You must be logged in to take this action.'));
+        }
         if (!$this->game->poolEmpty()) {
             throw new UserException(clienttranslate('The pool is not empty yet.'));
         }
@@ -300,6 +299,7 @@ class Play extends GameState
             'player_id' => $pid,
             'player_name' => $this->game->getPlayerNameById($pid),
         ]);
+        $this->gamestate->setPlayersMultiactive([$pid], EndScore::class, false);
         return null;
     }
 
@@ -338,11 +338,6 @@ class Play extends GameState
             }
         }
         $this->game->setFinished($playerId);
-        $open = array_values(array_filter($this->game->playerOrder(), fn($id) => !$this->game->isFinished($id)));
-        if (empty($open)) {
-            $this->gamestate->setPlayersMultiactive([], EndScore::class, true);
-            return null;
-        }
         $this->gamestate->setPlayerNonMultiactive($playerId, EndScore::class);
         return null;
     }
