@@ -32,6 +32,9 @@ class Play extends GameState
     {
         $open = array_values(array_filter($this->game->playerOrder(), fn($pid) => !$this->game->isFinished($pid)));
         $this->gamestate->setPlayersMultiactive($open, EndScore::class, true);
+        if (!$this->game->poolEmpty()) {
+            $this->autoDrawIfSingle();
+        }
     }
 
     public function getArgs(): array
@@ -89,8 +92,8 @@ class Play extends GameState
         return null;
     }
 
-    /** When only 1 tile is left in the draw column, give it automatically to the next drawer. */
-    private function autoDrawIfSingle(): void
+    /** When a player has no option in the draw column (1 tile left, or all remaining tiles identical), take it automatically. */
+    public function autoDrawIfSingle(): void
     {
         while (!$this->game->poolEmpty()) {
             $drawCol = $this->game->drawColumn();
@@ -100,7 +103,23 @@ class Play extends GameState
                     $inCol[] = (int) $tid;
                 }
             }
-            if (count($inCol) !== 1) {
+            if ($inCol === []) {
+                break;
+            }
+            $noOption = count($inCol) === 1;
+            if (!$noOption) {
+                $firstTile = $this->game->getTile($inCol[0]);
+                $allSame = true;
+                for ($k = 1; $k < count($inCol); $k++) {
+                    $t = $this->game->getTile($inCol[$k]);
+                    if ($t['colour'] !== $firstTile['colour'] || $t['shape'] !== $firstTile['shape']) {
+                        $allSame = false;
+                        break;
+                    }
+                }
+                $noOption = $allSame;
+            }
+            if (!$noOption) {
                 break;
             }
             $tileId = $inCol[0];

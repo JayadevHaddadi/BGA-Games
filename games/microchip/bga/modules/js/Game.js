@@ -142,6 +142,7 @@ export class Game {
         this.rotation = !!gamedatas.rotation;
         this.poolRows = gamedatas.pool_size[0];
         this.poolCols = gamedatas.pool_size[1];
+        this._autoDrawing = false;
 
         this.buildDOM();
         // Without this call the interface only updates after a page refresh (AGENTS.md mistake 12).
@@ -419,6 +420,22 @@ export class Game {
         this.renderPanels();
         this.renderStatus();
         this.refreshButtons();
+        this.checkAutoDraw();
+    }
+
+    /** If the drawer has only 1 tile in the draw column (or all tiles in it are identical), take it automatically. */
+    checkAutoDraw() {
+        if (!this.canAct() || this.drawer !== this.me || this._autoDrawing) return;
+        const colTiles = this.poolTiles().filter((t) => t.col === this.drawCol());
+        if (colTiles.length === 0) return;
+        const first = colTiles[0];
+        const allSame = colTiles.every((t) => t.colour === first.colour && t.shape === first.shape);
+        if (colTiles.length === 1 || allSame) {
+            this._autoDrawing = true;
+            this.bga.actions.performAction('actDraw', { tileId: first.id })
+                .catch(() => {})
+                .finally(() => { this._autoDrawing = false; });
+        }
     }
 
     /** Drops a staged choice when the server has moved on (someone else drew the tile, or it was placed). */
@@ -865,6 +882,8 @@ export class Game {
         const targetRect = targetEl.getBoundingClientRect();
         if (targetRect.width === 0 && targetRect.height === 0) return Promise.resolve();
 
+        fromBtn.style.visibility = 'hidden';
+
         const clone = document.createElement('div');
         clone.className = 'mc_flying_tile';
         clone.style.left = `${fromRect.left}px`;
@@ -890,7 +909,7 @@ export class Game {
             setTimeout(() => {
                 clone.remove();
                 resolve();
-            }, 450);
+            }, 750);
         });
     }
 
