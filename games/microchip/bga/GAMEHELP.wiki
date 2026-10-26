@@ -30,7 +30,7 @@ Each tile has white paths. A path that reaches a side of the tile is a '''connec
 ==Your turn==
 
 * '''Draw.''' On your turn take one tile from the draw column. Players take turns clockwise. When the draw column is empty, the next column to the left becomes the draw column.
-* '''Arrange.''' You may arrange your tiles on your board at any time, including on other players' turns. Tap a tile in your tray, tap a space, check it, then press '''Confirm'''. You can move a tile on the board, turn it (if turning is allowed), or take it back to your tray.
+* '''Arrange.''' You may arrange your tiles on your board at any time, including on other players' turns. Tap a tile in your tray, then tap a space on your board to place it. You can move a tile on the board, turn it (if turning is allowed), exchange it with another tile, or take it back to your tray.
 
 ==Placing a tile==
 
@@ -45,13 +45,13 @@ A connection may point at an empty space while you build. It is an '''open path'
 
 ==Finishing==
 
-When the pool is empty, every player builds the final microchip. Press '''Finish''' when you are done, then '''Confirm finish'''. The game ends when every player has finished.
+When the pool is empty, every player builds their final microchip. Press '''Finish''' when you are done. The game ends when every player has finished.
 
 ==Scoring==
 
-* A microchip has no open paths, and all its tiles are connected to each other.
+* Your microchip is your largest connected structure (most tiles). Ties prefer closed structures (no open ends) and higher connection values.
 * Its value is the sum of the connections of its tiles.
-* Your score is the value of your most valuable microchip, minus 2 for each tile you hold that is not in it.
+* Your score is the value of your largest microchip structure, minus 2 for each tile you hold that is outside it.
 * If the scores are equal, the player whose microchip has more tiles wins. If that is also equal, the players share the win.
 
 ==Options and preferences==

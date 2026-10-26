@@ -156,44 +156,27 @@ async function run() {
   check(typeof scores[1] === 'number', `live score computed for player 1: ${scores[1]}`);
 
   if (mode === 'turn') {
-    // 2. Draw: tap a draw-column tile, then Take this tile
+    // 2. Draw: tap a draw-column tile -> sends actDraw immediately without extra confirm button
     root.querySelector('.mc_can').click();
-    check(labels().includes('Take this tile') && labels().includes('Cancel'), `draw buttons after tapping the draw column: ${labels()}`);
-    press('Take this tile');
     const drawCall = calls[calls.length - 1];
-    check(drawCall && drawCall.name === 'actDraw' && typeof drawCall.args.tileId === 'number', `actDraw sent (${JSON.stringify(drawCall)})`);
+    check(drawCall && drawCall.name === 'actDraw' && typeof drawCall.args.tileId === 'number', `actDraw sent immediately (${JSON.stringify(drawCall)})`);
     const id = drawCall.args.tileId;
     game.notif_tileDrawn({ player_id: 1, tile: { id, colour: game.tiles.get(id).colour, shape: game.tiles.get(id).shape }, from: { col: 11, row: 0 }, next_drawer: 2, draw_column: 11, pool_left: 34 });
     check(root.querySelectorAll('.mc_tray .mc_tile_btn').length === 4, 'tray has four tiles after drawing');
-    check(!labels().includes('Take this tile'), 'no draw button once the turn has passed');
 
     // 3. Placement. Tray tile 40 is a blue end. The free blue spaces are (1,3), (2,1), (3,4), (4,2)
     game.onTrayTile(40);
     check(root.querySelectorAll('#mc_board_me .mc_target').length === 4, `four free blue spaces are targets (${root.querySelectorAll('#mc_board_me .mc_target').length})`);
     const space = (r, c) => [...root.querySelectorAll('#mc_board_me .mc_space')].find((s) => +s.dataset.r === r && +s.dataset.c === c);
 
-    // A wrong colour is still staged: the ghost shows, Confirm is off and the reason is in the hint
+    // A wrong colour space shows problem hint and does not place
     space(0, 2).click();
-    check(labels().includes('Confirm(off)'), `Confirm is off on a wrong colour: ${labels()}`);
     check(/colour/i.test(root.querySelector('#mc_hint').textContent), `reason shown: ${root.querySelector('#mc_hint').textContent}`);
 
-    // (3,4) is blue on the east edge. Pointing north is legal; east points to edge (illegal, skipped); south is legal.
-    space(3, 4).click();
-    check(game.stageProblem() === null && game.sel.rot === 0 && labels().includes('Confirm'), `(3,4) north is legal (${game.stageProblem()})`);
-    game.rotateSel();
-    check(game.stageProblem() === null && game.sel.rot === 2 && labels().includes('Confirm'), `(3,4) skips illegal east rotation and rotates directly to south (${game.sel.rot})`);
-    game.rotateSel();
-    check(game.stageProblem() === null && game.sel.rot === 3 && labels().includes('Confirm'), `(3,4) rotates to west (${game.sel.rot})`);
-    press('Cancel');
-    check(game.sel === null, 'Cancel clears the staged tile');
-
-    // (2,1) touches nothing: legal. Confirm sends the move.
-    game.onTrayTile(40);
+    // (2,1) touches nothing: legal. Clicking space sends actPlace immediately.
     space(2, 1).click();
-    check(game.stageProblem() === null, `(2,1) is legal (${game.stageProblem()})`);
-    press('Confirm');
     const place = calls[calls.length - 1];
-    check(place.name === 'actPlace' && place.args.r === 2 && place.args.c === 1 && place.args.rot === 0 && place.args.tileId === 40, `actPlace sent (${JSON.stringify(place)})`);
+    check(place.name === 'actPlace' && place.args.r === 2 && place.args.c === 1 && place.args.rot === 0 && place.args.tileId === 40, `actPlace sent immediately (${JSON.stringify(place)})`);
     game.notif_tilePlaced({ player_id: 1, tile: { id: 40, colour: 'blue', shape: 'end' }, r: 2, c: 1, rot: 0, moved: false, coord: 'B3' });
     check(game.sel === null, 'selection cleared once the server accepts the placement');
     check(root.querySelectorAll('#mc_board_me .mc_placed').length === 3, 'three tiles on my board after the placement');
@@ -201,9 +184,9 @@ async function run() {
     // 4. Board tile: Rotate and Remove
     root.querySelector('#mc_board_me .mc_placed[data-id="43"]').click();
     check(labels().includes('Remove') && labels().includes('Rotate'), `board tile buttons: ${labels()}`);
-    const before = tilesRot(43);
     press('Rotate');
-    check(game.sel.rot === (before + 1) % 4, 'Rotate turns the staged board tile');
+    const rotCall = calls[calls.length - 1];
+    check(rotCall && rotCall.name === 'actPlace' && rotCall.args.tileId === 43, 'Rotate sends actPlace immediately');
     press('Cancel');
     check(game.sel === null, 'Cancel clears the selection');
 
@@ -212,14 +195,11 @@ async function run() {
     check(labels().includes('Rotate') && !labels().includes('Remove'), 'tray tile: Rotate, no Remove');
     game.clearSel();
 
-    // 6. Exchange pieces: select tray tile 41 (red tee) and click board tile 44 (red end at 1,4)
+    // 6. Exchange pieces: select tray tile 41 (red tee) and click board tile 44 (red end at 1,4) -> immediate actSwap
     game.onTrayTile(41);
     root.querySelector('#mc_board_me .mc_placed[data-id="44"]').click();
-    check(game.sel && game.sel.swapWith === 44 && game.sel.rot === 2, `exchanged staged with tile 44 (swapWith ${game.sel?.swapWith}, rot ${game.sel?.rot})`);
-    check(labels().includes('Confirm'), `Confirm button active for exchange: ${labels()}`);
-    press('Confirm');
     const swapCall = calls[calls.length - 1];
-    check(swapCall && swapCall.name === 'actSwap' && swapCall.args.tileId === 41 && swapCall.args.targetTileId === 44, `actSwap sent (${JSON.stringify(swapCall)})`);
+    check(swapCall && swapCall.name === 'actSwap' && swapCall.args.tileId === 41 && swapCall.args.targetTileId === 44, `actSwap sent immediately (${JSON.stringify(swapCall)})`);
     game.notif_tileSwapped({ player_id: 1, type: 'tray_board', tile_a: { id: 41, colour: 'red', shape: 'tee' }, tile_b: { id: 44, colour: 'red', shape: 'end' }, r: 1, c: 4, rot: 2, coord: 'E2' });
     check(game.sel === null, 'selection cleared after swap notification');
     check(game.tiles.get(41).location === 'board' && game.tiles.get(44).location === 'hand', 'tile 41 on board and tile 44 in hand');
@@ -241,12 +221,11 @@ async function run() {
     game.checkAutoDraw();
     check(calls.length === callsBefore + 1 && calls[calls.length - 1].name === 'actDraw', 'checkAutoDraw triggered automatically for X tiles among X players');
   } else {
-    // 6. Build: pool empty. Finish asks for confirmation, then sends actFinish
+    // 6. Build: pool empty. Finish sends actFinish directly without confirm button
     check(labels().includes('Finish'), `Finish offered when the pool is empty: ${labels()}`);
     press('Finish');
-    check(labels().includes('Confirm finish') && labels().includes('Cancel'), `confirm step: ${labels()}`);
-    press('Confirm finish');
     const fin = calls[calls.length - 1];
+    check(fin && fin.name === 'actFinish', 'Finish sends actFinish immediately');
     game.notif_playerFinished({ player_id: 1 });
     check(!labels().includes('Finish') && labels().includes('Resume building'), 'Resume building offered while waiting for other players');
     press('Resume building');
@@ -255,7 +234,6 @@ async function run() {
     game.notif_playerResumed({ player_id: 1 });
     check(labels().includes('Finish'), 'Finish button returns after resuming');
     press('Finish');
-    press('Confirm finish');
     game.notif_playerFinished({ player_id: 1 });
     game.notif_finalScoring({
       rows: [

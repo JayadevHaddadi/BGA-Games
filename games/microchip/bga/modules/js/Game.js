@@ -931,8 +931,8 @@ export class Game {
             return;
         }
         this.hint('');
-        this.sel = this.sel && this.sel.id === id && this.sel.from === 'pool' ? null : { id, from: 'pool', rot: 0, r: null, c: null };
-        this.renderAll();
+        this.clearSel();
+        this.bga.actions.performAction('actDraw', { tileId: id });
     }
 
     onTrayTile(id) {
@@ -942,7 +942,12 @@ export class Game {
         }
         if (!this.canAct()) return;
         this.hint('');
-        this.sel = this.sel && this.sel.id === id ? null : { id, from: 'tray', rot: 0, r: null, c: null };
+        if (this.sel && this.sel.id === id) {
+            this.clearSel();
+            return;
+        }
+        this.sel = { id, from: 'tray', rot: 0, r: null, c: null };
+        this.hint(_('Tap a highlighted space on your board to place this tile.'));
         this.renderAll();
     }
 
@@ -967,6 +972,8 @@ export class Game {
         const t = this.tiles.get(id);
         if (!t || t.owner !== this.me) return;
         this.hint('');
+
+        // If the same tile is clicked again: rotate it immediately!
         if (this.sel && this.sel.id === id) {
             if (this.rotation) {
                 this.rotateSel();
@@ -974,43 +981,29 @@ export class Game {
             return;
         }
 
-        // If a piece is already selected, try to exchange places
+        // If another tile is already selected, try to swap immediately!
         if (this.sel && this.sel.from !== 'pool') {
             const swaps = this.getLegalSwapRotations(this.sel.id, id);
             if (swaps.length > 0) {
-                const prevSel = this.sel;
+                const tileId = this.sel.id;
                 const best = swaps[0];
-                const fromBoard = prevSel.from === 'board';
-                const tPrev = this.tiles.get(prevSel.id);
-                this.sel = {
-                    id: prevSel.id,
-                    from: prevSel.from,
-                    r: t.r,
-                    c: t.c,
+                this.clearSel();
+                this.bga.actions.performAction('actSwap', {
+                    tileId,
+                    targetTileId: id,
                     rot: best.rotA,
-                    swapWith: id,
-                    rotSwap: best.rotB,
-                    origR: fromBoard ? (tPrev ? tPrev.r : null) : null,
-                    origC: fromBoard ? (tPrev ? tPrev.c : null) : null,
-                };
-                const canRotate = this.rotation && swaps.length > 1;
-                this.hint(canRotate
-                    ? _('Tap Confirm to exchange these tiles, or Rotate to change orientation.')
-                    : _('Tap Confirm to exchange these tiles.'));
-                this.renderAll();
+                    targetRot: best.rotB,
+                });
                 return;
             }
         }
 
+        // Select this placed tile:
         this.sel = { id, from: 'board', rot: t.rot, r: t.r, c: t.c };
-        const legal = this.getLegalRotations(id, t.r, t.c);
-        if (legal.length > 0) {
-            const curSig = mcConn(t.shape, this.sel.rot).map((b) => (b ? '1' : '0')).join('');
-            const matchRot = legal.find((rot) => mcConn(t.shape, rot).map((b) => (b ? '1' : '0')).join('') === curSig);
-            if (matchRot !== undefined) {
-                this.sel.rot = matchRot;
-            }
-        }
+        const canRotate = this.rotation && this.getLegalRotations(id, t.r, t.c).length > 1;
+        this.hint(canRotate
+            ? _('Tile selected. Tap it again to rotate, tap an empty space to move, or tap another tile to swap.')
+            : _('Tile selected. Tap an empty space to move, or tap another tile to swap.'));
         this.renderAll();
     }
 
@@ -1034,62 +1027,41 @@ export class Game {
             this.hint(this.problemText('occupied'));
             return;
         }
-        this.sel.r = r;
-        this.sel.c = c;
-        this.sel.swapWith = null;
-        this.sel.rotSwap = null;
         const legal = this.getLegalRotations(this.sel.id, r, c);
-        if (legal.length > 0) {
+        if (legal.length === 0) {
             const t = this.tiles.get(this.sel.id);
-            const curSig = mcConn(t.shape, this.sel.rot).map((b) => (b ? '1' : '0')).join('');
-            const matchRot = legal.find((rot) => mcConn(t.shape, rot).map((b) => (b ? '1' : '0')).join('') === curSig);
-            this.sel.rot = matchRot !== undefined ? matchRot : legal[0];
+            const problem = mcProblem(this.spaces[this.me], this.placedMine(this.sel.id), t.colour, t.shape, this.sel.rot, r, c);
+            this.hint(this.problemText(problem || 'outside'));
+            return;
         }
-        const problem = this.stageProblem();
-        if (problem) {
-            this.hint(this.problemText(problem));
-        } else {
-            const canRotate = this.rotation && legal.length > 1;
-            this.hint(canRotate ? _('Tap Confirm to place the tile here, or Rotate to change orientation.') : _('Tap Confirm to place the tile here.'));
-        }
-        this.renderAll();
+        const t = this.tiles.get(this.sel.id);
+        const curSig = mcConn(t.shape, this.sel.rot).map((b) => (b ? '1' : '0')).join('');
+        const matchRot = legal.find((rot) => mcConn(t.shape, rot).map((b) => (b ? '1' : '0')).join('') === curSig);
+        const rot = matchRot !== undefined ? matchRot : legal[0];
+        const tileId = this.sel.id;
+        const fromTray = this.sel.from === 'tray';
+        this.clearSel();
+        this.bga.actions.performAction('actPlace', { tileId, r, c, rot });
     }
 
     rotateSel() {
         if (!this.sel || !this.rotation || this.sel.from === 'pool') return;
-        if (this.sel.swapWith) {
-            const swaps = this.getLegalSwapRotations(this.sel.id, this.sel.swapWith);
-            if (swaps.length <= 1) return;
-            const curRotA = this.sel.rot;
-            const tA = this.tiles.get(this.sel.id);
-            const curSig = mcConn(tA.shape, curRotA).map((b) => (b ? '1' : '0')).join('');
-            const curIdx = swaps.findIndex((s) => mcConn(tA.shape, s.rotA).map((b) => (b ? '1' : '0')).join('') === curSig);
-            const nextIdx = curIdx >= 0 ? (curIdx + 1) % swaps.length : 0;
-            this.sel.rot = swaps[nextIdx].rotA;
-            this.sel.rotSwap = swaps[nextIdx].rotB;
-            this.hint(_('Tap Confirm to exchange these tiles, or Rotate to change orientation.'));
-            this.renderAll();
+        if (this.sel.from === 'board' && this.sel.r !== null) {
+            const legal = this.getLegalRotations(this.sel.id, this.sel.r, this.sel.c);
+            if (legal.length <= 1) return;
+            const t = this.tiles.get(this.sel.id);
+            const curSig = mcConn(t.shape, t.rot).map((b) => (b ? '1' : '0')).join('');
+            const curIdx = legal.findIndex((rot) => mcConn(t.shape, rot).map((b) => (b ? '1' : '0')).join('') === curSig);
+            const nextIdx = curIdx >= 0 ? (curIdx + 1) % legal.length : 0;
+            const nextRot = legal[nextIdx];
+            this.sel.rot = nextRot;
+            this.bga.actions.performAction('actPlace', { tileId: this.sel.id, r: this.sel.r, c: this.sel.c, rot: nextRot });
             return;
         }
-        if (this.sel.r === null) {
+        if (this.sel.from === 'tray') {
             this.sel.rot = (this.sel.rot + 1) % 4;
             this.renderAll();
-            return;
         }
-        const legal = this.getLegalRotations(this.sel.id, this.sel.r, this.sel.c);
-        if (legal.length <= 1) return;
-        const t = this.tiles.get(this.sel.id);
-        const curSig = mcConn(t.shape, this.sel.rot).map((b) => (b ? '1' : '0')).join('');
-        const curIdx = legal.findIndex((rot) => mcConn(t.shape, rot).map((b) => (b ? '1' : '0')).join('') === curSig);
-        const nextIdx = curIdx >= 0 ? (curIdx + 1) % legal.length : 0;
-        this.sel.rot = legal[nextIdx];
-        const problem = this.stageProblem();
-        if (problem) {
-            this.hint(this.problemText(problem));
-        } else {
-            this.hint(_('Tap Confirm to place the tile here, or Rotate to change orientation.'));
-        }
-        this.renderAll();
     }
 
     clearSel() {
@@ -1116,42 +1088,31 @@ export class Game {
         if (!this.canAct()) return;
 
         const s = this.sel;
-        if (s && s.from === 'pool') {
-            if (this.drawer === this.me) {
-                this.bga.statusBar.addActionButton(_('Take this tile'), () => this.doDraw(), { color: 'primary' });
+        if (s && s.from === 'board') {
+            if (this.rotation) {
+                const canRotate = this.getLegalRotations(s.id, s.r, s.c).length > 1;
+                this.bga.statusBar.addActionButton(_('Rotate'), () => this.rotateSel(), { color: 'secondary', disabled: !canRotate });
             }
+            this.bga.statusBar.addActionButton(_('Remove'), () => this.doReturn(), { color: 'alert' });
             this.bga.statusBar.addActionButton(_('Cancel'), () => this.clearSel(), { color: 'alert' });
             return;
         }
-        if (s) {
-            const t = this.tiles.get(s.id);
-            const problem = this.stageProblem();
-            const moved = s.swapWith ? true : (s.r !== null && (s.from === 'tray' || s.r !== t.r || s.c !== t.c || s.rot !== t.rot));
-            this.bga.statusBar.addActionButton(_('Confirm'), () => this.doPlace(), { color: 'primary', disabled: problem !== null || !moved });
+        if (s && s.from === 'tray') {
             if (this.rotation) {
-                const canRotate = s.swapWith
-                    ? this.getLegalSwapRotations(s.id, s.swapWith).length > 1
-                    : (s.r === null || this.getLegalRotations(s.id, s.r, s.c).length > 1);
-                this.bga.statusBar.addActionButton(_('Rotate'), () => this.rotateSel(), { color: 'secondary', disabled: !canRotate });
-            }
-            if (s.from === 'board' && !s.swapWith) {
-                this.bga.statusBar.addActionButton(_('Remove'), () => this.doReturn(), { color: 'alert' });
+                this.bga.statusBar.addActionButton(_('Rotate'), () => this.rotateSel(), { color: 'secondary' });
             }
             this.bga.statusBar.addActionButton(_('Cancel'), () => this.clearSel(), { color: 'alert' });
             return;
         }
         if (this.poolTiles().length === 0) {
-            if (this.finishPending) {
-                this.bga.statusBar.addActionButton(_('Confirm finish'), () => this.doFinish(), { color: 'primary' });
-                this.bga.statusBar.addActionButton(_('Cancel'), () => { this.finishPending = false; this.refreshButtons(); }, { color: 'alert' });
-            } else {
-                this.bga.statusBar.addActionButton(_('Finish'), () => { this.finishPending = true; this.refreshButtons(); }, { color: 'primary' });
-            }
+            this.bga.statusBar.addActionButton(_('Finish'), () => this.doFinish(), { color: 'primary' });
         }
     }
 
     doDraw() {
+        if (!this.sel || this.sel.from !== 'pool') return;
         const id = this.sel.id;
+        this.clearSel();
         this.bga.actions.performAction('actDraw', { tileId: id });
     }
 
@@ -1171,10 +1132,14 @@ export class Game {
     }
 
     doReturn() {
-        this.bga.actions.performAction('actReturn', { tileId: this.sel.id });
+        if (!this.sel || this.sel.from !== 'board') return;
+        const id = this.sel.id;
+        this.clearSel();
+        this.bga.actions.performAction('actReturn', { tileId: id });
     }
 
     doFinish() {
+        this.clearSel();
         this.finishPending = false;
         this.bga.actions.performAction('actFinish', {});
     }

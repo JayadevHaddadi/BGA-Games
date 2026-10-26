@@ -40,7 +40,17 @@ html, body, #microc_root, .mc_root, .mc_pool, .mc_main, .mc_mine, .mc_grid {
 
 .mc_root *,
 .mc_root *::before,
-.mc_root *::after {
+.mc_root *::after,
+.mc_panel_board,
+.mc_panel_board *,
+.mc_panel_board *::before,
+.mc_panel_board *::after,
+.mc_board_wrap,
+.mc_board_wrap *,
+.mc_grid,
+.mc_grid *,
+.mc_space,
+.mc_placed {
     box-sizing: border-box;
 }
 
@@ -230,10 +240,13 @@ html, body, #microc_root, .mc_root, .mc_pool, .mc_main, .mc_mine, .mc_grid {
     grid-row: 2;
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-rows: repeat(5, minmax(0, 1fr));
     aspect-ratio: 1 / 1;
     background: #fbfaf6;
     border: 1px solid #5d5a52;
     border-radius: 3px;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 .mc_board_wrap.mc_small .mc_grid {
@@ -250,6 +263,7 @@ html, body, #microc_root, .mc_root, .mc_pool, .mc_main, .mc_mine, .mc_grid {
     border: 1px solid rgba(29, 29, 27, 0.14);
     border-radius: 0;
     background: none;
+    box-sizing: border-box;
 }
 
 button.mc_space {
@@ -291,6 +305,7 @@ button.mc_space {
     margin: 0;
     z-index: 1;
     pointer-events: auto;
+    box-sizing: border-box;
 }
 
 .mc_placed[role="button"] {
