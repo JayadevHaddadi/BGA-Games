@@ -86,7 +86,11 @@ class PlayerTurn extends GameState
         $activePlayerId = (int) $this->game->getActivePlayerId();
         $extraTurn = $this->game->playTurnWithDie($activePlayerId, $dieId, $targetQ, $targetR, $flowerColor, $gardenerId);
 
-        if ($extraTurn) {
+        // An extra turn needs a flower to plant: with an empty reserve the game ends at NextPlayer
+        $reserve = (int) $this->game->getUniqueValueFromDb(
+            "SELECT COALESCE(SUM(`count`), 0) FROM `player_flower` WHERE `player_id` = $activePlayerId"
+        );
+        if ($extraTurn && $reserve > 0) {
             // Player gets an extra turn! Stay in PlayerTurn
             return self::class;
         }

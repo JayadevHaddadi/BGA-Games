@@ -543,6 +543,11 @@ class Game extends \Bga\GameFramework\Table
         $trackVariant = (int) $this->globals->get('track_variant', 1);
         $lastFlowerVariant = (int) $this->globals->get('last_flower_variant', 1);
 
+        // Giving up a die is only allowed when it really has no legal move
+        if (!empty($validMoves) && ($targetQ === null || $targetR === null)) {
+            throw new UserException(clienttranslate("Choose a destination: this die has legal moves."));
+        }
+
         // Case A: Cannot move
         if (empty($validMoves) || $targetQ === null || $targetR === null) {
             // Apply 1 penalty point
