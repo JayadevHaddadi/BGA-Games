@@ -248,6 +248,38 @@ check($refused, 'refused: rocket without one');
 $after = json_encode([$game->getAllRacers(), $game->globals->get('current_roll_dice', []), $game->globals->get('active_racer_id', 0)]);
 check($before === $after, 'refused moves leave racers, dice and active car unchanged');
 
+
+// rocket: only the car right in front can be hit; a nearer car (even the shooter's own) blocks the line
+[$game, $st, $pids] = boot($slug, 3, [103 => 2]);
+$circ = \Bga\Games\nestorgamesgp\Track\Circuit::class;
+$line = null;
+for ($sp = 9; $sp < 60 && $line === null; $sp++) {
+    $l = $circ::getStraightLineAhead($sp);
+    if (count($l) >= 4 && !$circ::isCorner($l[0]) && !$circ::isCorner($l[1]) && !$circ::isPitLane($l[0])) { $line = [$sp, $l]; }
+}
+check($line !== null, 'the track has a straight with 3+ spaces for the rocket checks');
+[$from, $ahead] = $line;
+Stub::exec("DELETE FROM track_item");
+Stub::exec("UPDATE racer SET space_id = $from WHERE racer_id = 1");
+Stub::exec("UPDATE racer SET space_id = {$ahead[0]} WHERE racer_id = 2");
+Stub::exec("UPDATE racer SET space_id = {$ahead[1]} WHERE racer_id = 3");
+Stub::exec("INSERT INTO player_inventory (racer_id, player_id, item_type) VALUES (1, {$pids[0]}, 'rocket')");
+$game->globals->set('active_racer_id', 1);
+$targets = array_column($st->getArgs()['rocket_targets'], 'racer_id');
+check($targets === [2], 'rocket: only the nearest car in front is a target (not the one behind it)');
+$refused = false;
+$before = json_encode([$game->getAllRacers(), $game->getRacerInventory(1)]);
+try_act(fn() => $st->actFireRocket(3), $refused);
+check($refused, 'rocket: firing over a nearer car is refused');
+check($before === json_encode([$game->getAllRacers(), $game->getRacerInventory(1)]), 'rocket: the refused shot keeps the rocket and changes no car');
+Stub::exec("UPDATE racer SET player_id = {$pids[0]} WHERE racer_id = 2");   // a car of the shooter's own player is in front
+check($st->getArgs()['rocket_targets'] === [], 'rocket: an own car right in front blocks the line, no target');
+
+// the race is not "100%" while it goes on after the first car finished
+[$game, $st, $pids] = boot($slug, 3);
+$game->setRacerFinishRank(1, 1);
+check($game->getGameProgression() < 100, 'progression stays below 100 until the game is over');
+
 // final scoring: 4 players finish 1..4 -> 10, 8, 6, 5 points, scores written to the player table
 [$game, $st, $pids] = boot($slug, 4);
 foreach ([3, 1, 4, 2] as $rank => $racerId) {

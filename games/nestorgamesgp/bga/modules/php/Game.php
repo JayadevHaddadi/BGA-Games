@@ -33,12 +33,10 @@ class Game extends \Bga\GameFramework\Table
         $circuitLength = max(1, Circuit::getLastSpaceId() - 8);
         $best = 0.0;
         foreach (static::getObjectListFromDb("SELECT `space_id`, `laps_completed`, `finish_rank` FROM `racer`") as $r) {
-            if ((int) $r['finish_rank'] > 0) {
-                return 100;
-            }
+            // A finished car does not end the race for the others: stay below 100 until the game is over
             $spaceId = (int) $r['space_id'];
             $fraction = Circuit::isPitLane($spaceId) ? 0.0 : min(1.0, $spaceId / $circuitLength);
-            $best = max($best, ((int) $r['laps_completed'] + $fraction) / $lapsTarget);
+            $best = max($best, ((int) $r['finish_rank'] > 0) ? 1.0 : ((int) $r['laps_completed'] + $fraction) / $lapsTarget);
         }
         return (int) min(99, max(0, round($best * 100)));
     }
@@ -322,6 +320,34 @@ class Game extends \Bga\GameFramework\Table
             }
         }
         return null;
+    }
+
+    /**
+     * Cars a rocket fired by $shooterRacerId can hit: the car(s) right in front on the straight line (the nearest
+     * occupied space; cars of the shooter's own player are never targets but they do block the line).
+     * @return array<int, array> racer rows by racer id
+     */
+    public function getRocketLineTargets(int $shooterRacerId, array $straightSpaces): array
+    {
+        $shooter = $this->getRacer($shooterRacerId);
+        if (!$shooter) {
+            return [];
+        }
+        foreach ($straightSpaces as $spaceId) {
+            $onSpace = array_values(array_diff($this->getRacersOnSpace((int) $spaceId), [$shooterRacerId]));
+            if (!$onSpace) {
+                continue;
+            }
+            $targets = [];
+            foreach ($onSpace as $rId) {
+                $r = $this->getRacer($rId);
+                if ($r && $r['player_id'] !== $shooter['player_id']) {
+                    $targets[$rId] = $r;
+                }
+            }
+            return $targets;
+        }
+        return [];
     }
 
     public function getRacersOnSpace(int $spaceId): array

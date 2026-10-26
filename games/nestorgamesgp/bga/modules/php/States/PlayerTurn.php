@@ -37,24 +37,20 @@ class PlayerTurn extends GameState
         $inventory = ($itemsOption === 2) ? $this->game->getRacerInventory($activeRacerId) : [];
         $turboActive = (bool) $this->globals->get('turbo_active', false);
 
-        // Calculate potential rocket targets in line of sight
+        // Rocket: only the car right in front of yours (the nearest one on the straight line) can be targeted
         $rocketTargets = [];
         if ($racer && in_array('rocket', $inventory, true) && empty($rolledDice) && !$racer['is_belly_up']) {
             $straightSpaces = Circuit::getStraightLineAhead((int)$racer['space_id']);
-            $allRacers = $this->game->getAllRacers();
             $infos = $this->game->loadPlayersBasicInfos();
-            foreach ($allRacers as $rId => $otherRacer) {
-                if ($otherRacer['player_id'] !== $activePlayerId && in_array((int)$otherRacer['space_id'], $straightSpaces, true)) {
-                    $dist = array_search((int)$otherRacer['space_id'], $straightSpaces, true) + 1;
-                    $rocketTargets[] = [
-                        'racer_id' => $rId,
-                        'player_id' => (int)$otherRacer['player_id'],
-                        'player_name' => $infos[$otherRacer['player_id']]['player_name'] ?? ('Player ' . $otherRacer['player_id']),
-                        'car_name' => $otherRacer['car_name'] ?: $otherRacer['car_color'],
-                        'space_id' => (int)$otherRacer['space_id'],
-                        'distance' => $dist,
-                    ];
-                }
+            foreach ($this->game->getRocketLineTargets($activeRacerId, $straightSpaces) as $rId => $otherRacer) {
+                $rocketTargets[] = [
+                    'racer_id' => $rId,
+                    'player_id' => (int)$otherRacer['player_id'],
+                    'player_name' => $infos[$otherRacer['player_id']]['player_name'] ?? ('Player ' . $otherRacer['player_id']),
+                    'car_name' => $otherRacer['car_name'] ?: $otherRacer['car_color'],
+                    'space_id' => (int)$otherRacer['space_id'],
+                    'distance' => array_search((int)$otherRacer['space_id'], $straightSpaces, true) + 1,
+                ];
             }
         }
 
@@ -316,6 +312,9 @@ class PlayerTurn extends GameState
         }
 
         $distance = $idx + 1;
+        if (!isset($this->game->getRocketLineTargets($activeRacerId, $straightSpaces)[(int) $targetRacer['racer_id']])) {
+            throw new UserException(clienttranslate("Another car is in front of the target: you can only fire at the car right in front of yours."));
+        }
 
         // Consume rocket
         Game::DbQuery("DELETE FROM `player_inventory` WHERE `racer_id` = $activeRacerId AND `item_type` = 'rocket' LIMIT 1");
