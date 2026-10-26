@@ -231,7 +231,7 @@ export class Game {
         this.rotation = !!gamedatas.rotation;
         this.poolRows = gamedatas.pool_size[0];
         this.poolCols = gamedatas.pool_size[1];
-        this._autoDrawing = false;
+        this._actionPending = false;
 
         this.buildDOM();
         // Without this call the interface only updates after a page refresh (AGENTS.md mistake 12).
@@ -624,23 +624,11 @@ export class Game {
         this.renderPanels();
         this.renderStatus();
         this.refreshButtons();
-        this.checkAutoDraw();
     }
 
-    /** If the drawer has only 1 tile in the draw column, or all tiles in it are identical, or X tiles remain among X players, take it automatically. */
+    /** Auto-draw is handled authoritatively and synchronously by the server (autoDrawIfSingle in Play.php). */
     checkAutoDraw() {
-        if (!this.canAct() || this.drawer !== this.me || this._autoDrawing) return;
-        const colTiles = this.poolTiles().filter((t) => t.col === this.drawCol());
-        if (colTiles.length === 0) return;
-        const first = colTiles[0];
-        const allSame = colTiles.every((t) => t.colour === first.colour && t.shape === first.shape);
-        const xTilesForXPlayers = this.poolTiles().length <= this.order.length;
-        if (colTiles.length === 1 || allSame || xTilesForXPlayers) {
-            this._autoDrawing = true;
-            this.bga.actions.performAction('actDraw', { tileId: first.id })
-                .catch(() => {})
-                .finally(() => { this._autoDrawing = false; });
-        }
+        // No-op on client: server handles auto-draw directly to avoid race conditions.
     }
 
     /** Drops a staged choice when the server has moved on (someone else drew the tile, or it was placed). */
@@ -919,8 +907,24 @@ export class Game {
         return this.amActive && this.me !== null && !this.finished[this.me];
     }
 
+    sendAction(action, args) {
+        if (this._actionPending) return Promise.resolve();
+        this._actionPending = true;
+        const res = this.bga?.actions?.performAction?.(action, args);
+        if (res && typeof res.then === 'function') {
+            return res.catch((err) => {
+                console.warn('Action rejected:', action, err);
+                this.renderAll();
+            }).finally(() => {
+                this._actionPending = false;
+            });
+        }
+        this._actionPending = false;
+        return Promise.resolve(res);
+    }
+
     onPoolTile(id) {
-        if (!this.canAct()) return;
+        if (!this.canAct() || this._actionPending) return;
         const t = this.tiles.get(id);
         if (this.drawer !== this.me) {
             this.hint(_('It is not your turn to draw.'));
@@ -932,7 +936,9 @@ export class Game {
         }
         this.hint('');
         this.clearSel();
-        this.bga.actions.performAction('actDraw', { tileId: id });
+        const btn = this.el.pool.querySelector(`.mc_tile_btn[data-id="${id}"]`);
+        if (btn) btn.classList.add('mc_taking');
+        this.sendAction('actDraw', { tileId: id });
     }
 
     onTrayTile(id) {
@@ -988,7 +994,7 @@ export class Game {
                 const tileId = this.sel.id;
                 const best = swaps[0];
                 this.clearSel();
-                this.bga.actions.performAction('actSwap', {
+                this.sendAction('actSwap', {
                     tileId,
                     targetTileId: id,
                     rot: best.rotA,
@@ -1041,11 +1047,11 @@ export class Game {
         const tileId = this.sel.id;
         const fromTray = this.sel.from === 'tray';
         this.clearSel();
-        this.bga.actions.performAction('actPlace', { tileId, r, c, rot });
+        this.sendAction('actPlace', { tileId, r, c, rot });
     }
 
     rotateSel() {
-        if (!this.sel || !this.rotation || this.sel.from === 'pool') return;
+        if (!this.sel || !this.rotation || this.sel.from === 'pool' || this._actionPending) return;
         if (this.sel.from === 'board' && this.sel.r !== null) {
             const legal = this.getLegalRotations(this.sel.id, this.sel.r, this.sel.c);
             if (legal.length <= 1) return;
@@ -1055,7 +1061,7 @@ export class Game {
             const nextIdx = curIdx >= 0 ? (curIdx + 1) % legal.length : 0;
             const nextRot = legal[nextIdx];
             this.sel.rot = nextRot;
-            this.bga.actions.performAction('actPlace', { tileId: this.sel.id, r: this.sel.r, c: this.sel.c, rot: nextRot });
+            this.sendAction('actPlace', { tileId: this.sel.id, r: this.sel.r, c: this.sel.c, rot: nextRot });
             return;
         }
         if (this.sel.from === 'tray') {
@@ -1110,17 +1116,17 @@ export class Game {
     }
 
     doDraw() {
-        if (!this.sel || this.sel.from !== 'pool') return;
+        if (!this.sel || this.sel.from !== 'pool' || this._actionPending) return;
         const id = this.sel.id;
         this.clearSel();
-        this.bga.actions.performAction('actDraw', { tileId: id });
+        this.sendAction('actDraw', { tileId: id });
     }
 
     doPlace() {
         const s = this.sel;
-        if (!s) return;
+        if (!s || this._actionPending) return;
         if (s.swapWith) {
-            this.bga.actions.performAction('actSwap', {
+            this.sendAction('actSwap', {
                 tileId: s.id,
                 targetTileId: s.swapWith,
                 rot: s.rot,
@@ -1128,25 +1134,27 @@ export class Game {
             });
             return;
         }
-        this.bga.actions.performAction('actPlace', { tileId: s.id, r: s.r, c: s.c, rot: s.rot });
+        this.sendAction('actPlace', { tileId: s.id, r: s.r, c: s.c, rot: s.rot });
     }
 
     doReturn() {
-        if (!this.sel || this.sel.from !== 'board') return;
+        if (!this.sel || this.sel.from !== 'board' || this._actionPending) return;
         const id = this.sel.id;
         this.clearSel();
-        this.bga.actions.performAction('actReturn', { tileId: id });
+        this.sendAction('actReturn', { tileId: id });
     }
 
     doFinish() {
+        if (this._actionPending) return;
         this.clearSel();
         this.finishPending = false;
-        this.bga.actions.performAction('actFinish', {});
+        this.sendAction('actFinish', {});
     }
 
     doResume() {
+        if (this._actionPending) return;
         this.finishPending = false;
-        this.bga.actions.performAction('actResume', {});
+        this.sendAction('actResume', {});
     }
 
     /* ------------------------------------------------------------------------------------------ */
@@ -1223,6 +1231,7 @@ export class Game {
     }
 
     async notif_tileDrawn(args) {
+        this._actionPending = false;
         const t = this.tiles.get(args.tile.id);
         const animPromise = this.animateTileDrawn(args.tile, args.player_id);
         if (t) {
@@ -1244,6 +1253,7 @@ export class Game {
     }
 
     notif_tilePlaced(args) {
+        this._actionPending = false;
         this.lastId = args.tile.id;
         const t = this.tiles.get(args.tile.id);
         if (t) {
@@ -1263,6 +1273,7 @@ export class Game {
     }
 
     notif_tileReturned(args) {
+        this._actionPending = false;
         const t = this.tiles.get(args.tile.id);
         if (t) {
             t.location = 'hand';
@@ -1281,6 +1292,7 @@ export class Game {
     }
 
     notif_tileSwapped(args) {
+        this._actionPending = false;
         if (args.type === 'tray_board') {
             this.lastId = args.tile_a.id;
             const tA = this.tiles.get(args.tile_a.id);

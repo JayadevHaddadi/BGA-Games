@@ -150,8 +150,10 @@ html, body, #microc_root, .mc_root, .mc_pool, .mc_main, .mc_mine, .mc_grid {
     cursor: default;
 }
 
-.mc_tile_btn:disabled {
-    opacity: 0.85;
+.mc_tile_btn:disabled,
+.mc_tile_btn.mc_taking {
+    opacity: 0.5;
+    pointer-events: none;
 }
 
 .mc_tile_btn.mc_can {

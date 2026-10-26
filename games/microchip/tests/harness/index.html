@@ -158,10 +158,11 @@ async function run() {
   if (mode === 'turn') {
     // 2. Draw: tap a draw-column tile -> sends actDraw immediately without extra confirm button
     root.querySelector('.mc_can').click();
+    await Promise.resolve();
     const drawCall = calls[calls.length - 1];
     check(drawCall && drawCall.name === 'actDraw' && typeof drawCall.args.tileId === 'number', `actDraw sent immediately (${JSON.stringify(drawCall)})`);
     const id = drawCall.args.tileId;
-    game.notif_tileDrawn({ player_id: 1, tile: { id, colour: game.tiles.get(id).colour, shape: game.tiles.get(id).shape }, from: { col: 11, row: 0 }, next_drawer: 2, draw_column: 11, pool_left: 34 });
+    await game.notif_tileDrawn({ player_id: 1, tile: { id, colour: game.tiles.get(id).colour, shape: game.tiles.get(id).shape }, from: { col: 11, row: 0 }, next_drawer: 2, draw_column: 11, pool_left: 34 });
     check(root.querySelectorAll('.mc_tray .mc_tile_btn').length === 4, 'tray has four tiles after drawing');
 
     // 3. Placement. Tray tile 40 is a blue end. The free blue spaces are (1,3), (2,1), (3,4), (4,2)
@@ -175,6 +176,7 @@ async function run() {
 
     // (2,1) touches nothing: legal. Clicking space sends actPlace immediately.
     space(2, 1).click();
+    await Promise.resolve();
     const place = calls[calls.length - 1];
     check(place.name === 'actPlace' && place.args.r === 2 && place.args.c === 1 && place.args.rot === 0 && place.args.tileId === 40, `actPlace sent immediately (${JSON.stringify(place)})`);
     game.notif_tilePlaced({ player_id: 1, tile: { id: 40, colour: 'blue', shape: 'end' }, r: 2, c: 1, rot: 0, moved: false, coord: 'B3' });
@@ -185,6 +187,7 @@ async function run() {
     root.querySelector('#mc_board_me .mc_placed[data-id="43"]').click();
     check(labels().includes('Remove') && labels().includes('Rotate'), `board tile buttons: ${labels()}`);
     press('Rotate');
+    await Promise.resolve();
     const rotCall = calls[calls.length - 1];
     check(rotCall && rotCall.name === 'actPlace' && rotCall.args.tileId === 43, 'Rotate sends actPlace immediately');
     press('Cancel');
@@ -198,6 +201,7 @@ async function run() {
     // 6. Exchange pieces: select tray tile 41 (red tee) and click board tile 44 (red end at 1,4) -> immediate actSwap
     game.onTrayTile(41);
     root.querySelector('#mc_board_me .mc_placed[data-id="44"]').click();
+    await Promise.resolve();
     const swapCall = calls[calls.length - 1];
     check(swapCall && swapCall.name === 'actSwap' && swapCall.args.tileId === 41 && swapCall.args.targetTileId === 44, `actSwap sent immediately (${JSON.stringify(swapCall)})`);
     game.notif_tileSwapped({ player_id: 1, type: 'tray_board', tile_a: { id: 41, colour: 'red', shape: 'tee' }, tile_b: { id: 44, colour: 'red', shape: 'end' }, r: 1, c: 4, rot: 2, coord: 'E2' });
@@ -210,7 +214,7 @@ async function run() {
     check(game.sel && game.sel.id === 41 && !game.sel.swapWith, 'different colour does not exchange; selects clicked tile instead');
     game.clearSel();
 
-    // 8. Auto-draw: when remaining pool tiles <= player count (X tiles among X players), checkAutoDraw triggers actDraw
+    // 8. Rapid click guard: clicking pool tiles while an action is in flight does not send concurrent actions
     game.drawer = 1;
     game.tiles.forEach((t) => { if (t.location === 'pool') t.location = 'box'; });
     const poolT1 = game.tiles.get(50);
@@ -218,8 +222,10 @@ async function run() {
     poolT1.location = 'pool'; poolT1.col = 0; poolT1.row = 0;
     poolT2.location = 'pool'; poolT2.col = 0; poolT2.row = 1;
     const callsBefore = calls.length;
-    game.checkAutoDraw();
-    check(calls.length === callsBefore + 1 && calls[calls.length - 1].name === 'actDraw', 'checkAutoDraw triggered automatically for X tiles among X players');
+    game.onPoolTile(50);
+    game.onPoolTile(51);
+    check(calls.length === callsBefore + 1 && calls[calls.length - 1].args.tileId === 50, 'rapid pool tile clicks are guarded against concurrent actDraw');
+    game._actionPending = false;
   } else {
     // 6. Build: pool empty. Finish sends actFinish directly without confirm button
     check(labels().includes('Finish'), `Finish offered when the pool is empty: ${labels()}`);

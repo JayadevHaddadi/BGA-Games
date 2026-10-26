@@ -260,6 +260,26 @@ require __DIR__ . '/../../../tools/php_stub/zombie_run.php';
     check($swapBB['type'] === 'board_board', 'swapTiles returned board_board');
     check((int)$game->getTile($tA)['r'] === $rB2 && (int)$game->getTile($tA)['c'] === $cB2, 'tA moved to second space');
     check((int)$game->getTile($tB)['r'] === $rB && (int)$game->getTile($tB)['c'] === $cB, 'tB moved to first space');
+
+    // Auto-draw test: when 1 tile remains in the draw column, autoDrawIfSingle takes it automatically
+    $play = new \Bga\Games\microchip\States\Play($game);
+    $drawCol = $game->drawColumn();
+    $drawerBefore = $game->drawer();
+    $allPool = array_keys($game->poolCells());
+    $keepTile = null;
+    foreach ($allPool as $tid) {
+        $cell = $game->poolCells()[$tid] ?? null;
+        if ($cell && $cell['col'] === $drawCol && $keepTile === null) {
+            $keepTile = $tid;
+        } else {
+            $game::DbQuery("UPDATE `tile` SET `location` = 'box', `pool_col` = NULL, `pool_row` = NULL WHERE `tile_id` = $tid");
+        }
+    }
+    check($keepTile !== null, 'found keepTile in draw column');
+    check(count($game->poolCells()) === 1, 'pool has exactly 1 tile left');
+    $play->autoDrawIfSingle();
+    check($game->poolEmpty(), 'autoDrawIfSingle took the last remaining tile in the draw column automatically');
+    check($game->getTile($keepTile)['location'] === 'hand' && (int)$game->getTile($keepTile)['owner'] === $drawerBefore, 'keepTile went to the drawer');
 }
 
 echo ($failures === 0 ? "OK" : "FAILED") . ": $checks checks, $failures failures\n";
