@@ -328,6 +328,29 @@ async function run() {
     root.querySelector('.mc_results_dismiss_btn').click();
     check(root.querySelector('#mc_results_modal').hidden, 'results modal is hidden after clicking dismiss button');
     check(root.querySelectorAll('#mc_board_me .mc_placed.mc_chip').length === 2, `the two chip tiles are highlighted (${root.querySelectorAll('#mc_board_me .mc_placed.mc_chip').length})`);
+
+    // 7. Reload after the game: labels are static, the popup is available (not auto-open), rows use the player colour
+    check(root.querySelectorAll('#mc_board_me .mc_placed .mc_score_pop').length === 2 && root.querySelector('#mc_board_me .mc_placed[data-key="0,0"] .mc_score_pop').textContent === '+1', 'labels stay on the tiles after the animation (+1 on an end tile)');
+    document.getElementById('game_play_area').innerHTML = '';
+    const gd2 = fixture();
+    gd2.players[1].color = 'ff0000'; gd2.players[2].color = '0000ff'; gd2.players[3].color = 'f2e600';
+    gd2.gamestate = { id: 99 };
+    gd2.final_scoring = [
+      { player_id: 1, score: 0, value: 2, chip_tiles: 2, unused: 1, owned: 3, chip: ['0,0', '0,1'] },
+      { player_id: 2, score: -4, value: 0, chip_tiles: 0, unused: 2, owned: 2, chip: [] },
+    ];
+    gd2.tiles[44].r = 0; gd2.tiles[44].c = 1; gd2.tiles[44].rot = 3;
+    const game2 = new Game(bga);
+    window.game = game2;
+    game2.setup(gd2);
+    const r2 = document.getElementById('microc_root');
+    const pops = [...r2.querySelectorAll('#mc_board_me .mc_placed .mc_score_pop')].map((e) => e.textContent);
+    check(pops.length === 2 && pops.every((t) => t === '+1'), `reloaded game-over shows the +N labels on the chip tiles (${pops})`);
+    check(r2.querySelectorAll('.mc_tray .mc_score_pop').length === 3 && [...r2.querySelectorAll('.mc_tray .mc_score_pop')].every((e) => e.textContent === '-2'), 'reloaded game-over shows -2 on unused tray tiles');
+    check(r2.querySelector('#mc_results_modal').hidden && !r2.querySelector('#mc_scores_btn').hidden, 'popup not auto-opened after reload, Scores button available');
+    const rowBg = (n) => getComputedStyle(r2.querySelectorAll('.mc_res_row')[n].querySelector('td')).backgroundColor;
+    const bgs = [...r2.querySelectorAll('.mc_res_row')].map((tr) => getComputedStyle(tr.querySelector('td')).backgroundColor);
+    check(bgs.includes('rgb(255, 0, 0)') && bgs.includes('rgb(0, 0, 255)'), `popup rows use the player colours (${bgs})`);
   }
 
   const blocksInfo = [...root.querySelectorAll('.mc_pool_grid')].map((b) => {

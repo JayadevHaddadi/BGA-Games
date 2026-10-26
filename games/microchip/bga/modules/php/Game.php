@@ -495,7 +495,16 @@ class Game extends \Bga\GameFramework\Table
         foreach ($this->playerOrder() as $pid) {
             $finished[$pid] = $this->isFinished($pid);
         }
+        // After the game: the final scoring (same rows as the finalScoring notification) so the labels survive a refresh
+        $finalScoring = [];
+        if ((int) ($this->gamestate->getCurrentMainStateId() ?? 0) >= 99) {
+            $scores = $this->allScores();
+            foreach ($this->playerOrder() as $pid) {
+                $finalScoring[] = ['player_id' => $pid] + $scores[$pid];
+            }
+        }
         return [
+            'final_scoring' => $finalScoring,
             'tiles' => $tiles,
             'spaces' => $spaces,
             'player_order' => $this->playerOrder(),

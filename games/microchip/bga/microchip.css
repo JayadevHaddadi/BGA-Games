@@ -793,7 +793,8 @@ button.mc_space {
 .mc_results_popup_table tbody th,
 .mc_results_popup_table tbody td {
     padding: 8px 6px;
-    background: color-mix(in srgb, var(--mc-pc, #78716c) 16%, #ffffff);
+    background: var(--mc-pc, #78716c);
+    color: var(--mc-pt, #000000);
     border-top: 2px solid var(--mc-pc, #78716c);
     border-bottom: 2px solid var(--mc-pc, #78716c);
     text-align: right;
@@ -813,8 +814,7 @@ button.mc_space {
 
 .mc_res_winner th,
 .mc_res_winner td {
-    background: #ffe27a !important;
-    border-color: #b8860b !important;
+    border-color: #d4a017 !important;
     border-top-width: 3px;
     border-bottom-width: 3px;
 }
@@ -827,13 +827,14 @@ button.mc_space {
     font-size: 1.7rem;
     line-height: 1;
     font-weight: 800;
-    color: #1d1d1b;
+    color: inherit;
     white-space: nowrap;
 }
 
 .mc_sub_stat {
     font-size: 0.78rem;
-    color: #5d5a52;
+    color: inherit;
+    opacity: 0.85;
     font-weight: normal;
     white-space: nowrap;
 }
@@ -880,7 +881,8 @@ button.mc_space {
         border: 2px solid var(--mc-pc, #78716c);
         border-left-width: 8px;
         border-radius: 3px;
-        background: color-mix(in srgb, var(--mc-pc, #78716c) 16%, #ffffff);
+        background: var(--mc-pc, #78716c);
+        color: var(--mc-pt, #000000);
     }
 
     .mc_results_popup_table tbody th,
@@ -900,7 +902,7 @@ button.mc_space {
     .mc_results_popup_table tbody td[data-label]::before {
         content: attr(data-label) ": ";
         font-size: 0.72rem;
-        color: #4a4740;
+        color: inherit;
     }
 
     .mc_results_popup_table tbody td.mc_res_score::before {
@@ -908,8 +910,7 @@ button.mc_space {
     }
 
     .mc_res_winner {
-        background: #ffe27a !important;
-        border-color: #b8860b !important;
+        border-color: #d4a017 !important;
     }
 }
 

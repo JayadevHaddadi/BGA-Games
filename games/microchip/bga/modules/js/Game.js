@@ -291,26 +291,19 @@ export class Game {
         this.bga.notifications.setupPromiseNotifications({});
         this.renderAll();
 
-        if (Number(gamedatas.gamestate?.id) === 99) {
-            const rows = this.order.map((pid) => {
-                const placedList = this.boardTiles(pid);
-                const placedMap = {};
-                placedList.forEach((t) => { placedMap[mcKey(t.r, t.c)] = { shape: t.shape, rot: t.rot }; });
-                const owned = placedList.length + this.trayTiles(pid).length;
-                const s = mcScoreBoard(placedMap, owned);
-                return {
-                    player_id: pid,
-                    score: s.score,
-                    value: s.value,
-                    chip_tiles: s.chip_tiles,
-                    unused: s.unused,
-                    chip: s.chip,
-                };
-            });
+        const finalRows = gamedatas.final_scoring;
+        if (Array.isArray(finalRows) && finalRows.length > 0) {
+            const rows = finalRows;
             rows.forEach((row) => {
                 this.chipKeys[row.player_id] = new Set(row.chip);
             });
+            this.finalRows = rows;
+            this.applyStaticLabels();
             this.renderResults(rows);
+            // Available through the Scores button; not auto-opened after a reload
+            if (this.el.resultsModal) {
+                this.el.resultsModal.hidden = true;
+            }
         }
     }
 
@@ -746,6 +739,7 @@ export class Game {
         this.renderPanels();
         this.renderStatus();
         this.refreshButtons();
+        this.applyStaticLabels();
     }
 
     /** Auto-draw is handled authoritatively and synchronously by the server (autoDrawIfSingle in Play.php). */
@@ -1563,6 +1557,8 @@ export class Game {
 
         await this.playScoringAnimation(args.rows);
 
+        this.finalRows = args.rows;
+        this.applyStaticLabels();
         this.renderResults(args.rows);
     }
 
@@ -1592,32 +1588,7 @@ export class Game {
                 if (otherCard) boards.push(otherCard);
             }
 
-            const chipSet = new Set(row.chip || []);
-            const steps = [];
-
-            // 1. Chip tiles: positive points
-            (row.chip || []).forEach((key) => {
-                const t = this.boardTiles(pid).find((tile) => mcKey(tile.r, tile.c) === key);
-                if (t) {
-                    const conn = mcConn(t.shape, t.rot);
-                    let pts = 0;
-                    conn.forEach((on) => { if (on) pts++; });
-                    steps.push({ type: 'chip', key, pts, tile: t });
-                }
-            });
-
-            // 2. Placed tiles outside microchip: -2
-            this.boardTiles(pid).forEach((t) => {
-                const key = mcKey(t.r, t.c);
-                if (!chipSet.has(key)) {
-                    steps.push({ type: 'outside', key, pts: -2, tile: t });
-                }
-            });
-
-            // 3. Unused tiles in tray: -2
-            this.trayTiles(pid).forEach((t) => {
-                steps.push({ type: 'tray', pts: -2, tile: t });
-            });
+            const steps = this.scoreSteps(pid, row);
 
             // Duration: aim for ~4.5 seconds total for this player
             const totalItems = Math.max(1, steps.length);
@@ -1626,50 +1597,7 @@ export class Game {
             this.bga?.statusBar?.setTitle?.(_('Calculating score for ${player}...'), { player: pName });
 
             for (const step of steps) {
-                if (step.type === 'chip' || step.type === 'outside') {
-                    const isPos = step.pts > 0;
-                    boards.forEach((b) => {
-                        const tileEl = b.querySelector(`.mc_placed[data-key="${step.key}"]`);
-                        if (tileEl) {
-                            const pop = document.createElement('div');
-                            pop.className = `mc_score_pop ${isPos ? 'mc_pop_pos' : 'mc_pop_neg'}`;
-                            pop.textContent = isPos ? `+${step.pts}` : `${step.pts}`;
-                            tileEl.appendChild(pop);
-                        }
-                    });
-                } else if (step.type === 'tray') {
-                    if (pid === this.me && this.el.tray) {
-                        const trayTileEl = this.el.tray.querySelector(`.mc_tray_tile[data-id="${step.tile.id}"]`);
-                        if (trayTileEl) {
-                            const pop = document.createElement('div');
-                            pop.className = 'mc_score_pop mc_pop_neg';
-                            pop.textContent = '-2';
-                            trayTileEl.appendChild(pop);
-                        }
-                    } else if (panelEl) {
-                        const panelTile = panelEl.querySelector(`.mc_panel_tile[data-id="${step.tile.id}"]`);
-                        if (panelTile) {
-                            const pop = document.createElement('div');
-                            pop.className = 'mc_score_pop mc_pop_neg';
-                            pop.textContent = '-2';
-                            panelTile.appendChild(pop);
-                        } else {
-                            const panelLine = panelEl.querySelector('.mc_panel_line');
-                            if (panelLine) {
-                                panelLine.hidden = false;
-                                const pop = document.createElement('span');
-                                pop.className = 'mc_score_pop mc_pop_neg';
-                                pop.style.position = 'relative';
-                                pop.style.display = 'inline-block';
-                                pop.style.verticalAlign = 'middle';
-                                pop.style.transform = 'none';
-                                pop.style.margin = '1px 2px';
-                                pop.textContent = '-2';
-                                panelLine.appendChild(pop);
-                            }
-                        }
-                    }
-                }
+                this.addScorePop(pid, step, boards, panelEl);
 
                 runningScore += step.pts;
                 if (counter && typeof counter.setValue === 'function') {
@@ -1699,6 +1627,102 @@ export class Game {
         }
     }
 
+    /** The per-tile score labels of one player: +N on each microchip tile (its own connection count), -2 on every other owned tile. */
+    scoreSteps(pid, row) {
+        const chipSet = new Set(row.chip || []);
+        const steps = [];
+        (row.chip || []).forEach((key) => {
+            const t = this.boardTiles(pid).find((tile) => mcKey(tile.r, tile.c) === key);
+            if (t) {
+                let pts = 0;
+                mcConn(t.shape, t.rot).forEach((on) => { if (on) pts++; });
+                steps.push({ type: 'chip', key, pts, tile: t });
+            }
+        });
+        this.boardTiles(pid).forEach((t) => {
+            const key = mcKey(t.r, t.c);
+            if (!chipSet.has(key)) {
+                steps.push({ type: 'outside', key, pts: -2, tile: t });
+            }
+        });
+        this.trayTiles(pid).forEach((t) => {
+            steps.push({ type: 'tray', pts: -2, tile: t });
+        });
+        return steps;
+    }
+
+    /** The board elements that show this player's board (the main one, the panel mini board, the other-player card). */
+    boardsOf(pid) {
+        const panelEl = this.bga?.playerPanels?.getElement?.(pid);
+        const boards = [];
+        if (pid === this.me && this.el.board) {
+            boards.push(this.el.board);
+        }
+        const panelBoard = panelEl?.querySelector('.mc_panel_board');
+        if (panelBoard) boards.push(panelBoard);
+        if (this.el.boards) {
+            const otherCard = this.el.boards.querySelector(`.mc_other[data-pid="${pid}"]`);
+            if (otherCard) boards.push(otherCard);
+        }
+        return boards;
+    }
+
+    /** Puts one score label on its tile (board, tray or panel). */
+    addScorePop(pid, step, boards, panelEl) {
+        const mk = (text, pos, tag = 'div') => {
+            const pop = document.createElement(tag);
+            pop.className = `mc_score_pop ${pos ? 'mc_pop_pos' : 'mc_pop_neg'}`;
+            pop.textContent = text;
+            return pop;
+        };
+        if (step.type === 'chip' || step.type === 'outside') {
+            const isPos = step.pts > 0;
+            boards.forEach((b) => {
+                const tileEl = b.querySelector(`.mc_placed[data-key="${step.key}"]`);
+                if (tileEl) {
+                    tileEl.appendChild(mk(isPos ? `+${step.pts}` : `${step.pts}`, isPos));
+                }
+            });
+        } else if (step.type === 'tray') {
+            if (pid === this.me && this.el.tray) {
+                const trayTileEl = this.el.tray.querySelector(`.mc_tray_tile[data-id="${step.tile.id}"]`);
+                if (trayTileEl) {
+                    trayTileEl.appendChild(mk('-2', false));
+                }
+            } else if (panelEl) {
+                const panelTile = panelEl.querySelector(`.mc_panel_tile[data-id="${step.tile.id}"]`);
+                if (panelTile) {
+                    panelTile.appendChild(mk('-2', false));
+                } else {
+                    const panelLine = panelEl.querySelector('.mc_panel_line');
+                    if (panelLine) {
+                        panelLine.hidden = false;
+                        const pop = mk('-2', false, 'span');
+                        pop.style.position = 'relative';
+                        pop.style.display = 'inline-block';
+                        pop.style.verticalAlign = 'middle';
+                        pop.style.transform = 'none';
+                        pop.style.margin = '1px 2px';
+                        panelLine.appendChild(pop);
+                    }
+                }
+            }
+        }
+    }
+
+    /** After the game: the labels stay on the tiles (static, no animation), also after a page refresh. */
+    applyStaticLabels() {
+        if (!this.finalRows) return;
+        document.querySelectorAll('.mc_score_pop').forEach((el) => el.remove());
+        this.finalRows.forEach((row) => {
+            const pid = Number(row.player_id);
+            const panelEl = this.bga?.playerPanels?.getElement?.(pid);
+            const boards = this.boardsOf(pid);
+            this.scoreSteps(pid, row).forEach((step) => this.addScorePop(pid, step, boards, panelEl));
+        });
+        document.querySelectorAll('.mc_score_pop').forEach((el) => { el.style.animation = 'none'; });
+    }
+
     wait(ms) {
         return new Promise((resolve) => setTimeout(resolve, ms));
     }
@@ -1720,7 +1744,7 @@ export class Game {
         const modalRowsHtml = sorted.map((row) => {
             const isWinner = !isTie && row.score === topRow.score && row.chip_tiles === topRow.chip_tiles;
             const col = this.playerColour(row.player_id);
-            return `<tr class="mc_res_row${isWinner ? ' mc_res_winner' : ''}" style="--mc-pc:${col}">
+            return `<tr class="mc_res_row${isWinner ? ' mc_res_winner' : ''}" style="--mc-pc:${col};--mc-pt:${this.textOn(col)}">
                 <th scope="row" data-label="${_('Player')}">
                     <span class="mc_res_name">${this.escape(this.playerName(row.player_id))}</span>
                     ${isWinner ? `<span class="mc_win_tag">${_('Winner')}</span>` : ''}
@@ -1753,6 +1777,14 @@ export class Game {
         if (this.el.resultsModal) {
             this.el.resultsModal.hidden = false;
         }
+    }
+
+    /** Black or white text, whichever reads better on this #rrggbb background. */
+    textOn(hex) {
+        const n = parseInt(hex.slice(1), 16);
+        const lin = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+        const lum = 0.2126 * lin((n >> 16) & 255) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255);
+        return lum > 0.179 ? '#000000' : '#ffffff';
     }
 
     /** The player's BGA colour as a CSS colour (falls back to grey). */
