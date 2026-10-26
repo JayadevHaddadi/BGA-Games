@@ -1707,28 +1707,9 @@ export class Game {
         const sorted = [...rows].sort((a, b) => b.score - a.score || b.chip_tiles - a.chip_tiles);
         const topRow = sorted[0];
 
-        // 1. In-page results table (for scrolling view and harness test)
-        const box = this.el.results;
-        const body = rows.map((row) => `<tr>
-                <th scope="row">${this.escape(this.playerName(row.player_id))}</th>
-                <td>${row.value}</td>
-                <td>${row.chip_tiles}</td>
-                <td>${row.unused}</td>
-                <td><strong>${row.score}</strong></td>
-            </tr>`).join('');
-        box.innerHTML = `<div class="mc_head"><h3>${_('Final scores')}</h3></div>
-            <table class="mc_table">
-                <thead><tr>
-                    <th scope="col">${_('Player')}</th>
-                    <th scope="col">${_('Microchip value')}</th>
-                    <th scope="col">${_('Tiles in microchip')}</th>
-                    <th scope="col">${_('Unused tiles')}</th>
-                    <th scope="col">${_('Score')}</th>
-                </tr></thead>
-                <tbody>${body}</tbody>
-            </table>
-            <p class="mc_note">${_('Score = microchip value minus 2 for each unused tile. Ties: more tiles in the microchip wins.')}</p>`;
-        box.hidden = false;
+        // The score popup (open/close with the Scores button) is the only results view; no table under the board
+        this.el.results.innerHTML = '';
+        this.el.results.hidden = true;
 
         // 2. Score breakdown popup modal
         const isTie = sorted.length > 1 && sorted[1].score === topRow.score && sorted[1].chip_tiles === topRow.chip_tiles;

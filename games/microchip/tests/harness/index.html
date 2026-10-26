@@ -313,7 +313,7 @@ async function run() {
       ],
     });
     check(root.querySelector('#mc_pool_section').hidden, 'pool section is hidden when pool is empty');
-    check(!root.querySelector('#mc_results').hidden && root.querySelectorAll('#mc_results tbody tr').length === 2, 'results table shows both players');
+    check(root.querySelector('#mc_results').hidden && root.querySelectorAll('#mc_results_modal tbody tr').length === 2, 'no table under the board; the popup lists both players');
     check(!root.querySelector('#mc_results_modal').hidden, 'results modal popup is shown after final scoring');
     check(!root.querySelector('#mc_scores_btn').hidden, 'scores button is visible after final scoring');
     const modalCard = root.querySelector('.mc_results_card');
