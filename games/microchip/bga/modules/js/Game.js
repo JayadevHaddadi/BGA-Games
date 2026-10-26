@@ -290,7 +290,7 @@ export class Game {
                 </div>
             </div>
             <section class="mc_block" aria-labelledby="mc_h_pool">
-                <div class="mc_head"><h3 id="mc_h_pool">${_('Pool')}</h3><span class="mc_note">${_('The right-hand column is the draw column.')}</span></div>
+                <div class="mc_head"><h3 id="mc_h_pool">${_('Pool')}</h3></div>
                 <div class="mc_pool" id="mc_pool"></div>
             </section>
             <div class="mc_main">
@@ -658,12 +658,24 @@ export class Game {
             const block = document.createElement('div');
             block.className = 'mc_pool_block';
             block.style.gridTemplateColumns = `repeat(${n}, minmax(0, 1fr))`;
+            const hasDraw = draw >= start && draw < start + n;
+            if (hasDraw) {
+                const colIdx = draw - start + 1;
+                const arrowCell = document.createElement('div');
+                arrowCell.className = 'mc_draw_arrow';
+                arrowCell.style.gridColumn = String(colIdx);
+                arrowCell.style.gridRow = '1';
+                arrowCell.setAttribute('aria-label', _('Draw column'));
+                arrowCell.setAttribute('title', _('Draw column'));
+                arrowCell.innerHTML = `<svg viewBox="0 0 24 24" class="mc_draw_arrow_svg" aria-hidden="true"><path d="M12 22L3 13h5.5V2h7v11H21L12 22z" fill="#d32f2f"/></svg>`;
+                block.appendChild(arrowCell);
+            }
             for (let c = start; c < start + n; c++) {
                 for (let r = 0; r < rows; r++) {
                     const cell = document.createElement('div');
                     cell.className = 'mc_pool_cell' + (c === draw ? ' mc_draw_col' : '');
                     cell.style.gridColumn = String(c - start + 1);
-                    cell.style.gridRow = String(r + 1);
+                    cell.style.gridRow = String(hasDraw ? r + 2 : r + 1);
                     const t = at.get(mcKey(r, c));
                     if (t) {
                         const btn = document.createElement('button');

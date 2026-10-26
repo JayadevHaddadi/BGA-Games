@@ -102,6 +102,20 @@ html, body, #microc_root, .mc_root, .mc_pool, .mc_main, .mc_mine, .mc_grid {
     max-width: 640px;
 }
 
+.mc_draw_arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    pointer-events: none;
+}
+
+.mc_draw_arrow_svg {
+    width: 28px;
+    height: 28px;
+    display: block;
+}
+
 .mc_pool_cell {
     position: relative;
     aspect-ratio: 1 / 1;

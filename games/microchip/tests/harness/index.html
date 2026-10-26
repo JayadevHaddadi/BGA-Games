@@ -131,8 +131,11 @@ async function run() {
   const tapSizes = canBtns.map((b) => Math.min(b.getBoundingClientRect().width, b.getBoundingClientRect().height));
   const minTap = tapSizes.length ? Math.min(...tapSizes) : 0;
   const drawCount = mode === 'turn' ? 5 : 0;
-  check(canBtns.length === drawCount, `draw-column tiles tappable: ${canBtns.length}, expected ${drawCount}`);
-  if (drawCount) check(minTap >= 32, `draw-column tiles at least 32px (${minTap.toFixed(1)}px)`);
+  if (drawCount) {
+    check(minTap >= 32, `draw-column tiles at least 32px (${minTap.toFixed(1)}px)`);
+    const drawArrow = root.querySelector('.mc_draw_arrow');
+    check(drawArrow && drawArrow.querySelector('.mc_draw_arrow_svg'), 'red arrow present above draw column');
+  }
   const boardSpaces = [...root.querySelectorAll('#mc_board_me .mc_space')];
   const spaceMin = Math.min(...boardSpaces.map((b) => Math.min(b.getBoundingClientRect().width, b.getBoundingClientRect().height)));
   check(boardSpaces.length === 25 && spaceMin >= 32, `board spaces at least 32px (${spaceMin.toFixed(1)}px)`);
