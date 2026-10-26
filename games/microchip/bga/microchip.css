@@ -688,17 +688,6 @@ button.mc_space {
     color: #1d1d1b;
 }
 
-.mc_results_close_btn {
-    border: 0;
-    background: none;
-    font-size: 20px;
-    font-weight: 700;
-    color: #4a4740;
-    cursor: pointer;
-    padding: 2px 6px;
-    margin: 0;
-    line-height: 1;
-}
 
 .mc_results_content {
     display: flex;

@@ -378,11 +378,10 @@ export class Game {
                 <div class="mc_results_card" role="dialog" aria-modal="true" aria-labelledby="mc_results_title">
                     <div class="mc_results_header">
                         <h3 id="mc_results_title" class="mc_results_title">${_('Final Score Calculation')}</h3>
-                        <button type="button" class="mc_results_close_btn" aria-label="${_('Close')}">&times;</button>
                     </div>
                     <div class="mc_results_content" id="mc_results_content"></div>
                     <div class="mc_results_footer">
-                        <button type="button" class="mc_results_dismiss_btn">${_('Close')}</button>
+                        <button type="button" class="mc_results_dismiss_btn">${_('Minimize')}</button>
                     </div>
                 </div>
             </div>
@@ -511,9 +510,8 @@ export class Game {
         const closeResults = () => { resultsModal.hidden = true; };
         scoresBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            resultsModal.hidden = false;
+            this.showResults();
         });
-        resultsModal.querySelector('.mc_results_close_btn').addEventListener('click', closeResults);
         resultsModal.querySelector('.mc_results_dismiss_btn').addEventListener('click', closeResults);
         resultsModal.querySelector('.mc_results_backdrop').addEventListener('click', closeResults);
 
@@ -1723,6 +1721,19 @@ export class Game {
         document.querySelectorAll('.mc_score_pop').forEach((el) => { el.style.animation = 'none'; });
     }
 
+    /** Opens the score popup centred on the game area (not the whole window, which includes BGA's right column). */
+    showResults() {
+        const modal = this.el.resultsModal;
+        const area = modal.parentElement; // the game root
+        const rect = area ? area.getBoundingClientRect() : null;
+        if (rect && rect.width > 0) {
+            modal.style.left = `${Math.max(0, rect.left)}px`;
+            modal.style.right = 'auto';
+            modal.style.width = `${Math.min(rect.width, window.innerWidth - Math.max(0, rect.left))}px`;
+        }
+        modal.hidden = false;
+    }
+
     wait(ms) {
         return new Promise((resolve) => setTimeout(resolve, ms));
     }
@@ -1775,7 +1786,7 @@ export class Game {
             this.el.scoresBtn.hidden = false;
         }
         if (this.el.resultsModal) {
-            this.el.resultsModal.hidden = false;
+            this.showResults();
         }
     }
 

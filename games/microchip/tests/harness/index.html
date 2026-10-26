@@ -321,7 +321,7 @@ async function run() {
     check(root.querySelectorAll('.mc_results_popup_table thead th').length === 4, 'score popup has four columns');
     check(modalCard.scrollWidth <= modalCard.clientWidth && modalCard.getBoundingClientRect().right <= window.innerWidth + 0.5 && doc.scrollWidth <= window.innerWidth, `score popup fits the width without horizontal overflow (card ${modalCard.scrollWidth}/${modalCard.clientWidth}, window ${window.innerWidth})`);
     check(root.querySelectorAll('.mc_res_winner').length === 1, 'winner row highlighted');
-    root.querySelector('.mc_results_close_btn').click();
+    root.querySelector('.mc_results_dismiss_btn').click();
     check(root.querySelector('#mc_results_modal').hidden, 'results modal is hidden after clicking close');
     root.querySelector('#mc_scores_btn').click();
     check(!root.querySelector('#mc_results_modal').hidden, 'results modal is reopened after clicking scores button');
