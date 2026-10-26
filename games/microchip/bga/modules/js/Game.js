@@ -101,7 +101,7 @@ function mcStructures(placed) {
 
 /** Real-time board scoring (same as Rules::scoreBoard). */
 function mcScoreBoard(placed, owned) {
-    let best = { value: 0, tiles: 0, chip: [] };
+    let best = { value: 0, tiles: 0, chip: [], open: 0 };
     let openCount = 0;
     const groups = mcStructures(placed);
     for (const group of groups) {
@@ -123,11 +123,24 @@ function mcScoreBoard(placed, owned) {
         }
         if (open > 0) {
             openCount++;
-            continue;
         }
         const tiles = group.length;
-        if (value > best.value || (value === best.value && tiles > best.tiles)) {
-            best = { value, tiles, chip: group };
+        if (tiles < 2) {
+            continue;
+        }
+        let isBetter = false;
+        if (tiles > best.tiles) {
+            isBetter = true;
+        } else if (tiles === best.tiles && tiles > 0) {
+            const bestOpen = best.open || 0;
+            if (open === 0 && bestOpen > 0) {
+                isBetter = true;
+            } else if ((open === 0) === (bestOpen === 0) && value > best.value) {
+                isBetter = true;
+            }
+        }
+        if (isBetter) {
+            best = { value, tiles, chip: group, open };
         }
     }
     const unused = owned - best.tiles;
@@ -224,6 +237,28 @@ export class Game {
         // Without this call the interface only updates after a page refresh (AGENTS.md mistake 12).
         this.bga.notifications.setupPromiseNotifications({});
         this.renderAll();
+
+        if (Number(gamedatas.gamestate?.id) === 99) {
+            const rows = this.order.map((pid) => {
+                const placedList = this.boardTiles(pid);
+                const placedMap = {};
+                placedList.forEach((t) => { placedMap[mcKey(t.r, t.c)] = { shape: t.shape, rot: t.rot }; });
+                const owned = placedList.length + this.trayTiles(pid).length;
+                const s = mcScoreBoard(placedMap, owned);
+                return {
+                    player_id: pid,
+                    score: s.score,
+                    value: s.value,
+                    chip_tiles: s.chip_tiles,
+                    unused: s.unused,
+                    chip: s.chip,
+                };
+            });
+            rows.forEach((row) => {
+                this.chipKeys[row.player_id] = new Set(row.chip);
+            });
+            this.renderResults(rows);
+        }
     }
 
     /* ------------------------------------------------------------------------------------------ */
@@ -248,7 +283,7 @@ export class Game {
                             <span class="mc_rule_icon" aria-hidden="true">${MC_ICONS.goal}</span>
                             <div class="mc_rule_body">
                                 <strong>${_('Goal')}</strong>
-                                <p>${_('Build one closed microchip on your board from the tiles you collect.')}</p>
+                                <p>${_('Build the largest microchip structure on your board from the tiles you collect.')}</p>
                             </div>
                         </div>
                         <div class="mc_rule_row">
@@ -275,15 +310,15 @@ export class Game {
                         <div class="mc_rule_row">
                             <span class="mc_rule_icon" aria-hidden="true">${MC_ICONS.chip}</span>
                             <div class="mc_rule_body">
-                                <strong>${_('Closed Microchip')}</strong>
-                                <p>${_('A connected group of tiles with ZERO open ends (every path connects into another tile or terminates in an End pad).')}</p>
+                                <strong>${_('Largest Structure')}</strong>
+                                <p>${_('Your microchip is your largest connected structure (most tiles). Ties prefer closed structures and higher connection values.')}</p>
                             </div>
                         </div>
                         <div class="mc_rule_row">
                             <span class="mc_rule_icon" aria-hidden="true">${MC_ICONS.scoring}</span>
                             <div class="mc_rule_body">
                                 <strong>${_('Scoring')}</strong>
-                                <p>${_('Score = (connections in your single best closed microchip) minus 2 points per unused tile outside it. Highest score wins.')}</p>
+                                <p>${_('Score = (connections in your largest structure) minus 2 points per unused tile outside it. Highest score wins.')}</p>
                             </div>
                         </div>
                     </div>
@@ -708,6 +743,7 @@ export class Game {
         list.forEach((pid) => {
             const card = document.createElement('div');
             card.className = 'mc_other';
+            card.dataset.pid = String(pid);
             card.title = this.playerName(pid);
             card.innerHTML = this.boardHTML(pid, false);
             this.el.boards.appendChild(card);
@@ -771,8 +807,8 @@ export class Game {
 
     placedHTML(t, cls, interactive) {
         const pos = `left:${t.c * 20}%;top:${t.r * 20}%`;
-        const attrs = interactive ? ` data-id="${t.id}" role="button" tabindex="0" aria-label="${this.colourLabel(t.colour)} ${this.shapeLabel(t.shape)}"` : '';
-        return `<div class="${cls}" style="${pos}"${attrs}>${mcTileHTML(t.colour, t.shape, t.rot)}</div>`;
+        const attrs = interactive ? ` role="button" tabindex="0" aria-label="${this.colourLabel(t.colour)} ${this.shapeLabel(t.shape)}"` : '';
+        return `<div class="${cls}" style="${pos}" data-id="${t.id}" data-key="${t.r},${t.c}"${attrs}>${mcTileHTML(t.colour, t.shape, t.rot)}</div>`;
     }
 
     spaceOccupied(r, c, exceptId) {
@@ -1343,17 +1379,146 @@ export class Game {
         this.renderAll();
     }
 
-    notif_finalScoring(args) {
+    async notif_finalScoring(args) {
         this.amActive = false;
         this.sel = null;
         this.chipKeys = {};
         args.rows.forEach((row) => {
-            this.chipKeys[row.player_id] = new Set(row.chip);
-            const counter = this.bga?.playerPanels?.getScoreCounter?.(row.player_id);
-            if (counter && typeof counter.toValue === 'function') counter.toValue(row.score);
+            this.chipKeys[Number(row.player_id)] = new Set(row.chip);
         });
-        this.renderResults(args.rows);
         this.renderAll();
+
+        await this.playScoringAnimation(args.rows);
+
+        this.renderResults(args.rows);
+    }
+
+    async playScoringAnimation(rows) {
+        for (const row of rows) {
+            const pid = Number(row.player_id);
+            const pName = this.playerName(pid);
+            const counter = this.bga?.playerPanels?.getScoreCounter?.(pid);
+            const panelEl = this.bga?.playerPanels?.getElement?.(pid);
+
+            if (panelEl) {
+                panelEl.style.outline = '2px solid #0056b3';
+            }
+            if (counter && typeof counter.setValue === 'function') {
+                counter.setValue(0);
+            }
+            let runningScore = 0;
+
+            const boards = [];
+            if (pid === this.me && this.el.board) {
+                boards.push(this.el.board);
+            }
+            const panelBoard = panelEl?.querySelector('.mc_panel_board');
+            if (panelBoard) boards.push(panelBoard);
+            if (this.el.boards) {
+                const otherCard = this.el.boards.querySelector(`.mc_other[data-pid="${pid}"]`);
+                if (otherCard) boards.push(otherCard);
+            }
+
+            const chipSet = new Set(row.chip || []);
+            const steps = [];
+
+            // 1. Chip tiles: positive points
+            (row.chip || []).forEach((key) => {
+                const t = this.boardTiles(pid).find((tile) => mcKey(tile.r, tile.c) === key);
+                if (t) {
+                    const conn = mcConn(t.shape, t.rot);
+                    let pts = 0;
+                    conn.forEach((on) => { if (on) pts++; });
+                    steps.push({ type: 'chip', key, pts, tile: t });
+                }
+            });
+
+            // 2. Placed tiles outside microchip: -2
+            this.boardTiles(pid).forEach((t) => {
+                const key = mcKey(t.r, t.c);
+                if (!chipSet.has(key)) {
+                    steps.push({ type: 'outside', key, pts: -2, tile: t });
+                }
+            });
+
+            // 3. Unused tiles in tray: -2
+            this.trayTiles(pid).forEach((t) => {
+                steps.push({ type: 'tray', pts: -2, tile: t });
+            });
+
+            // Duration: aim for ~4.5 seconds total for this player
+            const totalItems = Math.max(1, steps.length);
+            const stepDelay = Math.min(320, Math.max(80, Math.round(4200 / totalItems)));
+
+            this.bga?.statusBar?.setTitle?.(_('Calculating score for ${player}...'), { player: pName });
+
+            for (const step of steps) {
+                if (step.type === 'chip' || step.type === 'outside') {
+                    const isPos = step.pts > 0;
+                    boards.forEach((b) => {
+                        const tileEl = b.querySelector(`.mc_placed[data-key="${step.key}"]`);
+                        if (tileEl) {
+                            const pop = document.createElement('div');
+                            pop.className = `mc_score_pop ${isPos ? 'mc_pop_pos' : 'mc_pop_neg'}`;
+                            pop.textContent = isPos ? `+${step.pts}` : `${step.pts}`;
+                            tileEl.appendChild(pop);
+                        }
+                    });
+                } else if (step.type === 'tray') {
+                    if (pid === this.me && this.el.tray) {
+                        const trayTileEl = this.el.tray.querySelector(`.mc_tray_tile[data-id="${step.tile.id}"]`);
+                        if (trayTileEl) {
+                            const pop = document.createElement('div');
+                            pop.className = 'mc_score_pop mc_pop_neg';
+                            pop.textContent = '-2';
+                            trayTileEl.appendChild(pop);
+                        }
+                    } else if (panelEl) {
+                        const panelLine = panelEl.querySelector('.mc_panel_line');
+                        if (panelLine) {
+                            const pop = document.createElement('span');
+                            pop.className = 'mc_score_pop mc_pop_neg';
+                            pop.style.position = 'relative';
+                            pop.style.display = 'inline-block';
+                            pop.style.verticalAlign = 'middle';
+                            pop.style.transform = 'none';
+                            pop.style.margin = '1px 2px';
+                            pop.textContent = '-2';
+                            panelLine.appendChild(pop);
+                        }
+                    }
+                }
+
+                runningScore += step.pts;
+                if (counter && typeof counter.setValue === 'function') {
+                    counter.setValue(runningScore);
+                }
+
+                await this.wait(stepDelay);
+            }
+
+            if (counter && typeof counter.toValue === 'function') {
+                counter.toValue(row.score);
+            } else if (counter && typeof counter.setValue === 'function') {
+                counter.setValue(row.score);
+            }
+
+            if (panelEl) {
+                panelEl.style.outline = '';
+            }
+
+            this.bga?.statusBar?.setTitle?.(_('${player}: final score ${score} (${tiles} in microchip)'), {
+                player: pName,
+                score: row.score,
+                tiles: row.chip_tiles,
+            });
+
+            await this.wait(700);
+        }
+    }
+
+    wait(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
     }
 
     renderResults(rows) {

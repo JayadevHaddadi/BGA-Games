@@ -350,6 +350,7 @@ button.mc_space {
 }
 
 .mc_tray .mc_tile_btn {
+    position: relative;
     width: 56px;
     height: 56px;
     min-width: 56px;
@@ -601,3 +602,67 @@ button.mc_space {
 .mc_rule_body p {
     margin: 0;
 }
+
+/* ---------- Scoring calculation animation ---------- */
+
+.mc_score_pop {
+    position: absolute;
+    z-index: 30;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    min-width: 26px;
+    height: 24px;
+    line-height: 22px;
+    padding: 0 4px;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: center;
+    border-radius: 3px;
+    box-sizing: border-box;
+    pointer-events: none;
+    animation: mcScorePopIn 0.22s ease-out;
+}
+
+.mc_score_pop.mc_pop_pos {
+    background: #1b5e20;
+    color: #ffffff;
+    border: 1px solid #0d3813;
+}
+
+.mc_score_pop.mc_pop_neg {
+    background: #b71c1c;
+    color: #ffffff;
+    border: 1px solid #7f0000;
+}
+
+.mc_small .mc_score_pop {
+    min-width: 16px;
+    height: 14px;
+    line-height: 12px;
+    font-size: 10px;
+    padding: 0 2px;
+}
+
+@keyframes mcScorePopIn {
+    0% {
+        transform: translate(-50%, -50%) scale(0.2);
+        opacity: 0;
+    }
+    80% {
+        transform: translate(-50%, -50%) scale(1.15);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mc_score_pop {
+        animation: none;
+    }
+}
+
+

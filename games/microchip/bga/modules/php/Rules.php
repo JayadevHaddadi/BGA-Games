@@ -268,15 +268,15 @@ final class Rules
     /**
      * Scores one player's board.
      *
-     * A microchip is a structure with no open connection (every path meets a tile). The most valuable microchip
-     * counts; ties go to the one with more tiles. Every owned tile outside it costs 2 points.
+     * The largest connected structure (most tiles, >= 2) counts as the microchip. Ties prefer closed structures
+     * (no open paths) and then higher total connection value. Every owned tile outside it costs 2 points.
      *
      * @param array<string, array{shape:string, rot:int}> $placed
      * @return array{score:int, value:int, chip_tiles:int, chip:string[], unused:int, owned:int, open:int}
      */
     public static function scoreBoard(array $placed, int $owned): array
     {
-        $best = ['value' => 0, 'tiles' => 0, 'chip' => []];
+        $best = ['value' => 0, 'tiles' => 0, 'chip' => [], 'open' => 0];
         $openCount = 0;
         foreach (self::structures($placed) as $group) {
             $value = 0;
@@ -295,11 +295,24 @@ final class Rules
             }
             if ($open > 0) {
                 $openCount++;
-                continue;
             }
             $tiles = count($group);
-            if ($value > $best['value'] || ($value === $best['value'] && $tiles > $best['tiles'])) {
-                $best = ['value' => $value, 'tiles' => $tiles, 'chip' => $group];
+            if ($tiles < 2) {
+                continue;
+            }
+            $isBetter = false;
+            if ($tiles > $best['tiles']) {
+                $isBetter = true;
+            } elseif ($tiles === $best['tiles'] && $tiles > 0) {
+                $bestOpen = $best['open'] ?? 0;
+                if ($open === 0 && $bestOpen > 0) {
+                    $isBetter = true;
+                } elseif (($open === 0) === ($bestOpen === 0) && $value > $best['value']) {
+                    $isBetter = true;
+                }
+            }
+            if ($isBetter) {
+                $best = ['value' => $value, 'tiles' => $tiles, 'chip' => $group, 'open' => $open];
             }
         }
         $unused = $owned - $best['tiles'];
