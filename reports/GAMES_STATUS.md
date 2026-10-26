@@ -1,21 +1,21 @@
 # Games status board
 
-Generated 2026-10-26 22:13 by `python3 tools/status_board.py`. Do not edit by hand:
+Generated 2026-10-26 22:20 by `python3 tools/status_board.py`. Do not edit by hand:
 licence and notes come from `tools/games_registry.json`, everything else is read live.
 
 | Game | Studio slug | BGA stage | Production release | Unreleased | Help wiki | Licence | Live tests | Next step / notes |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | Kiln | `kiln` | alpha | 261026-0917 | none | in sync | granted | - | Beta requested 19 Oct, Nestor confirmed; waiting for BGA |
 | Omega | `omega` | alpha | 261025-1537 | none | in sync | granted (2024) | - | Public alpha since 21 Oct; tutorial video at beta (Digital Board Gamer) |
-| Yavalath | `yavalath` | alpha | 261025-1537 | 2 commits | differs | Cameron approved; BGA says a submission already exists | - | Beta requested; licence entry to be sorted with BGA |
+| Yavalath | `yavalath` | alpha | 261026-1744 | 1 commits | in sync | Cameron approved; BGA says a submission already exists | - | Beta requested; licence entry to be sorted with BGA |
 | Sugar Gliders | `sugargliders` | alpha | 261026-0928 | none | in sync | granted | - | Public alpha since 20 Oct |
 | Gardens of Io | `gardensofio` | alpha | 261026-0929 | none | in sync | given by Nestor | PASS 2p, 5p, all scenarios (2026-10-21) | Beta requested 21 Oct; BGA will ask Nestor to confirm |
 | Gardens of Enceladus | `gardensofenceladus` | private_alpha | 261021-1533 | none | in sync | given by Nestor | PASS 2p, 5p (replay skipped: no Studio archive) (2026-10-19) | Public alpha requested 21 Oct |
 | People | `people` | private_alpha | 261026-0929 | none | in sync | Nestor thinks given (check BGA list) | PASS 2p (all), 4p (replay skipped) (2026-10-19) | Public alpha requested 22 Oct |
-| Pent-Up | `pentup` | private_alpha | 261026-0931 | 1 commits | in sync | on file (2024) | PASS 2p (replay skipped: no Studio archive) (2026-10-23) | Public alpha requested 23 Oct |
-| Microchip | `microchip` | private_alpha | 261026-1556 | 1 commits | in sync | given by Nestor | PASS 2p, 5p, all scenarios (2026-10-19) | Solo puzzle not implemented yet |
-| Red | `red` | private_alpha | 261024-1823 | 2 commits | in sync | Nestor thinks given (check BGA list) | PASS 3p (all), 2p (replay skipped) (2026-10-19) |  |
-| Hippos & Crocodiles | `hipposcrocodiles` | private_alpha | 261024-1847 | 11 commits | in sync | MISSING: Nestor must register (BGG 51197) | PASS 2p, all scenarios incl. replay (2026-10-19) | Private alpha requested 23 Oct; old project hipposandcrocodiles can be deleted |
+| Pent-Up | `pentup` | private_alpha | 261026-1739 | none | in sync | on file (2024) | PASS 2p (replay skipped: no Studio archive) (2026-10-23) | Public alpha requested 23 Oct |
+| Microchip | `microchip` | private_alpha | 261026-1738 | none | in sync | given by Nestor | PASS 2p, 5p, all scenarios (2026-10-19) | Solo puzzle not implemented yet |
+| Red | `red` | private_alpha | 261026-1738 | none | in sync | Nestor thinks given (check BGA list) | PASS 3p (all), 2p (replay skipped) (2026-10-19) |  |
+| Hippos & Crocodiles | `hipposcrocodiles` | private_alpha | 261026-1739 | none | in sync | MISSING: Nestor must register (BGG 51197) | PASS 2p, all scenarios incl. replay (2026-10-19) | Private alpha requested 23 Oct; old project hipposandcrocodiles can be deleted |
 | Vault (nestorgames) | `vaultnestorgames` | private_alpha | 261026-1558 | none | in sync | granted | Pending first live run (2026-10-24) | Default board 8x8 (owner decision) |
 | Gardens of Mars | `gardensofmars` | studio only | - | 47 commits | in sync | given by Nestor | - | Private alpha requested 9 Oct (reminder 19 Oct) |
 | Gardens of Uranus | `gardensofuranus` | studio only | - | 45 commits | in sync | granted | - | Private alpha requested 2 Oct (reminder 19 Oct) |

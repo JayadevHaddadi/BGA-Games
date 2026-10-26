@@ -25,8 +25,8 @@
  },
  "yavalath": {
   "stage": "alpha",
-  "prod": "261025-1537",
-  "unreleased": "2 commits",
+  "prod": "261026-1744",
+  "unreleased": "1 commits",
   "status": "NEEDS_DEPLOY"
  },
  "kiln": {
@@ -79,15 +79,15 @@
  },
  "red": {
   "stage": "private_alpha",
-  "prod": "261024-1823",
-  "unreleased": "2 commits",
-  "status": "NEEDS_DEPLOY"
+  "prod": "261026-1738",
+  "unreleased": "None",
+  "status": "UP_TO_DATE"
  },
  "microchip": {
   "stage": "private_alpha",
-  "prod": "261026-1556",
-  "unreleased": "1 commits",
-  "status": "NEEDS_DEPLOY"
+  "prod": "261026-1738",
+  "unreleased": "None",
+  "status": "UP_TO_DATE"
  },
  "people": {
   "stage": "private_alpha",
@@ -97,20 +97,38 @@
  },
  "hipposcrocodiles": {
   "stage": "private_alpha",
-  "prod": "261024-1847",
-  "unreleased": "11 commits",
-  "status": "NEEDS_DEPLOY"
+  "prod": "261026-1739",
+  "unreleased": "None",
+  "status": "UP_TO_DATE"
  },
  "pentup": {
   "stage": "private_alpha",
-  "prod": "261026-0931",
-  "unreleased": "1 commits",
-  "status": "NEEDS_DEPLOY"
+  "prod": "261026-1739",
+  "unreleased": "None",
+  "status": "UP_TO_DATE"
  },
  "vaultnestorgames": {
   "stage": "private_alpha",
   "prod": "261026-1558",
   "unreleased": "None",
   "status": "UP_TO_DATE"
+ },
+ "pushfighttest": {
+  "stage": "None",
+  "prod": "None",
+  "unreleased": "25 commits",
+  "status": "SKIPPED"
+ },
+ "omegatest": {
+  "stage": "None",
+  "prod": "None",
+  "unreleased": "24 commits",
+  "status": "SKIPPED"
+ },
+ "microforgetest": {
+  "stage": "None",
+  "prod": "None",
+  "unreleased": "37 commits",
+  "status": "SKIPPED"
  }
 }
