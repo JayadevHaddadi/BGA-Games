@@ -289,7 +289,11 @@ class StatePlayerTurnSell {
             if (this.completedRows.length === 0 && this.completedCols.length === 0 && !this.askEndTurn()) {
                 // Nothing to sell and the player chose to skip the final confirmation
                 this.game.clearActionButtons();
-                this.bga.actions.performAction('actPassSell', {});
+                // Deferred and re-checked: when states fly by (zombie / debug autoplay, catching up after a refresh) this
+                // state may already be over, and a pass sent from a stale state is refused by the server with an HTTP 500.
+                setTimeout(() => {
+                    if (this.game.isSellStateActive) this.bga.actions.performAction('actPassSell', {});
+                }, 400);
                 return;
             }
             // Default selection: whichever has more points (rows by default, or cols if more cols)
