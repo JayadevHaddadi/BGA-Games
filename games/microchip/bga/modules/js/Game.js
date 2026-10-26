@@ -67,12 +67,24 @@ function mcProblem(spaces, placed, colour, shape, rot, r, c) {
 }
 
 function mcTileHTML(colour, shape, rot) {
-    const conn = mcConn(shape, rot);
     let paths = '';
-    conn.forEach((on, side) => {
-        if (on) paths += `<line x1="50" y1="50" x2="${MC_ENDS[side][0]}" y2="${MC_ENDS[side][1]}"/>`;
-    });
-    if (shape === 'end') paths += '<rect x="34" y="34" width="32" height="32" stroke="none"/>';
+    if (shape === 'corner') {
+        const d = 20;
+        const s1 = (1 + rot) % 4;
+        const s2 = (2 + rot) % 4;
+        const near = [[50, 50 - d], [50 + d, 50], [50, 50 + d], [50 - d, 50]];
+        const pStart = MC_ENDS[s1];
+        const pMid1 = near[s1];
+        const pMid2 = near[s2];
+        const pEnd = MC_ENDS[s2];
+        paths = `<path d="M ${pStart[0]} ${pStart[1]} L ${pMid1[0]} ${pMid1[1]} Q 50 50 ${pMid2[0]} ${pMid2[1]} L ${pEnd[0]} ${pEnd[1]}" fill="none"/>`;
+    } else {
+        const conn = mcConn(shape, rot);
+        conn.forEach((on, side) => {
+            if (on) paths += `<line x1="50" y1="50" x2="${MC_ENDS[side][0]}" y2="${MC_ENDS[side][1]}"/>`;
+        });
+        if (shape === 'end') paths += '<rect x="34" y="34" width="32" height="32" stroke="none"/>';
+    }
     const ink = colour === 'yellow' ? '#1d1d1b' : '#ffffff';
     return `<svg class="mc_tile_svg" viewBox="0 0 100 100" aria-hidden="true" focusable="false">`
         + `<rect x="1" y="1" width="98" height="98" rx="3" fill="${MC_TILE_FILL[colour]}"/>`
