@@ -402,6 +402,11 @@ class Game extends \Bga\GameFramework\Table
         static::DbQuery("UPDATE `player_state` SET `finished` = 1 WHERE `player_id` = $pid");
     }
 
+    public function setUnfinished(int $pid): void
+    {
+        static::DbQuery("UPDATE `player_state` SET `finished` = 0 WHERE `player_id` = $pid");
+    }
+
     /** Live score: what the board is worth if the game ended now (microchip value, minus 2 per tile outside it). */
     public function refreshScore(int $pid): void
     {

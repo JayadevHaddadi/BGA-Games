@@ -900,6 +900,10 @@ export class Game {
     }
 
     onTrayTile(id) {
+        if (this.me !== null && this.finished[this.me]) {
+            this.hint(_('You have finished. Tap "Resume building" to adjust your tiles.'));
+            return;
+        }
         if (!this.canAct()) return;
         this.hint('');
         this.sel = this.sel && this.sel.id === id ? null : { id, from: 'tray', rot: 0, r: null, c: null };
@@ -907,6 +911,10 @@ export class Game {
     }
 
     onBoardClick(e) {
+        if (this.me !== null && this.finished[this.me]) {
+            this.hint(_('You have finished. Tap "Resume building" to adjust your tiles.'));
+            return;
+        }
         if (!this.canAct()) return;
         const placed = e.target.closest('.mc_placed[data-id]');
         if (placed) {
@@ -1060,6 +1068,15 @@ export class Game {
 
     refreshButtons() {
         this.bga.statusBar.removeActionButtons();
+        if (this.me === null) return;
+
+        if (this.finished[this.me]) {
+            if (this.amActive) {
+                this.bga.statusBar.addActionButton(_('Resume building'), () => this.doResume(), { color: 'alert' });
+            }
+            return;
+        }
+
         if (!this.canAct()) return;
 
         const s = this.sel;
@@ -1124,6 +1141,11 @@ export class Game {
     doFinish() {
         this.finishPending = false;
         this.bga.actions.performAction('actFinish', {});
+    }
+
+    doResume() {
+        this.finishPending = false;
+        this.bga.actions.performAction('actResume', {});
     }
 
     /* ------------------------------------------------------------------------------------------ */
@@ -1308,7 +1330,15 @@ export class Game {
         this.finished[Number(args.player_id)] = true;
         if (Number(args.player_id) === this.me) {
             this.sel = null;
-            this.amActive = false;
+            this.finishPending = false;
+        }
+        this.renderAll();
+    }
+
+    notif_playerResumed(args) {
+        this.finished[Number(args.player_id)] = false;
+        if (Number(args.player_id) === this.me) {
+            this.finishPending = false;
         }
         this.renderAll();
     }

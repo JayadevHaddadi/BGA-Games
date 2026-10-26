@@ -274,8 +274,27 @@ class Play extends GameState
             'player_id' => $pid,
             'player_name' => $this->game->getPlayerNameById($pid),
         ]);
-        // When this was the last player to finish, the framework moves on to EndScore.
-        $this->gamestate->setPlayerNonMultiactive($pid, EndScore::class);
+
+        $open = array_values(array_filter($this->game->playerOrder(), fn($id) => !$this->game->isFinished($id)));
+        if (empty($open)) {
+            $this->gamestate->setPlayersMultiactive([], EndScore::class, true);
+            return EndScore::class;
+        }
+        return null;
+    }
+
+    #[PossibleAction]
+    public function actResume(): ?string
+    {
+        $pid = $this->currentPlayer();
+        if (!$this->game->poolEmpty()) {
+            throw new UserException(clienttranslate('The pool is not empty yet.'));
+        }
+        $this->game->setUnfinished($pid);
+        $this->notify->all('playerResumed', clienttranslate('${player_name} resumed building.'), [
+            'player_id' => $pid,
+            'player_name' => $this->game->getPlayerNameById($pid),
+        ]);
         return null;
     }
 
@@ -303,6 +322,7 @@ class Play extends GameState
                         'next_drawer' => $info['next_drawer'],
                         'draw_column' => $info['draw_column'],
                         'pool_left' => $info['pool_left'],
+                        'score' => $this->game->playerScore->get($playerId),
                         'i18n' => ['colour_name', 'shape_name'],
                     ]);
                     break;
@@ -313,6 +333,11 @@ class Play extends GameState
             }
         }
         $this->game->setFinished($playerId);
+        $open = array_values(array_filter($this->game->playerOrder(), fn($id) => !$this->game->isFinished($id)));
+        if (empty($open)) {
+            $this->gamestate->setPlayersMultiactive([], EndScore::class, true);
+            return null;
+        }
         $this->gamestate->setPlayerNonMultiactive($playerId, EndScore::class);
         return null;
     }

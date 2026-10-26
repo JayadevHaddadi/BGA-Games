@@ -247,9 +247,16 @@ async function run() {
     check(labels().includes('Confirm finish') && labels().includes('Cancel'), `confirm step: ${labels()}`);
     press('Confirm finish');
     const fin = calls[calls.length - 1];
-    check(fin && fin.name === 'actFinish', `actFinish sent (${JSON.stringify(fin)})`);
     game.notif_playerFinished({ player_id: 1 });
-    check(!labels().includes('Finish') && !labels().includes('Confirm finish'), 'no build buttons after finishing');
+    check(!labels().includes('Finish') && labels().includes('Resume building'), 'Resume building offered while waiting for other players');
+    press('Resume building');
+    const resCall = calls[calls.length - 1];
+    check(resCall && resCall.name === 'actResume', `actResume sent (${JSON.stringify(resCall)})`);
+    game.notif_playerResumed({ player_id: 1 });
+    check(labels().includes('Finish'), 'Finish button returns after resuming');
+    press('Finish');
+    press('Confirm finish');
+    game.notif_playerFinished({ player_id: 1 });
     game.notif_finalScoring({
       rows: [
         { player_id: 1, score: 0, value: 2, chip_tiles: 2, unused: 1, owned: 3, chip: ['0,0', '0,1'] },
