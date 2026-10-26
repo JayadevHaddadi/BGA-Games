@@ -20,3 +20,11 @@ Real Game.php run headless on the shared SQLite stub (tests/stubs.php), policies
 3. Game is a non-interactive mission race (sim): greedy "expand" (move, buy bots, buy missions) wins by round ~10 with 0 attacks, 0 buildings. corr(win, claims)=0.66-0.73; combat/building usage has ~0 correlation with winning. Level 2 (2 VP) missions are ~20% of claims.
 4. Market arbitrage (sim): iron(3) -> Factory (1 Credit) -> 2 bots sold at 5 = +6 Credits per Factory per turn. With bots/mechs not sellable the money pump disappears (arb policy falls from 65-70% to 4-22% win share); a 60% sell spread is NOT enough (still 65-70%), a 40% spread is.
 5. Combat (sim): at 2p a mech raider wins 77-79% against an expander in every variant tried (strongly dominant); at 3p 35-51%; at 4-6p it loses (8-14% vs fair 17-25%). So war is overpowered at 2p and a tax at 4-6p. Adding conflict missions (enemy home held, strongest army) makes 4-6p raiding fair (16-19%) but leaves 2p at 77%. Push 3x/kill 4x makes raiding lose everywhere (38% at 2p, 22% at 3p, 4-11% at 4-6p).
+
+## 4. Interim results (large runs, 480-3200 games per cell, "finish the round" on)
+Variants: cur = current rules + finish-round; rec = fixed dead missions + 14-card decks + conflict missions (hold an enemy Home, largest army) + bots/mechs not sellable + defenders need 3x power to be removed (push 3x = kill 3x).
+- Arbitrage player ("fin": iron -> Factory -> sell bots) wins 94-100% of tables against greedy expanders at every player count under current rules (finishes in ~8 rounds instead of 10.5). Under rec it wins 6-16%.
+- Mech raider vs expanders (fair = 50/33/25/20/17%): current 74/40/13/15/18%; rec 49/34/15/13/-%. Raiding is a 2p killer today and a tax at 4-6p even after fixes.
+- 2p seat 1 wins 61% even with finish-round; giving seat 2 +2 starting Credits gives 49/51 (3200 games). At 3-6p finish-round alone gives flat seats (3p 32/35/33, 6p 15/17/17/17/16/18).
+- VP target 4 at 4-6p: 8.8 rounds instead of 10.1, seats stay flat.
+(Details and the remaining Advanced / miner experiments follow in the final version of this file.)
