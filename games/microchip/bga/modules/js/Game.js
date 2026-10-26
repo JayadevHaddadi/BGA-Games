@@ -26,6 +26,15 @@ const MC_SYM = {
     pink: '<path d="M37 6 H63 V37 H94 V63 H63 V94 H37 V63 H6 V37 H37 Z"/>',
 };
 
+const MC_ICONS = {
+    goal: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
+    draw: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 8v8M8 12l4 4 4-4"/></svg>',
+    arrange: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>',
+    placement: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>',
+    chip: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="1"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M1 9h3M1 15h3M20 9h3M20 15h3"/></svg>',
+    scoring: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H3a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h3"/><path d="M18 9h3a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2h-3"/><path d="M4 22h16"/><path d="M10 22V14.5a3.5 3.5 0 0 1 4 0V22"/><path d="M6 2h12v7a6 6 0 0 1-12 0V2z"/></svg>',
+};
+
 const mcKey = (r, c) => `${r},${c}`;
 const mcCoord = (r, c) => `${String.fromCharCode(65 + c)}${r + 1}`;
 const mcInside = (r, c) => r >= 0 && r < MC_SIZE && c >= 0 && c < MC_SIZE;
@@ -137,6 +146,60 @@ export class Game {
         root.id = 'microc_root';
         root.className = 'mc_root';
         root.innerHTML = `
+            <button type="button" id="mc_rules_btn" class="mc_rules_btn" aria-label="${_('Rules summary')}" title="${_('Rules summary')}">?</button>
+            <div id="mc_rules_modal" class="mc_rules_modal" hidden>
+                <div class="mc_rules_backdrop"></div>
+                <div class="mc_rules_card" role="dialog" aria-modal="true" aria-labelledby="mc_rules_title">
+                    <div class="mc_rules_header">
+                        <h3 id="mc_rules_title" class="mc_rules_title">${_('Microchip Rules')}</h3>
+                        <button type="button" class="mc_rules_close_btn" aria-label="${_('Close')}">&times;</button>
+                    </div>
+                    <div class="mc_rules_content">
+                        <div class="mc_rule_row">
+                            <span class="mc_rule_icon" aria-hidden="true">${MC_ICONS.goal}</span>
+                            <div class="mc_rule_body">
+                                <strong>${_('Goal')}</strong>
+                                <p>${_('Build one closed microchip on your board from the tiles you collect.')}</p>
+                            </div>
+                        </div>
+                        <div class="mc_rule_row">
+                            <span class="mc_rule_icon" aria-hidden="true">${MC_ICONS.draw}</span>
+                            <div class="mc_rule_body">
+                                <strong>${_('Draw')}</strong>
+                                <p>${_('On your turn, draw one tile from the rightmost active column of the pool. (If only 1 option remains, it is given automatically).')}</p>
+                            </div>
+                        </div>
+                        <div class="mc_rule_row">
+                            <span class="mc_rule_icon" aria-hidden="true">${MC_ICONS.arrange}</span>
+                            <div class="mc_rule_body">
+                                <strong>${_('Arrange')}</strong>
+                                <p>${_('At any time, stage tiles on your board, click to rotate, move them, or put them back in your tray.')}</p>
+                            </div>
+                        </div>
+                        <div class="mc_rule_row">
+                            <span class="mc_rule_icon" aria-hidden="true">${MC_ICONS.placement}</span>
+                            <div class="mc_rule_body">
+                                <strong>${_('Placement Rules')}</strong>
+                                <p>${_('Tile colour must match space colour. Connections facing neighbours must match (path to path, blank to blank). No paths pointing off board edges.')}</p>
+                            </div>
+                        </div>
+                        <div class="mc_rule_row">
+                            <span class="mc_rule_icon" aria-hidden="true">${MC_ICONS.chip}</span>
+                            <div class="mc_rule_body">
+                                <strong>${_('Closed Microchip')}</strong>
+                                <p>${_('A connected group of tiles with ZERO open ends (every path connects into another tile or terminates in an End pad).')}</p>
+                            </div>
+                        </div>
+                        <div class="mc_rule_row">
+                            <span class="mc_rule_icon" aria-hidden="true">${MC_ICONS.scoring}</span>
+                            <div class="mc_rule_body">
+                                <strong>${_('Scoring')}</strong>
+                                <p>${_('Score = (connections in your single best closed microchip) minus 2 points per unused tile outside it. Highest score wins.')}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <section class="mc_block" aria-labelledby="mc_h_pool">
                 <div class="mc_head"><h3 id="mc_h_pool">${_('Pool')}</h3><span class="mc_note">${_('The right-hand column is the draw column.')}</span></div>
                 <div class="mc_pool" id="mc_pool"></div>
@@ -217,6 +280,20 @@ export class Game {
                 }
             }).observe(root);
         }
+
+        const rulesBtn = root.querySelector('#mc_rules_btn');
+        const rulesModal = root.querySelector('#mc_rules_modal');
+        const closeRules = () => { rulesModal.hidden = true; };
+        rulesBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            rulesModal.hidden = false;
+        });
+        rulesModal.querySelector('.mc_rules_close_btn').addEventListener('click', closeRules);
+        rulesModal.querySelector('.mc_rules_backdrop').addEventListener('click', closeRules);
+        window.addEventListener('keydown', (e) => {
+            if (e.target?.matches?.('input, textarea, [contenteditable]')) return;
+            if (e.key === 'Escape' && !rulesModal.hidden) closeRules();
+        });
     }
 
     viewerId() {
