@@ -1,18 +1,4 @@
 {
   // option ids should be between 100 and 199
-  // The rulebook does not say whether tiles may be turned. Standard: they may. Option 2 keeps every tile as drawn.
-  "100": {
-    "name": "Tile rotation",
-    "values": {
-      "1": {
-        "name": "Tiles may be turned (Standard)",
-        "description": "Each tile can be turned a quarter turn at a time, on your board, before it is placed."
-      },
-      "2": {
-        "name": "Tiles stay as drawn",
-        "description": "Each tile keeps the orientation it had in the pool."
-      }
-    },
-    "default": 1
-  }
+  // Microchip has no game options: standard rules allow tile rotation.
 }

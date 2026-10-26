@@ -38,7 +38,7 @@ Open connections towards empty spaces are allowed while building.
 
 | # | Topic | Decision | Confidence |
 |---|---|---|---|
-| D1 | Tile rotation | Allowed (4 orientations) by default. Game option 100 "Tile rotation": 2 = fixed as drawn. The rulebook says nothing; the photos show tiles in all directions | Medium: option lets the publisher settle it |
+| D1 | Tile rotation | Allowed (4 orientations). Tiles can always be turned to fit legally onto the board. No variant option | High: standard rules |
 | D2 | Board layout | Generated per the rulebook recipe, one per player. The printed boards are not in the zip | High: the rulebook gives the recipe |
 | D3 | Pool columns | Rightmost non-empty column is the draw column. Column-major fill | High |
 | D4 | Turn vs arranging | Drawing is turn-based. Arranging is free for all players at any time (multi-active state) | High: rulebook says so |

@@ -19,8 +19,6 @@ use Bga\Games\microchip\States\Play;
 
 class Game extends \Bga\GameFramework\Table
 {
-    public const OPTION_ROTATION = 100;
-
     public function __construct()
     {
         parent::__construct();
@@ -60,7 +58,6 @@ class Game extends \Bga\GameFramework\Table
         $this->playerStats->init(['tiles_drawn', 'tiles_placed'], 0);
 
         $this->globals->set('player_order', json_encode($playerIds));
-        $this->globals->set('rotation', (int) ($options[self::OPTION_ROTATION] ?? 1) === 1 ? 1 : 0);
 
         // The pool: 60 tiles (50 with two players, 10 go back to the box)
         $deal = Rules::dealPool(count($playerIds));
@@ -231,8 +228,8 @@ class Game extends \Bga\GameFramework\Table
         if ((int) $tile['owner'] !== $pid || !in_array($tile['location'], ['hand', 'board'], true)) {
             throw new UserException(clienttranslate('That tile is not in your tray or on your board.'));
         }
-        if ($rot < 0 || $rot > 3 || ($rot !== 0 && !$this->rotationAllowed())) {
-            throw new UserException(clienttranslate('Tiles cannot be turned in this game.'));
+        if ($rot < 0 || $rot > 3) {
+            throw new UserException(clienttranslate('Invalid tile rotation.'));
         }
         $others = $this->placedOf($pid);
         $moved = $tile['location'] === 'board';
@@ -279,11 +276,8 @@ class Game extends \Bga\GameFramework\Table
         if (!in_array($tileA['location'], ['hand', 'board'], true)) {
             throw new UserException(clienttranslate('That tile is not in your tray or on your board.'));
         }
-        if ($rotA < 0 || $rotA > 3 || ($rotA !== 0 && !$this->rotationAllowed())) {
-            throw new UserException(clienttranslate('Tiles cannot be turned in this game.'));
-        }
-        if ($rotB < 0 || $rotB > 3 || ($rotB !== 0 && !$this->rotationAllowed())) {
-            throw new UserException(clienttranslate('Tiles cannot be turned in this game.'));
+        if ($rotA < 0 || $rotA > 3 || $rotB < 0 || $rotB > 3) {
+            throw new UserException(clienttranslate('Invalid tile rotation.'));
         }
         if ($tileA['colour'] !== $tileB['colour']) {
             throw new UserException(clienttranslate('Tiles must be of the same colour to exchange.'));
@@ -373,7 +367,7 @@ class Game extends \Bga\GameFramework\Table
 
     public function rotationAllowed(): bool
     {
-        return (int) $this->globals->get('rotation', 1) === 1;
+        return true;
     }
 
     public function problemMessage(string $code): string

@@ -54,13 +54,12 @@ When the pool is empty, every player builds their final microchip. Press '''Fini
 * Your score is the value of your largest microchip structure, minus 2 for each tile you hold that is outside it.
 * If the scores are equal, the player whose microchip has more tiles wins. If that is also equal, the players share the win.
 
-==Options and preferences==
+==Preferences==
 
-* '''Tile rotation''' (game option): by default each tile may be turned a quarter turn at a time before it is placed. The rulebook does not say whether tiles may be turned; choose ''Tiles stay as drawn'' to play without turning.
 * '''Colourblind support''' (preference): shows a shape on every space and tile. Triangle is blue, square is red, circle is green, diamond is yellow and cross is pink.
 
 ==Notes on the rules==
 
-* The rulebook does not say whether tiles may be turned. The game allows it by default (see the game option above).
+* Tiles can be turned in 90-degree steps to fit legally onto the board.
 * Boards are generated with the rulebook's method for making a board, one for each player.
 * The rulebook says to play again when there is a tie that cannot be broken. Online, the players share the win instead.

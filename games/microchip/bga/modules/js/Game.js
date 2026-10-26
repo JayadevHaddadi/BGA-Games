@@ -228,7 +228,7 @@ export class Game {
         this.finished = {};
         Object.keys(gamedatas.finished).forEach((pid) => { this.finished[Number(pid)] = !!gamedatas.finished[pid]; });
         this.drawer = Number(gamedatas.drawer);
-        this.rotation = !!gamedatas.rotation;
+        this.rotation = true;
         this.poolRows = gamedatas.pool_size[0];
         this.poolCols = gamedatas.pool_size[1];
         this._actionPending = false;
