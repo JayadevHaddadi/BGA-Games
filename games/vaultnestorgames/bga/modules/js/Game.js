@@ -74,6 +74,7 @@ export class Game {
         }
 
         this.renderPanels();
+        this.updateWarningBanner();
     }
 
     /** Enter = confirm the staged move, Escape = deselect. Capture phase so the page's own shortcuts do not interfere. */
@@ -135,6 +136,13 @@ export class Game {
         if (!root) root = this.root;
         this.root = root;
         root.innerHTML = '';
+
+        // Top warning banner (shown when opponent reaches home area)
+        const banner = document.createElement('div');
+        banner.className = 'vaultn_warning_banner';
+        banner.id = 'vaultn_warning_banner';
+        banner.style.display = 'none';
+        root.appendChild(banner);
 
         const cols = this.isFlipped ? [9, 8, 7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
         const rows = this.isFlipped ? [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] : [9, 8, 7, 6, 5, 4, 3, 2, 1, 0];
@@ -259,6 +267,7 @@ export class Game {
             this.highlightLastMove(this.gamedatas.last_move);
         }
         this.renderPanels();
+        this.updateWarningBanner();
     }
 
     renderAllPieces() {
@@ -275,9 +284,17 @@ export class Game {
         cell.innerHTML = '';
 
         const data = this.board[y][x];
+        const isThreatOnBackRank = (y === 0 && data.color === 2) || (y === 9 && data.color === 1);
+        if (isThreatOnBackRank) {
+            cell.classList.add('vaultn_cell_backrank_threat');
+        } else {
+            cell.classList.remove('vaultn_cell_backrank_threat');
+        }
+
         if (data.color > 0) {
+            const threatClass = isThreatOnBackRank ? ' vaultn_piece_backrank_threat' : '';
             const piece = document.createElement('div');
-            piece.className = `vaultn_piece ${data.color === 1 ? 'vaultn_piece_white' : 'vaultn_piece_black'}`;
+            piece.className = `vaultn_piece ${data.color === 1 ? 'vaultn_piece_white' : 'vaultn_piece_black'}${threatClass}`;
             piece.id = `vaultn_piece_${x}_${y}`;
             piece.dataset.x = x;
             piece.dataset.y = y;
@@ -331,6 +348,7 @@ export class Game {
         this.selectedPivot = null;
 
         this.clearHighlights();
+        this.updateWarningBanner();
         if (this.isActive) {
             this.highlightSelectablePieces();
         }
@@ -608,6 +626,7 @@ export class Game {
         this.gamedatas.last_move = { from, to };
         this.highlightLastMove(this.gamedatas.last_move);
         this.renderPanels();
+        this.updateWarningBanner();
         this.sfx('vault_walk');
     }
 
@@ -624,6 +643,7 @@ export class Game {
         this.gamedatas.last_move = { from, pivot, to, captured };
         this.highlightLastMove(this.gamedatas.last_move);
         this.renderPanels();
+        this.updateWarningBanner();
         if (captured) {
             this.sfx('vault_capture');
         } else {
@@ -632,10 +652,14 @@ export class Game {
     }
 
     notif_reachedBackRank(notif) {
-        // Visual indicator on back rank
+        this.updateWarningBanner();
     }
 
     notif_endGameScores(notif) {
+        const banner = document.getElementById('vaultn_warning_banner');
+        if (banner) {
+            banner.style.display = 'none';
+        }
         const args = notif?.args || notif || {};
         const { winner_id, loser_id } = args;
         if (winner_id) {
@@ -647,6 +671,87 @@ export class Game {
             if (counter) counter.toValue(0);
         }
         this.sfx('vault_win');
+    }
+
+    /* ---------------------------------------------------------------------------------------------- */
+    /* Warning / Threat Banner                                                                        */
+    /* ---------------------------------------------------------------------------------------------- */
+
+    updateWarningBanner() {
+        const banner = document.getElementById('vaultn_warning_banner');
+        if (!banner || !this.board) return;
+
+        // Check back ranks:
+        // White's home row is y = 0. Black pawn (color 2) on y = 0 means Black reached White's home area.
+        let blackInWhiteHome = false;
+        for (let x = 0; x < 10; x++) {
+            if (this.board[0]?.[x]?.color === 2) {
+                blackInWhiteHome = true;
+                break;
+            }
+        }
+
+        // Black's home row is y = 9. White pawn (color 1) on y = 9 means White reached Black's home area.
+        let whiteInBlackHome = false;
+        for (let x = 0; x < 10; x++) {
+            if (this.board[9]?.[x]?.color === 1) {
+                whiteInBlackHome = true;
+                break;
+            }
+        }
+
+        const myRole = this.getMyRole();
+        const alertSvg = '<span class="vaultn_warning_icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>';
+
+        if (myRole === 1) {
+            // Viewing player is White
+            if (blackInWhiteHome) {
+                banner.className = 'vaultn_warning_banner vaultn_warning_danger';
+                banner.innerHTML = `${alertSvg}<span>${_('WARNING: An opponent piece has reached your home area! You must capture it on this turn or you will lose!')}</span>`;
+                banner.style.display = 'flex';
+                return;
+            } else if (whiteInBlackHome) {
+                banner.className = 'vaultn_warning_banner vaultn_warning_threat';
+                banner.innerHTML = `${alertSvg}<span>${_('THREAT: Your piece has reached the opponent\'s home area! Opponent must capture it on their turn or you win!')}</span>`;
+                banner.style.display = 'flex';
+                return;
+            }
+        } else if (myRole === 2) {
+            // Viewing player is Black
+            if (whiteInBlackHome) {
+                banner.className = 'vaultn_warning_banner vaultn_warning_danger';
+                banner.innerHTML = `${alertSvg}<span>${_('WARNING: An opponent piece has reached your home area! You must capture it on this turn or you will lose!')}</span>`;
+                banner.style.display = 'flex';
+                return;
+            } else if (blackInWhiteHome) {
+                banner.className = 'vaultn_warning_banner vaultn_warning_threat';
+                banner.innerHTML = `${alertSvg}<span>${_('THREAT: Your piece has reached the opponent\'s home area! Opponent must capture it on their turn or you win!')}</span>`;
+                banner.style.display = 'flex';
+                return;
+            }
+        } else {
+            // Spectator
+            if (blackInWhiteHome && whiteInBlackHome) {
+                banner.className = 'vaultn_warning_banner vaultn_warning_danger';
+                banner.innerHTML = `${alertSvg}<span>${_('WARNING: Both players have pieces in the opponent\'s home area!')}</span>`;
+                banner.style.display = 'flex';
+                return;
+            } else if (blackInWhiteHome) {
+                banner.className = 'vaultn_warning_banner vaultn_warning_danger';
+                banner.innerHTML = `${alertSvg}<span>${_('WARNING: Black has reached White\'s home area! White must capture it on their turn or lose!')}</span>`;
+                banner.style.display = 'flex';
+                return;
+            } else if (whiteInBlackHome) {
+                banner.className = 'vaultn_warning_banner vaultn_warning_danger';
+                banner.innerHTML = `${alertSvg}<span>${_('WARNING: White has reached Black\'s home area! Black must capture it on their turn or lose!')}</span>`;
+                banner.style.display = 'flex';
+                return;
+            }
+        }
+
+        banner.className = 'vaultn_warning_banner';
+        banner.style.display = 'none';
+        banner.innerHTML = '';
     }
 
     /* ---------------------------------------------------------------------------------------------- */
