@@ -517,7 +517,11 @@ class Runner:
                 try:
                     self.wait_ready(120000)
                 except StepFailed:
-                    missing = 'unable to find game archive' in self.all_text().lower()
+                    text = self.all_text().lower()
+                    if 'reached a limit (replay)' in text:
+                        # BGA caps replays per day for accounts without Premium: an account limit, not a game bug
+                        raise StepSkipped('BGA replay limit reached for the test account (no Premium), not a game bug')
+                    missing = 'unable to find game archive' in text
                     if not missing:
                         raise
             if missing and attempt < 4:
