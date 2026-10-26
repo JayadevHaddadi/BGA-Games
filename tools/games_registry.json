@@ -1,0 +1,24 @@
+{
+  "_help": "Hand-maintained facts for tools/status_board.py (licence, notes). Stage/release/wiki/tests are read live. Update when something changes (e.g. BGA approves a request, Nestor registers a licence).",
+  "games": [
+    {"slug": "kiln", "folder": "games/KILN/bga", "name": "Kiln", "licence": "granted", "notes": "Beta requested 19 Oct, Nestor confirmed; waiting for BGA"},
+    {"slug": "omega", "folder": "games/omega/bga", "name": "Omega", "licence": "granted (2024)", "notes": "Public alpha since 21 Oct; tutorial video at beta (Digital Board Gamer)"},
+    {"slug": "yavalath", "folder": "games/yavalath/bga", "name": "Yavalath", "licence": "Cameron approved; BGA says a submission already exists", "notes": "Beta requested; licence entry to be sorted with BGA"},
+    {"slug": "sugargliders", "folder": "games/sugargliders/bga", "name": "Sugar Gliders", "licence": "granted", "notes": "Public alpha since 20 Oct"},
+    {"slug": "gardensofio", "folder": "games/gardensofio/bga", "name": "Gardens of Io", "licence": "given by Nestor", "notes": "Beta requested 21 Oct; BGA will ask Nestor to confirm"},
+    {"slug": "gardensofenceladus", "folder": "games/gardensofenceladus/bga", "name": "Gardens of Enceladus", "licence": "given by Nestor", "notes": "Public alpha requested 21 Oct"},
+    {"slug": "people", "folder": "games/people/bga", "name": "People", "licence": "Nestor thinks given (check BGA list)", "notes": "Public alpha requested 22 Oct"},
+    {"slug": "pentup", "folder": "games/pentup/bga", "name": "Pent-Up", "licence": "on file (2024)", "notes": "Public alpha requested 23 Oct"},
+    {"slug": "microchip", "folder": "games/microchip/bga", "name": "Microchip", "licence": "given by Nestor", "notes": "Solo puzzle not implemented yet"},
+    {"slug": "red", "folder": "games/red/bga", "name": "Red", "licence": "Nestor thinks given (check BGA list)", "notes": ""},
+    {"slug": "hipposcrocodiles", "folder": "games/hipposcrocodiles/bga", "name": "Hippos & Crocodiles", "licence": "MISSING: Nestor must register (BGG 51197)", "notes": "Private alpha requested 23 Oct; old project hipposandcrocodiles can be deleted"},
+    {"slug": "vaultnestorgames", "folder": "games/vaultnestorgames/bga", "name": "Vault (nestorgames)", "licence": "granted", "notes": "Default board 8x8 (owner decision)"},
+    {"slug": "gardensofmars", "folder": "games/gardensofmars/bga", "name": "Gardens of Mars", "licence": "given by Nestor", "notes": "Private alpha requested 9 Oct (reminder 19 Oct)"},
+    {"slug": "gardensofuranus", "folder": "games/gardensofuranus/bga", "name": "Gardens of Uranus", "licence": "granted", "notes": "Private alpha requested 2 Oct (reminder 19 Oct)"},
+    {"slug": "nestorgamesgp", "folder": "games/nestorgamesgp/bga", "name": "nestorgames GP", "licence": "granted", "notes": "Private alpha requested again"},
+    {"slug": "microforge", "folder": "games/microforge/bga", "name": "Little Commanders", "licence": "own design", "notes": "Project name must become littlecommanders (or rename game back); see reports/little_commanders_review.md"},
+    {"slug": "lordsofscotland", "folder": "games/lordsofscotland/bga", "name": "Lords of Scotland", "licence": "none (outreach)", "notes": "Needs designer/publisher approval"},
+    {"slug": "pushfight", "folder": "games/pushfight/bga", "name": "Push Fight", "licence": "DECLINED by Tinkerhouse (22 Oct)", "notes": "Decide whether to ask BGA to take it down"},
+    {"slug": "mandala", "folder": "games/mandala/bga-prod", "name": "Mandala", "licence": "shared project (Sir Heo)", "notes": "Upload-only; always fetch Studio copy before editing"}
+  ]
+}
