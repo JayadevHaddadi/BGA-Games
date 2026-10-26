@@ -153,6 +153,7 @@ class Game extends \Bga\GameFramework\Table
         static::DbQuery("UPDATE `tile` SET `location` = 'hand', `owner` = $pid, `pool_col` = NULL, `pool_row` = NULL WHERE `tile_id` = $tileId");
         $this->addStat(1, 'tiles_drawn', $pid);
         $this->refreshScore($pid);
+        $this->giveExtraTime($pid);
         $next = $this->nextDrawer($pid);
         $this->globals->set('drawer', $next);
         return [

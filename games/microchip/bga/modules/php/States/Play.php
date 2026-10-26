@@ -72,6 +72,7 @@ class Play extends GameState
         }
 
         $info = $this->game->takeTile($pid, $tileId);
+        $this->game->giveExtraTime($pid);
         $tile = $info['tile'];
         $this->notify->all('tileDrawn', clienttranslate('${player_name} takes a ${colour_name} ${shape_name} tile from the draw column.'), [
             'player_id' => $pid,
@@ -275,6 +276,7 @@ class Play extends GameState
             throw new UserException(clienttranslate('You cannot submit your final answer while there are mismatched tiles (!) on your board.'));
         }
         $this->game->setFinished($pid);
+        $this->game->giveExtraTime($pid);
         $this->notify->all('playerFinished', clienttranslate('${player_name} has finished building.'), [
             'player_id' => $pid,
             'player_name' => $this->game->getPlayerNameById($pid),
