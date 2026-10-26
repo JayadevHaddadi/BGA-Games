@@ -136,7 +136,7 @@ $lone = ['0,0' => tile('end', 0)];
 $s = Rules::scoreBoard($lone, 1);
 check($s['value'] === 0 && $s['score'] === -2 && $s['open'] === 1, 'an open path does not count');
 
-// The largest connected area (most tiles) counts even if another structure is closed
+// An open structure never counts, however big: the closed pair is the microchip (rulebook: no open paths)
 $chain3 = [
     '0,0' => tile('straight', 1), // east, west
     '0,1' => tile('straight', 1),
@@ -144,7 +144,7 @@ $chain3 = [
 ];
 $closedPair = ['2,0' => tile('end', 1), '2,1' => tile('end', 3)]; // 2 tiles, closed, value 2
 $sBig = Rules::scoreBoard($chain3 + $closedPair, 5);
-check($sBig['chip_tiles'] === 3 && $sBig['value'] === 6 && $sBig['unused'] === 2 && $sBig['score'] === 2, 'largest connected area of 3 tiles wins over 2-tile closed pair');
+check($sBig['chip_tiles'] === 2 && $sBig['value'] === 2 && $sBig['unused'] === 3 && $sBig['score'] === -4, 'a closed 2-tile pair beats a bigger open 3-tile chain');
 
 
 // Structures split correctly and only matching connections join

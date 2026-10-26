@@ -297,8 +297,8 @@ final class Rules
     /**
      * Scores one player's board.
      *
-     * The largest connected structure (most tiles, >= 2) counts as the microchip. Ties prefer closed structures
-     * (no open paths) and then higher total connection value. Every owned tile outside it costs 2 points.
+     * Only closed structures (no open paths, at least 2 tiles) are microchips. The biggest one (most tiles) counts,
+     * equal size goes to the higher connection value. Every owned tile outside it costs 2 points.
      *
      * @param array<string, array{shape:string, rot:int}> $placed
      * @return array{score:int, value:int, chip_tiles:int, chip:string[], unused:int, owned:int, open:int}
@@ -332,20 +332,11 @@ final class Rules
                 $openCount++;
             }
             $tiles = count($group);
-            if ($tiles < 2) {
+            // A structure with an open path is not a microchip
+            if ($tiles < 2 || $open > 0) {
                 continue;
             }
-            $isBetter = false;
-            if ($tiles > $best['tiles']) {
-                $isBetter = true;
-            } elseif ($tiles === $best['tiles'] && $tiles > 0) {
-                $bestOpen = $best['open'] ?? 0;
-                if ($open === 0 && $bestOpen > 0) {
-                    $isBetter = true;
-                } elseif (($open === 0) === ($bestOpen === 0) && $value > $best['value']) {
-                    $isBetter = true;
-                }
-            }
+            $isBetter = $tiles > $best['tiles'] || ($tiles === $best['tiles'] && $value > $best['value']);
             if ($isBetter) {
                 $best = ['value' => $value, 'tiles' => $tiles, 'chip' => $group, 'open' => $open];
             }

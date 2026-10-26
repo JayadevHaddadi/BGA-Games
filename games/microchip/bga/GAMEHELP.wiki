@@ -50,9 +50,9 @@ When the pool is empty, every player builds their final microchip. Press '''Fini
 
 ==Scoring==
 
-* Your microchip is your largest connected structure (most tiles). Ties prefer closed structures (no open ends) and higher connection values.
+* Your microchip is your biggest structure with '''no open paths''' (most tiles). A structure with an open path is not a microchip and does not count.
 * Its value is the sum of the connections of its tiles.
-* Your score is the value of your largest microchip structure, minus 2 for each tile you hold that is outside it.
+* Your score is the value of your microchip, minus 2 for each tile you hold that is outside it.
 * If the scores are equal, the player whose microchip has more tiles wins. If that is also equal, the players share the win.
 
 ==Preferences==

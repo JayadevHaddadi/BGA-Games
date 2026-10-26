@@ -152,20 +152,11 @@ function mcScoreBoard(placed, owned) {
             openCount++;
         }
         const tiles = group.length;
-        if (tiles < 2) {
+        // A structure with an open path is not a microchip
+        if (tiles < 2 || open > 0) {
             continue;
         }
-        let isBetter = false;
-        if (tiles > best.tiles) {
-            isBetter = true;
-        } else if (tiles === best.tiles && tiles > 0) {
-            const bestOpen = best.open || 0;
-            if (open === 0 && bestOpen > 0) {
-                isBetter = true;
-            } else if ((open === 0) === (bestOpen === 0) && value > best.value) {
-                isBetter = true;
-            }
-        }
+        const isBetter = tiles > best.tiles || (tiles === best.tiles && value > best.value);
         if (isBetter) {
             best = { value, tiles, chip: group, open };
         }
@@ -314,7 +305,7 @@ export class Game {
                             <span class="mc_rule_icon" aria-hidden="true">${MC_ICONS.goal}</span>
                             <div class="mc_rule_body">
                                 <strong>${_('Goal')}</strong>
-                                <p>${_('Build the largest microchip structure on your board from the tiles you collect.')}</p>
+                                <p>${_('Build the biggest closed microchip on your board from the tiles you collect.')}</p>
                             </div>
                         </div>
                         <div class="mc_rule_row">
@@ -341,15 +332,15 @@ export class Game {
                         <div class="mc_rule_row">
                             <span class="mc_rule_icon" aria-hidden="true">${MC_ICONS.chip}</span>
                             <div class="mc_rule_body">
-                                <strong>${_('Largest Structure')}</strong>
-                                <p>${_('Your microchip is your largest connected structure (most tiles). Ties prefer closed structures and higher connection values.')}</p>
+                                <strong>${_('Closed Microchip')}</strong>
+                                <p>${_('Your microchip is your biggest structure with no open paths (most tiles). A structure with an open path does not count.')}</p>
                             </div>
                         </div>
                         <div class="mc_rule_row">
                             <span class="mc_rule_icon" aria-hidden="true">${MC_ICONS.scoring}</span>
                             <div class="mc_rule_body">
                                 <strong>${_('Scoring')}</strong>
-                                <p>${_('Score = (connections in your largest structure) minus 2 points per unused tile outside it. Highest score wins.')}</p>
+                                <p>${_('Score = connections in your microchip minus 2 points per tile outside it. Highest score wins.')}</p>
                             </div>
                         </div>
                     </div>
@@ -1718,7 +1709,7 @@ export class Game {
                 <div class="mc_results_rules_note">
                     <p><strong>${_('How scores are calculated:')}</strong></p>
                     <ul>
-                        <li>${_('Each connection in your largest connected microchip is worth +1 point.')}</li>
+                        <li>${_('Each connection in your biggest closed microchip is worth +1 point.')}</li>
                         <li>${_('Each unused tile outside your microchip (on your board or in your tray) costs −2 points.')}</li>
                         <li>${_('Ties are broken by the player with more tiles in their microchip.')}</li>
                     </ul>
