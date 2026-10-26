@@ -26,6 +26,9 @@ class Game extends \Bga\GameFramework\Table
 
     public const HEX_RADIUS = 4; // Radius 4 = 61 cells for Board 1
 
+    // Longest possible straight line on any board (the trapezoid is 12 spots tall): bounds the triangle and hexagon searches
+    public const MAX_LINE_LENGTH = 12;
+
     // Cells (axial q, r) of the Trapezoid (63 spots) and Rhombus (64 spots) boards, read from the board art
     public const TRAPEZOID_CELLS = [[0, -5], [0, -4], [0, -3], [0, -2], [0, -1], [0, 0], [1, -6], [1, -5], [1, -4], [1, -3], [1, -2], [1, -1], [1, 0], [2, -7], [2, -6], [2, -5], [2, -4], [2, -3], [2, -2], [2, -1], [2, 0], [3, -8], [3, -7], [3, -6], [3, -5], [3, -4], [3, -3], [3, -2], [3, -1], [3, 0], [4, -9], [4, -8], [4, -7], [4, -6], [4, -5], [4, -4], [4, -3], [4, -2], [4, -1], [4, 0], [5, -10], [5, -9], [5, -8], [5, -7], [5, -6], [5, -5], [5, -4], [5, -3], [5, -2], [5, -1], [5, 0], [6, -11], [6, -10], [6, -9], [6, -8], [6, -7], [6, -6], [6, -5], [6, -4], [6, -3], [6, -2], [6, -1], [6, 0]];
     public const RHOMBUS_CELLS = [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4], [0, 5], [0, 6], [0, 7], [1, -1], [1, 0], [1, 1], [1, 2], [1, 3], [1, 4], [1, 5], [1, 6], [2, -2], [2, -1], [2, 0], [2, 1], [2, 2], [2, 3], [2, 4], [2, 5], [3, -3], [3, -2], [3, -1], [3, 0], [3, 1], [3, 2], [3, 3], [3, 4], [4, -4], [4, -3], [4, -2], [4, -1], [4, 0], [4, 1], [4, 2], [4, 3], [5, -5], [5, -4], [5, -3], [5, -2], [5, -1], [5, 0], [5, 1], [5, 2], [6, -6], [6, -5], [6, -4], [6, -3], [6, -2], [6, -1], [6, 0], [6, 1], [7, -7], [7, -6], [7, -5], [7, -4], [7, -3], [7, -2], [7, -1], [7, 0]];
@@ -808,8 +811,8 @@ class Game extends \Bga\GameFramework\Table
             throw new UserException(clienttranslate("You do not hold that mission card in your hand."));
         }
 
-        // Calculate score
-        $score = $this->calculateCardScore($card);
+        // Calculate score. The Hexagon card is an instant win, never points: if its hexagon stood, its owner would have won.
+        $score = ($card['card_type'] === 'HEXAGON') ? 0 : $this->calculateCardScore($card);
 
         // Advance score on track
         if ($score > 0) {
@@ -838,6 +841,9 @@ class Game extends \Bga\GameFramework\Table
                 "UPDATE `card` SET `card_location` = 'hand', `location_arg` = $playerId WHERE `card_id` = $drawnCardId"
             );
         }
+
+        // The new card may be the Hexagon mission while a hexagon already stands on the board: its owner wins at once
+        $this->checkInstantWinAfterChange();
 
         // Scoring a card is not a gardener move: it breaks the "everyone moved without planting" streak
         $this->globals->set('non_plant_moves_streak', 0);
@@ -1125,7 +1131,7 @@ class Game extends \Bga\GameFramework\Table
 
         $maxSide = 0;
         $bestCorners = [];
-        $maxRadius = self::HEX_RADIUS * 2;
+        $maxRadius = self::MAX_LINE_LENGTH;
 
         foreach ($cells as $c) {
             $q = (int) $c['q'];
@@ -1176,49 +1182,15 @@ class Game extends \Bga\GameFramework\Table
 
     public function scoreDetailsHexagon(): array
     {
-        $colorsToCheck = ['blue', 'red', 'yellow', 'green', 'purple'];
-        $maxRadius = self::HEX_RADIUS;
-
-        foreach ($colorsToCheck as $col) {
-            $cells = static::getObjectListFromDb("SELECT `coord_q` as `q`, `coord_r` as `r` FROM `cell` WHERE `flower_color` = '$col'");
-            if (count($cells) < 6) continue;
-
-            $flowerMap = [];
-            foreach ($cells as $c) {
-                $flowerMap[$c['q'] . '_' . $c['r']] = true;
-            }
-
-            for ($cq = -$maxRadius; $cq <= $maxRadius; $cq++) {
-                for ($cr = -$maxRadius; $cr <= $maxRadius; $cr++) {
-                    for ($s = 1; $s <= 2; $s++) {
-                        $corners = [
-                            ['q' => $cq + $s, 'r' => $cr],
-                            ['q' => $cq, 'r' => $cr + $s],
-                            ['q' => $cq - $s, 'r' => $cr + $s],
-                            ['q' => $cq - $s, 'r' => $cr],
-                            ['q' => $cq, 'r' => $cr - $s],
-                            ['q' => $cq + $s, 'r' => $cr - $s],
-                        ];
-                        $allPresent = true;
-                        foreach ($corners as $cor) {
-                            if (!isset($flowerMap[$cor['q'] . '_' . $cor['r']])) {
-                                $allPresent = false;
-                                break;
-                            }
-                        }
-                        if ($allPresent) {
-                            return [
-                                'score' => 999,
-                                'scoring_spots' => $corners,
-                                'explanation' => sprintf(clienttranslate('Regular hexagon formed by 6 %s flowers: Instant Win!'), ucfirst($col)),
-                            ];
-                        }
-                    }
-                }
-            }
+        $hex = $this->findHexagon();
+        if ($hex === null) {
+            return ['score' => 0, 'scoring_spots' => [], 'explanation' => clienttranslate('No completed hexagon')];
         }
-
-        return ['score' => 0, 'scoring_spots' => [], 'explanation' => clienttranslate('No completed hexagon')];
+        return [
+            'score' => 999,
+            'scoring_spots' => $hex['corners'],
+            'explanation' => sprintf(clienttranslate('Regular hexagon formed by 6 %s flowers: Instant Win!'), ucfirst($hex['color'])),
+        ];
     }
 
     public function scoreBiggestGroup(string $color): int
@@ -1442,7 +1414,7 @@ class Game extends \Bga\GameFramework\Table
 
         // Equilateral triangle configurations (Option A: d0=(1,0), d2=(-1,1); Option B: d1=(0,1), d3=(-1,0))
         $maxSide = 0;
-        $maxRadius = self::HEX_RADIUS * 2;
+        $maxRadius = self::MAX_LINE_LENGTH;
 
         foreach ($cells as $c) {
             $q = (int) $c['q'];
@@ -1475,49 +1447,44 @@ class Game extends \Bga\GameFramework\Table
 
     public function checkHexagonInstantWin(?string $color = null): bool
     {
-        $colorsToCheck = $color ? [$color] : ['blue', 'red', 'yellow', 'green', 'purple'];
+        return $this->findHexagon($color) !== null;
+    }
 
+    /**
+     * A regular hexagon of any size whose 6 corners hold flowers of one colour (sides along the grid lines, so the
+     * 6 corners are reached by walking s spots along the 6 directions in turn). Returns ['color', 'corners'] or null.
+     */
+    public function findHexagon(?string $color = null): ?array
+    {
+        $colorsToCheck = $color ? [$color] : self::FLOWER_COLORS;
         foreach ($colorsToCheck as $col) {
             $cells = static::getObjectListFromDb("SELECT `coord_q` as `q`, `coord_r` as `r` FROM `cell` WHERE `flower_color` = '$col'");
             if (count($cells) < 6) {
                 continue;
             }
-
             $flowerMap = [];
             foreach ($cells as $c) {
                 $flowerMap[$c['q'] . '_' . $c['r']] = true;
             }
-
-            for ($s = 1; $s <= self::HEX_RADIUS; $s++) {
+            for ($s = 1; $s <= self::MAX_LINE_LENGTH; $s++) {
                 foreach ($cells as $c) {
-                    $q = (int) $c['q'];
-                    $r = (int) $c['r'];
-
-                    // Trace 6 vertices around regular hexagon of side s
-                    $v = [[$q, $r]];
-                    $currQ = $q;
-                    $currR = $r;
-                    $isHex = true;
-
+                    $currQ = (int) $c['q'];
+                    $currR = (int) $c['r'];
+                    $corners = [['q' => $currQ, 'r' => $currR]];
                     for ($i = 0; $i < 5; $i++) {
                         [$dq, $dr] = self::DIRECTIONS[$i];
                         $currQ += $s * $dq;
                         $currR += $s * $dr;
-                        $k = $currQ . '_' . $currR;
-                        if (!isset($flowerMap[$k]) || !$this->isValidCell($currQ, $currR)) {
-                            $isHex = false;
-                            break;
+                        if (!isset($flowerMap[$currQ . '_' . $currR])) {
+                            continue 2;
                         }
+                        $corners[] = ['q' => $currQ, 'r' => $currR];
                     }
-
-                    if ($isHex) {
-                        return true;
-                    }
+                    return ['color' => $col, 'corners' => $corners];
                 }
             }
         }
-
-        return false;
+        return null;
     }
 
     public function checkGameEnd(): ?string
