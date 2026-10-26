@@ -15,6 +15,9 @@
 <body class="microc_cb_on" data-done="0">
 <div id="page-content">
   <div id="game_play_area"></div>
+  <div id="panel_1" class="player-panel"></div>
+  <div id="panel_2" class="player-panel"></div>
+  <div id="panel_3" class="player-panel"></div>
 </div>
 <pre id="out">running</pre>
 
@@ -23,6 +26,7 @@
 window._ = (s) => s;
 const calls = [];
 const buttons = [];
+const scores = {};
 let title = '';
 const bga = {
   states: { register() {} },
@@ -39,7 +43,9 @@ const bga = {
   players: { getCurrentPlayerId: () => 1 },
   playerPanels: {
     getElement: (pid) => document.getElementById('panel_' + pid) || null,
-    getScoreCounter: () => ({ toValue() {} }),
+    getScoreCounter: (pid) => ({
+      toValue(val) { scores[pid] = val; }
+    }),
   },
   actions: {
     performAction(name, args) { calls.push({ name, args }); return Promise.resolve(); },
@@ -135,6 +141,16 @@ async function run() {
   check(trayBtns.length === trayCount, `tray tiles: ${trayBtns.length}, expected ${trayCount}`);
   const traySizes = trayBtns.map((b) => Math.min(b.getBoundingClientRect().width, b.getBoundingClientRect().height));
   check(traySizes.every((s) => s >= 32), `tray tiles at least 32px (${traySizes.map((s) => s.toFixed(0)).join(',')})`);
+
+  // Panel lines, opponent boards in panels, and live scores
+  const p1Line = document.querySelector('#panel_1 .mc_panel_line');
+  check(p1Line && /on board/i.test(p1Line.textContent), `panel 1 has line text: ${p1Line?.textContent}`);
+  check(!document.querySelector('#panel_1 .mc_panel_board'), 'active player panel does not duplicate own board');
+  const p2Board = document.querySelector('#panel_2 .mc_panel_board');
+  const p3Board = document.querySelector('#panel_3 .mc_panel_board');
+  check(p2Board && p2Board.querySelector('.mc_grid'), 'opponent 2 board rendered inside player panel');
+  check(p3Board && p3Board.querySelector('.mc_grid'), 'opponent 3 board rendered inside player panel');
+  check(typeof scores[1] === 'number', `live score computed for player 1: ${scores[1]}`);
 
   if (mode === 'turn') {
     // 2. Draw: tap a draw-column tile, then Take this tile

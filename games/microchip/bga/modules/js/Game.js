@@ -66,6 +66,82 @@ function mcProblem(spaces, placed, colour, shape, rot, r, c) {
     return null;
 }
 
+/** Connected groups of placed tiles that match connections (same as Rules::structures). */
+function mcStructures(placed) {
+    const seen = new Set();
+    const groups = [];
+    const keys = Object.keys(placed);
+    for (const start of keys) {
+        if (seen.has(start)) continue;
+        const group = [];
+        const queue = [start];
+        seen.add(start);
+        while (queue.length > 0) {
+            const key = queue.pop();
+            group.push(key);
+            const [r, c] = key.split(',').map(Number);
+            const conn = mcConn(placed[key].shape, placed[key].rot);
+            for (let side = 0; side < 4; side++) {
+                if (!conn[side]) continue;
+                const nr = r + MC_STEP[side][0];
+                const nc = c + MC_STEP[side][1];
+                const nKey = mcKey(nr, nc);
+                const other = placed[nKey];
+                if (!other || seen.has(nKey)) continue;
+                if (mcConn(other.shape, other.rot)[(side + 2) % 4]) {
+                    seen.add(nKey);
+                    queue.push(nKey);
+                }
+            }
+        }
+        groups.push(group);
+    }
+    return groups;
+}
+
+/** Real-time board scoring (same as Rules::scoreBoard). */
+function mcScoreBoard(placed, owned) {
+    let best = { value: 0, tiles: 0, chip: [] };
+    let openCount = 0;
+    const groups = mcStructures(placed);
+    for (const group of groups) {
+        let value = 0;
+        let open = 0;
+        for (const key of group) {
+            const [r, c] = key.split(',').map(Number);
+            const conn = mcConn(placed[key].shape, placed[key].rot);
+            for (let side = 0; side < 4; side++) {
+                if (conn[side]) {
+                    value++;
+                    const nr = r + MC_STEP[side][0];
+                    const nc = c + MC_STEP[side][1];
+                    if (!placed[mcKey(nr, nc)]) {
+                        open++;
+                    }
+                }
+            }
+        }
+        if (open > 0) {
+            openCount++;
+            continue;
+        }
+        const tiles = group.length;
+        if (value > best.value || (value === best.value && tiles > best.tiles)) {
+            best = { value, tiles, chip: group };
+        }
+    }
+    const unused = owned - best.tiles;
+    return {
+        score: best.value - 2 * unused,
+        value: best.value,
+        chip_tiles: best.tiles,
+        chip: best.chip,
+        unused,
+        owned,
+        open: openCount,
+    };
+}
+
 function mcTileHTML(colour, shape, rot) {
     let paths = '';
     if (shape === 'corner') {
@@ -238,15 +314,22 @@ export class Game {
         this.el = {
             root,
             pool: root.querySelector('#mc_pool'),
+            main: root.querySelector('.mc_main'),
             mine: root.querySelector('#mc_mine'),
             board: root.querySelector('#mc_board_me'),
             hint: root.querySelector('#mc_hint'),
             tray: root.querySelector('#mc_tray'),
+            others: root.querySelector('.mc_others'),
             boards: root.querySelector('#mc_boards'),
             results: root.querySelector('#mc_results'),
         };
         if (this.me === null) {
             this.el.mine.hidden = true;
+            this.el.others.hidden = false;
+            this.el.main?.classList.add('mc_two_col');
+        } else {
+            this.el.mine.hidden = false;
+            this.el.others.hidden = true;
         }
 
         const preventFocusScroll = (e) => {
@@ -481,8 +564,24 @@ export class Game {
     /* Rendering                                                                                   */
     /* ------------------------------------------------------------------------------------------ */
 
+    computeScores() {
+        if (!this.order) return;
+        this.order.forEach((pid) => {
+            const placedList = this.boardTiles(pid);
+            const placedMap = {};
+            placedList.forEach((t) => {
+                placedMap[mcKey(t.r, t.c)] = { shape: t.shape, rot: t.rot };
+            });
+            const owned = placedList.length + this.trayTiles(pid).length;
+            const s = mcScoreBoard(placedMap, owned);
+            this.chipKeys[pid] = new Set(s.chip);
+            this.bga?.playerPanels?.getScoreCounter?.(pid)?.toValue?.(s.score);
+        });
+    }
+
     renderAll() {
         this.sanitizeSel();
+        this.computeScores();
         this.renderPool();
         this.renderMine();
         this.renderOthers();
@@ -590,6 +689,7 @@ export class Game {
     }
 
     renderOthers() {
+        if (this.el.others && this.el.others.hidden) return;
         const list = this.order.filter((pid) => pid !== this.me);
         this.el.boards.textContent = '';
         list.forEach((pid) => {
@@ -709,7 +809,7 @@ export class Game {
         }
     }
 
-    /** Short persistent line in each player's panel: tiles on the board, tiles in the tray, finished. */
+    /** Short persistent line in each player's panel: tiles on the board, tiles in the tray, finished, and opponent board. */
     renderPanels() {
         this.order.forEach((pid) => {
             const el = this.bga?.playerPanels?.getElement?.(pid);
@@ -726,6 +826,19 @@ export class Game {
                 ? _('Finished')
                 : _('${placed} on board, ${tray} in tray').replace('${placed}', placed).replace('${tray}', tray);
             line.textContent = text;
+
+            if (this.me !== null && pid !== this.me) {
+                let boardEl = el.querySelector('.mc_panel_board');
+                if (!boardEl) {
+                    boardEl = document.createElement('div');
+                    boardEl.className = 'mc_panel_board';
+                    el.appendChild(boardEl);
+                }
+                boardEl.innerHTML = this.boardHTML(pid, false);
+            } else {
+                const boardEl = el.querySelector('.mc_panel_board');
+                if (boardEl) boardEl.remove();
+            }
         });
     }
 
@@ -1084,6 +1197,9 @@ export class Game {
         }
         this.drawer = Number(args.next_drawer);
         this.renderAll();
+        if (args.score !== undefined) {
+            this.bga?.playerPanels?.getScoreCounter?.(args.player_id)?.toValue?.(args.score);
+        }
         await animPromise;
     }
 
@@ -1105,6 +1221,9 @@ export class Game {
             this.sel = null;
         }
         this.renderAll();
+        if (args.score !== undefined) {
+            this.bga?.playerPanels?.getScoreCounter?.(args.player_id)?.toValue?.(args.score);
+        }
     }
 
     notif_tileReturned(args) {
@@ -1120,6 +1239,9 @@ export class Game {
             this.sel = null;
         }
         this.renderAll();
+        if (args.score !== undefined) {
+            this.bga?.playerPanels?.getScoreCounter?.(args.player_id)?.toValue?.(args.score);
+        }
     }
 
     notif_tileSwapped(args) {
@@ -1164,6 +1286,9 @@ export class Game {
             this.sel = null;
         }
         this.renderAll();
+        if (args.score !== undefined) {
+            this.bga?.playerPanels?.getScoreCounter?.(args.player_id)?.toValue?.(args.score);
+        }
     }
 
     notif_playerFinished(args) {

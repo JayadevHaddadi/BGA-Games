@@ -82,6 +82,7 @@ class Play extends GameState
             'next_drawer' => $info['next_drawer'],
             'draw_column' => $info['draw_column'],
             'pool_left' => $info['pool_left'],
+            'score' => $this->game->playerScore->get($pid),
             'i18n' => ['colour_name', 'shape_name'],
         ]);
         if ($info['pool_left'] === 0) {
@@ -136,6 +137,7 @@ class Play extends GameState
                 'next_drawer' => $info['next_drawer'],
                 'draw_column' => $info['draw_column'],
                 'pool_left' => $info['pool_left'],
+                'score' => $this->game->playerScore->get($pid),
                 'i18n' => ['colour_name', 'shape_name'],
             ]);
             if ($info['pool_left'] === 0) {
@@ -163,6 +165,7 @@ class Play extends GameState
             'rot' => $rot,
             'coord' => $coord,
             'moved' => $info['moved'],
+            'score' => $this->game->playerScore->get($pid),
             'i18n' => ['colour_name', 'shape_name'],
         ];
         if (!$info['moved']) {
@@ -189,6 +192,7 @@ class Play extends GameState
             'colour_name' => $this->game->colourName($tile['colour']),
             'shape_name' => $this->game->shapeName($tile['shape']),
             'coord' => $info['from'],
+            'score' => $this->game->playerScore->get($pid),
             'i18n' => ['colour_name', 'shape_name'],
         ]);
         return null;
@@ -216,6 +220,7 @@ class Play extends GameState
                 'colour_name' => $this->game->colourName($tileA['colour']),
                 'shape_a' => $this->game->shapeName($tileA['shape']),
                 'shape_b' => $this->game->shapeName($tileB['shape']),
+                'score' => $this->game->playerScore->get($pid),
                 'i18n' => ['colour_name', 'shape_a', 'shape_b'],
             ]);
         } else {
@@ -234,6 +239,7 @@ class Play extends GameState
                 'coord_b' => $info['coord_b'],
                 'type' => 'board_board',
                 'colour_name' => $this->game->colourName($tileA['colour']),
+                'score' => $this->game->playerScore->get($pid),
                 'i18n' => ['colour_name'],
             ]);
         }

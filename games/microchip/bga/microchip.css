@@ -169,6 +169,12 @@ html, body, #microc_root, .mc_root, .mc_pool, .mc_main, .mc_mine, .mc_grid {
     gap: 0 12px;
 }
 
+.mc_block.mc_mine {
+    max-width: 480px;
+    margin: 0 auto;
+    width: 100%;
+}
+
 .mc_board_wrap {
     display: grid;
     grid-template-columns: 20px minmax(0, 1fr);
@@ -384,9 +390,21 @@ button.mc_space {
 /* ---------- Player panel line (persistent, compact) ---------- */
 
 .mc_panel_line {
-    font-size: 0.8rem;
-    line-height: 1.3;
-    margin-top: 2px;
+    font-size: 1.6rem;
+    line-height: 1.35;
+    font-weight: 600;
+    margin-top: 4px;
+}
+
+.mc_panel_board {
+    width: 100%;
+    max-width: 220px;
+    margin: 6px auto 0 auto;
+}
+
+.mc_panel_board .mc_board_wrap {
+    width: 100%;
+    max-width: 100%;
 }
 
 /* ---------- Results ---------- */
@@ -412,10 +430,10 @@ button.mc_space {
     text-align: right;
 }
 
-/* ---------- Wider screens: the boards sit side by side ---------- */
+/* ---------- Wider screens: the boards sit side by side in spectator mode ---------- */
 
 @media (min-width: 760px) {
-    .mc_main {
+    .mc_main.mc_two_col {
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     }
 }
