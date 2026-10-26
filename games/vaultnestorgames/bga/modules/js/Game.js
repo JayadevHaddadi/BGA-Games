@@ -607,13 +607,21 @@ export class Game {
     highlightLastMove(lastMove) {
         document.querySelectorAll('.vaultn_last_from, .vaultn_last_to, .vaultn_last_pivot')
             .forEach(el => el.classList.remove('vaultn_last_from', 'vaultn_last_to', 'vaultn_last_pivot'));
+        document.querySelectorAll('.vaultn_move_mark').forEach(el => el.remove());
+        // "−" where the pawn left, "+" where it arrived
+        const mark = (cell, symbol) => {
+            const m = document.createElement('span');
+            m.className = 'vaultn_move_mark';
+            m.textContent = symbol;
+            cell.appendChild(m);
+        };
 
         if (!lastMove) return;
         const fromCell = document.getElementById(`vaultn_cell_${lastMove.from.x}_${lastMove.from.y}`);
-        if (fromCell) fromCell.classList.add('vaultn_last_from');
+        if (fromCell) { fromCell.classList.add('vaultn_last_from'); mark(fromCell, '\u2212'); }
 
         const toCell = document.getElementById(`vaultn_cell_${lastMove.to.x}_${lastMove.to.y}`);
-        if (toCell) toCell.classList.add('vaultn_last_to');
+        if (toCell) { toCell.classList.add('vaultn_last_to'); mark(toCell, '+'); }
 
         if (lastMove.pivot) {
             const pivotPiece = document.getElementById(`vaultn_piece_${lastMove.pivot.x}_${lastMove.pivot.y}`);
