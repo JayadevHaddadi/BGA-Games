@@ -351,6 +351,10 @@ export class Game {
         return [...this.tiles.values()].filter((t) => t.location === 'board' && t.owner === pid);
     }
 
+    getTileAt(r, c) {
+        return this.boardTiles(this.me).find((t) => t.r === r && t.c === c) || null;
+    }
+
     /** Tiles on my board, keyed by "r,c", without the tile currently staged. */
     placedMine(exceptId) {
         const out = {};
@@ -389,9 +393,75 @@ export class Game {
         return legal;
     }
 
+    /**
+     * Returns an array of { rotA, rotB } configurations that are legal for swapping tileA and tileB.
+     * tileB must be on my board. tileA can be in tray (hand) or on my board.
+     */
+    getLegalSwapRotations(tileAId, tileBId) {
+        const tA = this.tiles.get(tileAId);
+        const tB = this.tiles.get(tileBId);
+        if (!tA || !tB || this.me === null) return [];
+        if (tA.owner !== this.me || tB.owner !== this.me) return [];
+        if (tB.location !== 'board') return [];
+        if (tA.colour !== tB.colour) return [];
+        const spaces = this.spaces[this.me];
+        if (!spaces) return [];
+
+        const rB = tB.r;
+        const cB = tB.c;
+        const candidates = this.rotation ? [0, 1, 2, 3] : [0];
+        const legal = [];
+        const seenSignatures = new Set();
+
+        if (tA.location === 'hand') {
+            const placed = this.placedMine(tB.id);
+            for (const rotA of candidates) {
+                if (mcProblem(spaces, placed, tA.colour, tA.shape, rotA, rB, cB) === null) {
+                    const sig = mcConn(tA.shape, rotA).map((b) => (b ? '1' : '0')).join('');
+                    if (!seenSignatures.has(sig)) {
+                        seenSignatures.add(sig);
+                        legal.push({ rotA, rotB: 0 });
+                    }
+                }
+            }
+        } else if (tA.location === 'board') {
+            const rA = tA.r;
+            const cA = tA.c;
+            if (rA === rB && cA === cB) return [];
+
+            const placedWithoutBoth = {};
+            this.boardTiles(this.me).forEach((t) => {
+                if (t.id !== tA.id && t.id !== tB.id) {
+                    placedWithoutBoth[mcKey(t.r, t.c)] = { shape: t.shape, rot: t.rot };
+                }
+            });
+
+            for (const rotA of candidates) {
+                if (mcProblem(spaces, placedWithoutBoth, tA.colour, tA.shape, rotA, rB, cB) === null) {
+                    const placedWithA = { ...placedWithoutBoth, [mcKey(rB, cB)]: { shape: tA.shape, rot: rotA } };
+                    for (const rotB of candidates) {
+                        if (mcProblem(spaces, placedWithA, tB.colour, tB.shape, rotB, rA, cA) === null) {
+                            const sig = mcConn(tA.shape, rotA).map((b) => (b ? '1' : '0')).join('');
+                            if (!seenSignatures.has(sig)) {
+                                seenSignatures.add(sig);
+                                legal.push({ rotA, rotB });
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return legal;
+    }
+
     stageProblem() {
         const s = this.sel;
         if (!s || s.from === 'pool' || s.r === null) return 'pick';
+        if (s.swapWith) {
+            const swaps = this.getLegalSwapRotations(s.id, s.swapWith);
+            return swaps.some((sw) => sw.rotA === s.rot) ? null : 'mismatch';
+        }
         const t = this.tiles.get(s.id);
         return mcProblem(this.spaces[this.me], this.placedMine(s.id), t.colour, t.shape, s.rot, s.r, s.c);
     }
@@ -450,6 +520,12 @@ export class Game {
             this.sel = null;
         } else if (s.from === 'board' && (t.location !== 'board' || t.owner !== this.me)) {
             this.sel = null;
+        }
+        if (this.sel && this.sel.swapWith) {
+            const sw = this.tiles.get(this.sel.swapWith);
+            if (!sw || sw.location !== 'board' || sw.owner !== this.me) {
+                this.sel = null;
+            }
         }
     }
 
@@ -539,7 +615,7 @@ export class Game {
         for (let r = 0; r < MC_SIZE; r++) {
             for (let c = 0; c < MC_SIZE; c++) {
                 const colour = spaces[r][c];
-                const target = stagedTile && this.getLegalRotations(staged.id, r, c).length > 0;
+                const target = stagedTile && !this.spaceOccupied(r, c, staged.id) && this.getLegalRotations(staged.id, r, c).length > 0;
                 const cls = `mc_space mc_sp_${colour}` + (target ? ' mc_target' : '');
                 const label = `${mcCoord(r, c)}, ${this.colourLabel(colour)}`;
                 if (mine) {
@@ -552,7 +628,15 @@ export class Game {
         const chip = this.chipKeys[pid] || null;
         this.boardTiles(pid).forEach((t) => {
             if (staged && t.id === staged.id) return; // the staged tile is drawn as the ghost below
-            const cls = 'mc_placed' + (chip && chip.has(mcKey(t.r, t.c)) ? ' mc_chip' : '') + (t.id === this.lastId ? ' mc_last' : '') + (mine && staged && staged.id === t.id ? ' mc_sel' : '');
+            if (staged && staged.swapWith && t.id === staged.swapWith) {
+                if (staged.from === 'board' && staged.origR !== null && staged.origC !== null) {
+                    const cls = 'mc_placed mc_ghost';
+                    grid += this.placedHTML({ id: t.id, r: staged.origR, c: staged.origC, rot: staged.rotSwap ?? 0, colour: t.colour, shape: t.shape }, cls, true);
+                }
+                return;
+            }
+            const canSwap = mine && staged && staged.id !== t.id && !staged.swapWith && this.getLegalSwapRotations(staged.id, t.id).length > 0;
+            const cls = 'mc_placed' + (chip && chip.has(mcKey(t.r, t.c)) ? ' mc_chip' : '') + (t.id === this.lastId ? ' mc_last' : '') + (mine && staged && staged.id === t.id ? ' mc_sel' : '') + (canSwap ? ' mc_can_swap' : '');
             grid += this.placedHTML(t, cls, mine);
         });
         if (staged && staged.r !== null) {
@@ -585,6 +669,7 @@ export class Game {
     renderTray() {
         if (this.me === null) return;
         const tray = this.trayTiles(this.me);
+        const staged = this.sel && this.sel.from !== 'pool' ? this.sel : null;
         this.el.tray.textContent = '';
         if (this.sel && this.sel.from === 'board') {
             const retBtn = document.createElement('button');
@@ -593,7 +678,7 @@ export class Game {
             retBtn.innerHTML = `&#x21A9; ${_('Click here to put tile back in tray')}`;
             this.el.tray.appendChild(retBtn);
         }
-        if (tray.length === 0 && !(this.sel && this.sel.from === 'board')) {
+        if (tray.length === 0 && !(this.sel && this.sel.from === 'board') && !(staged && staged.swapWith && staged.from === 'tray')) {
             const p = document.createElement('p');
             p.className = 'mc_empty';
             p.textContent = _('No tiles waiting. Draw one from the pool.');
@@ -601,6 +686,7 @@ export class Game {
             return;
         }
         tray.forEach((t) => {
+            if (staged && staged.from === 'tray' && t.id === staged.id && staged.swapWith) return;
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'mc_tile_btn mc_tray_tile' + (this.sel && this.sel.id === t.id ? ' mc_sel' : '');
@@ -609,6 +695,18 @@ export class Game {
             btn.innerHTML = mcTileHTML(t.colour, t.shape, 0);
             this.el.tray.appendChild(btn);
         });
+        if (staged && staged.swapWith && staged.from === 'tray') {
+            const swTile = this.tiles.get(staged.swapWith);
+            if (swTile) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'mc_tile_btn mc_tray_tile mc_ghost';
+                btn.dataset.id = String(swTile.id);
+                btn.setAttribute('aria-label', `${this.colourLabel(swTile.colour)} ${this.shapeLabel(swTile.shape)}`);
+                btn.innerHTML = mcTileHTML(swTile.colour, swTile.shape, 0);
+                this.el.tray.appendChild(btn);
+            }
+        }
     }
 
     /** Short persistent line in each player's panel: tiles on the board, tiles in the tray, finished. */
@@ -705,6 +803,35 @@ export class Game {
             }
             return;
         }
+
+        // If a piece is already selected, try to exchange places
+        if (this.sel && this.sel.from !== 'pool') {
+            const swaps = this.getLegalSwapRotations(this.sel.id, id);
+            if (swaps.length > 0) {
+                const prevSel = this.sel;
+                const best = swaps[0];
+                const fromBoard = prevSel.from === 'board';
+                const tPrev = this.tiles.get(prevSel.id);
+                this.sel = {
+                    id: prevSel.id,
+                    from: prevSel.from,
+                    r: t.r,
+                    c: t.c,
+                    rot: best.rotA,
+                    swapWith: id,
+                    rotSwap: best.rotB,
+                    origR: fromBoard ? (tPrev ? tPrev.r : null) : null,
+                    origC: fromBoard ? (tPrev ? tPrev.c : null) : null,
+                };
+                const canRotate = this.rotation && swaps.length > 1;
+                this.hint(canRotate
+                    ? _('Tap Confirm to exchange these tiles, or Rotate to change orientation.')
+                    : _('Tap Confirm to exchange these tiles.'));
+                this.renderAll();
+                return;
+            }
+        }
+
         this.sel = { id, from: 'board', rot: t.rot, r: t.r, c: t.c };
         const legal = this.getLegalRotations(id, t.r, t.c);
         if (legal.length > 0) {
@@ -722,6 +849,11 @@ export class Game {
             this.hint(_('Tap a tile in your tray or on your board first.'));
             return;
         }
+        const occ = this.getTileAt(r, c);
+        if (occ && occ.id !== this.sel.id) {
+            this.onPlacedTile(occ.id);
+            return;
+        }
         if (this.sel.r === r && this.sel.c === c) {
             if (this.rotation) {
                 this.rotateSel();
@@ -734,6 +866,8 @@ export class Game {
         }
         this.sel.r = r;
         this.sel.c = c;
+        this.sel.swapWith = null;
+        this.sel.rotSwap = null;
         const legal = this.getLegalRotations(this.sel.id, r, c);
         if (legal.length > 0) {
             const t = this.tiles.get(this.sel.id);
@@ -753,6 +887,20 @@ export class Game {
 
     rotateSel() {
         if (!this.sel || !this.rotation || this.sel.from === 'pool') return;
+        if (this.sel.swapWith) {
+            const swaps = this.getLegalSwapRotations(this.sel.id, this.sel.swapWith);
+            if (swaps.length <= 1) return;
+            const curRotA = this.sel.rot;
+            const tA = this.tiles.get(this.sel.id);
+            const curSig = mcConn(tA.shape, curRotA).map((b) => (b ? '1' : '0')).join('');
+            const curIdx = swaps.findIndex((s) => mcConn(tA.shape, s.rotA).map((b) => (b ? '1' : '0')).join('') === curSig);
+            const nextIdx = curIdx >= 0 ? (curIdx + 1) % swaps.length : 0;
+            this.sel.rot = swaps[nextIdx].rotA;
+            this.sel.rotSwap = swaps[nextIdx].rotB;
+            this.hint(_('Tap Confirm to exchange these tiles, or Rotate to change orientation.'));
+            this.renderAll();
+            return;
+        }
         if (this.sel.r === null) {
             this.sel.rot = (this.sel.rot + 1) % 4;
             this.renderAll();
@@ -799,13 +947,15 @@ export class Game {
         if (s) {
             const t = this.tiles.get(s.id);
             const problem = this.stageProblem();
-            const moved = s.r !== null && (s.from === 'tray' || s.r !== t.r || s.c !== t.c || s.rot !== t.rot);
+            const moved = s.swapWith ? true : (s.r !== null && (s.from === 'tray' || s.r !== t.r || s.c !== t.c || s.rot !== t.rot));
             this.bga.statusBar.addActionButton(_('Confirm'), () => this.doPlace(), { color: 'primary', disabled: problem !== null || !moved });
             if (this.rotation) {
-                const canRotate = s.r === null || this.getLegalRotations(s.id, s.r, s.c).length > 1;
+                const canRotate = s.swapWith
+                    ? this.getLegalSwapRotations(s.id, s.swapWith).length > 1
+                    : (s.r === null || this.getLegalRotations(s.id, s.r, s.c).length > 1);
                 this.bga.statusBar.addActionButton(_('Rotate'), () => this.rotateSel(), { color: 'secondary', disabled: !canRotate });
             }
-            if (s.from === 'board') {
+            if (s.from === 'board' && !s.swapWith) {
                 this.bga.statusBar.addActionButton(_('Remove'), () => this.doReturn(), { color: 'alert' });
             }
             this.bga.statusBar.addActionButton(_('Cancel'), () => this.clearSel(), { color: 'alert' });
@@ -828,6 +978,16 @@ export class Game {
 
     doPlace() {
         const s = this.sel;
+        if (!s) return;
+        if (s.swapWith) {
+            this.bga.actions.performAction('actSwap', {
+                tileId: s.id,
+                targetTileId: s.swapWith,
+                rot: s.rot,
+                targetRot: s.rotSwap ?? 0,
+            });
+            return;
+        }
         this.bga.actions.performAction('actPlace', { tileId: s.id, r: s.r, c: s.c, rot: s.rot });
     }
 
@@ -957,6 +1117,50 @@ export class Game {
             t.rot = 0;
         }
         if (this.sel && this.sel.id === args.tile.id && Number(args.player_id) === this.me) {
+            this.sel = null;
+        }
+        this.renderAll();
+    }
+
+    notif_tileSwapped(args) {
+        if (args.type === 'tray_board') {
+            this.lastId = args.tile_a.id;
+            const tA = this.tiles.get(args.tile_a.id);
+            if (tA) {
+                tA.location = 'board';
+                tA.owner = Number(args.player_id);
+                tA.r = args.r;
+                tA.c = args.c;
+                tA.rot = args.rot;
+            }
+            const tB = this.tiles.get(args.tile_b.id);
+            if (tB) {
+                tB.location = 'hand';
+                tB.owner = Number(args.player_id);
+                tB.r = null;
+                tB.c = null;
+                tB.rot = 0;
+            }
+        } else {
+            this.lastId = args.tile_a.id;
+            const tA = this.tiles.get(args.tile_a.id);
+            if (tA) {
+                tA.location = 'board';
+                tA.owner = Number(args.player_id);
+                tA.r = args.r_a;
+                tA.c = args.c_a;
+                tA.rot = args.rot_a;
+            }
+            const tB = this.tiles.get(args.tile_b.id);
+            if (tB) {
+                tB.location = 'board';
+                tB.owner = Number(args.player_id);
+                tB.r = args.r_b;
+                tB.c = args.c_b;
+                tB.rot = args.rot_b;
+            }
+        }
+        if (this.sel && (this.sel.id === args.tile_a.id || this.sel.id === args.tile_b.id) && Number(args.player_id) === this.me) {
             this.sel = null;
         }
         this.renderAll();

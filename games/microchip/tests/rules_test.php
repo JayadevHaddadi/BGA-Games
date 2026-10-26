@@ -199,6 +199,61 @@ require __DIR__ . '/../../../tools/php_stub/zombie_run.php';
     $game->returnTile($pid, $tileId);
     check($game->playerScore->get($pid) === -2, 'live score: taking the tile back to the tray is -2 again');
     check($game->playerScore->get($pids[1]) === 0, 'live score: the other player is untouched');
+
+    // 8. Tile swapping: tray <-> board and board <-> board
+    $allTiles = Rules::allTiles();
+    $blueEndIds = array_values(array_filter(array_keys($allTiles), fn($k) => $allTiles[$k]['shape'] === 'end' && $allTiles[$k]['colour'] === 'blue'));
+    $tA = $blueEndIds[0];
+    $tB = $blueEndIds[1];
+    $game::DbQuery("UPDATE `tile` SET `location` = 'hand', `owner` = $pid, `pool_col` = NULL, `pool_row` = NULL WHERE `tile_id` IN ($tA, $tB)");
+    $blueSpace = null;
+    for ($r = 0; $r < 5 && $blueSpace === null; $r++) {
+        for ($c = 0; $c < 5 && $blueSpace === null; $c++) {
+            if ($spaces[$r][$c] === 'blue') {
+                for ($rot = 0; $rot < 4; $rot++) {
+                    if (Rules::placementProblem($spaces, [], 'blue', 'end', $rot, $r, $c) === null) {
+                        $blueSpace = [$r, $c, $rot];
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    check($blueSpace !== null, 'found blue space for tB');
+    [$rB, $cB, $rotB] = $blueSpace;
+    $game->placeTile($pid, $tB, $rB, $cB, $rotB);
+    check($game->getTile($tB)['location'] === 'board', 'tB is on board');
+    check($game->getTile($tA)['location'] === 'hand', 'tA is in hand');
+
+    $swapRes = $game->swapTiles($pid, $tA, $tB, $rotB);
+    check($swapRes['type'] === 'tray_board', 'swapTiles returned tray_board');
+    check($game->getTile($tA)['location'] === 'board' && (int)$game->getTile($tA)['r'] === $rB && (int)$game->getTile($tA)['c'] === $cB, 'tA placed at (rB, cB)');
+    check($game->getTile($tB)['location'] === 'hand' && $game->getTile($tB)['r'] === null, 'tB returned to hand');
+
+    // Board <-> Board swap
+    $blueSpace2 = null;
+    for ($r = 0; $r < 5 && $blueSpace2 === null; $r++) {
+        for ($c = 0; $c < 5 && $blueSpace2 === null; $c++) {
+            if ($spaces[$r][$c] === 'blue' && ($r !== $rB || $c !== $cB)) {
+                $placedA = [Rules::key($rB, $cB) => ['shape' => 'end', 'rot' => $rotB]];
+                for ($rot = 0; $rot < 4; $rot++) {
+                    if (Rules::placementProblem($spaces, $placedA, 'blue', 'end', $rot, $r, $c) === null) {
+                        $blueSpace2 = [$r, $c, $rot];
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    check($blueSpace2 !== null, 'found second blue space for board-board swap');
+    [$rB2, $cB2, $rotB2] = $blueSpace2;
+    $game->placeTile($pid, $tB, $rB2, $cB2, $rotB2);
+    check($game->getTile($tA)['location'] === 'board' && $game->getTile($tB)['location'] === 'board', 'both tiles on board');
+
+    $swapBB = $game->swapTiles($pid, $tA, $tB, $rotB2, $rotB);
+    check($swapBB['type'] === 'board_board', 'swapTiles returned board_board');
+    check((int)$game->getTile($tA)['r'] === $rB2 && (int)$game->getTile($tA)['c'] === $cB2, 'tA moved to second space');
+    check((int)$game->getTile($tB)['r'] === $rB && (int)$game->getTile($tB)['c'] === $cB, 'tB moved to first space');
 }
 
 echo ($failures === 0 ? "OK" : "FAILED") . ": $checks checks, $failures failures\n";

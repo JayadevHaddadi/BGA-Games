@@ -192,6 +192,24 @@ async function run() {
     game.onTrayTile(41);
     check(labels().includes('Rotate') && !labels().includes('Remove'), 'tray tile: Rotate, no Remove');
     game.clearSel();
+
+    // 6. Exchange pieces: select tray tile 41 (red tee) and click board tile 44 (red end at 1,4)
+    game.onTrayTile(41);
+    root.querySelector('#mc_board_me .mc_placed[data-id="44"]').click();
+    check(game.sel && game.sel.swapWith === 44 && game.sel.rot === 2, `exchanged staged with tile 44 (swapWith ${game.sel?.swapWith}, rot ${game.sel?.rot})`);
+    check(labels().includes('Confirm'), `Confirm button active for exchange: ${labels()}`);
+    press('Confirm');
+    const swapCall = calls[calls.length - 1];
+    check(swapCall && swapCall.name === 'actSwap' && swapCall.args.tileId === 41 && swapCall.args.targetTileId === 44, `actSwap sent (${JSON.stringify(swapCall)})`);
+    game.notif_tileSwapped({ player_id: 1, type: 'tray_board', tile_a: { id: 41, colour: 'red', shape: 'tee' }, tile_b: { id: 44, colour: 'red', shape: 'end' }, r: 1, c: 4, rot: 2, coord: 'E2' });
+    check(game.sel === null, 'selection cleared after swap notification');
+    check(game.tiles.get(41).location === 'board' && game.tiles.get(44).location === 'hand', 'tile 41 on board and tile 44 in hand');
+
+    // 7. Non-exchange: selecting blue tile 40 and clicking red tile 41 selects tile 41 (different colour)
+    game.onTrayTile(40);
+    root.querySelector('#mc_board_me .mc_placed[data-id="41"]').click();
+    check(game.sel && game.sel.id === 41 && !game.sel.swapWith, 'different colour does not exchange; selects clicked tile instead');
+    game.clearSel();
   } else {
     // 6. Build: pool empty. Finish asks for confirmation, then sends actFinish
     check(labels().includes('Finish'), `Finish offered when the pool is empty: ${labels()}`);

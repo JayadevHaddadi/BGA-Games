@@ -195,6 +195,52 @@ class Play extends GameState
     }
 
     #[PossibleAction]
+    public function actSwap(int $tileId, int $targetTileId, int $rot, int $targetRot = 0): ?string
+    {
+        $pid = $this->currentPlayer();
+        $info = $this->game->swapTiles($pid, $tileId, $targetTileId, $rot, $targetRot);
+        $tileA = $info['tile_a'];
+        $tileB = $info['tile_b'];
+
+        if ($info['type'] === 'tray_board') {
+            $this->notify->all('tileSwapped', clienttranslate('${player_name} exchanges a ${colour_name} ${shape_a} tile with the ${shape_b} tile on ${coord}.'), [
+                'player_id' => $pid,
+                'player_name' => $this->game->getPlayerNameById($pid),
+                'tile_a' => $tileA,
+                'tile_b' => $tileB,
+                'r' => $info['r'],
+                'c' => $info['c'],
+                'rot' => $info['rot'],
+                'coord' => $info['coord'],
+                'type' => 'tray_board',
+                'colour_name' => $this->game->colourName($tileA['colour']),
+                'shape_a' => $this->game->shapeName($tileA['shape']),
+                'shape_b' => $this->game->shapeName($tileB['shape']),
+                'i18n' => ['colour_name', 'shape_a', 'shape_b'],
+            ]);
+        } else {
+            $this->notify->all('tileSwapped', clienttranslate('${player_name} exchanges the ${colour_name} tiles on ${coord_a} and ${coord_b}.'), [
+                'player_id' => $pid,
+                'player_name' => $this->game->getPlayerNameById($pid),
+                'tile_a' => $tileA,
+                'tile_b' => $tileB,
+                'r_a' => $info['r_a'],
+                'c_a' => $info['c_a'],
+                'rot_a' => $info['rot_a'],
+                'coord_a' => $info['coord_a'],
+                'r_b' => $info['r_b'],
+                'c_b' => $info['c_b'],
+                'rot_b' => $info['rot_b'],
+                'coord_b' => $info['coord_b'],
+                'type' => 'board_board',
+                'colour_name' => $this->game->colourName($tileA['colour']),
+                'i18n' => ['colour_name'],
+            ]);
+        }
+        return null;
+    }
+
+    #[PossibleAction]
     public function actFinish(): ?string
     {
         $pid = $this->currentPlayer();

@@ -292,6 +292,18 @@ button.mc_space {
     outline-offset: -2px;
 }
 
+.mc_placed.mc_can_swap {
+    cursor: pointer;
+    outline: 2px dashed #1d1d1b;
+    outline-offset: -3px;
+}
+
+@media (hover: hover) {
+    .mc_placed.mc_can_swap:hover {
+        outline-width: 3px;
+    }
+}
+
 .mc_placed.mc_ghost {
     opacity: 0.6;
     pointer-events: auto;

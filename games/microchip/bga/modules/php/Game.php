@@ -258,6 +258,106 @@ class Game extends \Bga\GameFramework\Table
         ];
     }
 
+    /**
+     * Swaps two tiles:
+     * - If tileA is in tray and tileB on board: tileA is placed at tileB's spot with $rotA, tileB returns to tray.
+     * - If both are on board: tileA moves to tileB's spot ($rB, $cB, $rotA) and tileB moves to tileA's spot ($rA, $cA, $rotB).
+     */
+    public function swapTiles(int $pid, int $tileAId, int $tileBId, int $rotA, int $rotB = 0): array
+    {
+        if ($tileAId === $tileBId) {
+            throw new UserException(clienttranslate('Cannot exchange a tile with itself.'));
+        }
+        $tileA = $this->getTile($tileAId);
+        $tileB = $this->getTile($tileBId);
+        if ((int) $tileA['owner'] !== $pid || (int) $tileB['owner'] !== $pid) {
+            throw new UserException(clienttranslate('Those tiles do not belong to you.'));
+        }
+        if ($tileB['location'] !== 'board') {
+            throw new UserException(clienttranslate('The tile to replace is not on your board.'));
+        }
+        if (!in_array($tileA['location'], ['hand', 'board'], true)) {
+            throw new UserException(clienttranslate('That tile is not in your tray or on your board.'));
+        }
+        if ($rotA < 0 || $rotA > 3 || ($rotA !== 0 && !$this->rotationAllowed())) {
+            throw new UserException(clienttranslate('Tiles cannot be turned in this game.'));
+        }
+        if ($rotB < 0 || $rotB > 3 || ($rotB !== 0 && !$this->rotationAllowed())) {
+            throw new UserException(clienttranslate('Tiles cannot be turned in this game.'));
+        }
+        if ($tileA['colour'] !== $tileB['colour']) {
+            throw new UserException(clienttranslate('Tiles must be of the same colour to exchange.'));
+        }
+
+        $spaces = $this->spacesOf($pid);
+        $rB = (int) $tileB['r'];
+        $cB = (int) $tileB['c'];
+        $coordB = $this->coordLabel($rB, $cB);
+
+        if ($tileA['location'] === 'hand') {
+            $others = $this->placedOf($pid);
+            unset($others[Rules::key($rB, $cB)]);
+
+            $problem = Rules::placementProblem($spaces, $others, $tileA['colour'], $tileA['shape'], $rotA, $rB, $cB);
+            if ($problem !== null) {
+                throw new UserException($this->problemMessage($problem));
+            }
+
+            static::DbQuery("UPDATE `tile` SET `location` = 'board', `r` = $rB, `c` = $cB, `rot` = $rotA WHERE `tile_id` = $tileAId");
+            static::DbQuery("UPDATE `tile` SET `location` = 'hand', `r` = NULL, `c` = NULL, `rot` = 0 WHERE `tile_id` = $tileBId");
+            $this->refreshScore($pid);
+
+            return [
+                'type' => 'tray_board',
+                'tile_a' => $this->tileInfo($tileAId, $tileA),
+                'tile_b' => $this->tileInfo($tileBId, $tileB),
+                'r' => $rB,
+                'c' => $cB,
+                'rot' => $rotA,
+                'coord' => $coordB,
+            ];
+        }
+
+        // Board <-> Board swap
+        $rA = (int) $tileA['r'];
+        $cA = (int) $tileA['c'];
+        $coordA = $this->coordLabel($rA, $cA);
+
+        $others = $this->placedOf($pid);
+        unset($others[Rules::key($rA, $cA)]);
+        unset($others[Rules::key($rB, $cB)]);
+
+        $probA = Rules::placementProblem($spaces, $others, $tileA['colour'], $tileA['shape'], $rotA, $rB, $cB);
+        if ($probA !== null) {
+            throw new UserException($this->problemMessage($probA));
+        }
+
+        $withA = $others;
+        $withA[Rules::key($rB, $cB)] = ['shape' => $tileA['shape'], 'rot' => $rotA];
+        $probB = Rules::placementProblem($spaces, $withA, $tileB['colour'], $tileB['shape'], $rotB, $rA, $cA);
+        if ($probB !== null) {
+            throw new UserException($this->problemMessage($probB));
+        }
+
+        static::DbQuery("UPDATE `tile` SET `r` = $rB, `c` = $cB, `rot` = $rotA WHERE `tile_id` = $tileAId");
+        static::DbQuery("UPDATE `tile` SET `r` = $rA, `c` = $cA, `rot` = $rotB WHERE `tile_id` = $tileBId");
+        $this->refreshScore($pid);
+
+        return [
+            'type' => 'board_board',
+            'tile_a' => $this->tileInfo($tileAId, $tileA),
+            'tile_b' => $this->tileInfo($tileBId, $tileB),
+            'r_a' => $rB,
+            'c_a' => $cB,
+            'rot_a' => $rotA,
+            'coord_a' => $coordB,
+            'r_b' => $rA,
+            'c_b' => $cA,
+            'rot_b' => $rotB,
+            'coord_b' => $coordA,
+        ];
+    }
+
     /** Takes a placed tile back to the tray. */
     public function returnTile(int $pid, int $tileId): array
     {
