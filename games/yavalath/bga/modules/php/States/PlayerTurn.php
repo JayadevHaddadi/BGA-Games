@@ -44,6 +44,15 @@ class PlayerTurn extends GameState
             }
         }
 
+        // 3+ players: must block the next player's winning cell(s)
+        $forced = $this->game->getForcedBlock($activePlayerId);
+        $forcedCells = $forced['cells'];
+        $forcedName = '';
+        if (!empty($forcedCells)) {
+            $emptyCells = $forcedCells;
+            $forcedName = $this->game->loadPlayersBasicInfos()[$forced['player_id']]['player_name'];
+        }
+
         $playerColors = $this->globals->get('player_colors', []);
         $activeColor = $playerColors[$activePlayerId] ?? 'white';
         $canSwap = $this->isPieRuleAvailable($activePlayerId);
@@ -52,6 +61,9 @@ class PlayerTurn extends GameState
 
         return [
             'empty_cells' => $emptyCells,
+            'forced_cells' => $forcedCells,
+            'forced_player_id' => $forced['player_id'],
+            'forced_player_name' => $forcedName,
             'active_color' => $activeColor,
             'can_swap' => $canSwap,
             'win_length' => $winLength,
@@ -77,6 +89,21 @@ class PlayerTurn extends GameState
     public function actPlaceStone(int $q, int $r, ?int $activePlayerId = null): string
     {
         $activePlayerId = $activePlayerId ?? (int) $this->game->getActivePlayerId();
+
+        $forced = $this->game->getForcedBlock($activePlayerId);
+        if (!empty($forced['cells'])) {
+            $ok = false;
+            foreach ($forced['cells'] as $c) {
+                if ($c['q'] === $q && $c['r'] === $r) {
+                    $ok = true;
+                    break;
+                }
+            }
+            if (!$ok) {
+                $name = $this->game->loadPlayersBasicInfos()[$forced['player_id']]['player_name'];
+                throw new UserException(str_replace('${player_name}', $name, $this->game->_('You must block ${player_name}\'s winning move')));
+            }
+        }
 
         $color = $this->game->placeStone($q, $r, $activePlayerId);
 

@@ -109,6 +109,13 @@ body.yavalath_page_bg .bga-game-area {
     }
 }
 
+/* Must-block cells (3+ players): the next player's winning cells */
+.yavalath_forced_target .yavalath_hex {
+    fill: rgba(220, 60, 40, 0.45);
+    stroke: #b3200f;
+    stroke-width: 3.2;
+}
+
 /* Stones */
 .yavalath_stone_group {
     pointer-events: none;

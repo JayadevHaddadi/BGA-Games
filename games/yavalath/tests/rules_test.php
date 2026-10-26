@@ -354,6 +354,57 @@ $ret = rt_state(PlayerTurn::class)->zombie($pids[1]);
 rt_state(EndScore::class)->onEnteringState();
 ok('3p two zombies: the last player wins 2 / 1 / 0', $ret === EndScore::class && rt_scores() === [$pids[0] => 0, $pids[1] => 1, $pids[2] => 2]);
 
+// ---------------------------------------------------------------- 7b. 3+ players: must block the next player's win
+function rt_forced(object $g): array
+{
+    $c = array_map(fn($x) => $x['q'] . ',' . $x['r'], rt_state(PlayerTurn::class)->getArgs()['forced_cells']);
+    sort($c);
+    return $c;
+}
+[$g, $pids] = rt_new($ctx, 3);
+[$a, $b, $c] = $pids;
+ok('3p no threat: nothing forced, all cells free', rt_forced($g) === [] && count(rt_state(PlayerTurn::class)->getArgs()['empty_cells']) === 61);
+foreach ([0, 1, 2] as $k) { rt_placec(rt_cell(0, $k), 'black', $b); }
+$exp = ['-1,0', '3,0']; sort($exp);
+ok('3p threat on next player: forced cells = both ends', rt_forced($g) === $exp && count(rt_state(PlayerTurn::class)->getArgs()['empty_cells']) === 2);
+ok('3p threat: args name the threatened player', rt_state(PlayerTurn::class)->getArgs()['forced_player_id'] === $b);
+ok('3p threat: a free cell is refused and nothing changes', rt_refused(fn() => rt_move($g, $a, 0, 3)));
+ok('3p threat: two threats, blocking one of them is accepted', rt_move($g, $a, 3, 0) === NextPlayer::class);
+// the player two seats away is not the one to block
+[$g, $pids] = rt_new($ctx, 3);
+[$a, $b, $c] = $pids;
+foreach ([0, 1, 2] as $k) { rt_placec(rt_cell(0, $k), 'red', $c); }
+ok('3p: only the NEXT player matters (third player threat ignored)', rt_forced($g) === []);
+// block that forms my own three eliminates me
+[$g, $pids] = rt_new($ctx, 3);
+[$a, $b, $c] = $pids;
+foreach ([0, 1, 2] as $k) { rt_placec(rt_cell(0, $k), 'black', $b); }
+rt_place(-1, 1, 'white', $a); rt_place(-1, 2, 'white', $a);   // axis 1 through (-1,0): (-1,0),(-1,1),(-1,2)
+$ret = rt_move($g, $a, -1, 0);
+ok('3p: forced block forming my three eliminates me, game goes on', $ret === NextPlayer::class && rt_g($g, 'eliminated_players') === [$a]);
+// eliminated players are skipped when finding the next player
+rt_state(NextPlayer::class)->onEnteringState();
+ok('3p: b to play; next survivor after b is c', (int) $g->getActivePlayerId() === $b && $g->getNextSurvivor($b) === $c);
+ok('3p: next survivor after c skips eliminated a', $g->getNextSurvivor($c) === $b);
+foreach ([0, 1, 2] as $k) { rt_placec(rt_cell(1, $k + 2), 'red', $c); }   // c threat on axis 1 at k=1 and 5
+ok('3p: b must block c (eliminated a ignored as next)', count(rt_forced($g)) >= 1 && rt_refused(fn() => rt_move($g, $b, -4, 4)));
+// block that forms my four wins
+[$g, $pids] = rt_new($ctx, 3);
+[$a, $b, $c] = $pids;
+foreach ([0, 1, 2] as $k) { rt_placec(rt_cell(0, $k), 'black', $b); }
+foreach ([1, 2, 3] as $k) { rt_place(-1, $k, 'white', $a); }   // a: (-1,1),(-1,2),(-1,3) + (-1,0) = four on axis 1
+ok('3p: forced block completing my four wins', rt_move($g, $a, -1, 0) === EndScore::class && rt_g($g, 'winner_id') === $a);
+// 2 players are never restricted
+[$g, $pids] = rt_new($ctx, 2, [101 => 1]);
+foreach ([0, 1, 2] as $k) { rt_placec(rt_cell(0, $k), 'black', $pids[1]); }
+ok('2p: never restricted', rt_forced($g) === [] && count(rt_state(PlayerTurn::class)->getArgs()['empty_cells']) === 58 && rt_move($g, $pids[0], 0, 3) === NextPlayer::class);
+// five-not-four ruleset: needs 5
+[$g, $pids] = rt_new($ctx, 3, [100 => 2]);
+foreach ([0, 1, 2] as $k) { rt_placec(rt_cell(0, $k), 'black', $pids[1]); }
+ok('3p five-not-four: three black stones are no threat', rt_forced($g) === []);
+rt_placec(rt_cell(0, 3), 'black', $pids[1]);
+ok('3p five-not-four: four black stones threaten five', count(rt_forced($g)) === 2);
+
 // ---------------------------------------------------------------- 8. fuzz: real actions with random legal moves vs the oracle
 $hook = function (object $st, int $pid, object $game) {
     if (!($st instanceof PlayerTurn)) { return false; }
@@ -401,7 +452,7 @@ $hook = function (object $st, int $pid, object $game) {
         }
     }
     $q = $pick['q']; $r = $pick['r'];
-    $emptyBefore = count($empty);
+    $emptyBefore = rt_empty();
     $eliminatedBefore = $game->globals->get('eliminated_players');
     $survivorsBefore = array_values(array_diff(array_keys($colors), $eliminatedBefore));
     $ret = $st->actPlaceStone($q, $r, $pid);

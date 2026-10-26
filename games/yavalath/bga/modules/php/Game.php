@@ -319,6 +319,60 @@ class Game extends \Bga\GameFramework\Table
     }
 
     /**
+     * 3+ player must-block rule: the next surviving player in turn order after $playerId.
+     * Returns 0 when there is none (2-player games never use this rule).
+     */
+    public function getNextSurvivor(int $playerId): int
+    {
+        $all = array_map('intval', array_keys($this->loadPlayersBasicInfos()));
+        if (count($all) < 3) {
+            return 0;
+        }
+        $eliminated = array_map('intval', $this->globals->get('eliminated_players', []));
+        $n = count($all);
+        $idx = array_search($playerId, $all, true);
+        if ($idx === false) {
+            return 0;
+        }
+        for ($k = 1; $k < $n; $k++) {
+            $cand = $all[($idx + $k) % $n];
+            if (!in_array($cand, $eliminated, true)) {
+                return $cand;
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Empty cells where the next surviving player would complete a winning line (win_length or more).
+     * The current player must occupy one of them (3+ player games only). Returns [] when no threat.
+     *
+     * @return array{cells: array, player_id: int}
+     */
+    public function getForcedBlock(int $playerId): array
+    {
+        $next = $this->getNextSurvivor($playerId);
+        if ($next === 0 || $next === $playerId) {
+            return ['cells' => [], 'player_id' => 0];
+        }
+        $color = $this->globals->get('player_colors', [])[$next] ?? null;
+        if ($color === null) {
+            return ['cells' => [], 'player_id' => 0];
+        }
+        $cells = [];
+        foreach ($this->getBoardState() as $cell) {
+            if ($cell['color'] !== null) {
+                continue;
+            }
+            $res = $this->evaluateMove($cell['q'], $cell['r'], $color);
+            if ($res['status'] === 'win') {
+                $cells[] = ['q' => $cell['q'], 'r' => $cell['r']];
+            }
+        }
+        return ['cells' => $cells, 'player_id' => empty($cells) ? 0 : $next];
+    }
+
+    /**
      * Pie Rule (Swap Rule): In 2-player games on turn 2, Player 2 can choose to swap colors.
      * Player 2 takes White (and the first placed stone), and Player 1 becomes Black.
      */

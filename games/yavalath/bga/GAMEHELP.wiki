@@ -22,6 +22,7 @@ After placing a stone, all lines extending in the three hexagonal axes passing t
 == Three-Player Rules ==
 When 3 players play Yavalath, the game uses elimination rules:
 * If a player creates a line of 3 stones, that player is '''immediately eliminated'''.
+* '''Must block''': the player whose turn comes next must not be allowed to win. If the next surviving player could complete a winning line with their next stone, you '''must''' place your stone on one of those winning cells (if there are several, you can only block one, but you must choose one of them). This applies even if your blocking stone forms a line of 3 and eliminates you; if it forms a line of 4 you win instead. When no such threat exists you may play anywhere.
 * '''Stones remain on the board''': The eliminated player's stones stay on the board for the rest of the game as neutral obstacles/blockers.
 * The remaining players continue playing in clockwise order.
 * The game ends when:

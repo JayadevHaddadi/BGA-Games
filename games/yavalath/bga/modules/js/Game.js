@@ -194,7 +194,12 @@ export class Game {
         if (!this.bga?.statusBar) return;
         const win = this.winLength || 4;
         const lose = this.loseLength || 3;
-        if (active) {
+        if (args && args.forced_cells && args.forced_cells.length) {
+            const name = args.forced_player_name || '';
+            this.bga.statusBar.setTitle(active
+                ? _('${you} must block ${player}\'s win').replace('${player}', name)
+                : _('${actplayer} must block ${player}\'s win').replace('${player}', name));
+        } else if (active) {
             if (args && args.can_swap) {
                 this.bga.statusBar.setTitle(_('${you}: Place stone or swap Color'));
             } else {
@@ -399,6 +404,8 @@ export class Game {
         if (this.boardData[key] && this.boardData[key].color) return;
 
         // If clicking the currently staged move again -> confirm it!
+        if (!this.isForcedCell(q, r)) return;
+
         if (this.pendingMove && this.pendingMove.q === q && this.pendingMove.r === r) {
             this.confirmPendingMove();
             return;
@@ -528,6 +535,12 @@ export class Game {
         }
     }
 
+    isForcedCell(q, r) {
+        const f = this.currentArgs && this.currentArgs.forced_cells;
+        if (!f || !f.length) return true;
+        return f.some(c => Number(c.q) === Number(q) && Number(c.r) === Number(r));
+    }
+
     updateBoardInteractions(active) {
         const cells = document.querySelectorAll('.yavalath_cell');
         cells.forEach(c => {
@@ -535,17 +548,20 @@ export class Game {
             const r = c.getAttribute('data-r');
             const key = `${q}_${r}`;
             const occupied = this.boardData[key] && this.boardData[key].color;
-            if (active && !occupied) {
+            const forcedSet = !!(this.currentArgs && this.currentArgs.forced_cells && this.currentArgs.forced_cells.length);
+            const isForced = forcedSet && this.isForcedCell(Number(q), Number(r)) && !occupied;
+            if (active && !occupied && this.isForcedCell(Number(q), Number(r))) {
                 c.classList.add('yavalath_valid_target');
             } else {
                 c.classList.remove('yavalath_valid_target');
             }
+            c.classList.toggle('yavalath_forced_target', !!isForced);
         });
     }
 
     clearHighlights() {
         document.querySelectorAll('.yavalath_cell').forEach(c => {
-            c.classList.remove('yavalath_valid_target');
+            c.classList.remove('yavalath_valid_target', 'yavalath_forced_target');
             const ghost = c.querySelector('.yavalath_ghost_stone');
             if (ghost) ghost.style.display = 'none';
         });
