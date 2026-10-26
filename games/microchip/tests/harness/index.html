@@ -157,7 +157,7 @@ async function run() {
   check(typeof scores[1] === 'number', `live score computed for player 1: ${scores[1]}`);
 
   if (mode === 'turn') {
-    // 2. Draw: tap a draw-column tile -> sends actDraw immediately without extra confirm button
+    // 2. Draw: tap a draw-column tile -> sends actDraw immediately, and the drawn tile becomes selected
     root.querySelector('.mc_can').click();
     await Promise.resolve();
     const drawCall = calls[calls.length - 1];
@@ -165,55 +165,77 @@ async function run() {
     const id = drawCall.args.tileId;
     await game.notif_tileDrawn({ player_id: 1, tile: { id, colour: game.tiles.get(id).colour, shape: game.tiles.get(id).shape }, from: { col: 11, row: 0 }, next_drawer: 2, draw_column: 11, pool_left: 34 });
     check(root.querySelectorAll('.mc_tray .mc_tile_btn').length === 4, 'tray has four tiles after drawing');
+    check(game.sel && game.sel.id === id && root.querySelector(`.mc_tray .mc_tile_btn.mc_sel[data-id="${id}"]`), 'drawn tile is selected (highlighted in the tray)');
 
     // 3. Placement. Tray tile 40 is a blue end. The free blue spaces are (1,3), (2,1), (3,4), (4,2)
     game.onTrayTile(40);
+    check(game.sel.id === 40, 'tapping a tray tile selects it');
     check(root.querySelectorAll('#mc_board_me .mc_target').length === 4, `four free blue spaces are targets (${root.querySelectorAll('#mc_board_me .mc_target').length})`);
     const space = (r, c) => [...root.querySelectorAll('#mc_board_me .mc_space')].find((s) => +s.dataset.r === r && +s.dataset.c === c);
+    const placedEl = (tid) => root.querySelector(`#mc_board_me .mc_placed[data-id="${tid}"]`);
 
-    // A wrong colour space shows problem hint and does not place
+    // A wrong colour space (no legal rotation): the tile is shown there anyway, marked invalid with a red !, not sent to the server
+    const nBefore = calls.length;
     space(0, 2).click();
-    check(/colour/i.test(root.querySelector('#mc_hint').textContent), `reason shown: ${root.querySelector('#mc_hint').textContent}`);
+    check(calls.length === nBefore, 'a wrong-colour space sends nothing to the server');
+    check(placedEl(40) && placedEl(40).classList.contains('mc_bad') && placedEl(40).querySelector('.mc_tile_err'), 'tile on a wrong-colour space is shown invalid with a red ! badge');
+    check(placedEl(40).querySelector('.mc_tile_err').title === 'Invalid placement', 'invalid badge has the tooltip');
+    check(game.sel && game.sel.id === 40, 'invalid tile stays selected');
+    check(!labels().includes('Finish'), 'no Finish while the pool is not empty');
 
-    // (2,1) touches nothing: legal. Clicking space sends actPlace immediately.
+    // (2,1) is legal: actPlace sent, in a legal rotation, tile stays selected
     space(2, 1).click();
     await Promise.resolve();
     const place = calls[calls.length - 1];
     check(place.name === 'actPlace' && place.args.r === 2 && place.args.c === 1 && place.args.rot === 0 && place.args.tileId === 40, `actPlace sent immediately (${JSON.stringify(place)})`);
     game.notif_tilePlaced({ player_id: 1, tile: { id: 40, colour: 'blue', shape: 'end' }, r: 2, c: 1, rot: 0, moved: false, coord: 'B3' });
-    check(game.sel === null, 'selection cleared once the server accepts the placement');
+    check(game.sel && game.sel.id === 40 && game.sel.from === 'board', 'tile stays selected once the server accepts the placement');
+    check(placedEl(40) && placedEl(40).classList.contains('mc_sel') && !placedEl(40).querySelector('.mc_tile_err'), 'placed tile is highlighted as selected and valid');
     check(root.querySelectorAll('#mc_board_me .mc_placed').length === 3, 'three tiles on my board after the placement');
+    check(placedEl(40).querySelector('.mc_tile_open'), 'placed end with a connection to an empty cell shows the yellow open-connection badge');
+    check(placedEl(40).querySelector('.mc_tile_open').title.startsWith('Open connection'), 'open badge has the tooltip');
 
-    // 4. Board tile: Rotate and Remove
-    root.querySelector('#mc_board_me .mc_placed[data-id="43"]').click();
+    // Click the selected tile again: rotated to the next legal rotation
+    placedEl(40).click();
+    await Promise.resolve();
+    const rot1 = calls[calls.length - 1];
+    check(rot1.name === 'actPlace' && rot1.args.tileId === 40 && rot1.args.rot !== 0, `clicking the selected tile rotates it (${JSON.stringify(rot1)})`);
+    game._actionPending = false;
+    game.notif_tilePlaced({ player_id: 1, tile: { id: 40, colour: 'blue', shape: 'end' }, r: 2, c: 1, rot: rot1.args.rot, moved: true, coord: 'B3' });
+    check(game.sel && game.sel.id === 40, 'tile still selected after rotating');
+
+    // Click another empty blue cell: moves there (a legal rotation), still selected
+    space(3, 4).click();
+    await Promise.resolve();
+    const mv = calls[calls.length - 1];
+    check(mv.name === 'actPlace' && mv.args.r === 3 && mv.args.c === 4 && mv.args.rot === 0, `clicking an empty cell moves the selected tile with a legal rotation (${JSON.stringify(mv)})`);
+    game._actionPending = false;
+    game.notif_tilePlaced({ player_id: 1, tile: { id: 40, colour: 'blue', shape: 'end' }, r: 3, c: 4, rot: mv.args.rot, moved: true, coord: 'E4' });
+    check(game.sel && game.sel.id === 40 && game.sel.r === 3, 'moved tile is still selected');
+
+    // Clicking another tile selects it (the first one is deselected)
+    placedEl(43).click();
+    check(game.sel && game.sel.id === 43 && !placedEl(40).classList.contains('mc_sel') && placedEl(43).classList.contains('mc_sel'), 'clicking another tile selects it and deselects the first');
+
+    // Clicking empty non-board space deselects; so does Escape
+    root.querySelector('#mc_hint').click();
+    check(game.sel === null, 'clicking empty space deselects');
+    placedEl(43).click();
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    check(game.sel === null, 'Escape deselects');
+
+    // 4. Board tile buttons: Rotate and Remove
+    placedEl(43).click();
     check(labels().includes('Remove') && labels().includes('Rotate'), `board tile buttons: ${labels()}`);
-    press('Rotate');
+    press('Remove');
     await Promise.resolve();
-    const rotCall = calls[calls.length - 1];
-    check(rotCall && rotCall.name === 'actPlace' && rotCall.args.tileId === 43, 'Rotate sends actPlace immediately');
-    press('Cancel');
-    check(game.sel === null, 'Cancel clears the selection');
-
-    // 5. Tray tile: Rotate but no Remove
+    check(calls[calls.length - 1].name === 'actReturn', 'Remove sends actReturn');
+    game._actionPending = false;
+    game.notif_tileReturned({ player_id: 1, tile: { id: 43, colour: 'blue', shape: 'end' }, coord: 'A1' });
     game.onTrayTile(41);
-    check(labels().includes('Rotate') && !labels().includes('Remove'), 'tray tile: Rotate, no Remove');
-    game.clearSel();
-
-    // 6. Exchange pieces: select tray tile 41 (red tee) and click board tile 44 (red end at 1,4) -> immediate actSwap
-    game.onTrayTile(41);
-    root.querySelector('#mc_board_me .mc_placed[data-id="44"]').click();
-    await Promise.resolve();
-    const swapCall = calls[calls.length - 1];
-    check(swapCall && swapCall.name === 'actSwap' && swapCall.args.tileId === 41 && swapCall.args.targetTileId === 44, `actSwap sent immediately (${JSON.stringify(swapCall)})`);
-    game.notif_tileSwapped({ player_id: 1, type: 'tray_board', tile_a: { id: 41, colour: 'red', shape: 'tee' }, tile_b: { id: 44, colour: 'red', shape: 'end' }, r: 1, c: 4, rot: 2, coord: 'E2' });
-    check(game.sel === null, 'selection cleared after swap notification');
-    check(game.tiles.get(41).location === 'board' && game.tiles.get(44).location === 'hand', 'tile 41 on board and tile 44 in hand');
-
-    // 7. Non-exchange: selecting blue tile 40 and clicking red tile 41 selects tile 41 (different colour)
-    game.onTrayTile(40);
-    root.querySelector('#mc_board_me .mc_placed[data-id="41"]').click();
-    check(game.sel && game.sel.id === 41 && !game.sel.swapWith, 'different colour does not exchange; selects clicked tile instead');
-    game.clearSel();
+    check(labels().includes('Deselect') && !labels().includes('Remove'), 'tray tile: no Remove');
+    press('Deselect');
+    check(game.sel === null, 'Deselect clears the selection');
 
     // 8. Rapid click guard: clicking pool tiles while an action is in flight does not send concurrent actions
     game.drawer = 1;
@@ -232,19 +254,24 @@ async function run() {
     const t44 = game.tiles.get(44);
     t44.r = 0; t44.c = 1; t44.rot = 2; // (0,1) faces south, mismatch with (0,0) facing east
     game.renderAll();
-    const errCount = root.querySelectorAll('#mc_board_me .mc_placed.mc_err').length;
-    const badgeCount = root.querySelectorAll('#mc_board_me .mc_tile_err').length;
-    check(errCount === 2 && badgeCount === 2, `mismatched tiles show red outline and ! badge (errCount=${errCount}, badgeCount=${badgeCount})`);
+    const openCount = root.querySelectorAll('#mc_board_me .mc_tile_open').length;
+    check(openCount === 2 && root.querySelectorAll('#mc_board_me .mc_tile_err').length === 0, `mismatched neighbours show yellow open badges, no red (${openCount})`);
+    check(labels().includes('Finish') && !labels().includes('Finish(off)'), 'open connections do not block Finish');
 
+    // An invalid placement (tray tile on a wrong-colour space) blocks Finish
+    game.tiles.get(40).location = 'hand';
+    game.onTrayTile(40);
+    game.onSpace(0, 2);
+    check(root.querySelectorAll('#mc_board_me .mc_tile_err').length === 1, 'invalid placement shows a red ! badge');
+    check(labels().includes('Finish(off)'), 'invalid placement disables Finish');
     const callsBeforeFin = calls.length;
     game.doFinish();
-    check(calls.length === callsBeforeFin, 'doFinish is blocked while errors exist on board');
-    check(game.el.hint.textContent.includes('!'), 'hint warns about mismatched tiles');
-
-    // Fix the mismatch by turning t44 to face west (rot 3) to meet (0,0)
+    check(calls.length === callsBeforeFin, 'doFinish is blocked while an invalid placement exists');
+    press('Remove');
+    check(root.querySelectorAll('#mc_board_me .mc_tile_err').length === 0 && game.ghost === null, 'removing the invalid tile clears the badge');
     t44.rot = 3;
     game.renderAll();
-    check(root.querySelectorAll('#mc_board_me .mc_placed.mc_err').length === 0, 'fixing orientation clears errors');
+    check(root.querySelectorAll('#mc_board_me .mc_tile_open').length === 0 && true, 'a closed pair shows no open badge');
 
     check(labels().includes('Finish'), `Finish offered when the pool is empty: ${labels()}`);
     press('Finish');

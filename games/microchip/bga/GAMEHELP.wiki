@@ -40,7 +40,7 @@ A tile can be placed only if all of these are true:
 * The colour of the tile matches the colour of the space.
 * No connection points at the edge of the board.
 
-While arranging your board, you may place or turn tiles that create temporary mismatches with adjacent tiles. These mismatched tiles are highlighted with a red outline and a red '''!''' badge in the corner. You cannot submit your final answer until all mismatches are resolved.
+Click a tile to select it, click it again to turn it, and click an empty space to move it there. A tile stays selected until you click somewhere else. A tile placed where it cannot legally go is marked with a red '''!''' badge, and you cannot finish while one is on your board. A tile with an open connection (one that leads to an empty space or to a tile without the matching connection) shows a yellow warning triangle; this does not block finishing, but open structures do not score.
 
 A connection may point at an empty space while you build. It is an '''open path''' until a tile is placed there.
 

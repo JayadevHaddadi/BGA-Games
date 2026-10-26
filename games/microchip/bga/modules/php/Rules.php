@@ -226,6 +226,28 @@ final class Rules
     }
 
     /**
+     * "r,c" keys of tiles whose placement is illegal: wrong colour for the space, or a connection pointing off the
+     * board. Open connections (to an empty cell or a non-matching neighbour) are legal; such structures just do not score.
+     *
+     * @param string[][]                                          $spaces
+     * @param array<string, array{colour:string, shape:string, rot:int}> $placed
+     * @return string[]
+     */
+    public static function invalidPlacements(array $spaces, array $placed): array
+    {
+        $bad = [];
+        foreach ($placed as $key => $tile) {
+            [$r, $c] = array_map('intval', explode(',', $key));
+            $others = $placed;
+            unset($others[$key]);
+            if (self::placementProblem($spaces, $others, $tile['colour'], $tile['shape'], $tile['rot'], $r, $c) !== null) {
+                $bad[] = $key;
+            }
+        }
+        return $bad;
+    }
+
+    /**
      * Returns a list of "r,c" keys for placed tiles that have connection errors (pointing off-board or mismatching an adjacent tile).
      *
      * @param array<string, array{shape:string, rot:int}> $placed

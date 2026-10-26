@@ -91,6 +91,35 @@ function mcTileErrors(placed) {
     return errors;
 }
 
+/** "r,c" keys of tiles with an open connection: a connection to an empty cell or to a neighbour without the matching one. */
+function mcOpenTiles(placed) {
+    const open = new Set();
+    Object.keys(placed).forEach((key) => {
+        const [r, c] = key.split(',').map(Number);
+        const conn = mcConn(placed[key].shape, placed[key].rot);
+        for (let side = 0; side < 4; side++) {
+            if (!conn[side]) continue;
+            const nr = r + MC_STEP[side][0];
+            const nc = c + MC_STEP[side][1];
+            const other = mcInside(nr, nc) ? placed[mcKey(nr, nc)] : null;
+            if (!other || !mcConn(other.shape, other.rot)[(side + 2) % 4]) open.add(key);
+        }
+    });
+    return open;
+}
+
+/** "r,c" keys of tiles whose placement is illegal (wrong colour, or a connection pointing off the board). */
+function mcInvalidTiles(spaces, placed) {
+    const bad = new Set();
+    Object.keys(placed).forEach((key) => {
+        const [r, c] = key.split(',').map(Number);
+        const others = { ...placed };
+        delete others[key];
+        if (mcProblem(spaces, others, placed[key].colour, placed[key].shape, placed[key].rot, r, c) !== null) bad.add(key);
+    });
+    return bad;
+}
+
 /** Connected groups of placed tiles that match connections (same as Rules::structures). */
 function mcStructures(placed) {
     const seen = new Set();
@@ -232,6 +261,9 @@ export class Game {
         this.finishPending = false;
         this.chipKeys = {};
         this.errorKeys = {};
+        this.openKeys = {};
+        // A tile placed on a cell where no rotation is legal: shown there (invalid) but not stored on the server
+        this.ghost = null;
         // The tile placed or moved last: marked on its board so it is easy to find after a move
         this.lastId = null;
         this.bga.states.register('Play', new PlayState(this));
@@ -460,15 +492,8 @@ export class Game {
         this.el.board.addEventListener('click', (e) => this.onBoardClick(e));
         this.el.tray.addEventListener('click', (e) => {
             const retBtn = e.target.closest('.mc_return_tray_btn');
-            if (retBtn || (this.sel && this.sel.from === 'board' && !e.target.closest('.mc_tile_btn'))) {
+            if (retBtn) {
                 this.doReturn();
-                return;
-            }
-            if (this.sel && this.sel.from === 'tray' && this.sel.r !== null && !e.target.closest('.mc_tile_btn')) {
-                this.sel.r = null;
-                this.sel.c = null;
-                this.hint('');
-                this.renderAll();
                 return;
             }
             const btn = e.target.closest('.mc_tile_btn');
@@ -511,8 +536,15 @@ export class Game {
             if (e.key === 'Escape') {
                 if (!resultsModal.hidden) closeResults();
                 else if (!rulesModal.hidden) closeRules();
+                else if (this.sel) this.clearSel();
             }
-        });
+        }, true);
+        // Clicking away from tiles, spaces and buttons (on empty space) deselects the tile
+        root.addEventListener('click', (e) => {
+            if (!this.sel) return;
+            if (e.target.closest('.mc_placed, .mc_space, .mc_tile_btn, .mc_return_tray_btn, button, [role="dialog"], .mc_rules_modal, .mc_results_modal')) return;
+            this.clearSel();
+        }, true);
     }
 
     viewerId() {
@@ -661,17 +693,6 @@ export class Game {
         return legal;
     }
 
-    stageProblem() {
-        const s = this.sel;
-        if (!s || s.from === 'pool' || s.r === null) return 'pick';
-        if (s.swapWith) {
-            const swaps = this.getLegalSwapRotations(s.id, s.swapWith);
-            return swaps.some((sw) => sw.rotA === s.rot) ? null : 'edge';
-        }
-        const t = this.tiles.get(s.id);
-        return mcProblem(this.spaces[this.me], this.placedMine(s.id), t.colour, t.shape, s.rot, s.r, s.c);
-    }
-
     problemText(code) {
         return {
             pick: _('Tap a space on your board to place this tile.'),
@@ -694,9 +715,10 @@ export class Game {
             const placedList = this.boardTiles(pid);
             const placedMap = {};
             placedList.forEach((t) => {
-                placedMap[mcKey(t.r, t.c)] = { shape: t.shape, rot: t.rot };
+                placedMap[mcKey(t.r, t.c)] = { shape: t.shape, rot: t.rot, colour: t.colour };
             });
-            this.errorKeys[pid] = mcTileErrors(placedMap);
+            this.errorKeys[pid] = mcInvalidTiles(this.spaces[pid], placedMap);
+            this.openKeys[pid] = mcOpenTiles(placedMap);
             const owned = placedList.length + this.trayTiles(pid).length;
             const s = mcScoreBoard(placedMap, owned);
             this.chipKeys[pid] = new Set(s.chip);
@@ -723,23 +745,30 @@ export class Game {
 
     /** Drops a staged choice when the server has moved on (someone else drew the tile, or it was placed). */
     sanitizeSel() {
+        if (this.ghost) {
+            const g = this.tiles.get(this.ghost.id);
+            if (!g || g.owner !== this.me || (g.location !== 'hand' && g.location !== 'board') || this.finished[this.me]) this.ghost = null;
+        }
         const s = this.sel;
         if (!s) return;
         const t = this.tiles.get(s.id);
         if (!t) { this.sel = null; return; }
-        if (s.from === 'pool' && (t.location !== 'pool' || t.col !== this.drawCol() || this.drawer !== this.me || this.finished[this.me])) {
-            this.sel = null;
-        } else if (s.from === 'tray' && (t.location !== 'hand' || t.owner !== this.me)) {
-            this.sel = null;
-        } else if (s.from === 'board' && (t.location !== 'board' || t.owner !== this.me)) {
+        if (s.from === 'pool') {
+            if (t.location !== 'pool' || t.col !== this.drawCol() || this.drawer !== this.me || this.finished[this.me]) this.sel = null;
+        } else if (t.owner !== this.me || (t.location !== 'hand' && t.location !== 'board')) {
             this.sel = null;
         }
-        if (this.sel && this.sel.swapWith) {
-            const sw = this.tiles.get(this.sel.swapWith);
-            if (!sw || sw.location !== 'board' || sw.owner !== this.me) {
-                this.sel = null;
-            }
-        }
+    }
+
+    /** After a rejected action: make the selection agree with what the server holds (or my invalid ghost). */
+    resyncSel() {
+        const s = this.sel;
+        if (!s || s.from === 'pool') return;
+        const t = this.tiles.get(s.id);
+        if (!t) return;
+        if (this.ghost && this.ghost.id === s.id) return;
+        if (t.location === 'board') { s.from = 'board'; s.r = t.r; s.c = t.c; s.rot = t.rot; }
+        else { s.from = 'tray'; s.r = null; s.c = null; s.rot = 0; }
     }
 
     renderPool() {
@@ -854,14 +883,14 @@ export class Game {
      */
     boardHTML(pid, mine) {
         const spaces = this.spaces[pid];
-        const staged = mine && this.sel && this.sel.from !== 'pool' ? this.sel : null;
-        const stagedTile = staged ? this.tiles.get(staged.id) : null;
-        const problem = staged && staged.r !== null ? this.stageProblem() : null;
+        const sel = mine && this.sel && this.sel.from !== 'pool' ? this.sel : null;
+        const selTile = sel ? this.tiles.get(sel.id) : null;
+        const ghost = mine ? this.ghost : null;
         let grid = '<div class="mc_grid">';
         for (let r = 0; r < MC_SIZE; r++) {
             for (let c = 0; c < MC_SIZE; c++) {
                 const colour = spaces[r][c];
-                const target = stagedTile && !this.spaceOccupied(r, c, staged.id) && this.getLegalRotations(staged.id, r, c).length > 0;
+                const target = selTile && !(sel.r === r && sel.c === c) && !this.spaceOccupied(r, c, sel.id) && this.getLegalRotations(sel.id, r, c).length > 0;
                 const cls = `mc_space mc_sp_${colour}` + (target ? ' mc_target' : '');
                 const label = `${mcCoord(r, c)}, ${this.colourLabel(colour)}`;
                 if (mine) {
@@ -873,28 +902,24 @@ export class Game {
         }
         const chip = this.chipKeys[pid] || null;
         const errs = this.errorKeys ? this.errorKeys[pid] : null;
+        const opens = this.openKeys ? this.openKeys[pid] : null;
         this.boardTiles(pid).forEach((t) => {
-            if (staged && t.id === staged.id) return; // the staged tile is drawn as the ghost below
-            if (staged && staged.swapWith && t.id === staged.swapWith) {
-                if (staged.from === 'board' && staged.origR !== null && staged.origC !== null) {
-                    const cls = 'mc_placed mc_ghost';
-                    grid += this.placedHTML({ id: t.id, r: staged.origR, c: staged.origC, rot: staged.rotSwap ?? 0, colour: t.colour, shape: t.shape }, cls, true);
-                }
-                return;
-            }
-            const canSwap = mine && staged && staged.id !== t.id && !staged.swapWith && this.getLegalSwapRotations(staged.id, t.id).length > 0;
-            const hasErr = errs && errs.has(mcKey(t.r, t.c));
+            if (ghost && t.id === ghost.id) return; // drawn below, at its invalid position
+            const key = mcKey(t.r, t.c);
+            const invalid = Boolean(errs && errs.has(key));
+            const open = !invalid && Boolean(opens && opens.has(key));
             const cls = 'mc_placed'
-                + (chip && chip.has(mcKey(t.r, t.c)) ? ' mc_chip' : '')
+                + (chip && chip.has(key) ? ' mc_chip' : '')
                 + (t.id === this.lastId ? ' mc_last' : '')
-                + (mine && staged && staged.id === t.id ? ' mc_sel' : '')
-                + (canSwap ? ' mc_can_swap' : '')
-                + (hasErr ? ' mc_err' : '');
-            grid += this.placedHTML(t, cls, mine, hasErr);
+                + (mine && sel && sel.id === t.id ? ' mc_sel' : '')
+                + (invalid ? ' mc_err' : '')
+                + (open ? ' mc_open' : '');
+            grid += this.placedHTML(t, cls, mine, invalid, open);
         });
-        if (staged && staged.r !== null) {
-            const cls = 'mc_placed mc_ghost' + (problem ? ' mc_bad' : '');
-            grid += this.placedHTML({ id: staged.id, r: staged.r, c: staged.c, rot: staged.rot, colour: stagedTile.colour, shape: stagedTile.shape }, cls, true);
+        if (ghost) {
+            const gt = this.tiles.get(ghost.id);
+            const cls = 'mc_placed mc_ghost mc_bad mc_err' + (sel && sel.id === ghost.id ? ' mc_sel' : '');
+            grid += this.placedHTML({ id: gt.id, r: ghost.r, c: ghost.c, rot: ghost.rot, colour: gt.colour, shape: gt.shape }, cls, true, true, false);
         }
         grid += '</div>';
         if (!mine) {
@@ -909,11 +934,18 @@ export class Game {
             + `</div>`;
     }
 
-    placedHTML(t, cls, interactive, hasErr = false) {
+    placedHTML(t, cls, interactive, invalid = false, open = false) {
         const pos = `left:${t.c * 20}%;top:${t.r * 20}%`;
         const attrs = interactive ? ` role="button" tabindex="0" aria-label="${this.colourLabel(t.colour)} ${this.shapeLabel(t.shape)}"` : '';
-        const errBadge = hasErr ? `<div class="mc_tile_err" aria-label="${_('Mismatched connection')}" title="${_('Mismatched connection')}">!</div>` : '';
-        return `<div class="${cls}" style="${pos}" data-id="${t.id}" data-key="${t.r},${t.c}"${attrs}>${mcTileHTML(t.colour, t.shape, t.rot)}${errBadge}</div>`;
+        let badge = '';
+        if (invalid) {
+            const tip = _('Invalid placement');
+            badge = `<div class="mc_tile_err" aria-label="${tip}" title="${tip}">!</div>`;
+        } else if (open) {
+            const tip = _('Open connection: this tile is not closed');
+            badge = `<div class="mc_tile_open" aria-label="${tip}" title="${tip}"><svg viewBox="0 0 20 20" aria-hidden="true"><polygon points="10,1.5 19,18 1,18" fill="#ffd400" stroke="#1d1d1b" stroke-width="1.6" stroke-linejoin="miter"/><rect x="9" y="7" width="2" height="6" fill="#1d1d1b"/><rect x="9" y="14" width="2" height="2" fill="#1d1d1b"/></svg></div>`;
+        }
+        return `<div class="${cls}" style="${pos}" data-id="${t.id}" data-key="${t.r},${t.c}"${attrs}>${mcTileHTML(t.colour, t.shape, t.rot)}${badge}</div>`;
     }
 
     spaceOccupied(r, c, exceptId) {
@@ -922,45 +954,29 @@ export class Game {
 
     renderTray() {
         if (this.me === null) return;
-        const tray = this.trayTiles(this.me);
-        const staged = this.sel && this.sel.from !== 'pool' ? this.sel : null;
+        const gid = this.ghost ? this.ghost.id : null;
+        const tray = this.trayTiles(this.me).filter((t) => t.id !== gid);
         this.el.tray.textContent = '';
-        if (this.sel && this.sel.from === 'board') {
+        const selId = this.sel ? this.sel.id : null;
+        if (this.sel && (this.sel.from === 'board' || (gid !== null && selId === gid))) {
             const retBtn = document.createElement('button');
             retBtn.type = 'button';
             retBtn.className = 'mc_return_tray_btn';
             retBtn.innerHTML = `&#x21A9; ${_('Click here to put tile back in tray')}`;
             this.el.tray.appendChild(retBtn);
         }
-        if (tray.length === 0 && !(this.sel && this.sel.from === 'board') && !(staged && staged.swapWith && staged.from === 'tray')) {
-            const p = document.createElement('p');
-            p.className = 'mc_empty';
-            p.textContent = _('No tiles waiting. Draw one from the pool.');
-            this.el.tray.appendChild(p);
+        if (tray.length === 0 && !(this.sel && this.sel.from === 'board')) {
             return;
         }
         tray.forEach((t) => {
-            if (staged && staged.from === 'tray' && t.id === staged.id && staged.swapWith) return;
             const btn = document.createElement('button');
             btn.type = 'button';
-            btn.className = 'mc_tile_btn mc_tray_tile' + (this.sel && this.sel.id === t.id ? ' mc_sel' : '');
+            btn.className = 'mc_tile_btn mc_tray_tile' + (this.sel && this.sel.id === t.id && this.sel.from === 'tray' ? ' mc_sel' : '');
             btn.dataset.id = String(t.id);
             btn.setAttribute('aria-label', `${this.colourLabel(t.colour)} ${this.shapeLabel(t.shape)}`);
             btn.innerHTML = mcTileHTML(t.colour, t.shape, 0);
             this.el.tray.appendChild(btn);
         });
-        if (staged && staged.swapWith && staged.from === 'tray') {
-            const swTile = this.tiles.get(staged.swapWith);
-            if (swTile) {
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = 'mc_tile_btn mc_tray_tile mc_ghost';
-                btn.dataset.id = String(swTile.id);
-                btn.setAttribute('aria-label', `${this.colourLabel(swTile.colour)} ${this.shapeLabel(swTile.shape)}`);
-                btn.innerHTML = mcTileHTML(swTile.colour, swTile.shape, 0);
-                this.el.tray.appendChild(btn);
-            }
-        }
     }
 
     panelTrayHTML(pid) {
@@ -1043,6 +1059,7 @@ export class Game {
         if (res && typeof res.then === 'function') {
             return res.catch((err) => {
                 console.warn('Action rejected:', action, err);
+                this.resyncSel();
                 this.renderAll();
             }).finally(() => {
                 this._actionPending = false;
@@ -1077,13 +1094,32 @@ export class Game {
         }
         if (!this.canAct()) return;
         this.hint('');
-        if (this.sel && this.sel.id === id) {
-            this.clearSel();
-            return;
+        if (this.sel && this.sel.id === id) return; // stays selected until the player clicks away
+        this.selectTile(id);
+    }
+
+    /** Makes a tile of mine (in the tray or on the board) the selected one. */
+    selectTile(id) {
+        const t = this.tiles.get(id);
+        if (!t) return;
+        const g = this.ghost && this.ghost.id === id ? this.ghost : null;
+        if (g) {
+            this.sel = { id, from: t.location === 'board' ? 'board' : 'tray', rot: g.rot, r: g.r, c: g.c };
+        } else if (t.location === 'board') {
+            this.sel = { id, from: 'board', rot: t.rot, r: t.r, c: t.c };
+        } else {
+            this.sel = { id, from: 'tray', rot: 0, r: null, c: null };
         }
-        this.sel = { id, from: 'tray', rot: 0, r: null, c: null };
-        this.hint(_('Tap a highlighted space on your board to place this tile.'));
+        this.selHint();
         this.renderAll();
+    }
+
+    selHint() {
+        const s = this.sel;
+        if (!s) return;
+        this.hint(s.r === null
+            ? _('Tile selected. Tap a space on your board to place it.')
+            : _('Tile selected. Tap it again to rotate, or tap an empty space to move it.'));
     }
 
     onBoardClick(e) {
@@ -1107,39 +1143,11 @@ export class Game {
         const t = this.tiles.get(id);
         if (!t || t.owner !== this.me) return;
         this.hint('');
-
-        // If the same tile is clicked again: rotate it immediately!
         if (this.sel && this.sel.id === id) {
-            if (this.rotation) {
-                this.rotateSel();
-            }
+            this.rotateSel(); // the selected tile again: turn it
             return;
         }
-
-        // If another tile is already selected, try to swap immediately!
-        if (this.sel && this.sel.from !== 'pool') {
-            const swaps = this.getLegalSwapRotations(this.sel.id, id);
-            if (swaps.length > 0) {
-                const tileId = this.sel.id;
-                const best = swaps[0];
-                this.clearSel();
-                this.sendAction('actSwap', {
-                    tileId,
-                    targetTileId: id,
-                    rot: best.rotA,
-                    targetRot: best.rotB,
-                });
-                return;
-            }
-        }
-
-        // Select this placed tile:
-        this.sel = { id, from: 'board', rot: t.rot, r: t.r, c: t.c };
-        const canRotate = this.rotation && this.getLegalRotations(id, t.r, t.c).length > 1;
-        this.hint(canRotate
-            ? _('Tile selected. Tap it again to rotate, tap an empty space to move, or tap another tile to swap.')
-            : _('Tile selected. Tap an empty space to move, or tap another tile to swap.'));
-        this.renderAll();
+        this.selectTile(id);
     }
 
     onSpace(r, c) {
@@ -1153,56 +1161,70 @@ export class Game {
             return;
         }
         if (this.sel.r === r && this.sel.c === c) {
-            if (this.rotation) {
-                this.rotateSel();
-            }
+            this.rotateSel();
             return;
         }
         if (this.spaceOccupied(r, c, this.sel.id)) {
             this.hint(this.problemText('occupied'));
             return;
         }
+        if (this._actionPending) return;
+        const t = this.tiles.get(this.sel.id);
         const legal = this.getLegalRotations(this.sel.id, r, c);
         if (legal.length === 0) {
-            const t = this.tiles.get(this.sel.id);
-            const problem = mcProblem(this.spaces[this.me], this.placedMine(this.sel.id), t.colour, t.shape, this.sel.rot, r, c);
-            this.hint(this.problemText(problem || 'outside'));
+            // No legal rotation here: show the tile anyway, in its current rotation, marked invalid (not stored on the server)
+            this.ghost = { id: t.id, r, c, rot: this.sel.r !== null ? this.sel.rot : (t.location === 'board' ? t.rot : 0) };
+            this.sel = { id: t.id, from: t.location === 'board' ? 'board' : 'tray', rot: this.ghost.rot, r, c };
+            this.hint(_('Invalid placement: this tile cannot go here. Tap it to turn it, or choose another space.'));
+            this.renderAll();
             return;
         }
-        const t = this.tiles.get(this.sel.id);
-        const curSig = mcConn(t.shape, this.sel.rot).map((b) => (b ? '1' : '0')).join('');
-        const matchRot = legal.find((rot) => mcConn(t.shape, rot).map((b) => (b ? '1' : '0')).join('') === curSig);
-        const rot = matchRot !== undefined ? matchRot : legal[0];
-        const tileId = this.sel.id;
-        const fromTray = this.sel.from === 'tray';
-        this.clearSel();
-        this.sendAction('actPlace', { tileId, r, c, rot });
+        const rot = legal[0];
+        this.ghost = null;
+        this.sel = { id: t.id, from: 'board', rot, r, c };
+        this.selHint();
+        this.sendAction('actPlace', { tileId: t.id, r, c, rot });
+        this.renderAll();
     }
 
     rotateSel() {
-        if (!this.sel || !this.rotation || this.sel.from === 'pool' || this._actionPending) return;
-        if (this.sel.from === 'board' && this.sel.r !== null) {
-            const legal = this.getLegalRotations(this.sel.id, this.sel.r, this.sel.c);
-            if (legal.length <= 1) return;
-            const t = this.tiles.get(this.sel.id);
-            const curSig = mcConn(t.shape, t.rot).map((b) => (b ? '1' : '0')).join('');
-            const curIdx = legal.findIndex((rot) => mcConn(t.shape, rot).map((b) => (b ? '1' : '0')).join('') === curSig);
-            const nextIdx = curIdx >= 0 ? (curIdx + 1) % legal.length : 0;
-            const nextRot = legal[nextIdx];
-            this.sel.rot = nextRot;
-            this.sendAction('actPlace', { tileId: this.sel.id, r: this.sel.r, c: this.sel.c, rot: nextRot });
+        const s = this.sel;
+        if (!s || !this.rotation || s.from === 'pool' || this._actionPending || s.r === null) return;
+        const t = this.tiles.get(s.id);
+        const sigOf = (rot) => mcConn(t.shape, rot).map((b) => (b ? '1' : '0')).join('');
+        if (this.ghost && this.ghost.id === s.id) {
+            const legal = this.getLegalRotations(s.id, s.r, s.c);
+            if (legal.length > 0) {
+                this.ghost = null;
+                s.rot = legal[0];
+                this.sendAction('actPlace', { tileId: s.id, r: s.r, c: s.c, rot: legal[0] });
+                this.renderAll();
+                return;
+            }
+            let next = (s.rot + 1) % 4;
+            for (let i = 0; i < 3 && sigOf(next) === sigOf(s.rot); i++) next = (next + 1) % 4;
+            s.rot = next;
+            this.ghost.rot = next;
+            this.renderAll();
             return;
         }
-        if (this.sel.from === 'tray') {
-            this.sel.rot = (this.sel.rot + 1) % 4;
-            this.renderAll();
-        }
+        const legal = this.getLegalRotations(s.id, s.r, s.c);
+        if (legal.length <= 1) return;
+        const curIdx = legal.findIndex((rot) => sigOf(rot) === sigOf(t.rot));
+        const nextRot = legal[curIdx >= 0 ? (curIdx + 1) % legal.length : 0];
+        s.rot = nextRot;
+        this.sendAction('actPlace', { tileId: s.id, r: s.r, c: s.c, rot: nextRot });
     }
 
     clearSel() {
         this.sel = null;
         this.hint('');
         this.renderAll();
+    }
+
+    /** True when I have a tile shown in a place where it is not legal (or a stored tile that is illegal). */
+    hasInvalid() {
+        return Boolean(this.ghost) || Boolean(this.errorKeys && this.errorKeys[this.me] && this.errorKeys[this.me].size > 0);
     }
 
     /* ------------------------------------------------------------------------------------------ */
@@ -1221,28 +1243,23 @@ export class Game {
         if (!this.canAct()) return;
 
         const s = this.sel;
-        if (s && s.from === 'board') {
-            if (this.rotation) {
-                const canRotate = this.getLegalRotations(s.id, s.r, s.c).length > 1;
-                this.bga.statusBar.addActionButton(_('Rotate'), () => this.rotateSel(), { color: 'secondary', disabled: !canRotate });
+        if (s && (s.from === 'board' || s.from === 'tray')) {
+            if (this.rotation && s.r !== null) {
+                const canRotate = (this.ghost && this.ghost.id === s.id) || this.getLegalRotations(s.id, s.r, s.c).length > 1;
+                this.bga.statusBar.addActionButton(_('Rotate'), () => this.rotateSel(), { color: 'secondary', id: 'mc_btn_rotate', disabled: !canRotate });
             }
-            this.bga.statusBar.addActionButton(_('Remove'), () => this.doReturn(), { color: 'alert' });
-            this.bga.statusBar.addActionButton(_('Cancel'), () => this.clearSel(), { color: 'alert' });
-            return;
-        }
-        if (s && s.from === 'tray') {
-            if (this.rotation) {
-                this.bga.statusBar.addActionButton(_('Rotate'), () => this.rotateSel(), { color: 'secondary' });
+            if (s.from === 'board' || this.ghost) {
+                this.bga.statusBar.addActionButton(_('Remove'), () => this.doReturn(), { color: 'alert', id: 'mc_btn_remove' });
             }
-            this.bga.statusBar.addActionButton(_('Cancel'), () => this.clearSel(), { color: 'alert' });
+            this.bga.statusBar.addActionButton(_('Deselect'), () => this.clearSel(), { color: 'alert', id: 'mc_btn_deselect' });
             return;
         }
         if (this.poolTiles().length === 0) {
-            const hasErrors = Boolean(this.errorKeys && this.errorKeys[this.me] && this.errorKeys[this.me].size > 0);
+            const hasErrors = this.hasInvalid();
             this.bga.statusBar.addActionButton(_('Finish'), () => this.doFinish(), {
                 color: 'primary',
                 disabled: hasErrors,
-                tooltip: hasErrors ? _('Fix mismatched tiles (!) before finishing.') : undefined,
+                tooltip: hasErrors ? _('Fix invalid placements (!) before finishing.') : undefined,
             });
         }
     }
@@ -1254,33 +1271,24 @@ export class Game {
         this.sendAction('actDraw', { tileId: id });
     }
 
-    doPlace() {
-        const s = this.sel;
-        if (!s || this._actionPending) return;
-        if (s.swapWith) {
-            this.sendAction('actSwap', {
-                tileId: s.id,
-                targetTileId: s.swapWith,
-                rot: s.rot,
-                targetRot: s.rotSwap ?? 0,
-            });
-            return;
-        }
-        this.sendAction('actPlace', { tileId: s.id, r: s.r, c: s.c, rot: s.rot });
-    }
-
     doReturn() {
-        if (!this.sel || this.sel.from !== 'board' || this._actionPending) return;
+        if (!this.sel || this._actionPending) return;
         const id = this.sel.id;
-        this.clearSel();
-        this.sendAction('actReturn', { tileId: id });
+        const t = this.tiles.get(id);
+        const hadGhost = this.ghost && this.ghost.id === id;
+        this.ghost = null;
+        if (t && t.location === 'board') {
+            this.clearSel();
+            this.sendAction('actReturn', { tileId: id });
+        } else if (hadGhost) {
+            this.clearSel();
+        }
     }
 
     doFinish() {
         if (this._actionPending) return;
-        const hasErrors = Boolean(this.errorKeys && this.errorKeys[this.me] && this.errorKeys[this.me].size > 0);
-        if (hasErrors) {
-            this.hint(_('You cannot submit your final answer while there are mismatched tiles (!) on your board.'));
+        if (this.hasInvalid()) {
+            this.hint(_('You cannot submit your final answer while there are invalid placements (!) on your board.'));
             return;
         }
         this.clearSel();
@@ -1378,6 +1386,10 @@ export class Game {
             t.row = null;
         }
         this.drawer = Number(args.next_drawer);
+        if (Number(args.player_id) === this.me && !this.finished[this.me]) {
+            this.sel = { id: args.tile.id, from: 'tray', rot: 0, r: null, c: null };
+            this.selHint();
+        }
         this.renderAll();
         if (args.score !== undefined) {
             this.bga?.playerPanels?.getScoreCounter?.(args.player_id)?.toValue?.(args.score);
@@ -1401,7 +1413,9 @@ export class Game {
             t.rot = args.rot;
         }
         if (this.sel && this.sel.id === args.tile.id && Number(args.player_id) === this.me) {
-            this.sel = null;
+            // The tile stays selected after it is placed or turned
+            this.sel = { id: args.tile.id, from: 'board', rot: args.rot, r: args.r, c: args.c };
+            if (this.ghost && this.ghost.id === args.tile.id) this.ghost = null;
         }
         this.renderAll();
         if (args.score !== undefined) {
@@ -1422,6 +1436,7 @@ export class Game {
         if (this.sel && this.sel.id === args.tile.id && Number(args.player_id) === this.me) {
             this.sel = null;
         }
+        if (this.ghost && this.ghost.id === args.tile.id) this.ghost = null;
         this.renderAll();
         if (args.score !== undefined) {
             this.bga?.playerPanels?.getScoreCounter?.(args.player_id)?.toValue?.(args.score);

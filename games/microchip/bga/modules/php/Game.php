@@ -198,9 +198,10 @@ class Game extends \Bga\GameFramework\Table
     public function placedOf(int $pid): array
     {
         $out = [];
-        foreach ($this->getObjectListFromDb("SELECT `tile_id`, `shape`, `r`, `c`, `rot` FROM `tile` WHERE `location` = 'board' AND `owner` = $pid") as $row) {
+        foreach ($this->getObjectListFromDb("SELECT `tile_id`, `colour`, `shape`, `r`, `c`, `rot` FROM `tile` WHERE `location` = 'board' AND `owner` = $pid") as $row) {
             $out[Rules::key((int) $row['r'], (int) $row['c'])] = [
                 'id' => (int) $row['tile_id'],
+                'colour' => $row['colour'],
                 'shape' => $row['shape'],
                 'rot' => (int) $row['rot'],
             ];

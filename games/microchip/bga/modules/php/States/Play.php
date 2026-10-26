@@ -271,9 +271,9 @@ class Play extends GameState
         if (!$this->game->poolEmpty()) {
             throw new UserException(clienttranslate('You can finish once the pool is empty.'));
         }
-        $errors = Rules::tileErrors($this->game->placedOf($pid));
+        $errors = Rules::invalidPlacements($this->game->spacesOf($pid), $this->game->placedOf($pid));
         if (!empty($errors)) {
-            throw new UserException(clienttranslate('You cannot submit your final answer while there are mismatched tiles (!) on your board.'));
+            throw new UserException(clienttranslate('You cannot submit your final answer while there are invalid placements (!) on your board.'));
         }
         $this->game->setFinished($pid);
         $this->game->giveExtraTime($pid);
