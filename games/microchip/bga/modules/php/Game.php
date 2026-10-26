@@ -155,6 +155,7 @@ class Game extends \Bga\GameFramework\Table
         $row = (int) $tile['pool_row'];
         static::DbQuery("UPDATE `tile` SET `location` = 'hand', `owner` = $pid, `pool_col` = NULL, `pool_row` = NULL WHERE `tile_id` = $tileId");
         $this->addStat(1, 'tiles_drawn', $pid);
+        $this->refreshScore($pid);
         $next = $this->nextDrawer($pid);
         $this->globals->set('drawer', $next);
         return [
@@ -246,6 +247,7 @@ class Game extends \Bga\GameFramework\Table
         if (!$moved) {
             $this->addStat(1, 'tiles_placed', $pid);
         }
+        $this->refreshScore($pid);
         return [
             'tile' => $this->tileInfo($tileId, $tile),
             'r' => $r,
@@ -265,6 +267,7 @@ class Game extends \Bga\GameFramework\Table
         }
         $from = $this->coordLabel((int) $tile['r'], (int) $tile['c']);
         static::DbQuery("UPDATE `tile` SET `location` = 'hand', `r` = NULL, `c` = NULL, `rot` = 0 WHERE `tile_id` = $tileId");
+        $this->refreshScore($pid);
         return ['tile' => $this->tileInfo($tileId, $tile), 'from' => $from];
     }
 
@@ -297,6 +300,14 @@ class Game extends \Bga\GameFramework\Table
     public function setFinished(int $pid): void
     {
         static::DbQuery("UPDATE `player_state` SET `finished` = 1 WHERE `player_id` = $pid");
+    }
+
+    /** Live score: what the board is worth if the game ended now (microchip value, minus 2 per tile outside it). */
+    public function refreshScore(int $pid): void
+    {
+        $s = Rules::scoreBoard($this->placedOf($pid), $this->ownedCount($pid));
+        $this->playerScore->set($pid, $s['score']);
+        $this->playerScoreAux->set($pid, $s['chip_tiles']);
     }
 
     public function poolEmpty(): bool

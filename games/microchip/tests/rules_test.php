@@ -145,5 +145,61 @@ check($s['value'] === 8 && $s['chip_tiles'] === 4 && $s['unused'] === 3 && $s['s
 $split = ['0,0' => tile('end', 1), '0,1' => tile('straight', 0)];
 check(count(Rules::structures($split)) === 2, 'an end facing a straight does not join');
 
+// 7. Live score through the real Game.php on the offline stub: the BGA score follows draws, placements and returns
+require __DIR__ . '/../../../tools/php_stub/zombie_run.php';
+{
+    $ctx = \zr_context('microchip');
+    \mt_srand(7);
+    \srand(7);
+    \Bga\GameFramework\Stub::reset();
+    \Bga\GameFramework\Stub::$slug = $ctx['slug'];
+    \Bga\GameFramework\Stub::$gameinfos = $ctx['gameinfos'];
+    \Bga\GameFramework\Stub::$statDefs = $ctx['stats'];
+    \Bga\GameFramework\Stub::$prefDefaults = $ctx['prefs'];
+    \Bga\GameFramework\Stub::$options = \zr_defaults($ctx['options'], false);
+    \Bga\GameFramework\Stub::loadSchema($ctx['sql']);
+    $class = $ctx['gameClass'];
+    $game = new $class();
+    $pids = [];
+    $players = [];
+    for ($k = 0; $k < 2; $k++) {
+        $id = 84000011 + $k * 37;
+        $players[$id] = ['player_name' => 'P' . ($k + 1), 'player_color' => 'ffffff', 'player_canal' => 'c' . $id, 'player_avatar' => ''];
+        $pids[] = $id;
+    }
+    \Bga\GameFramework\Stub::$playerOrder = $pids;
+    foreach ($ctx['stateClasses'] as $cls) {
+        $o = new $cls($game);
+        \Bga\GameFramework\Stub::$states[$o->id] = $o;
+        \Bga\GameFramework\Stub::$statesByClass[$cls] = $o;
+    }
+    (new \ReflectionMethod($game, 'setupNewGame'))->invoke($game, $players, \Bga\GameFramework\Stub::$options);
+    \Bga\GameFramework\Stub::$playersCache = null;
+    $pid = $pids[0];
+    $col = $game->drawColumn();
+    $tileId = array_key_first(array_filter($game->poolCells(), fn($p) => $p['col'] === $col));
+    $game->takeTile($pid, $tileId);
+    check($game->playerScore->get($pid) === -2, 'live score: one tile drawn and not placed is -2');
+    // Put the tile on a board space of its colour with a legal rotation, then the score is -2 or better
+    $tile = $game->getTile($tileId);
+    $spaces = $game->spacesOf($pid);
+    $done = false;
+    for ($r = 0; $r < 5 && !$done; $r++) {
+        for ($c = 0; $c < 5 && !$done; $c++) {
+            for ($rot = 0; $rot < 4 && !$done; $rot++) {
+                if (Rules::placementProblem($spaces, [], $tile['colour'], $tile['shape'], $rot, $r, $c) === null) {
+                    $game->placeTile($pid, $tileId, $r, $c, $rot);
+                    $done = true;
+                }
+            }
+        }
+    }
+    check($done, 'live score: found a legal placement for the drawn tile');
+    check($game->playerScore->get($pid) === Rules::scoreBoard($game->placedOf($pid), 1)['score'], 'live score: placing a tile updates the BGA score');
+    $game->returnTile($pid, $tileId);
+    check($game->playerScore->get($pid) === -2, 'live score: taking the tile back to the tray is -2 again');
+    check($game->playerScore->get($pids[1]) === 0, 'live score: the other player is untouched');
+}
+
 echo ($failures === 0 ? "OK" : "FAILED") . ": $checks checks, $failures failures\n";
 exit($failures === 0 ? 0 : 1);
