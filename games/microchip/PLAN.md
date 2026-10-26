@@ -62,3 +62,7 @@ Open connections towards empty spaces are allowed while building.
 - [ ] Commit and push to `main`
 - [ ] Sounds: none yet (no sound files). Optional for alpha.
 - [ ] Live table test on BGA Studio: draw, arrange, finish, end scoring, zombie leave
+
+## Open question (2026-10-26)
+
+Scoring: the largest connected structure counts even if it has open paths (closed only wins a size tie). The rulebook defines a microchip as having no open paths. Owner expects open paths are fine; asked Nestor to confirm. If Nestor says closed only, change Rules::scoreBoard to skip structures with open > 0.

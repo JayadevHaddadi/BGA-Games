@@ -89,3 +89,5 @@ Checked at the **start of each player's turn**:
 - [x] Run `python3 tools/bga.py check vaultnestorgames` (0 FAIL)
 - [x] Browser harness testing (`tests/harness/index.html` at 375px and 1280px, 0 errors)
 - [ ] Deploy and verify on BGA Studio live table
+
+- 2026-10-26: default board 8x8 is intended (owner decision), Board Size option 5x5-10x10.
