@@ -95,9 +95,11 @@ def write_sprites():
 def make_display_photos():
     """Build display_1.jpg and display_2.jpg from the real physical photo vault2.jpg."""
     OUT.mkdir(parents=True, exist_ok=True)
-    src_path = GAME / 'vault2.jpg'
+    src_path = GAME / 'vault3.jpg'
     if not src_path.exists():
-        print('Warning: vault2.jpg not found, keeping existing display images')
+        src_path = GAME / 'vault2.jpg'
+    if not src_path.exists():
+        print('Warning: vault3.jpg or vault2.jpg not found, keeping existing display images')
         return
 
     src = Image.open(src_path)

@@ -56,6 +56,32 @@ def write_sprites():
     return paths
 
 
+def make_display_photos():
+    """Build display_1.jpg and display_2.jpg from the real physical photo microchip2.jpg."""
+    out = GAME / 'bga' / 'metadata_assets'
+    out.mkdir(parents=True, exist_ok=True)
+    src_path = GAME / 'microchip2.jpg'
+    if not src_path.exists():
+        src_path = GAME / 'microchip.jpg'
+    if not src_path.exists():
+        print('Warning: microchip2.jpg not found, keeping existing display images')
+        return
+
+    src = Image.open(src_path)
+    # Display 1: full table photo of physical components (1000x750)
+    d1 = src.resize((1000, 750), Image.LANCZOS)
+    d1.save(out / 'display_1.jpg', quality=92, optimize=True)
+    print('wrote display_1.jpg (real physical photo)')
+
+    # Display 2: close focus crop on pool and tiles (1000x750)
+    w, h = 600, 450
+    c_left = 580 - 300
+    c_top = 360 - 225
+    d2 = src.crop((c_left, c_top, c_left + w, c_top + h)).resize((1000, 750), Image.LANCZOS)
+    d2.save(out / 'display_2.jpg', quality=92, optimize=True)
+    print('wrote display_2.jpg (real physical photo focus crop)')
+
+
 if __name__ == '__main__':
     flowers = write_sprites()
     build_metadata(GAME, {
@@ -66,3 +92,4 @@ if __name__ == '__main__':
         'publisher_logo': '../Nestor Games Logo.jpg',
     })
     print('metadata images written')
+    make_display_photos()

@@ -37,7 +37,7 @@ What is actually uploaded in each GMM may differ; check the live page before rep
 | pushfight | box art + product photo | moot: Tinkerhouse declined the licence (2026-10-22) |
 | gardensofenceladus | BGA screenshots | Awaiting physical photos from publisher |
 | lordsofscotland | title card | Awaiting physical photos |
-| microchip | BGA screenshots | Awaiting physical photos from publisher |
+| microchip | 2 table photos of the real game (full board + focus crop) | OK (physical photo from Nestor) |
 | microforge | rendered art | Awaiting physical photos |
 | omega | BGA renders | Awaiting physical photos from publisher |
 | sugargliders | rendered art | Awaiting physical photos from publisher |
