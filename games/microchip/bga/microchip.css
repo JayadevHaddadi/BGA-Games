@@ -146,10 +146,16 @@ html, body, #microc_root, .mc_root, .mc_pool, .mc_main, .mc_mine, .mc_grid {
     min-width: 0;
     border-radius: 3px;
     box-sizing: border-box;
+    background: transparent;
 }
 
 .mc_pool_cell.mc_draw_col {
-    background: #e4dfd3;
+    background: transparent;
+}
+
+.mc_pool_cell:empty,
+.mc_pool_cell.mc_empty_cell {
+    background: transparent !important;
 }
 
 .mc_tile_btn {

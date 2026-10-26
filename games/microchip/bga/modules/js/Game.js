@@ -726,10 +726,10 @@ export class Game {
         for (let c = 0; c < cols; c++) {
             for (let r = 0; r < rows; r++) {
                 const cell = document.createElement('div');
-                cell.className = 'mc_pool_cell' + (c === draw ? ' mc_draw_col' : '');
+                const t = at.get(mcKey(r, c));
+                cell.className = 'mc_pool_cell' + (c === draw ? ' mc_draw_col' : '') + (t ? '' : ' mc_empty_cell');
                 cell.style.gridColumn = String(c + 1);
                 cell.style.gridRow = String(r + 2);
-                const t = at.get(mcKey(r, c));
                 if (t) {
                     const btn = document.createElement('button');
                     const takable = canDraw && c === draw;
