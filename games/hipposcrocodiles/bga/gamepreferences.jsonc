@@ -6,7 +6,7 @@
       "1": { "name": "On", "cssPref": "hippos_cb_on" },
       "0": { "name": "Off", "cssPref": "hippos_cb_off" }
     },
-    "default": 1
+    "default": 0
   },
   "101": {
     "name": "Sound effects",

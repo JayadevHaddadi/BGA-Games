@@ -16,7 +16,7 @@
       "1": { "name": "Show car numbers on the board" },
       "2": { "name": "Off" }
     },
-    "default": 1
+    "default": 2
   },
   "102": {
     "name": "Sound effects",

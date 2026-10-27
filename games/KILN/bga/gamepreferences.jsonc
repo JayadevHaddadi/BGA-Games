@@ -13,7 +13,7 @@
         "cssPref": "kiln_cb_off"
       }
     },
-    "default": 1
+    "default": 0
   },
   "101": {
     "name": "Sound effects",

@@ -7,7 +7,7 @@
       "1": { "name": "On" },
       "2": { "name": "Off" }
     },
-    "default": 1
+    "default": 2
   },
   "101": {
     "name": "Move Confirmation",

@@ -6,7 +6,7 @@
       "1": { "name": "On", "cssPref": "people_cb_on" },
       "0": { "name": "Off", "cssPref": "people_cb_off" }
     },
-    "default": 1
+    "default": 0
   },
   "101": {
     "name": "Sound effects",
