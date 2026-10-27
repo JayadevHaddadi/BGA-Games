@@ -302,9 +302,9 @@ export class Game {
         this.playerNames = Object.fromEntries(Object.entries(gamedatas.players || {}).map(([id, p]) => [id, p.player_name]));
         this.initCircuit(gamedatas.circuit);
         this.gateOpen = !!gamedatas.gate_open;
-        this.currentCarModel = (this.bga?.userPreferences?.get?.(100) == 2) ? 'chibi_f1' : 'chibi_kart';
-        this.colorblindMode = this.bga?.userPreferences?.get?.(101) != 2;
-        this.sound.muted = this.bga?.userPreferences?.get?.(102) == 2;
+        this.currentCarModel = ((() => { try { return this.bga?.userPreferences?.get?.(100); } catch (e) { return undefined; } })() == 2) ? 'chibi_f1' : 'chibi_kart';
+        this.colorblindMode = (() => { try { return this.bga?.userPreferences?.get?.(101); } catch (e) { return undefined; } })() != 2;
+        this.sound.muted = (() => { try { return this.bga?.userPreferences?.get?.(102); } catch (e) { return undefined; } })() == 2;
         this.initDom();
         document.getElementById('gp_game_container')?.classList.toggle('gp_colorblind', this.colorblindMode);
         this.initBoardScaler();

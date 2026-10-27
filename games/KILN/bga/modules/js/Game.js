@@ -25,7 +25,7 @@ class KilnSoundController {
 
     /** Player preference 101 "Sound effects": 0 = off, 1 = on (default). */
     isMuted() {
-        return Number(this.bga?.userPreferences?.get?.(101) ?? 1) === 0;
+        return Number((() => { try { return this.bga?.userPreferences?.get?.(101); } catch (e) { return undefined; } })() ?? 1) === 0;
     }
 
     play(id) {
@@ -317,7 +317,7 @@ class StatePlayerTurnSell {
 
     /** Player preference 104 "Confirm end of turn": 1 = ask (default), 0 = end the turn automatically. */
     askEndTurn() {
-        return Number(this.bga?.userPreferences?.get?.(104) ?? 1) !== 0;
+        return Number((() => { try { return this.bga?.userPreferences?.get?.(104); } catch (e) { return undefined; } })() ?? 1) !== 0;
     }
 
     onRowArrowClick(wy) {
@@ -660,7 +660,7 @@ export class Game {
 
     /** Player preference 103 "Tooltips": 1 = on (default), 0 = off. */
     tipsOn() {
-        return Number(this.bga?.userPreferences?.get?.(103) ?? 1) !== 0;
+        return Number((() => { try { return this.bga?.userPreferences?.get?.(103); } catch (e) { return undefined; } })() ?? 1) !== 0;
     }
 
     /**
@@ -1387,7 +1387,7 @@ export class Game {
 
     /** Player preference 102 "Confirm placement": 1 = ask first (default), 0 = place on tap. */
     askConfirmPlacement() {
-        return Number(this.bga?.userPreferences?.get?.(102) ?? 1) !== 0;
+        return Number((() => { try { return this.bga?.userPreferences?.get?.(102); } catch (e) { return undefined; } })() ?? 1) !== 0;
     }
 
     /**

@@ -895,6 +895,11 @@ def contract_checks(rep, folder, bga, js_text, sound_ids):
     (rep.add('PASS', 'no deprecated ->_() translation in PHP') if not us
      else rep.add('FAIL', 'deprecated ->_() in PHP (BGA build check fails): use clienttranslate()', ', '.join(us)))
 
+    # userPreferences.get(id) throws on tables created before the preference existed: wrap every read in try/catch
+    unsafe = len(re.findall(r'userPreferences\??\.get\??\.?\(\s*\d+', js_text)) - len(re.findall(r'try \{ return this\.bga\?\.userPreferences\?\.get\?\.\(\d+\)', js_text))
+    (rep.add('PASS', 'user preference reads are safe on old tables') if unsafe <= 0
+     else rep.add('WARN', 'userPreferences.get() outside try/catch (throws on tables older than the preference: clicks die)', f'{unsafe} read(s)'))
+
     # State ids are unique
     ids = {}
     for php in files_under(php_dir / 'States', ['php']) if (php_dir / 'States').exists() else []:

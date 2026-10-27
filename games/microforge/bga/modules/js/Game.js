@@ -152,7 +152,7 @@ export class Game {
         try {
             const g = this.bga?.gameui;
             if (g?.isReplayMode?.() || g?.instantaneousMode) return;
-            if (Number(this.bga?.userPreferences?.get?.(101) ?? 1) === 0) return;
+            if (Number((() => { try { return this.bga?.userPreferences?.get?.(101); } catch (e) { return undefined; } })() ?? 1) === 0) return;
             const now = Date.now();
             this.lastSound = this.lastSound || {};
             if (now - (this.lastSound[id] || 0) < 300) return;

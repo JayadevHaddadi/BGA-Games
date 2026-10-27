@@ -47,7 +47,7 @@ export class Game {
         this.bga.gameArea.getElement().appendChild(root);
         document.body.classList.add('vaultn_page_bg');
 
-        const pref102 = Number(this.bga?.userPreferences?.get?.(102) ?? 1);
+        const pref102 = Number((() => { try { return this.bga?.userPreferences?.get?.(102); } catch (e) { return undefined; } })() ?? 1);
         this.isFlipped = pref102 === 1 ? (this.getMyRole() === 2) : false;
 
         this.buildDom(root);
@@ -55,7 +55,7 @@ export class Game {
         if (this.bga?.userPreferences) {
             this.bga.userPreferences.onChange = (prefId) => {
                 if (prefId === 102) {
-                    const p = Number(this.bga?.userPreferences?.get?.(102) ?? 1);
+                    const p = Number((() => { try { return this.bga?.userPreferences?.get?.(102); } catch (e) { return undefined; } })() ?? 1);
                     this.isFlipped = p === 1 ? (this.getMyRole() === 2) : false;
                     this.rebuildBoard();
                 }

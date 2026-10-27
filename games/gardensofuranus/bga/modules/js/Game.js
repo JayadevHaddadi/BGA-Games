@@ -658,7 +658,7 @@ export class Game {
     applyShapePreference() {
         const read = () => {
             try {
-                const v = this.bga?.userPreferences?.get?.(100);
+                const v = (() => { try { return this.bga?.userPreferences?.get?.(100); } catch (e) { return undefined; } })();
                 return v === undefined || v === null ? 1 : Number(v);
             } catch (e) { return 1; }
         };

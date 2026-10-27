@@ -618,8 +618,18 @@ export class Game {
         if (hint) hint.textContent = text;
     }
 
+    /** A user preference, or the default when this table predates it (BGA's get() throws for unknown ids). */
+    pref(id, fallback) {
+        try {
+            const v = this.bga?.userPreferences?.get?.(id);
+            return v === undefined || v === null ? fallback : Number(v);
+        } catch (e) {
+            return fallback;
+        }
+    }
+
     confirmationOn() {
-        return Number(this.bga?.userPreferences?.get?.(102) ?? 1) !== 0;
+        return this.pref(102, 1) !== 0;
     }
 
     onCell(q, r) {
@@ -862,7 +872,7 @@ export class Game {
         try {
             const g = this.bga?.gameui;
             if (g?.isReplayMode?.() || g?.instantaneousMode) return;
-            if (Number(this.bga?.userPreferences?.get?.(101) ?? 1) === 0) return;
+            if (this.pref(101, 1) === 0) return;
             const now = Date.now();
             this.lastSound = this.lastSound || {};
             if (now - (this.lastSound[id] || 0) < 300) return;

@@ -184,7 +184,7 @@ export class Game {
         try {
             const g = this.bga?.gameui;
             if (g?.isReplayMode?.() || g?.instantaneousMode) return;
-            if (Number(this.bga?.userPreferences?.get?.(101) ?? 1) === 0) return;
+            if (Number((() => { try { return this.bga?.userPreferences?.get?.(101); } catch (e) { return undefined; } })() ?? 1) === 0) return;
             const now = Date.now();
             this.lastSound = this.lastSound || {};
             if (now - (this.lastSound[id] || 0) < 300) return;
@@ -471,7 +471,7 @@ export class Game {
         if (this.isDesktop()) {
             const pm = this.pivotAt(r, c, this.currentRot);
             if (!pm) { this.say(_("Doesn't fit here")); return; }
-            if (Number(this.bga?.userPreferences?.get?.(102) ?? 1) === 1) {
+            if (Number((() => { try { return this.bga?.userPreferences?.get?.(102); } catch (e) { return undefined; } })() ?? 1) === 1) {
                 // Preference "Confirm placement" on (default): stage it and wait for Confirm
                 this.stagePlacement(Number(pm.r), Number(pm.c), this.currentRot);
                 return;

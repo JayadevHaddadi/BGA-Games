@@ -173,7 +173,7 @@ export class Game {
         try {
             const g = this.bga?.gameui;
             if (g?.isReplayMode?.() || g?.instantaneousMode) return;
-            if (Number(this.bga?.userPreferences?.get?.(101) ?? 1) === 0) return;
+            if (Number((() => { try { return this.bga?.userPreferences?.get?.(101); } catch (e) { return undefined; } })() ?? 1) === 0) return;
             // One notification burst (move, pick, soliflowers) must not play on top of each other: queue them 220 ms apart
             this.sfxQueue = this.sfxQueue || [];
             if (this.sfxQueue.includes(id)) return;

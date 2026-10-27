@@ -456,7 +456,7 @@ export class Game {
 
     /** Preference 102: 1 = tap, then Confirm (default). 0 = place on tap. */
     confirmFirst() {
-        return Number(this.bga?.userPreferences?.get?.(102) ?? 1) !== 0;
+        return Number((() => { try { return this.bga?.userPreferences?.get?.(102); } catch (e) { return undefined; } })() ?? 1) !== 0;
     }
 
     confirm() {
@@ -633,7 +633,7 @@ export class Game {
 
     /** Plays a sound for a confirmed event only. Not for hover, staging, or replays. */
     sfx(id) {
-        if (Number(this.bga?.userPreferences?.get?.(101) ?? 1) === 0) return;
+        if (Number((() => { try { return this.bga?.userPreferences?.get?.(101); } catch (e) { return undefined; } })() ?? 1) === 0) return;
         const g = this.bga?.gameui;
         if (g?.isReplayMode?.() || g?.instantaneousMode) return;
         const now = Date.now();

@@ -186,7 +186,7 @@ export class Game {
         this.scores = gamedatas.scores || {};
 
         sounds.bga = this.bga;
-        sounds.isMuted = () => Number(this.bga?.userPreferences?.get?.(100) ?? 1) === 2;
+        sounds.isMuted = () => Number((() => { try { return this.bga?.userPreferences?.get?.(100); } catch (e) { return undefined; } })() ?? 1) === 2;
         this.initDom();
         this.initScaler();
         this.renderBoard();
@@ -257,7 +257,7 @@ export class Game {
     }
 
     needsJumpConfirmation() {
-        const pref = Number(this.bga?.userPreferences?.get?.(101) ?? 1);
+        const pref = Number((() => { try { return this.bga?.userPreferences?.get?.(101); } catch (e) { return undefined; } })() ?? 1);
         if (pref === 2) return true;
         if (pref === 3) return false;
         return !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
