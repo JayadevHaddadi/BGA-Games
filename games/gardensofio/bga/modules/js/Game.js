@@ -11,7 +11,7 @@
 
 const GIO_S = 36; // one square in SVG units; the board scales to the available width
 const GIO_COLOURS = ['blue', 'yellow', 'orange', 'purple', 'red', 'green'];
-const GIO_PLAYER_COLOURS = ['#4caf50', '#e91e63', '#2196f3', '#ff9800', '#9c27b0'];
+const GIO_PLAYER_COLOURS = ['#4caf50', '#e91e63', '#2196f3', '#ff9800', '#9c27b0']; // fallback only
 
 // Which kind of circle each pick of a special action needs: 'f' flower, 't' tree, 'e' empty circle
 const GIO_SPECIAL_PICKS = { 1: ['t', 'f'], 2: ['f', 'f'], 3: ['f', 'e'], 4: ['t', 'e'], 5: [] };
@@ -196,7 +196,11 @@ export class Game {
         return ({ bot: 'Bot', ali: 'Ali', marty: 'Marty', bob: 'Bob', robby: 'Robby' })[type] || type;
     }
 
+    /** The colour the framework gave the player (same as their panel and name); fallback only if it is missing. */
     playerColour(pid) {
+        const p = this.gamedatas.players[pid];
+        const hex = p ? String(p.color || p.player_color || '').replace('#', '') : '';
+        if (/^[0-9a-fA-F]{6}$/.test(hex)) return `#${hex}`;
         const idx = Object.keys(this.gamedatas.players).indexOf(String(pid));
         return GIO_PLAYER_COLOURS[(idx < 0 ? 0 : idx) % GIO_PLAYER_COLOURS.length];
     }

@@ -61,8 +61,33 @@ namespace Bga\GameFramework {
         public static function DbQuery(string $q) { self::$pdo->exec($q); }
         public function getObjectListFromDb(string $q): array { return self::$pdo->query($q)->fetchAll(\PDO::FETCH_ASSOC); }
         public function getUniqueValueFromDb(string $q) { $r = self::$pdo->query($q)->fetchColumn(); return $r === false ? null : $r; }
+        /** @var array<int,int> test hook: player id => player_no (table order); default = insertion order */
+        public array $tableOrder = [];
+        /** @var array<int,string> test hook: player id => favourite colour applied by reattributeColorsBasedOnPreferences */
+        public array $favourites = [];
+        public function getGameinfos(): array
+        {
+            return ['player_colors' => ['ff0000', '008000', '0000ff', 'ffa500', 'e94190', '982fff']];
+        }
+        public function reattributeColorsBasedOnPreferences(array $players, array $colors): void
+        {
+            foreach ($this->favourites as $pid => $col) {
+                self::$pdo->exec("UPDATE player SET player_color = '$col' WHERE player_id = $pid");
+            }
+        }
         public function reloadPlayersBasicInfos(): void {}
-        public function loadPlayersBasicInfos(): array { return $this->players; }
+        public function loadPlayersBasicInfos(): array
+        {
+            if (!self::$pdo) { return $this->players; }
+            $out = [];
+            $n = 0;
+            foreach (self::$pdo->query('SELECT player_id, player_color, player_name FROM player ORDER BY rowid')->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $id = (int) $row['player_id'];
+                $out[$id] = ['player_id' => $id, 'player_color' => $row['player_color'], 'player_name' => $row['player_name'],
+                    'player_no' => $this->tableOrder[$id] ?? ++$n];
+            }
+            return $out;
+        }
         public function getPlayerNameById(int $p): string { return "P$p"; }
         public function getActivePlayerId() { return $this->active; }
         public function notifyAllPlayers(string $t, string $log, array $args): void
@@ -345,12 +370,39 @@ namespace Bga\Games\gardensofio\Fuzz {
         }
     }
 
+    /**
+     * Bugs 252621 / 252601: colours and turn order must follow the framework (player_color, player_no), not the key
+     * order of $players. $players keys are NOT in table order here, and favourite colours reshuffle the colours.
+     */
+    function colourAndOrder(array &$failures): void
+    {
+        newDb();
+        $g = new Game();
+        $g->tableOrder = [300 => 1, 100 => 2, 200 => 3]; // table order 300, 100, 200
+        $g->favourites = [300 => '0000ff', 100 => 'ff0000'];
+        $pl = [100 => ['player_name' => 'A'], 200 => ['player_name' => 'B'], 300 => ['player_name' => 'C']];
+        $next = (new \ReflectionMethod($g, 'setupNewGame'))->invoke($g, $pl, [100 => 1, 101 => 1, 102 => 2]);
+        if ($g->active !== 300) { $failures[] = "start player is {$g->active}, expected 300 (player_no 1)"; }
+        $order = json_decode((string) $g->globals->get('setup_order', '[]'), true);
+        if ($order !== [300, 100, 200]) { $failures[] = 'tree order ' . json_encode($order); }
+        if ((int) $g->globals->get('first_player') !== 300) { $failures[] = 'first_player not player_no 1'; }
+        $data = (new \ReflectionMethod($g, 'getAllDatas'))->invoke($g, 300);
+        $col = [];
+        foreach ($data['players'] as $id => $p) { $col[$id] = $p['player_color']; }
+        if ($col[300] !== '0000ff' || $col[100] !== 'ff0000') { $failures[] = 'favourite colours not applied: ' . json_encode($col); }
+        if (count(array_unique($col)) !== 3) { $failures[] = 'duplicate colours ' . json_encode($col); }
+        foreach (array_keys($pl) as $id) {
+            if (!isset($data['martians'][$id]) || !isset($data['players'][$id]['player_color'])) { $failures[] = "player $id lacks martian/colour"; }
+        }
+    }
+
     $n = (int) ($argv[1] ?? 60);
     $first = (int) ($argv[2] ?? 1);
     $failures = [];
     $plants = 0;
     $games = 0;
     reportedPosition($failures, $plants);
+    colourAndOrder($failures);
     for ($s = $first; $s < $first + $n; $s++) {
         foreach ([[3, 1, 1], [3, 2, 2], [2, 1, 1], [4, 2, 1], [5, 1, 2]] as [$pc, $tree, $lap]) {
             runGame($s, $pc, $tree, $lap, $failures, $plants);

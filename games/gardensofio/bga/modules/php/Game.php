@@ -43,21 +43,26 @@ class Game extends \Bga\GameFramework\Table
 
     protected function setupNewGame($players, $options = [])
     {
-        $defaultColors = ['4caf50', 'e91e63', '2196f3', 'ff9800', '9c27b0'];
+        // Colours come from the framework (gameinfos player_colors, then favourite colours), never from a private
+        // list: the player panels, the chat and the Martian tokens must all show the same colour for a player.
+        $gameinfos = $this->getGameinfos();
+        $defaultColors = $gameinfos['player_colors'];
         $values = [];
-        $i = 0;
         foreach ($players as $pid => $player) {
             $values[] = vsprintf("(%s, '%s', '%s')", [
                 $pid,
-                $defaultColors[$i % count($defaultColors)],
+                array_shift($defaultColors),
                 addslashes($player['player_name']),
             ]);
-            $i++;
         }
         static::DbQuery("INSERT INTO `player` (`player_id`, `player_color`, `player_name`) VALUES " . implode(',', $values));
+        $this->reattributeColorsBasedOnPreferences($players, $gameinfos['player_colors']);
         $this->reloadPlayersBasicInfos();
 
+        // Table order (player_no), not the key order of $players, decides who sets up and who starts.
+        $infos = $this->loadPlayersBasicInfos();
         $playerIds = array_map('intval', array_keys($players));
+        usort($playerIds, fn(int $a, int $b): int => (int) ($infos[$a]['player_no'] ?? 0) <=> (int) ($infos[$b]['player_no'] ?? 0));
         $count = count($playerIds);
 
         $this->playerScore->initDb($playerIds, 0);
