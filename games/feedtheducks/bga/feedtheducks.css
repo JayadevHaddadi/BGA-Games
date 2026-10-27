@@ -524,3 +524,11 @@ body.ftd_page_bg .bga-game-area {
         transition: none;
     }
 }
+
+/* Last move once seen: a quiet ring on the crumb's space */
+.ftd_last_quiet {
+    fill: none;
+    stroke: #f5b700;
+    stroke-width: 3;
+    opacity: 0.75;
+}

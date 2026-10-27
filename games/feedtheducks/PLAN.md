@@ -93,3 +93,13 @@ Inputs live in `design/` (rulebook, board art `board.jpg`, product photos, the s
 3. A finished group right after setup is impossible because of (2). Checking only after a crumb is correct.
 4. 4 players: each for themselves. As implemented.
 5. Hex board only; square is only for the solo mobile puzzle. No square variant on BGA.
+
+## Move flow (client)
+
+* Your turn: hovering a legal space shows yellow arrows (start to end) and ghost ducks. Clicking stages it: hover previews
+  are off, the ghost ducks and ghost crumb show the result, status bar has Confirm (blue) and Cancel (red). Clicking
+  another legal space restages; Cancel brings the hover previews back. Mobile: tap stages.
+* After another player's move every other viewer sees the crumb ring, tinted end spaces and an arrow per moved duck
+  (from the notification, or from `history` after a reload) with a grey "Seen" button. Hover previews are suppressed
+  until Seen is pressed; clicking a space also dismisses the arrows. After Seen a quiet ring stays on the crumb.
+  The mover does not get the arrows or the button.

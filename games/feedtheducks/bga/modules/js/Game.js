@@ -128,7 +128,7 @@ export class Game {
         this.duckEls = new Map();
         this.crumb = null;
         this.history = [];
-        this.lastSeen = false;
+        this.lastShown = false;  // the last move's arrows are showing (until the viewer presses Seen)
         this.colourOf = {};      // player id -> duck colour
         this.bga.states.register('SetupPlace', new SetupPlaceState(this));
         this.bga.states.register('PlayerTurn', new PlayerTurnState(this));
@@ -149,6 +149,10 @@ export class Game {
     playerName(pid) {
         const p = (this.gamedatas.players || {})[pid] || {};
         return p.name ?? p.player_name ?? '';
+    }
+
+    myId() {
+        return Number(this.bga?.players?.getCurrentPlayerId?.() ?? this.bga?.gameui?.player_id ?? 0);
     }
 
     hoverCapable() {
@@ -200,6 +204,8 @@ export class Game {
         this.crumb = Array.isArray(gamedatas.crumb) ? [Number(gamedatas.crumb[0]), Number(gamedatas.crumb[1])] : null;
         this.history = (gamedatas.history || []).map((h) => this.cleanHistory(h));
         this.playerCount = Object.keys(this.colourOf).length;
+        // After a reload the last move of another player is shown again, with the Seen button
+        this.lastShown = this.history.length > 0 && this.history[0].player_id !== this.myId();
 
         const root = document.createElement('div');
         root.id = 'ftd_root';
@@ -363,16 +369,41 @@ export class Game {
         return g;
     }
 
-    toggleSeen() {
-        this.lastSeen = !this.lastSeen;
+    /** An arrow from one space to another, shortened so that it ends before the duck that sits on the target. */
+    arrowEl(parent, from, to) {
+        const a = ftdCentre(from[0], from[1]);
+        const b = ftdCentre(to[0], to[1]);
+        const len = Math.hypot(b.x - a.x, b.y - a.y);
+        if (len < 1) return;
+        const ux = (b.x - a.x) / len;
+        const uy = (b.y - a.y) / len;
+        const t0 = 0.3 * BOARD.s;
+        const t1 = len - Math.min(0.75 * BOARD.s, len * 0.45);
+        const pts = { x1: (a.x + ux * t0).toFixed(1), y1: (a.y + uy * t0).toFixed(1), x2: (a.x + ux * t1).toFixed(1), y2: (a.y + uy * t1).toFixed(1) };
+        this.svgEl('line', { ...pts, class: 'ftd_arrow_bg' }, parent);
+        this.svgEl('line', { ...pts, class: 'ftd_arrow', 'marker-end': 'url(#ftd_arrowhead)' }, parent);
+    }
+
+    /** The viewer has seen the last move: its arrows go away, a quiet ring stays on the crumb. */
+    markSeen() {
+        this.lastShown = false;
         this.renderLast();
         this.updateButtons(this.args, this.isActive);
     }
 
-    /** Last moves: the newest solid (tinted spaces, ring on the crumb, trails), older ones dashed, `players - 1` in all. */
+    /**
+     * Last move. Always a quiet ring on the newest crumb. While `lastShown` (another player just moved, until Seen is
+     * pressed): the newest move in full (tinted spaces, arrows from each duck's start to its end), older ones dashed,
+     * `players - 1` in all.
+     */
     renderLast() {
         this.gLast.innerHTML = '';
-        if (this.lastSeen) return;
+        if (this.history.length === 0) return;
+        if (!this.lastShown) {
+            const h = this.history[0];
+            this.svgEl('polygon', { points: this.hexPoints(h.q, h.r, 0.94), class: 'ftd_last_crumb ftd_last_quiet' }, this.gLast);
+            return;
+        }
         const count = Math.max(1, this.playerCount - 1);
         this.history.slice(0, count).forEach((h, i) => {
             const solid = i === 0;
@@ -381,13 +412,9 @@ export class Game {
             if (solid) this.svgEl('polygon', { points: this.hexPoints(h.q, h.r, 0.78), class: 'ftd_last_crumb_in' }, this.gLast);
             h.moves.forEach((m) => {
                 this.svgEl('polygon', { points: this.hexPoints(m.to[0], m.to[1], 0.9), class: `ftd_last_to ${cls}` }, this.gLast);
-                if (solid) {
-                    const a = ftdCentre(m.from[0], m.from[1]);
-                    const b = ftdCentre(m.to[0], m.to[1]);
-                    this.svgEl('line', { x1: a.x.toFixed(1), y1: a.y.toFixed(1), x2: b.x.toFixed(1), y2: b.y.toFixed(1), class: 'ftd_trail' }, this.gLast);
-                }
             });
         });
+        this.history[0].moves.forEach((m) => this.arrowEl(this.gLast, m.from, m.to));
     }
 
     /* ------------------------------------------------------------------------------------------ marks and previews */
@@ -440,13 +467,14 @@ export class Game {
     }
 
     /** Ghost crumb, a ghost at each destination, an arrow from each duck that will move, the old place faded. */
-    renderPreview(q, r) {
+    renderPreview(q, r, arrows = false) {
         this.clearPreview();
         if (q === null || q === undefined) return;
         const moves = ftdMovesFor(this.duckMap(), q, r);
         this.gPreview.appendChild(this.crumbEl(q, r, true));
         const byFrom = new Map();
         this.ducks.forEach((d) => byFrom.set(ftdKey(d.q, d.r), d.id));
+        if (arrows) moves.forEach((m) => this.arrowEl(this.gPreview, m.from, m.to));
         moves.forEach((m) => {
             const a = ftdCentre(m.from[0], m.from[1]);
             const b = ftdCentre(m.to[0], m.to[1]);
@@ -531,10 +559,7 @@ export class Game {
         this.bga.statusBar.removeActionButtons();
         this.isActive = !!isActive;
         if (!isActive) {
-            if (this.history && this.history.length > 0) {
-                const label = this.lastSeen ? _('Last move') : _('Seen');
-                this.bga.statusBar.addActionButton(label, () => this.toggleSeen(), { id: 'ftd_seen_status', color: 'secondary' });
-            }
+            if (this.lastShown) this.bga.statusBar.addActionButton(_('Seen'), () => this.markSeen(), { id: 'ftd_seen_status', color: 'secondary' });
             return;
         }
         if (this.mode === 'turn' && this.stage) {
@@ -560,9 +585,8 @@ export class Game {
             });
         }
 
-        if (this.history && this.history.length > 0 && !this.stage) {
-            const label = this.lastSeen ? _('Last move') : _('Seen');
-            this.bga.statusBar.addActionButton(label, () => this.toggleSeen(), { id: 'ftd_seen_status', color: 'secondary' });
+        if (this.lastShown && !this.stage) {
+            this.bga.statusBar.addActionButton(_('Seen'), () => this.markSeen(), { id: 'ftd_seen_status', color: 'secondary' });
         }
     }
 
@@ -570,6 +594,7 @@ export class Game {
 
     setStage(cell) {
         this.stage = cell;
+        if (cell && this.lastShown) { this.lastShown = false; this.renderLast(); }
         if (this.mode === 'turn') {
             this.renderTurnMarks();
             if (cell) this.renderPreview(cell[0], cell[1]); else this.clearPreview();
@@ -580,10 +605,11 @@ export class Game {
     }
 
     onHover(q, r) {
-        if (this.mode !== 'turn' || !this.isActive || this.stage) return;
+        // No hover previews while a space is staged, nor while the last move's arrows are showing (until Seen)
+        if (this.mode !== 'turn' || !this.isActive || this.stage || this.lastShown) return;
         if (q === null || q === undefined) { this.clearPreview(); return; }
         const legal = (this.args?.legal || []).some(([a, b]) => Number(a) === q && Number(b) === r);
-        if (legal) this.renderPreview(q, r); else this.clearPreview();
+        if (legal) this.renderPreview(q, r, true); else this.clearPreview();
     }
 
     say(text) {
@@ -613,6 +639,7 @@ export class Game {
                 this.setStage([q, r]);
             } else {
                 this.stage = [q, r];
+                if (this.lastShown) { this.lastShown = false; this.renderLast(); }
                 this.sendCrumb();
             }
         } else if (this.mode === 'setup') {
@@ -665,7 +692,7 @@ export class Game {
         this.clearMarks();
         this.history.unshift(this.cleanHistory({ player_id: args.player_id, q, r, moves: args.moves }));
         this.history = this.history.slice(0, 3);
-        this.lastSeen = false;
+        this.lastShown = Number(args.player_id) !== this.myId();   // others see the arrows until Seen; the mover just watched
         this.gLast.innerHTML = '';
         this.crumb = [q, r];
         this.renderCrumb();

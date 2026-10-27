@@ -222,16 +222,32 @@ async function run() {
   // ---------------------------------------------------------------- turn, desktop: hover preview and drop with confirmation preference
   game = fresh(fx.turn4.datas, fx.turn4.active, false);
   game.enterTurn(fx.turn4.args, true);
+  game.markSeen();   // the previous player's move is showing after a reload: Seen first, then hover previews work
   const t4 = fx.turn4.cell;
   const exp4 = expectMoves(fx.turn4.datas.ducks, t4[0], t4[1]);
   hover(t4[0], t4[1]);
   check('hover_shows_the_preview', $$('.ftd_ghost').length === exp4.length && exp4.length >= 4, [$$('.ftd_ghost').length, exp4.length]);
+  check('hover_shows_arrows_start_to_end', $$('.ftd_preview .ftd_arrow').length === exp4.length && $$('.ftd_preview .ftd_arrow[marker-end]').length === exp4.length, $$('.ftd_preview .ftd_arrow').length);
   hover(t4[0], t4[1], false);
   check('leaving_clears_the_preview', $$('.ftd_ghost').length === 0 && $$('.ftd_will_move').length === 0);
   tap(t4[0], t4[1]);
   check('desktop_click_stages_with_confirmation_pref', game.stage && game.stage[0] === t4[0] && game.stage[1] === t4[1] && calls.length === 0);
   const cBtn = buttons.find((b) => b.opts.id === 'ftd_confirm');
-  check('confirm_button_present', !!cBtn);
+  check('confirm_button_present', !!cBtn && cBtn.opts.color === 'primary');
+  check('cancel_button_present', buttons.some((b) => b.opts.id === 'ftd_cancel' && b.opts.color === 'alert'));
+  check('staged_shows_result_without_arrows', $$('.ftd_ghost').length === exp4.length && $$('.ftd_preview .ftd_arrow').length === 0 && $$('.ftd_ghost_crumb').length === 1);
+  const other = fx.turn4.legal2 || fx.turn4.args.legal.find((c) => c[0] !== t4[0] || c[1] !== t4[1]);
+  hover(other[0], other[1]);
+  check('no_hover_preview_while_staged', game.stage[0] === t4[0] && $$('.ftd_preview .ftd_arrow').length === 0 && $$('.ftd_ghost').length === exp4.length);
+  hover(other[0], other[1], false);
+  tap(other[0], other[1]);
+  check('click_another_space_restages', game.stage[0] === other[0] && game.stage[1] === other[1] && calls.length === 0);
+  buttons.find((b) => b.opts.id === 'ftd_cancel').fn();
+  check('cancel_unstages', game.stage === null && $$('.ftd_ghost').length === 0 && !buttons.some((b) => b.opts.id === 'ftd_confirm'));
+  hover(t4[0], t4[1]);
+  check('hover_works_again_after_cancel', $$('.ftd_preview .ftd_arrow').length === exp4.length);
+  hover(t4[0], t4[1], false);
+  tap(t4[0], t4[1]);
   if (cBtn) cBtn.fn();
   check('confirm_sends_action', calls.length === 1 && calls[0].name === 'actDropCrumb' && calls[0].args.q === t4[0] && calls[0].args.r === t4[1]);
 
@@ -257,25 +273,48 @@ async function run() {
   });
   check('every_duck_ends_where_the_server_says', posOk);
   check('crumb_is_on_the_new_space', game.crumb[0] === fx.turn4.cell[0] && game.crumb[1] === fx.turn4.cell[1] && $$('.ftd_crumbs .ftd_crumb').length === 1);
-  check('last_move_marks_crumb_and_moved_ducks', $$('.ftd_last_crumb.ftd_last_new').length === 1 && $$('.ftd_last_to.ftd_last_new').length === fx.turn4.notif.moves.length && $$('.ftd_last_crumb_in').length === 1, $$('.ftd_last_to').length);
-  check('older_moves_are_dashed', $$('.ftd_last_old').length > 0, $$('.ftd_last_old').length);
+  check('mover_sees_no_last_move_arrows_or_seen_button', $$('.ftd_arrow').length === 0 && !buttons.some((b) => b.opts.id === 'ftd_seen_status') && $$('.ftd_last_quiet').length === 1);
   check('marks_cleared_after_the_move', $$('.ftd_cross').length === 0 && $$('.ftd_dot').length === 0);
   check('moved_ducks_turn_toward_their_goal', fx.turn4.notif.moves.every((m) => {
     const el = document.querySelector(`.ftd_duck[data-id="${m.id}"]`);
     const dx = hexCentre(m.to[0], m.to[1]).x - hexCentre(m.from[0], m.from[1]).x;
     return Math.abs(dx) < 1 || Number(el.dataset.face) === (dx > 0 ? -1 : 1);
   }));
-  // a game reloaded after that move shows the same last-move marks (history comes from the server)
-  game = fresh(fx.turn4.after, fx.turn4.active, false);
+  // another player moves: the viewer sees the crumb and an arrow per moved duck, with a Seen button
+  const viewer = Number(Object.keys(fx.turn4.datas.players).find((p) => Number(p) !== Number(fx.turn4.notif.player_id)));
+  game = fresh(fx.turn4.datas, viewer, false);
+  game.enterTurn(fx.turn4.args, false);
+  game.leaveState();
+  await game.notif_crumbDropped(fx.turn4.notif);
   game.enterTurn(fx.turn4.args, true);
-  check('reload_restores_last_move_marks', $$('.ftd_last_crumb.ftd_last_new').length === 1 && $$('.ftd_crumbs .ftd_crumb').length === 1);
-  const seenBtn = buttons.find((b) => b.opts.id === 'ftd_seen_status');
-  check('seen_button_present_in_status_bar', seenBtn && seenBtn.label === 'Seen');
-  if (seenBtn) seenBtn.fn();
-  check('seen_button_removes_last_move_marks', $$('.ftd_last_crumb').length === 0 && $$('.ftd_trail').length === 0 && buttons.some((b) => b.opts.id === 'ftd_seen_status' && b.label === 'Last move'));
-  const lastMoveBtn = buttons.find((b) => b.opts.id === 'ftd_seen_status');
-  if (lastMoveBtn) lastMoveBtn.fn();
-  check('seen_button_restores_last_move_marks', $$('.ftd_last_crumb').length > 0 && buttons.some((b) => b.opts.id === 'ftd_seen_status' && b.label === 'Seen'));
+  const nm = fx.turn4.notif.moves.length;
+  const v = fx.turn4.args.legal.find((c) => !fx.turn4.after.ducks.some((d) => d.q === c[0] && d.r === c[1]) && expectMoves(fx.turn4.after.ducks, c[0], c[1]).length >= 2);
+  check('opponent_move_shows_arrows', $$('.ftd_last .ftd_arrow').length === nm && nm >= 1 && $$('.ftd_last_crumb.ftd_last_new').length === 1 && $$('.ftd_last_to.ftd_last_new').length === nm, $$('.ftd_last .ftd_arrow').length);
+  check('opponent_move_shows_seen_button', buttons.some((b) => b.opts.id === 'ftd_seen_status' && b.label === 'Seen' && b.opts.color === 'secondary'));
+  hover(v[0], v[1]);
+  check('no_hover_preview_until_seen', $$('.ftd_ghost').length === 0 && $$('.ftd_preview .ftd_arrow').length === 0);
+  hover(v[0], v[1], false);
+  buttons.find((b) => b.opts.id === 'ftd_seen_status').fn();
+  check('seen_hides_the_arrows', $$('.ftd_last .ftd_arrow').length === 0 && $$('.ftd_last_new').length === 0 && $$('.ftd_last_quiet').length === 1 && !buttons.some((b) => b.opts.id === 'ftd_seen_status'));
+  hover(v[0], v[1]);
+  check('hover_previews_after_seen', $$('.ftd_preview .ftd_arrow').length > 0);
+  hover(v[0], v[1], false);
+  // clicking a space while the arrows are showing also dismisses them
+  game = fresh(fx.turn4.datas, viewer, false);
+  game.enterTurn(fx.turn4.args, false);
+  game.leaveState();
+  await game.notif_crumbDropped(fx.turn4.notif);
+  game.enterTurn(fx.turn4.args, true);
+  tap(v[0], v[1]);
+  check('click_dismisses_last_move_and_stages', $$('.ftd_last .ftd_arrow').length === 0 && game.stage && $$('.ftd_ghost').length > 0, [$$('.ftd_last .ftd_arrow').length, JSON.stringify(game.stage), $$('.ftd_ghost').length, JSON.stringify(v)]);
+  // a game reloaded after that move shows the same arrows and Seen (history comes from the server)
+  game = fresh(fx.turn4.after, viewer, false);
+  game.enterTurn(fx.turn4.args, true);
+  check('reload_restores_last_move_arrows', $$('.ftd_last_crumb.ftd_last_new').length === 1 && $$('.ftd_last .ftd_arrow').length === nm && $$('.ftd_crumbs .ftd_crumb').length === 1);
+  check('reload_has_seen_button', buttons.some((b) => b.opts.id === 'ftd_seen_status' && b.label === 'Seen'));
+  // the mover reloading sees only the quiet ring
+  game = fresh(fx.turn4.after, fx.turn4.active, false);
+  check('reload_for_the_mover_is_quiet', $$('.ftd_last .ftd_arrow').length === 0 && $$('.ftd_last_quiet').length === 1);
   // animations on: ducks slide with a CSS transition, a ripple appears and is removed
   animations = true;
   game = fresh(fx.turn4.datas, fx.turn4.active, false);
