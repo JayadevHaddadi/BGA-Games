@@ -1,6 +1,6 @@
 # Games status board
 
-Generated 2026-10-27 18:54 by `python3 tools/status_board.py`. Do not edit by hand:
+Generated 2026-10-27 19:19 by `python3 tools/status_board.py`. Do not edit by hand:
 licence and notes come from `tools/games_registry.json`, everything else is read live.
 
 | Game | Studio slug | BGA stage | Production release | Unreleased | Help wiki | Licence | Advertised | Live tests | Next step / notes |
@@ -21,10 +21,10 @@ licence and notes come from `tools/games_registry.json`, everything else is read
 | Gardens of Uranus | `gardensofuranus` | studio only | - | 45 commits | in sync | granted | not recorded | - | Private alpha requested 2 Oct (reminder 19 Oct) |
 | nestorgames GP | `nestorgamesgp` | studio only | - | 40 commits | in sync | granted | not recorded | - | Private alpha requested again |
 | Little Commanders | `microforge` | studio only | - | 37 commits | in sync | own design | not recorded | - | Project name must become littlecommanders (or rename game back); see reports/little_commanders_review.md |
-| Lords of Scotland | `lordsofscotland` | studio only | - | 30 commits | in sync | none (outreach) | not recorded | - | Needs designer/publisher approval |
+| Lords of Scotland | `lordsofscotland` | studio only | - | 30 commits | in sync | none: rights reverted to designer Richard James (Evertide); not reached yet | not recorded | - | Private alpha granted 27 Oct (BGA: contact was at Essen, write again). Internal testing only; no public alpha until designer approval + real art |
 | Push Fight | `pushfight` | alpha | 261025-1538 | 1 commits | in sync | DECLINED by Tinkerhouse (22 Oct) | not recorded | - | Decide whether to ask BGA to take it down |
 | Mandala | `mandala` | public | 261019-0816 | 6 commits | in sync | shared project (Sir Heo) | not recorded | - | Upload-only; always fetch Studio copy before editing |
-| Feed the Ducks | `feedtheducks` | studio only | - | 3 commits | missing online | ask Nestor to register (BGG 112532) | not recorded | Not run: Studio project not created yet (2026-10-27) | new |
+| Feed the Ducks | `feedtheducks` | studio only | - | 3 commits | in sync | ask Nestor to register (BGG 112532) | not recorded | Not run: Studio project not created yet (2026-10-27) | new |
 
 Stages: studio only → private_alpha → alpha (public) → beta → public. "Unreleased" = commits since the
 production build; run `python3 tools/deploy.py auto` to build and deploy them (one game at a time).
