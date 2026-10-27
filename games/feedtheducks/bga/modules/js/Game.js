@@ -216,10 +216,8 @@ export class Game {
         const root = document.createElement('div');
         root.id = 'ftd_root';
         root.innerHTML = `
-            <div id="ftd_helpbar">
-                <button type="button" id="ftd_help_btn" aria-expanded="false" aria-controls="ftd_help"
-                    aria-label="${_('Rules reminder')}" title="${_('Rules reminder')}">?</button>
-            </div>
+            <button type="button" id="ftd_help_btn" aria-expanded="false" aria-controls="ftd_help"
+                aria-label="${_('Rules reminder')}" title="${_('Rules reminder')}">?</button>
             <div id="ftd_board_wrap">
                 <svg id="ftd_svg" viewBox="0 0 ${BOARD.w} ${BOARD.h}" role="img"
                     aria-label="${_('The pond: 61 hexagonal spaces, columns A to I')}"></svg>

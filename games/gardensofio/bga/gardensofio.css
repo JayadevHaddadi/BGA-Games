@@ -10,7 +10,8 @@
     width: 100%;
     max-width: 1100px;
     margin: 0 auto;
-    padding: 6px 0 12px;
+    padding: 0 0 12px;
+    position: relative;
     color: #f4ead2;
     user-select: none;
     -webkit-user-select: none;
@@ -473,13 +474,12 @@ body.gardensofio_page_bg #game_play_area_background {
 
 /* Rules reminder: "?" button in the top right corner of the play area, flat panel under it */
 
-#gio_helpbar {
-    display: flex;
-    justify-content: flex-end;
-    padding: 0 6px 6px;
-}
 
 #gio_help_btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    z-index: 5;
     width: 40px;
     height: 40px;
     margin: 0;

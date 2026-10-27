@@ -89,10 +89,8 @@ export class Game {
                     <div id="gio_specials" role="group" aria-label="${_('Special actions')}"></div>
                 </div>
             </div>
-            <div id="gio_helpbar">
-                <button type="button" id="gio_help_btn" aria-expanded="false" aria-controls="gio_help"
-                    aria-label="${_('Rules reminder')}" title="${_('Rules reminder')}">?</button>
-            </div>
+            <button type="button" id="gio_help_btn" aria-expanded="false" aria-controls="gio_help"
+                aria-label="${_('Rules reminder')}" title="${_('Rules reminder')}">?</button>
             <div id="gio_help" hidden></div>
             <p id="gio_hint" aria-live="polite"></p>
             <div id="gio_final" hidden></div>`;

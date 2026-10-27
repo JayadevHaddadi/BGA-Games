@@ -158,6 +158,7 @@ board), **Yavalath** (`fitContainerToScreen`).
 
 ## 4. Known pitfalls (quick list; each one has bitten us)
 
+* **UI: the ? rules button floats**: it is `position:absolute` in a corner of the game area; it must never add its own row, margin or padding.
 * **PossibleAction namespace**: each state class needs `use Bga\GameFramework\States\PossibleAction;` (as in every
   working game). A missing or wrong `use` gives "This move is not authorized now" with no other hint.
 * **`statusBar.addActionButton` signature**: `this.bga.statusBar.addActionButton(label, handler, { color, disabled, id, tooltip })`

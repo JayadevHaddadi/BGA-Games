@@ -178,21 +178,19 @@ body.red_page_bg #game_play_area_background {
 }
 
 #red_ctrl {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    z-index: 5;
     display: flex;
-    flex-direction: row;
-    justify-content: flex-end;
+    flex-direction: column;
     gap: 6px;
-    padding-bottom: 4px;
+    padding: 0;
 }
 
 @media (min-width: 801px) {
     #red_ctrl {
-        position: absolute;
-        top: 6px;
         right: 18px;
-        z-index: 5;
-        flex-direction: column;
-        padding: 0;
     }
 }
 
