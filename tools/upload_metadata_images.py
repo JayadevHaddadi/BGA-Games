@@ -37,6 +37,7 @@ PROJECT_MAP = {
     'hipposcrocodiles': 'hipposcrocodiles',
     'pentup': 'pentup',
     'vaultnestorgames': 'vaultnestorgames',
+    'feedtheducks': 'feedtheducks',
 }
 
 def load_cookies():

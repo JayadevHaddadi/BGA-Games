@@ -36,6 +36,7 @@ TARGETS = {
     'nestorgamesgp': 'games/nestorgamesgp/bga',
     'pushfight': 'games/pushfight/bga',
     'mandala': 'games/mandala/bga-prod',
+    'feedtheducks': 'games/feedtheducks/bga',
 }
 
 def load_cookies():
