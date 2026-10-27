@@ -152,6 +152,14 @@
    "licence": "shared project (Sir Heo)",
    "notes": "Upload-only; always fetch Studio copy before editing",
    "advertised": "not recorded"
+  },
+  {
+   "slug": "feedtheducks",
+   "folder": "games/feedtheducks/bga",
+   "name": "Feed the Ducks",
+   "licence": "ask Nestor to register (BGG 112532)",
+   "notes": "new",
+   "advertised": "not recorded"
   }
  ]
 }

@@ -21,6 +21,7 @@ Not covered: real clicks, look and feel, phone layout, rules correctness. Those 
 | gardensofio | | 2-5 | yes | PASS 2p, 5p, all scenarios | 2026-10-21 | lap-bonus crash fixed (3f565ed); debug_playToEnd added |
 | pentup | Claude | 2 | yes | PASS 2p (replay skipped: no Studio archive) | 2026-10-23 | new game, 3D client |
 | vaultnestorgames | Antigravity | 2 | yes | Pending first live run | 2026-10-24 | Initial implementation complete, 0 FAIL check, harness pass |
+| feedtheducks | Claude | 2-4 | no (paused) | Not run: Studio project not created yet | 2026-10-27 | new game; move the slug from `paused` to `enabled` in games.json once the project exists |
 | all other games | | | no | not run | | add the slug to `tools/e2e/games.json` to enable |
 
 How to update: after reading a CI result, change the row (result, date, one line of notes). If a scenario fails, the

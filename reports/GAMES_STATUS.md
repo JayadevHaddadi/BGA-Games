@@ -1,6 +1,6 @@
 # Games status board
 
-Generated 2026-10-27 12:09 by `python3 tools/status_board.py`. Do not edit by hand:
+Generated 2026-10-27 14:40 by `python3 tools/status_board.py`. Do not edit by hand:
 licence and notes come from `tools/games_registry.json`, everything else is read live.
 
 | Game | Studio slug | BGA stage | Production release | Unreleased | Help wiki | Licence | Advertised | Live tests | Next step / notes |
@@ -24,6 +24,7 @@ licence and notes come from `tools/games_registry.json`, everything else is read
 | Lords of Scotland | `lordsofscotland` | studio only | - | 30 commits | in sync | none (outreach) | not recorded | - | Needs designer/publisher approval |
 | Push Fight | `pushfight` | alpha | 261025-1538 | 1 commits | in sync | DECLINED by Tinkerhouse (22 Oct) | not recorded | - | Decide whether to ask BGA to take it down |
 | Mandala | `mandala` | public | 261019-0816 | 6 commits | in sync | shared project (Sir Heo) | not recorded | - | Upload-only; always fetch Studio copy before editing |
+| Feed the Ducks | `feedtheducks` | - | - | none | missing online | ask Nestor to register (BGG 112532) | not recorded | - | new |
 
 Stages: studio only → private_alpha → alpha (public) → beta → public. "Unreleased" = commits since the
 production build; run `python3 tools/deploy.py auto` to build and deploy them (one game at a time).

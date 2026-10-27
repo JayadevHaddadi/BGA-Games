@@ -16,5 +16,7 @@
   "gardensofmars",
   "nestorgamesgp"
  ],
- "paused": {}
+ "paused": {
+  "feedtheducks": "Studio project feedtheducks not created yet; move to enabled once it exists"
+ }
 }
