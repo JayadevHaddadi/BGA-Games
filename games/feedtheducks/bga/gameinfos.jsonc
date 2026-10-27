@@ -13,7 +13,7 @@
     "medium_additional_time": 40,
     "slow_additional_time": 50,
     "tie_breaker_description": "When several players gather their ducks with the same breadcrumb, the player who dropped it chooses the winner among them.",
-    "losers_not_ranked": false,
+    "losers_not_ranked": true,
     "solo_mode_ranked": false,
     "is_coop": 0,
     "language_dependency": false,

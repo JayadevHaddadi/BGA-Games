@@ -205,7 +205,6 @@ export class Game {
         root.id = 'ftd_root';
         root.innerHTML = `
             <div id="ftd_helpbar">
-                <button type="button" id="ftd_seen_btn" class="ftd_seen_btn" hidden>${_('Seen')}</button>
                 <button type="button" id="ftd_help_btn" aria-expanded="false" aria-controls="ftd_help"
                     aria-label="${_('Rules reminder')}" title="${_('Rules reminder')}">?</button>
             </div>
@@ -225,12 +224,9 @@ export class Game {
         this.renderDucks();
         this.renderCrumb();
         this.renderLast();
-        this.updateSeenBtn();
         this.refreshPanels();
         if (Number(gamedatas.winner) > 0) this.showFinal(gamedatas.best || {}, Number(gamedatas.winner), null);
 
-        const seenBtn = document.getElementById('ftd_seen_btn');
-        if (seenBtn) seenBtn.addEventListener('click', () => this.toggleSeen());
         document.getElementById('ftd_help_btn').addEventListener('click', () => this.toggleHelp());
         document.getElementById('ftd_help').addEventListener('click', (e) => {
             if (e.target.id === 'ftd_help' || e.target.closest('.ftd_help_close')) this.toggleHelp(false);
@@ -370,20 +366,7 @@ export class Game {
     toggleSeen() {
         this.lastSeen = !this.lastSeen;
         this.renderLast();
-        this.updateSeenBtn();
-    }
-
-    updateSeenBtn() {
-        const btn = document.getElementById('ftd_seen_btn');
-        if (!btn) return;
-        if (!this.history || this.history.length === 0) {
-            btn.hidden = true;
-            return;
-        }
-        btn.hidden = false;
-        btn.textContent = this.lastSeen ? _('Last move') : _('Seen');
-        btn.title = this.lastSeen ? _('Show last move marks') : _('Remove last move marks');
-        btn.setAttribute('aria-pressed', this.lastSeen ? 'true' : 'false');
+        this.updateButtons(this.args, this.isActive);
     }
 
     /** Last moves: the newest solid (tinted spaces, ring on the crumb, trails), older ones dashed, `players - 1` in all. */
@@ -467,16 +450,6 @@ export class Game {
         moves.forEach((m) => {
             const a = ftdCentre(m.from[0], m.from[1]);
             const b = ftdCentre(m.to[0], m.to[1]);
-            const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
-            const ux = (b.x - a.x) / len;
-            const uy = (b.y - a.y) / len;
-            const pad = 0.5 * BOARD.s;
-            const line = {
-                x1: (a.x + ux * pad * 0.6).toFixed(1), y1: (a.y + uy * pad * 0.6).toFixed(1),
-                x2: (b.x - ux * pad * 0.4).toFixed(1), y2: (b.y - uy * pad * 0.4).toFixed(1),
-            };
-            this.svgEl('line', { ...line, class: 'ftd_arrow_bg' }, this.gPreview);
-            this.svgEl('line', { ...line, class: 'ftd_arrow', 'marker-end': 'url(#ftd_arrowhead)' }, this.gPreview);
             const g = this.svgEl('g', { class: `ftd_duck ftd_ghost ftd_c_${m.colour}` }, this.gPreview);
             g.style.transform = `translate(${b.x.toFixed(1)}px, ${b.y.toFixed(1)}px)`;
             g.innerHTML = this.duckSvg(m.colour);
@@ -557,7 +530,13 @@ export class Game {
     updateButtons(args, isActive) {
         this.bga.statusBar.removeActionButtons();
         this.isActive = !!isActive;
-        if (!isActive) return;
+        if (!isActive) {
+            if (this.history && this.history.length > 0) {
+                const label = this.lastSeen ? _('Last move') : _('Seen');
+                this.bga.statusBar.addActionButton(label, () => this.toggleSeen(), { id: 'ftd_seen_status', color: 'secondary' });
+            }
+            return;
+        }
         if (this.mode === 'turn' && this.stage) {
             const coord = ftdLabel(this.stage[0], this.stage[1]);
             this.bga.statusBar.addActionButton(this.tr('Drop the breadcrumb on ${coord}', { coord }), () => this.sendCrumb(), { id: 'ftd_confirm', color: 'primary' });
@@ -579,6 +558,11 @@ export class Game {
                 const pid = Number(cand.player_id);
                 this.bga.statusBar.addActionButton(this.tr('${name} wins', { name: this.playerName(pid) }), () => this.sendWinner(pid), { id: `ftd_win_${pid}`, color: 'primary' });
             });
+        }
+
+        if (this.history && this.history.length > 0 && !this.stage) {
+            const label = this.lastSeen ? _('Last move') : _('Seen');
+            this.bga.statusBar.addActionButton(label, () => this.toggleSeen(), { id: 'ftd_seen_status', color: 'secondary' });
         }
     }
 
@@ -608,6 +592,10 @@ export class Game {
         if (hint) hint.textContent = text;
     }
 
+    confirmationOn() {
+        return Number(this.bga?.userPreferences?.get?.(102) ?? 1) !== 0;
+    }
+
     onCell(q, r) {
         if (!this.isActive || !this.args) {
             if (this.mode) this.say(_('It is not your turn.'));
@@ -621,11 +609,11 @@ export class Game {
             if (prev && prev[0] === q && prev[1] === r) { this.say(_('You must move the breadcrumb to a different space.')); return; }
             const legal = (this.args.legal || []).some(([a, b]) => Number(a) === q && Number(b) === r);
             if (!legal) { this.say(_('The breadcrumb cannot go on the six lines radiating from its previous space.')); return; }
-            if (this.hoverCapable()) {
+            if (this.confirmationOn()) {
+                this.setStage([q, r]);
+            } else {
                 this.stage = [q, r];
                 this.sendCrumb();
-            } else {
-                this.setStage([q, r]);
             }
         } else if (this.mode === 'setup') {
             if (occupied.has(k)) { this.say(_('That space already has a duck.')); return; }
@@ -699,7 +687,7 @@ export class Game {
         });
         await this.wait(moves.length ? 560 : 200);
         this.renderLast();
-        this.updateSeenBtn();
+        this.updateButtons(this.args, this.isActive);
         this.refreshPanels(args.scores);
     }
 
@@ -746,15 +734,9 @@ export class Game {
     showFinal(sizes, winner, goal) {
         const box = document.getElementById('ftd_final');
         if (!box) return;
-        const rows = Object.keys(this.colourOf).map((pid) => {
-            const id = Number(pid);
-            const colour = this.colourOf[id];
-            const size = Number(sizes[id] ?? sizes[pid] ?? 0);
-            const win = id === winner;
-            return `<li class="${win ? 'ftd_final_win' : ''}"><svg class="ftd_final_duck ftd_c_${colour}" viewBox="-30 -22 60 44" aria-hidden="true">${this.duckSvgSmall(colour)}</svg>
-                <span>${this.playerName(id)}: ${this.tr('largest group ${n}', { n: size })}${win ? ` (${_('winner')})` : ''}</span></li>`;
-        }).join('');
-        box.innerHTML = `<h3>${_('Final result')}</h3><p>${this.tr('A colour wins when ${goal} of its ducks form one group.', { goal: goal || this.goal })}</p><ul>${rows}</ul>`;
+        const winPlayer = this.playerName(winner);
+        const winColour = this.colourLabel(this.colourOf[winner]);
+        box.innerHTML = `<h3>${_('Game finished')}</h3><p><strong>${this.tr('${player} (${colour}) gathered all ducks into one group and won the game!', { player: winPlayer, colour: winColour })}</strong></p>`;
         box.hidden = false;
     }
 

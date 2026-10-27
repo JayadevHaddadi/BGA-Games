@@ -202,7 +202,7 @@ async function run() {
   const reached = tap(target[0], target[1]);
   check('tap_on_legal_space_reaches_the_cell', reached);
   check('touch_tap_only_stages', game.stage && game.stage[0] === target[0] && game.stage[1] === target[1] && calls.length === 0);
-  check('preview_arrows_match_the_rules', $$('.ftd_arrow').length === exp.length && $$('.ftd_ghost').length === exp.length && $$('.ftd_will_move').length === exp.length, [$$('.ftd_arrow').length, exp.length]);
+  check('preview_ghosts_match_the_rules', $$('.ftd_ghost').length === exp.length && $$('.ftd_will_move').length === exp.length, [$$('.ftd_ghost').length, exp.length]);
   check('preview_ghost_crumb', $$('.ftd_ghost_crumb').length === 1);
   check('preview_text', document.getElementById('ftd_hint').textContent.length > 0, document.getElementById('ftd_hint').textContent);
   const labels = buttons.map((b) => b.label);
@@ -211,7 +211,7 @@ async function run() {
   check('confirm_sends_one_action', calls.length === 1 && calls[0].name === 'actDropCrumb' && calls[0].args.q === target[0] && calls[0].args.r === target[1], JSON.stringify(calls));
   check('stage_survives_a_pending_action', game.stage !== null && buttons.length === 2);
   buttons[1].fn();
-  check('cancel_clears_stage_and_preview', game.stage === null && $$('.ftd_arrow').length === 0 && buttons.length === 0);
+  check('cancel_clears_stage_and_preview', game.stage === null && $$('.ftd_ghost').length === 0 && !buttons.some((b) => b.opts.id === 'ftd_confirm'));
 
   // first turn: nothing forbidden, every empty space legal
   game = fresh(fx.turn3_first.datas, fx.turn3_first.active, true);
@@ -219,17 +219,28 @@ async function run() {
   check('first_turn_no_forbidden_spaces', $$('.ftd_cross').length === 0 && $$('.ftd_dot').length === 37, $$('.ftd_dot').length);
   check('no_last_move_marks_before_the_first_crumb', $$('.ftd_last_new').length === 0);
 
-  // ---------------------------------------------------------------- turn, desktop: hover preview and one-click drop
+  // ---------------------------------------------------------------- turn, desktop: hover preview and drop with confirmation preference
   game = fresh(fx.turn4.datas, fx.turn4.active, false);
   game.enterTurn(fx.turn4.args, true);
   const t4 = fx.turn4.cell;
   const exp4 = expectMoves(fx.turn4.datas.ducks, t4[0], t4[1]);
   hover(t4[0], t4[1]);
-  check('hover_shows_the_preview', $$('.ftd_arrow').length === exp4.length && exp4.length >= 4, [$$('.ftd_arrow').length, exp4.length]);
+  check('hover_shows_the_preview', $$('.ftd_ghost').length === exp4.length && exp4.length >= 4, [$$('.ftd_ghost').length, exp4.length]);
   hover(t4[0], t4[1], false);
-  check('leaving_clears_the_preview', $$('.ftd_arrow').length === 0 && $$('.ftd_ghost').length === 0 && $$('.ftd_will_move').length === 0);
+  check('leaving_clears_the_preview', $$('.ftd_ghost').length === 0 && $$('.ftd_will_move').length === 0);
   tap(t4[0], t4[1]);
-  check('desktop_click_sends_at_once', calls.length === 1 && calls[0].name === 'actDropCrumb' && buttons.length === 0, JSON.stringify(calls));
+  check('desktop_click_stages_with_confirmation_pref', game.stage && game.stage[0] === t4[0] && game.stage[1] === t4[1] && calls.length === 0);
+  const cBtn = buttons.find((b) => b.opts.id === 'ftd_confirm');
+  check('confirm_button_present', !!cBtn);
+  if (cBtn) cBtn.fn();
+  check('confirm_sends_action', calls.length === 1 && calls[0].name === 'actDropCrumb' && calls[0].args.q === t4[0] && calls[0].args.r === t4[1]);
+
+  // check with confirmation preference disabled
+  calls.length = 0;
+  game.setStage(null);
+  game.bga.userPreferences.get = (id) => (id === 102 ? 0 : 1);
+  tap(t4[0], t4[1]);
+  check('desktop_click_sends_at_once_when_pref_disabled', calls.length === 1 && calls[0].name === 'actDropCrumb');
 
   // ---------------------------------------------------------------- notification: ducks slide, last move marked
   game = fresh(fx.turn4.datas, fx.turn4.active, false);
@@ -256,13 +267,15 @@ async function run() {
   }));
   // a game reloaded after that move shows the same last-move marks (history comes from the server)
   game = fresh(fx.turn4.after, fx.turn4.active, false);
+  game.enterTurn(fx.turn4.args, true);
   check('reload_restores_last_move_marks', $$('.ftd_last_crumb.ftd_last_new').length === 1 && $$('.ftd_crumbs .ftd_crumb').length === 1);
-  const seenBtn = document.getElementById('ftd_seen_btn');
-  check('seen_button_present_when_history_exists', seenBtn && !seenBtn.hidden && seenBtn.textContent === 'Seen');
-  seenBtn.click();
-  check('seen_button_removes_last_move_marks', $$('.ftd_last_crumb').length === 0 && $$('.ftd_trail').length === 0 && seenBtn.textContent === 'Last move');
-  seenBtn.click();
-  check('seen_button_restores_last_move_marks', $$('.ftd_last_crumb').length > 0 && seenBtn.textContent === 'Seen');
+  const seenBtn = buttons.find((b) => b.opts.id === 'ftd_seen_status');
+  check('seen_button_present_in_status_bar', seenBtn && seenBtn.label === 'Seen');
+  if (seenBtn) seenBtn.fn();
+  check('seen_button_removes_last_move_marks', $$('.ftd_last_crumb').length === 0 && $$('.ftd_trail').length === 0 && buttons.some((b) => b.opts.id === 'ftd_seen_status' && b.label === 'Last move'));
+  const lastMoveBtn = buttons.find((b) => b.opts.id === 'ftd_seen_status');
+  if (lastMoveBtn) lastMoveBtn.fn();
+  check('seen_button_restores_last_move_marks', $$('.ftd_last_crumb').length > 0 && buttons.some((b) => b.opts.id === 'ftd_seen_status' && b.label === 'Seen'));
   // animations on: ducks slide with a CSS transition, a ripple appears and is removed
   animations = true;
   game = fresh(fx.turn4.datas, fx.turn4.active, false);
@@ -309,7 +322,7 @@ async function run() {
 
   // ---------------------------------------------------------------- end of game, and a reload on the finished game
   game = fresh(fx.final.datas, fx.final.datas.players ? Number(Object.keys(fx.final.datas.players)[0]) : 1, true);
-  check('finished_game_shows_the_result_after_reload', document.getElementById('ftd_final').hidden === false && $$('#ftd_final li').length === 4 && $$('.ftd_final_win').length === 1);
+  check('finished_game_shows_the_result_after_reload', document.getElementById('ftd_final').hidden === false && /gathered all ducks into one group/.test(document.getElementById('ftd_final').textContent));
   await game.notif_finalScoring(fx.final.notif);
   check('winning_group_outlined', $$('.ftd_group_win').length === $$('.ftd_group_win_in').length && $$('.ftd_group_win').length === fx.final.notif.cells.length && fx.final.notif.cells.length >= 6, fx.final.notif.cells.length);
   // panel tap outlines a player's largest group (dashed)
