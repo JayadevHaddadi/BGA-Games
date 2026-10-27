@@ -257,6 +257,12 @@ async function run() {
   // a game reloaded after that move shows the same last-move marks (history comes from the server)
   game = fresh(fx.turn4.after, fx.turn4.active, false);
   check('reload_restores_last_move_marks', $$('.ftd_last_crumb.ftd_last_new').length === 1 && $$('.ftd_crumbs .ftd_crumb').length === 1);
+  const seenBtn = document.getElementById('ftd_seen_btn');
+  check('seen_button_present_when_history_exists', seenBtn && !seenBtn.hidden && seenBtn.textContent === 'Seen');
+  seenBtn.click();
+  check('seen_button_removes_last_move_marks', $$('.ftd_last_crumb').length === 0 && $$('.ftd_trail').length === 0 && seenBtn.textContent === 'Last move');
+  seenBtn.click();
+  check('seen_button_restores_last_move_marks', $$('.ftd_last_crumb').length > 0 && seenBtn.textContent === 'Seen');
   // animations on: ducks slide with a CSS transition, a ripple appears and is removed
   animations = true;
   game = fresh(fx.turn4.datas, fx.turn4.active, false);

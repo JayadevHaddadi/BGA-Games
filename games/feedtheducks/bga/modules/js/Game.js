@@ -128,6 +128,7 @@ export class Game {
         this.duckEls = new Map();
         this.crumb = null;
         this.history = [];
+        this.lastSeen = false;
         this.colourOf = {};      // player id -> duck colour
         this.bga.states.register('SetupPlace', new SetupPlaceState(this));
         this.bga.states.register('PlayerTurn', new PlayerTurnState(this));
@@ -204,6 +205,7 @@ export class Game {
         root.id = 'ftd_root';
         root.innerHTML = `
             <div id="ftd_helpbar">
+                <button type="button" id="ftd_seen_btn" class="ftd_seen_btn" hidden>${_('Seen')}</button>
                 <button type="button" id="ftd_help_btn" aria-expanded="false" aria-controls="ftd_help"
                     aria-label="${_('Rules reminder')}" title="${_('Rules reminder')}">?</button>
             </div>
@@ -223,9 +225,12 @@ export class Game {
         this.renderDucks();
         this.renderCrumb();
         this.renderLast();
+        this.updateSeenBtn();
         this.refreshPanels();
         if (Number(gamedatas.winner) > 0) this.showFinal(gamedatas.best || {}, Number(gamedatas.winner), null);
 
+        const seenBtn = document.getElementById('ftd_seen_btn');
+        if (seenBtn) seenBtn.addEventListener('click', () => this.toggleSeen());
         document.getElementById('ftd_help_btn').addEventListener('click', () => this.toggleHelp());
         document.getElementById('ftd_help').addEventListener('click', (e) => {
             if (e.target.id === 'ftd_help' || e.target.closest('.ftd_help_close')) this.toggleHelp(false);
@@ -362,9 +367,29 @@ export class Game {
         return g;
     }
 
+    toggleSeen() {
+        this.lastSeen = !this.lastSeen;
+        this.renderLast();
+        this.updateSeenBtn();
+    }
+
+    updateSeenBtn() {
+        const btn = document.getElementById('ftd_seen_btn');
+        if (!btn) return;
+        if (!this.history || this.history.length === 0) {
+            btn.hidden = true;
+            return;
+        }
+        btn.hidden = false;
+        btn.textContent = this.lastSeen ? _('Last move') : _('Seen');
+        btn.title = this.lastSeen ? _('Show last move marks') : _('Remove last move marks');
+        btn.setAttribute('aria-pressed', this.lastSeen ? 'true' : 'false');
+    }
+
     /** Last moves: the newest solid (tinted spaces, ring on the crumb, trails), older ones dashed, `players - 1` in all. */
     renderLast() {
         this.gLast.innerHTML = '';
+        if (this.lastSeen) return;
         const count = Math.max(1, this.playerCount - 1);
         this.history.slice(0, count).forEach((h, i) => {
             const solid = i === 0;
@@ -652,6 +677,7 @@ export class Game {
         this.clearMarks();
         this.history.unshift(this.cleanHistory({ player_id: args.player_id, q, r, moves: args.moves }));
         this.history = this.history.slice(0, 3);
+        this.lastSeen = false;
         this.gLast.innerHTML = '';
         this.crumb = [q, r];
         this.renderCrumb();
@@ -673,6 +699,7 @@ export class Game {
         });
         await this.wait(moves.length ? 560 : 200);
         this.renderLast();
+        this.updateSeenBtn();
         this.refreshPanels(args.scores);
     }
 

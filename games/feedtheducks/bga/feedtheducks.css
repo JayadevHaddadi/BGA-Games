@@ -29,11 +29,39 @@ body.ftd_page_bg .bga-game-area {
 
 #ftd_helpbar {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    align-items: center;
     padding: 0 6px 6px;
 }
 
+.ftd_seen_btn {
+    min-height: 36px;
+    padding: 6px 14px;
+    box-sizing: border-box;
+    border: 2px solid #cfe3bf;
+    border-radius: 3px;
+    background: #2d5a3a;
+    color: #f2f7ea;
+    font: inherit;
+    font-size: 14px;
+    font-weight: bold;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.ftd_seen_btn[hidden] {
+    display: none;
+}
+
+@media (hover: hover) {
+    .ftd_seen_btn:hover {
+        background: #3c744c;
+    }
+}
+
 #ftd_help_btn {
+    margin-left: auto;
     width: 40px;
     height: 40px;
     margin: 0;
