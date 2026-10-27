@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Feed the Ducks harness</title>
+<link rel="stylesheet" href="../../bga/feedtheducks.css">
+<style>
+  body { margin: 0; font-family: sans-serif; }
+  #game_play_area { padding: 0; }
+  #out { white-space: pre-wrap; font: 12px monospace; padding: 8px; background: #111; color: #eee; }
+  body[data-shot] #out { display: none; }
+</style>
+</head>
+<body data-done="0" class="ftd_cb_on ftd_page_bg">
+<div id="page-content">
+  <div id="statusbar"></div>
+  <div id="game_play_area"></div>
+</div>
+<div id="player_panels"></div>
+<pre id="out">running</pre>
+
+<script>
+window._ = (s) => s;
+window.g_gamethemeurl = '../../bga/';
+window.errors = [];
+window.addEventListener('error', (e) => {
+  if (e.message && e.message.includes('ResizeObserver')) return;
+  window.errors.push(String(e.message));
+});
+window.addEventListener('unhandledrejection', (e) => { window.errors.push(String(e.reason)); });
+</script>
+<script type="module">
+import { Game } from '../../bga/modules/js/Game.js';
+
+const params = new URLSearchParams(location.search);
+const calls = [];
+const messages = [];
+let buttons = [];
+let title = '';
+let animations = false;   // the tests run with animations off (instant); one test turns them on
+
+function makeBga(playerId) {
+  return {
+    states: { register() {} },
+    gameArea: { getElement: () => document.getElementById('game_play_area') },
+    notifications: { setupPromiseNotifications() {} },
+    userPreferences: { get: () => 1 },
+    sounds: { play() {} },
+    dialogs: { showMessage(text) { messages.push(text); } },
+    gameui: { bgaAnimationsActive: () => animations, addTooltip() {} },
+    statusBar: {
+      setTitle(text) { title = text; },
+      addActionButton(label, fn, opts) { buttons.push({ label, fn, opts: opts || {} }); return document.createElement('button'); },
+      removeActionButtons() { buttons.length = 0; },
+    },
+    players: { getCurrentPlayerId: () => playerId, isCurrentPlayerActive: () => true, getActivePlayerId: () => playerId },
+    playerPanels: {
+      getElement: (pid) => {
+        let el = document.getElementById('panel_' + pid);
+        if (!el) { el = document.createElement('div'); el.id = 'panel_' + pid; document.getElementById('player_panels').appendChild(el); }
+        return el;
+      },
+      getScoreCounter: () => ({ toValue() {} }),
+    },
+    actions: { performAction(name, args) { calls.push({ name, args }); return Promise.resolve(); } },
+  };
+}
+
+function fresh(datas, active, touch) {
+  document.getElementById('game_play_area').innerHTML = '';
+  document.getElementById('player_panels').innerHTML = '';
+  buttons = [];
+  calls.length = 0;
+  messages.length = 0;
+  Game.prototype.hoverCapable = () => !touch;
+  const game = new Game(makeBga(active));
+  game.setup(JSON.parse(JSON.stringify(datas)));
+  return game;
+}
+
+const $$ = (sel) => [...document.querySelectorAll(sel)];
+const centreOf = (el) => { const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
+function tap(q, r) {
+  const hit = document.querySelector(`.ftd_hit[data-q="${q}"][data-r="${r}"]`);
+  const [x, y] = centreOf(hit);
+  const target = document.elementFromPoint(x, y);
+  target.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  return target === hit;
+}
+function hover(q, r, on = true) {
+  const hit = document.querySelector(`.ftd_hit[data-q="${q}"][data-r="${r}"]`);
+  hit.dispatchEvent(new MouseEvent(on ? 'mouseenter' : 'mouseleave'));
+}
+const key = (q, r) => `${q},${r}`;
+const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]];
+const inB = (q, r) => Math.abs(q) <= 4 && Math.abs(r) <= 4 && Math.abs(q + r) <= 4;
+/** Independent mirror of the movement rule for the expectations. */
+function expectMoves(ducks, q, r) {
+  const occ = new Map(ducks.map((d) => [key(d.q, d.r), d.colour]));
+  const out = [];
+  DIRS.forEach(([dq, dr]) => {
+    let slot = 1;
+    for (let k = 1; inB(q + k * dq, r + k * dr); k++) {
+      if (!occ.has(key(q + k * dq, r + k * dr))) continue;
+      if (slot !== k) out.push([[q + k * dq, r + k * dr], [q + slot * dq, r + slot * dr]]);
+      slot++;
+    }
+  });
+  return out;
+}
+const onLine = (a, b) => { const dq = b[0] - a[0]; const dr = b[1] - a[1]; return (dq === 0 || dr === 0 || dq + dr === 0) && (dq !== 0 || dr !== 0); };
+const tick = (ms = 30) => new Promise((r) => setTimeout(r, ms));
+const hexCentre = (q, r) => ({ x: 500 + 1.5 * 67.803 * q, y: 563.69 + Math.sqrt(3) * 67.803 * (r + q / 2) });
+
+async function run() {
+  const fx = await (await fetch('fixtures.json')).json();
+  const shot = params.get('shot');
+  const touch = params.get('touch') === '1' || (window.innerWidth < 800 && !params.get('hover'));
+  const report = { ok: true, errors: [], checks: {}, width: window.innerWidth };
+  const check = (name, cond, info) => {
+    report.checks[name] = info === undefined ? !!cond : { ok: !!cond, info };
+    if (!cond) { report.ok = false; }
+  };
+
+  if (shot) {
+    document.body.dataset.shot = shot;
+    const set = fx[shot === 'setup' ? 'setup' : shot];
+    const active = set.active || Object.keys(set.datas.players)[0];
+    const game = fresh(set.datas, Number(active), touch);
+    animations = false;
+    if (shot === 'setup') { game.enterSetup(set.args, true); const c = set.args.cells[3]; tap(c[0], c[1]); }
+    else if (shot === 'choose') { game.enterChoose(set.args, true); }
+    else if (shot === 'final') { game.notif_finalScoring(set.notif); }
+    else {
+      game.enterTurn(set.args, true);
+      const c = set.cell || set.args.legal[Math.floor(set.args.legal.length / 3)];
+      if (touch) tap(c[0], c[1]); else hover(c[0], c[1]);
+      if (params.get('notif') && set.notif) { game.leaveState(); await game.notif_crumbDropped(set.notif); }
+    }
+    await tick(100);
+    document.body.dataset.done = '1';
+    return;
+  }
+
+  // ---------------------------------------------------------------- layout: board, panels, targets
+  let game = fresh(fx.turn3.datas, fx.turn3.active, true);
+  game.enterTurn(fx.turn3.args, true);
+  await tick();
+  const svg = document.getElementById('ftd_svg');
+  const sr = svg.getBoundingClientRect();
+  const vw = document.documentElement.clientWidth;
+  check('board_centre_offset_px', Math.abs(sr.left + sr.width / 2 - vw / 2) <= 2, Math.round(sr.left + sr.width / 2 - vw / 2));
+  if (vw <= 800) check('board_full_width_on_phone', Math.abs(sr.width - vw) <= 1, Math.round(sr.width));
+  else check('board_capped_on_desktop', sr.width <= 760, Math.round(sr.width));
+  check('no_horizontal_scroll', document.documentElement.scrollWidth <= window.innerWidth + 1, document.documentElement.scrollWidth);
+  let minTap = 999;
+  $$('.ftd_hit').forEach((h) => { const r = h.getBoundingClientRect(); minTap = Math.min(minTap, r.width, r.height); });
+  check('tap_target_min_px', minTap >= 32, Math.round(minTap));
+  check('61_cells', $$('.ftd_hit').length === 61);
+  check('ducks_drawn', $$('.ftd_ducks .ftd_duck').length === fx.turn3.datas.ducks.length && fx.turn3.datas.ducks.length === 24);
+  check('player_panels_have_a_line', $$('.ftd_pnl').length === 3 && $$('.ftd_pnl_txt').every((t) => t.textContent.length > 0));
+  const hb = document.getElementById('ftd_help_btn').getBoundingClientRect();
+  check('help_button_32px', hb.width >= 32 && hb.height >= 32);
+  check('page_background_class', document.body.classList.contains('ftd_page_bg'));
+  // every duck sits inside the board image
+  const inside = $$('.ftd_ducks .ftd_duck').every((el) => { const r = el.getBoundingClientRect(); return r.left >= sr.left - 1 && r.right <= sr.right + 1 && r.top >= sr.top - 1 && r.bottom <= sr.bottom + 1; });
+  check('ducks_inside_board', inside);
+  // a duck is inside its cell (not wider than the cell)
+  const cellW = $$('.ftd_hit')[0].getBoundingClientRect().width;
+  const duckW = $$('.ftd_ducks .ftd_duck')[0].getBoundingClientRect().width;
+  check('duck_fits_the_cell', duckW <= cellW * 1.0, [Math.round(duckW), Math.round(cellW)]);
+
+  // ---------------------------------------------------------------- turn, touch: stage, preview, confirm, cancel
+  game = fresh(fx.turn3.datas, fx.turn3.active, true);
+  game.enterTurn(fx.turn3.args, true);
+  const prev = fx.turn3.args.previous;
+  const occ = new Set(fx.turn3.datas.ducks.map((d) => key(d.q, d.r)));
+  const bannedExpected = [];
+  for (let q = -4; q <= 4; q++) for (let r = -4; r <= 4; r++) {
+    if (!inB(q, r) || occ.has(key(q, r))) continue;
+    if (onLine(prev, [q, r]) || (q === prev[0] && r === prev[1])) bannedExpected.push([q, r]);
+  }
+  check('forbidden_spaces_crossed_out', $$('.ftd_cross').length === bannedExpected.length && $$('.ftd_banned').length === bannedExpected.length, [$$('.ftd_cross').length, bannedExpected.length]);
+  check('legal_spaces_have_a_dot', $$('.ftd_dot').length === fx.turn3.args.legal.length, [$$('.ftd_dot').length, fx.turn3.args.legal.length]);
+  check('legal_plus_forbidden_plus_ducks_is_61', fx.turn3.args.legal.length + bannedExpected.length + occ.size === 61);
+  const b0 = bannedExpected[0];
+  messages.length = 0;
+  const reachedBanned = tap(b0[0], b0[1]);
+  check('tap_on_forbidden_space_reaches_the_cell', reachedBanned);
+  check('tap_on_forbidden_space_is_explained', messages.length === 1 && game.stage === null && calls.length === 0, messages[0]);
+  messages.length = 0;
+  const d0 = fx.turn3.datas.ducks[0];
+  tap(d0.q, d0.r);
+  check('tap_on_duck_is_explained', messages.length === 1 && game.stage === null, messages[0]);
+  messages.length = 0;
+  tap(prev[0], prev[1]);
+  check('tap_on_previous_crumb_space_is_explained', messages.length === 1 && game.stage === null, messages[0]);
+  const L = fx.turn3.args.legal;
+  const target = L.find((c) => expectMoves(fx.turn3.datas.ducks, c[0], c[1]).length >= 2) || L[0];
+  const exp = expectMoves(fx.turn3.datas.ducks, target[0], target[1]);
+  const reached = tap(target[0], target[1]);
+  check('tap_on_legal_space_reaches_the_cell', reached);
+  check('touch_tap_only_stages', game.stage && game.stage[0] === target[0] && game.stage[1] === target[1] && calls.length === 0);
+  check('preview_arrows_match_the_rules', $$('.ftd_arrow').length === exp.length && $$('.ftd_ghost').length === exp.length && $$('.ftd_will_move').length === exp.length, [$$('.ftd_arrow').length, exp.length]);
+  check('preview_ghost_crumb', $$('.ftd_ghost_crumb').length === 1);
+  check('preview_text', document.getElementById('ftd_hint').textContent.length > 0, document.getElementById('ftd_hint').textContent);
+  const labels = buttons.map((b) => b.label);
+  check('confirm_and_cancel_buttons', buttons.length === 2 && buttons[0].opts.color === 'primary' && buttons[1].opts.color === 'alert' && /Drop the breadcrumb on/.test(labels[0]), labels);
+  buttons[0].fn();
+  check('confirm_sends_one_action', calls.length === 1 && calls[0].name === 'actDropCrumb' && calls[0].args.q === target[0] && calls[0].args.r === target[1], JSON.stringify(calls));
+  check('stage_survives_a_pending_action', game.stage !== null && buttons.length === 2);
+  buttons[1].fn();
+  check('cancel_clears_stage_and_preview', game.stage === null && $$('.ftd_arrow').length === 0 && buttons.length === 0);
+
+  // first turn: nothing forbidden, every empty space legal
+  game = fresh(fx.turn3_first.datas, fx.turn3_first.active, true);
+  game.enterTurn(fx.turn3_first.args, true);
+  check('first_turn_no_forbidden_spaces', $$('.ftd_cross').length === 0 && $$('.ftd_dot').length === 37, $$('.ftd_dot').length);
+  check('no_last_move_marks_before_the_first_crumb', $$('.ftd_last_new').length === 0);
+
+  // ---------------------------------------------------------------- turn, desktop: hover preview and one-click drop
+  game = fresh(fx.turn4.datas, fx.turn4.active, false);
+  game.enterTurn(fx.turn4.args, true);
+  const t4 = fx.turn4.cell;
+  const exp4 = expectMoves(fx.turn4.datas.ducks, t4[0], t4[1]);
+  hover(t4[0], t4[1]);
+  check('hover_shows_the_preview', $$('.ftd_arrow').length === exp4.length && exp4.length >= 4, [$$('.ftd_arrow').length, exp4.length]);
+  hover(t4[0], t4[1], false);
+  check('leaving_clears_the_preview', $$('.ftd_arrow').length === 0 && $$('.ftd_ghost').length === 0 && $$('.ftd_will_move').length === 0);
+  tap(t4[0], t4[1]);
+  check('desktop_click_sends_at_once', calls.length === 1 && calls[0].name === 'actDropCrumb' && buttons.length === 0, JSON.stringify(calls));
+
+  // ---------------------------------------------------------------- notification: ducks slide, last move marked
+  game = fresh(fx.turn4.datas, fx.turn4.active, false);
+  game.enterTurn(fx.turn4.args, true);
+  game.leaveState();
+  await game.notif_crumbDropped(fx.turn4.notif);
+  const after = fx.turn4.after.ducks;
+  const posOk = after.every((d) => {
+    const el = document.querySelector(`.ftd_duck[data-id="${d.id}"]`);
+    const c = hexCentre(d.q, d.r);
+    if (!el) return false;
+    const m = /translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(el.style.transform);
+    return !!m && Math.abs(Number(m[1]) - c.x) < 0.2 && Math.abs(Number(m[2]) - c.y) < 0.2;
+  });
+  check('every_duck_ends_where_the_server_says', posOk);
+  check('crumb_is_on_the_new_space', game.crumb[0] === fx.turn4.cell[0] && game.crumb[1] === fx.turn4.cell[1] && $$('.ftd_crumbs .ftd_crumb').length === 1);
+  check('last_move_marks_crumb_and_moved_ducks', $$('.ftd_last_crumb.ftd_last_new').length === 1 && $$('.ftd_last_to.ftd_last_new').length === fx.turn4.notif.moves.length && $$('.ftd_last_crumb_in').length === 1, $$('.ftd_last_to').length);
+  check('older_moves_are_dashed', $$('.ftd_last_old').length > 0, $$('.ftd_last_old').length);
+  check('marks_cleared_after_the_move', $$('.ftd_cross').length === 0 && $$('.ftd_dot').length === 0);
+  check('moved_ducks_turn_toward_their_goal', fx.turn4.notif.moves.every((m) => {
+    const el = document.querySelector(`.ftd_duck[data-id="${m.id}"]`);
+    const dx = hexCentre(m.to[0], m.to[1]).x - hexCentre(m.from[0], m.from[1]).x;
+    return Math.abs(dx) < 1 || Number(el.dataset.face) === (dx > 0 ? -1 : 1);
+  }));
+  // a game reloaded after that move shows the same last-move marks (history comes from the server)
+  game = fresh(fx.turn4.after, fx.turn4.active, false);
+  check('reload_restores_last_move_marks', $$('.ftd_last_crumb.ftd_last_new').length === 1 && $$('.ftd_crumbs .ftd_crumb').length === 1);
+  // animations on: ducks slide with a CSS transition, a ripple appears and is removed
+  animations = true;
+  game = fresh(fx.turn4.datas, fx.turn4.active, false);
+  game.enterTurn(fx.turn4.args, true);
+  game.leaveState();
+  const anim = game.notif_crumbDropped(fx.turn4.notif);
+  await tick(80);
+  check('ripple_while_animating', $$('.ftd_ripple').length === 2);
+  await anim;
+  await tick(1000);
+  check('ripples_removed', $$('.ftd_ripple').length === 0);
+  animations = false;
+
+  // ---------------------------------------------------------------- setup
+  const setup = fx.setup;
+  game = fresh(setup.datas, setup.active, true);
+  game.enterSetup(setup.args, true);
+  check('setup_edge_dots', $$('.ftd_dot').length === setup.args.cells.length && setup.args.cells.length === 24 - setup.datas.ducks.length, $$('.ftd_dot').length);
+  const sbuttons = buttons.length;
+  check('setup_colour_buttons_disabled_until_a_space_is_chosen', buttons.every((b) => b.opts.disabled === true) && sbuttons >= 2, sbuttons);
+  const c0 = setup.args.cells[0];
+  tap(c0[0], c0[1]);
+  check('setup_tap_stages_the_edge_space', game.stage && $$('.ftd_stagedcell').length === 1 && buttons.every((b) => b.opts.disabled === false));
+  messages.length = 0;
+  tap(0, 0);
+  check('setup_inner_space_is_explained', messages.length === 1 && game.stage[0] === c0[0], messages[0]);
+  buttons.find((b) => b.opts.id === 'ftd_place_black').fn();
+  check('setup_button_sends_the_colour', calls.length === 1 && calls[0].name === 'actPlaceDuck' && calls[0].args.colour === 'black' && calls[0].args.q === c0[0], JSON.stringify(calls));
+  check('setup_panel_counts_ducks_to_place', $$('.ftd_pnl_txt').every((t) => /to place/.test(t.textContent)), $$('.ftd_pnl_txt')[0].textContent);
+  // a duck lands
+  const placed = setup.notif.duck;
+  const before = { ...setup.datas, ducks: setup.datas.ducks.filter((d) => d.id !== placed.id) };
+  game = fresh(before, setup.active, true);
+  game.enterSetup(setup.args, true);
+  await game.notif_duckPlaced(setup.notif);
+  check('placed_duck_appears_on_the_edge', document.querySelector(`.ftd_duck[data-id="${placed.id}"]`) !== null && $$('.ftd_ducks .ftd_duck').length === before.ducks.length + 1);
+
+  // ---------------------------------------------------------------- choose a winner
+  game = fresh(fx.choose.datas, fx.choose.active, true);
+  game.enterChoose(fx.choose.args, true);
+  check('choose_buttons_one_per_finished_player', buttons.length === 2 && buttons.every((b) => b.opts.color === 'primary'), buttons.map((b) => b.label));
+  buttons[1].fn();
+  check('choose_sends_the_winner', calls.length === 1 && calls[0].name === 'actChooseWinner' && calls[0].args.winnerId === fx.choose.args.candidates[1].player_id, JSON.stringify(calls));
+
+  // ---------------------------------------------------------------- end of game, and a reload on the finished game
+  game = fresh(fx.final.datas, fx.final.datas.players ? Number(Object.keys(fx.final.datas.players)[0]) : 1, true);
+  check('finished_game_shows_the_result_after_reload', document.getElementById('ftd_final').hidden === false && $$('#ftd_final li').length === 4 && $$('.ftd_final_win').length === 1);
+  await game.notif_finalScoring(fx.final.notif);
+  check('winning_group_outlined', $$('.ftd_group_win').length === $$('.ftd_group_win_in').length && $$('.ftd_group_win').length === fx.final.notif.cells.length && fx.final.notif.cells.length >= 6, fx.final.notif.cells.length);
+  // panel tap outlines a player's largest group (dashed)
+  $$('.ftd_pnl')[0].click();
+  check('panel_tap_shows_the_largest_group', $$('.ftd_group_peek').length > 0);
+
+  // ---------------------------------------------------------------- rules popup
+  game = fresh(fx.turn3.datas, fx.turn3.active, true);
+  document.getElementById('ftd_help_btn').click();
+  check('help_opens_with_icons', document.getElementById('ftd_help').hidden === false && $$('#ftd_help svg').length >= 5);
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  check('escape_closes_help', document.getElementById('ftd_help').hidden === true);
+
+  report.errors = window.errors.slice();
+  if (report.errors.length) report.ok = false;
+  document.getElementById('out').textContent = JSON.stringify(report, null, 2);
+  document.body.dataset.done = '1';
+}
+
+run().catch((e) => {
+  window.errors.push(String(e && e.stack || e));
+  document.getElementById('out').textContent = JSON.stringify({ ok: false, errors: window.errors }, null, 2);
+  document.body.dataset.done = '1';
+});
+</script>
+</body>
+</html>

@@ -1,19 +1,40 @@
 ==Goal==
 
-Describe the goal in one or two sentences.
+Gather all the ducks of your colour into '''one connected group''' before the others do. You are the colour of your seat: White, Black, Red or Blue. Each turn you drop a breadcrumb in the pond and every duck on the six lines around it swims toward it.
 
 ==Setup==
 
-* Describe the setup.
+The pond has 61 hexagonal spaces. Each player has ducks of their colour: '''12''' with 2 players, '''8''' with 3 players, '''6''' with 4 players. In every game 24 ducks fill the outer edge of the pond, one duck per space.
+
+* '''Players place the ducks''' (default): starting with White, players take turns placing '''any duck''' (of any colour still available) on a free edge space until the edge is full.
+* '''Random setup''' (option): the ducks are placed at random around the edge, never more than 2 ducks of the same colour side by side.
+
+White then drops the first breadcrumb.
 
 ==Your turn==
 
 {| class="wikitable"
 ! # !! Step !! What you do
 |-
-| 1 || '''Step name''' || What happens.
+| 1 || '''Drop the breadcrumb''' || Put the breadcrumb on an '''empty space'''. On the very first turn any empty space is allowed. Afterwards it must be a space that is '''not on any of the six straight lines radiating from the breadcrumb's previous space''' (and not the same space). Those spaces are marked with a cross.
+|-
+| 2 || '''The ducks swim''' || Every duck on the six lines radiating from the breadcrumb moves straight toward it, as far as it can. Ducks stop just before the breadcrumb, and there is never more than one duck on a space: ducks on the same line pack up behind each other in their order.
 |}
+
+On a computer, point at a space to see where the ducks will go (arrows and ghost ducks), and click to drop the breadcrumb. On a phone, tap a space to see the preview, then confirm.
+
+The turn then passes to the next player.
 
 ==Game end==
 
-* When the game ends and how the winner is found.
+* With '''2 or 4 players''' the game ends when all the ducks of one colour form a single connected group (ducks that touch along an edge are connected).
+* With '''3 players''' the game ends when at least '''7''' ducks of one colour (all but one) form a single group. In the ''Goal (3 players)'' option you can choose the advanced variant: all 8 ducks of one colour must form a single group.
+* The player of that colour wins. If several colours get a group with the same breadcrumb, the player who dropped it '''chooses the winner''' among those players.
+
+==Notes==
+
+The player panels show how big each colour's largest group is. The number of turns is around 20 in an average game; the game always ends.
+
+==Credits==
+
+Feed the Ducks was designed by Néstor Romeral Andrés and is published by nestorgames. Rules and artwork © 2011 Néstor Romeral Andrés, revisions by Nathan Morse.

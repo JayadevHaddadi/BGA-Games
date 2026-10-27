@@ -1,12 +1,498 @@
 /* Feed the Ducks: play area styles. Guidelines: no shadows, no looping animation, no emoji, radius <= 3px. */
 
+/* Table: the grass of the printed board, on the whole page */
+html:has(body.ftd_page_bg),
 body.ftd_page_bg {
-    background-color: #1d1f24;
+    min-height: 100vh;
+    background-color: #1f3d2a;
+    background-image: url('img/grass.jpg');
+    background-size: 300px 300px;
 }
 
 body.ftd_page_bg #page-content,
 body.ftd_page_bg #ebd-body,
 body.ftd_page_bg #game_play_area,
-body.ftd_page_bg #game_play_area_background {
-    background: transparent;
+body.ftd_page_bg #game_play_area_background,
+body.ftd_page_bg .bga-game-area {
+    background: transparent !important;
+}
+
+#ftd_root {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 0 0 8px;
+}
+
+/* Rules reminder: "?" button, flat panel under it */
+
+#ftd_helpbar {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0 6px 6px;
+}
+
+#ftd_help_btn {
+    width: 40px;
+    height: 40px;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    border: 2px solid #cfe3bf;
+    border-radius: 50%;
+    background: #2d5a3a;
+    color: #f2f7ea;
+    font: inherit;
+    font-size: 22px;
+    font-weight: bold;
+    line-height: 1;
+    cursor: pointer;
+}
+
+#ftd_help_btn.is_open {
+    background: #f2f7ea;
+    color: #1f3d2a;
+}
+
+#ftd_help {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    box-sizing: border-box;
+    padding: 56px 8px 8px;
+    background: rgba(0, 0, 0, 0.6);
+}
+
+#ftd_help[hidden] {
+    display: none;
+}
+
+.ftd_help_card {
+    position: relative;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 560px;
+    max-height: 100%;
+    overflow-y: auto;
+    padding: 8px 14px 14px;
+    border: 2px solid #cfe3bf;
+    border-radius: 3px;
+    background: #1f3d2a;
+    color: #f2f7ea;
+    font-size: 15px;
+}
+
+.ftd_help_close {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 40px;
+    height: 40px;
+    margin: 0;
+    padding: 0;
+    border: 2px solid #cfe3bf;
+    border-radius: 3px;
+    background: #2d5a3a;
+    color: #f2f7ea;
+    font: inherit;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.ftd_help_card h3:first-of-type {
+    margin-right: 48px;
+}
+
+#ftd_help h3 {
+    margin: 10px 0 6px;
+    font-size: 16px;
+}
+
+#ftd_help p {
+    margin: 4px 0;
+}
+
+#ftd_help ol {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+#ftd_help li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 6px 0;
+}
+
+.ftd_help_icons {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 2px;
+    min-width: 64px;
+    justify-content: center;
+}
+
+.ftd_help_inline {
+    display: inline-flex;
+    vertical-align: middle;
+}
+
+.ftd_help_icon {
+    width: 40px;
+    height: 32px;
+    flex: 0 0 auto;
+}
+
+.ftd_help_arrow {
+    fill: none;
+    stroke: #ffd23f;
+    stroke-width: 4;
+    stroke-linecap: square;
+}
+
+.ftd_help_cross {
+    fill: none;
+    stroke: #f2f7ea;
+    stroke-width: 4;
+    stroke-linecap: round;
+}
+
+/* The pond */
+
+#ftd_board_wrap {
+    width: 100%;
+    max-width: max(340px, min(720px, calc((100vh - 190px) * 0.9)));
+    margin: 0 auto;
+}
+
+#ftd_svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+#ftd_hint {
+    min-height: 1.4em;
+    margin: 4px 8px 0;
+    color: #f2f7ea;
+    font-size: 14px;
+    text-align: center;
+}
+
+.ftd_num {
+    font-size: 17px;
+    fill: #0b3a63;
+    opacity: 0.55;
+    pointer-events: none;
+}
+
+.ftd_col {
+    font-size: 25px;
+    font-weight: bold;
+    fill: #e8f3d9;
+    pointer-events: none;
+}
+
+/* Ducks: flat shapes with a thin outline, one colour each, a silhouette mark on the wing for colour-blind players */
+
+.ftd_duck {
+    pointer-events: none;
+    transition: transform 0.5s ease-in-out, opacity 0.3s linear;
+}
+
+.ftd_duck.ftd_ghost {
+    opacity: 0.55;
+    transition: none;
+}
+
+.ftd_duck.ftd_will_move {
+    opacity: 0.4;
+}
+
+.ftd_duck.ftd_drop {
+    opacity: 0;
+}
+
+.ftd_body {
+    stroke-width: 1.2;
+    stroke-linejoin: round;
+}
+
+.ftd_wing {
+    fill: none;
+    stroke-width: 1;
+    stroke-linecap: round;
+}
+
+.ftd_mark {
+    display: none;
+    stroke: none;
+}
+
+.ftd_cb_on .ftd_mark {
+    display: inline;
+}
+
+.ftd_c_white .ftd_body { fill: #f4f1ea; stroke: #33404d; }
+.ftd_c_white .ftd_wing { stroke: #33404d; }
+.ftd_c_white .ftd_mark { fill: #33404d; }
+.ftd_c_white .ftd_eye { fill: #20242b; }
+
+.ftd_c_black .ftd_body { fill: #20242b; stroke: #d5e0ea; }
+.ftd_c_black .ftd_wing { stroke: #8fa3b5; }
+.ftd_c_black .ftd_mark { fill: #e8eef4; }
+.ftd_c_black .ftd_eye { fill: #f4f1ea; }
+
+.ftd_c_red .ftd_body { fill: #d63a34; stroke: #4d0f0d; }
+.ftd_c_red .ftd_wing { stroke: #8f1f1b; }
+.ftd_c_red .ftd_mark { fill: #ffffff; }
+.ftd_c_red .ftd_eye { fill: #20242b; }
+
+.ftd_c_blue .ftd_body { fill: #2a62d6; stroke: #0c1f55; }
+.ftd_c_blue .ftd_wing { stroke: #9cc0ff; }
+.ftd_c_blue .ftd_mark { fill: #ffffff; }
+.ftd_c_blue .ftd_eye { fill: #f4f1ea; }
+
+/* The breadcrumb */
+
+.ftd_crumb_main,
+.ftd_crumb_bit {
+    fill: #e6c07c;
+    stroke: #6f4a1e;
+    stroke-width: 3;
+    stroke-linejoin: round;
+}
+
+.ftd_ghost_crumb {
+    opacity: 0.7;
+}
+
+.ftd_ripple {
+    fill: none;
+    stroke: #ffffff;
+    stroke-width: 5;
+    opacity: 0.9;
+    transform-box: fill-box;
+    transform-origin: center;
+    transform: scale(1);
+    transition: transform 0.7s ease-out, opacity 0.7s ease-out;
+}
+
+.ftd_ripple_go {
+    transform: scale(5);
+    opacity: 0;
+}
+
+/* Marks: legal spaces get a dot, forbidden ones a cross (as in the rulebook), staged space an outline */
+
+.ftd_banned {
+    fill: rgba(10, 36, 62, 0.4);
+    stroke: none;
+}
+
+.ftd_cross {
+    fill: none;
+    stroke: #0c2a45;
+    stroke-width: 5;
+    stroke-linecap: round;
+    opacity: 0.7;
+}
+
+.ftd_dot {
+    fill: #ffffff;
+    stroke: #0b4a7a;
+    stroke-width: 1.5;
+    opacity: 0.85;
+}
+
+.ftd_hit {
+    fill: transparent;
+    stroke: none;
+}
+
+.ftd_hit.ftd_playable {
+    cursor: pointer;
+}
+
+.ftd_hit.ftd_staged {
+    fill: rgba(255, 255, 255, 0.2);
+    stroke: #ffffff;
+    stroke-width: 4;
+}
+
+.ftd_stagedcell {
+    fill: rgba(255, 255, 255, 0.22);
+    stroke: #ffffff;
+    stroke-width: 4;
+}
+
+@media (hover: hover) {
+    .ftd_hit.ftd_playable:hover {
+        fill: rgba(255, 255, 255, 0.24);
+    }
+}
+
+/* Preview: yellow arrows like the rulebook, ghost ducks at the destination */
+
+.ftd_arrow_bg {
+    fill: none;
+    stroke: #12344f;
+    stroke-width: 11;
+    stroke-linecap: round;
+    opacity: 0.75;
+}
+
+.ftd_arrow {
+    fill: none;
+    stroke: #ffd23f;
+    stroke-width: 5.5;
+    stroke-linecap: round;
+}
+
+.ftd_arrowhead {
+    fill: #ffd23f;
+    stroke: #12344f;
+    stroke-width: 1.4;
+    stroke-linejoin: round;
+}
+
+/* Last move: tinted spaces and a double ring on the crumb (newest solid, older dashed) */
+
+.ftd_last_new {
+    fill: rgba(255, 190, 0, 0.3);
+    stroke: #f5b700;
+    stroke-width: 4;
+}
+
+.ftd_last_old {
+    fill: none;
+    stroke: #f5b700;
+    stroke-width: 3;
+    stroke-dasharray: 9 7;
+}
+
+.ftd_last_crumb_in {
+    fill: none;
+    stroke: #f5b700;
+    stroke-width: 3;
+}
+
+.ftd_trail {
+    stroke: #f5b700;
+    stroke-width: 3;
+    stroke-dasharray: 2 9;
+    stroke-linecap: round;
+    opacity: 0.8;
+}
+
+.ftd_group_win {
+    fill: rgba(255, 255, 255, 0.22);
+    stroke: #0a2a45;
+    stroke-width: 9;
+}
+
+.ftd_group_win_in {
+    fill: none;
+    stroke: #ffffff;
+    stroke-width: 3.5;
+}
+
+.ftd_group_peek_bg {
+    fill: none;
+    stroke: #0a2a45;
+    stroke-width: 7;
+}
+
+.ftd_group_peek {
+    fill: none;
+    stroke: #ffffff;
+    stroke-width: 3.5;
+    stroke-dasharray: 10 8;
+}
+
+/* End of game */
+
+#ftd_final {
+    margin: 8px 8px 0;
+    padding: 8px 12px;
+    border: 2px solid #cfe3bf;
+    border-radius: 3px;
+    background: #1f3d2a;
+    color: #f2f7ea;
+}
+
+#ftd_final[hidden] {
+    display: none;
+}
+
+#ftd_final h3 {
+    margin: 0 0 4px;
+    font-size: 16px;
+}
+
+#ftd_final p {
+    margin: 0 0 6px;
+}
+
+#ftd_final ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+#ftd_final li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 4px 0;
+}
+
+#ftd_final li.ftd_final_win {
+    font-weight: bold;
+}
+
+.ftd_final_duck {
+    width: 40px;
+    height: 30px;
+    flex: 0 0 auto;
+}
+
+/* Player panels: one compact line */
+
+.ftd_pnl {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 28px;
+    margin-top: 4px;
+    cursor: pointer;
+}
+
+.ftd_pnl:focus-visible {
+    outline: 2px solid #2d5a3a;
+    outline-offset: 1px;
+}
+
+.ftd_pnl_duck {
+    width: 36px;
+    height: 27px;
+    flex: 0 0 auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ftd_duck,
+    .ftd_ripple {
+        transition: none;
+    }
 }
