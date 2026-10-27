@@ -14,9 +14,8 @@
   "sugargliders",
   "gardensofuranus",
   "gardensofmars",
-  "nestorgamesgp"
+  "nestorgamesgp",
+  "feedtheducks"
  ],
- "paused": {
-  "feedtheducks": "Studio project feedtheducks not created yet; move to enabled once it exists"
- }
+ "paused": {}
 }

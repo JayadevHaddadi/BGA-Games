@@ -67,7 +67,7 @@
  },
  "gardensofio": {
   "stage": "alpha",
-  "prod": "261026-0929",
+  "prod": "261027-1414",
   "unreleased": "None",
   "status": "UP_TO_DATE"
  },
@@ -130,5 +130,11 @@
   "prod": "None",
   "unreleased": "37 commits",
   "status": "SKIPPED"
+ },
+ "feedtheducks": {
+  "stage": "None",
+  "prod": "None",
+  "unreleased": "3 commits",
+  "status": "NOT_IN_ALPHA"
  }
 }

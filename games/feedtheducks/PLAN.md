@@ -86,3 +86,10 @@ Inputs live in `design/` (rulebook, board art `board.jpg`, product photos, the s
   independent movement rule, animations, finished-game reload.
 * Not tested here: PHP inside the real framework. A live Studio table is needed (2 and 4 players, refresh mid-turn,
   zombie, replay).
+
+## Nestor's answers (2026-10-27)
+1. The crumb can never stay on its own space ("place it on an empty space ... not on any of the six lines radiating from the breadcrumb's previous location"). As implemented.
+2. Random setup: no run of more than 2 same-colour ducks around the edge. As implemented.
+3. A finished group right after setup is impossible because of (2). Checking only after a crumb is correct.
+4. 4 players: each for themselves. As implemented.
+5. Hex board only; square is only for the solo mobile puzzle. No square variant on BGA.

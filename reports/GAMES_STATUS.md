@@ -1,6 +1,6 @@
 # Games status board
 
-Generated 2026-10-27 14:40 by `python3 tools/status_board.py`. Do not edit by hand:
+Generated 2026-10-27 18:54 by `python3 tools/status_board.py`. Do not edit by hand:
 licence and notes come from `tools/games_registry.json`, everything else is read live.
 
 | Game | Studio slug | BGA stage | Production release | Unreleased | Help wiki | Licence | Advertised | Live tests | Next step / notes |
@@ -9,7 +9,7 @@ licence and notes come from `tools/games_registry.json`, everything else is read
 | Omega | `omega` | alpha | 261025-1537 | none | in sync | granted (2024) | not recorded | - | Public alpha since 21 Oct; tutorial video at beta (Digital Board Gamer) |
 | Yavalath | `yavalath` | alpha | 261026-1744 | 1 commits | in sync | Cameron approved; BGA says a submission already exists | not recorded | - | Beta requested; licence entry to be sorted with BGA |
 | Sugar Gliders | `sugargliders` | alpha | 261026-0928 | none | in sync | granted | yes: reviewers group + alpha forum, together (Sugar Gliders + Io), date not recorded | - | Public alpha since 20 Oct |
-| Gardens of Io | `gardensofio` | alpha | 261026-0929 | none | in sync | given by Nestor | yes: reviewers group + alpha forum, together (Sugar Gliders + Io), date not recorded | PASS 2p, 5p, all scenarios (2026-10-21) | Beta requested 21 Oct; BGA will ask Nestor to confirm |
+| Gardens of Io | `gardensofio` | alpha | 261027-1414 | none | in sync | given by Nestor | yes: reviewers group + alpha forum, together (Sugar Gliders + Io), date not recorded | PASS 2p, 5p, all scenarios (2026-10-21) | Beta requested 21 Oct; BGA will ask Nestor to confirm |
 | Gardens of Enceladus | `gardensofenceladus` | private_alpha | 261021-1533 | none | in sync | given by Nestor | not recorded | PASS 2p, 5p (replay skipped: no Studio archive) (2026-10-19) | Public alpha requested 21 Oct |
 | People | `people` | private_alpha | 261026-0929 | none | in sync | Nestor thinks given (check BGA list) | not recorded | PASS 2p (all), 4p (replay skipped) (2026-10-19) | Public alpha requested 22 Oct |
 | Pent-Up | `pentup` | private_alpha | 261026-1739 | none | in sync | on file (2024) | not recorded | PASS 2p (replay skipped: no Studio archive) (2026-10-23) | Public alpha requested 23 Oct |
@@ -24,7 +24,7 @@ licence and notes come from `tools/games_registry.json`, everything else is read
 | Lords of Scotland | `lordsofscotland` | studio only | - | 30 commits | in sync | none (outreach) | not recorded | - | Needs designer/publisher approval |
 | Push Fight | `pushfight` | alpha | 261025-1538 | 1 commits | in sync | DECLINED by Tinkerhouse (22 Oct) | not recorded | - | Decide whether to ask BGA to take it down |
 | Mandala | `mandala` | public | 261019-0816 | 6 commits | in sync | shared project (Sir Heo) | not recorded | - | Upload-only; always fetch Studio copy before editing |
-| Feed the Ducks | `feedtheducks` | - | - | none | missing online | ask Nestor to register (BGG 112532) | not recorded | - | new |
+| Feed the Ducks | `feedtheducks` | studio only | - | 3 commits | missing online | ask Nestor to register (BGG 112532) | not recorded | Not run: Studio project not created yet (2026-10-27) | new |
 
 Stages: studio only → private_alpha → alpha (public) → beta → public. "Unreleased" = commits since the
 production build; run `python3 tools/deploy.py auto` to build and deploy them (one game at a time).
