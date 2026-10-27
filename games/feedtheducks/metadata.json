@@ -5,35 +5,46 @@
   "game_name": "Feed the Ducks",
   "bgg_id": 112532,
   "bgg_url": "https://boardgamegeek.com/boardgame/112532",
-  "year_published": null,
-  "players": null,
-  "estimated_duration_minutes": 30,
+  "year_published": 2011,
+  "players": [
+    2,
+    3,
+    4
+  ],
+  "estimated_duration_minutes": 20,
   "publisher": {
     "name": "nestorgames",
     "bgg_id": null,
-    "website": ""
+    "website": "https://www.nestorgames.com"
   },
-  "designers": [],
-  "artists": [],
-  "rules_edits": [],
+  "designers": [
+    "Néstor Romeral Andrés"
+  ],
+  "artists": [
+    "Néstor Romeral Andrés"
+  ],
+  "rules_edits": [
+    "Revisions by Nathan Morse"
+  ],
   "rules_url": null,
-  "description": "TODO: 1 to 2 paragraphs in English about the theme, the components and the objective.",
+  "description": "Three old men and a small child sit around a duck pond, tossing breadcrumbs into the water. With each ripple from a crumb, ducks race toward the new treat, though the wily fish below always get it first. Each of them has secretly chosen a colour of duck as their own, and the first to gather all their ducks into one group wins the day's wager.\n\nOn your turn you drop the breadcrumb on any empty space except the six lines around where it just was, and every duck on the six straight lines around it swims toward it and packs up against it. Move the crumb so that your ducks end up together while your rivals' flocks are pulled apart. For 2 to 4 players, about 20 minutes; the ducks are placed by the players around the edge, or at random.",
   "zombie_mode_level": 1,
   "tags": [
     "Abstract Strategy",
-    "Combinatorial"
+    "Hexagonal Grid",
+    "Area Movement"
   ],
-  "tags_note": "PROPOSAL: pick from BGA's tag list in the Control Panel.",
+  "tags_note": "PROPOSAL: pick from BGA's tag list in the Control Panel (Abstract Strategy, Hexagonal grid, pick-up and deliver/area movement).",
   "characteristics": {
-    "complexity": 3,
-    "luck": 2,
+    "complexity": 2,
+    "luck": 1,
     "strategy": 3,
-    "diplomacy": 1,
+    "diplomacy": 2,
     "note": "PROPOSAL: sliders 1 to 5 in the Control Panel only."
   },
   "licence": {
     "status": "NOT CONFIRMED",
-    "note": "Add a row to LICENSING_TRACKER.md and confirm before publisher sign-off."
+    "note": "ask Nestor to register (BGG 112532)"
   },
   "assets": {
     "box": "metadata_assets/box_280x280.png",
