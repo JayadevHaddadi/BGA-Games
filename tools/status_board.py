@@ -88,8 +88,8 @@ def main():
         f'Generated {datetime.now():%Y-%m-%d %H:%M} by `python3 tools/status_board.py`. Do not edit by hand:',
         'licence and notes come from `tools/games_registry.json`, everything else is read live.',
         '',
-        '| Game | Studio slug | BGA stage | Production release | Unreleased | Help wiki | Licence | Live tests | Next step / notes |',
-        '| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |',
+        '| Game | Studio slug | BGA stage | Production release | Unreleased | Help wiki | Licence | Advertised | Live tests | Next step / notes |',
+        '| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |',
     ]
     for g in registry['games']:
         slug = g['slug']
@@ -97,11 +97,11 @@ def main():
         wiki = wiki_state(slug, ROOT / g['folder'] / 'GAMEHELP.wiki')
         stage = st.get('stage') or '-'
         stage = 'studio only' if stage == 'None' else stage
-        lines.append('| {name} | `{slug}` | {stage} | {prod} | {unrel} | {wiki} | {lic} | {e2e} | {notes} |'.format(
+        lines.append('| {name} | `{slug}` | {stage} | {prod} | {unrel} | {wiki} | {lic} | {adv} | {e2e} | {notes} |'.format(
             name=g['name'], slug=slug, stage=stage,
             prod=(st.get('prod') if st.get('prod') not in (None, 'None') else '-'),
             unrel=(st.get('unreleased') if st.get('unreleased') not in (None, 'None') else 'none'),
-            wiki=wiki, lic=g.get('licence', '?'), e2e=e2e.get(slug, '-'), notes=g.get('notes', '')))
+            wiki=wiki, lic=g.get('licence', '?'), adv=g.get('advertised', 'not recorded'), e2e=e2e.get(slug, '-'), notes=g.get('notes', '')))
     lines += ['', 'Stages: studio only → private_alpha → alpha (public) → beta → public. "Unreleased" = commits since the',
               'production build; run `python3 tools/deploy.py auto` to build and deploy them (one game at a time).',
               'Help wiki "differs": run `python3 tools/upload_gamehelp.py <slug>`.', '']
