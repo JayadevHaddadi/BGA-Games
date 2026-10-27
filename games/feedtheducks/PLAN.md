@@ -8,7 +8,7 @@ Inputs live in `design/` (rulebook, board art `board.jpg`, product photos, the s
 
 * Board: 61 hexagons (columns of 5, 6, 7, 8, 9, 8, 7, 6, 5), the portrait orientation of the printed board
   (flat-top hexagons, columns A to I left to right, spaces numbered down each column: E5 is the centre).
-* Players 2 to 4, one colour each in seat order: White, Black, Red, Blue (seat 1 = White and starts; no colour
+* Players 2 to 4, one colour each in seat order: White, Green, Red, Blue (seat 1 = White and starts; no colour
   preference). Ducks per colour: 12 / 8 / 6. 24 ducks always fill the 24 edge spaces.
 * Setup, option "Players place the ducks" (default): in table order starting with White, each player places ANY duck
   (any colour that has ducks left) on a free edge space, 24 times. After 24 placements (a multiple of the player

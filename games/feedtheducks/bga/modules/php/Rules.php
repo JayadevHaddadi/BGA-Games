@@ -7,7 +7,7 @@
  * right), r runs down the column. The three straight lines are the vertical (0, 1) and the two diagonals
  * (1, 0) and (1, -1); each gives two of the six directions.
  *
- * A duck map ("ducks") is ['q,r' => 'white'|'black'|'red'|'blue'] for every occupied cell.
+ * A duck map ("ducks") is ['q,r' => 'white'|'green'|'red'|'blue'] for every occupied cell.
  */
 
 declare(strict_types=1);
@@ -18,7 +18,7 @@ class Rules
 {
     public const RADIUS = 4;
     /** Colour of seat 1, 2, 3, 4 (seat 1 plays White and starts). */
-    public const COLOURS = ['white', 'black', 'red', 'blue'];
+    public const COLOURS = ['white', 'green', 'red', 'blue'];
     public const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]];
 
     public static function key(int $q, int $r): string

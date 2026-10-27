@@ -252,17 +252,6 @@ body.ftd_page_bg .bga-game-area {
     opacity: 0;
 }
 
-.ftd_body {
-    stroke-width: 1.2;
-    stroke-linejoin: round;
-}
-
-.ftd_wing {
-    fill: none;
-    stroke-width: 1;
-    stroke-linecap: round;
-}
-
 .ftd_mark {
     display: none;
     stroke: none;
@@ -272,25 +261,10 @@ body.ftd_page_bg .bga-game-area {
     display: inline;
 }
 
-.ftd_c_white .ftd_body { fill: #f4f1ea; stroke: #33404d; }
-.ftd_c_white .ftd_wing { stroke: #33404d; }
 .ftd_c_white .ftd_mark { fill: #33404d; }
-.ftd_c_white .ftd_eye { fill: #20242b; }
-
-.ftd_c_black .ftd_body { fill: #20242b; stroke: #d5e0ea; }
-.ftd_c_black .ftd_wing { stroke: #8fa3b5; }
-.ftd_c_black .ftd_mark { fill: #e8eef4; }
-.ftd_c_black .ftd_eye { fill: #f4f1ea; }
-
-.ftd_c_red .ftd_body { fill: #d63a34; stroke: #4d0f0d; }
-.ftd_c_red .ftd_wing { stroke: #8f1f1b; }
+.ftd_c_green .ftd_mark { fill: #ffffff; }
 .ftd_c_red .ftd_mark { fill: #ffffff; }
-.ftd_c_red .ftd_eye { fill: #20242b; }
-
-.ftd_c_blue .ftd_body { fill: #2a62d6; stroke: #0c1f55; }
-.ftd_c_blue .ftd_wing { stroke: #9cc0ff; }
 .ftd_c_blue .ftd_mark { fill: #ffffff; }
-.ftd_c_blue .ftd_eye { fill: #f4f1ea; }
 
 /* The breadcrumb */
 

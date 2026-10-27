@@ -17,7 +17,7 @@
     "solo_mode_ranked": false,
     "is_coop": 0,
     "language_dependency": false,
-    "player_colors": ["ffffff", "000000", "c62828", "1565c0"],
+    "player_colors": ["ffffff", "2e9d3a", "c62828", "1565c0"],
     "favorite_colors_support": false,
     "disable_player_order_swap_on_rematch": false,
     "game_interface_width": { "min": 320 },

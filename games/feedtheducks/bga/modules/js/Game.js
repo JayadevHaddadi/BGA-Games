@@ -11,22 +11,25 @@
  *------
  */
 
-const FTD_COLOURS = ['white', 'black', 'red', 'blue'];
+const FTD_COLOURS = ['white', 'green', 'red', 'blue'];
 const FTD_DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]];
 const FTD_RADIUS = 4;
 const BOARD = { w: 1000, h: 1127, cx: 500.0, cy: 563.69, s: 67.803 };
 const SQ3 = Math.sqrt(3);
-// One duck facing left (the same path design/make_assets.py draws for the metadata images), box about 38 x 28
-const DUCK_PATH = 'M1 12.6 L5.6 10.6 C5.4 6.4 8.2 3.2 12.2 3.2 C16.4 3.2 19 6.2 18.6 10 C18.3 13 16.8 14.6 17.4 17.2 '
-    + 'C20.4 19.4 25 18.4 29.4 15.4 L39 10.4 C39.2 20.6 33.6 30.6 23.6 30.6 C13.2 30.6 8.8 25 9.8 17.6 '
-    + 'C10.1 15.6 10.9 14.5 10.9 13.2 C8.6 14 4.6 14 1 12.6 Z';
-const DUCK_WING = 'M17 21 C21 25 28 25 33 19';
-// Colour-blind marks on the wing: circle, square, triangle, diamond (one silhouette per colour)
+// Colour-blind marks on the body (preference 100, off by default): circle, square, triangle, diamond
 const DUCK_MARKS = {
-    white: '<circle class="ftd_mark" cx="25" cy="23.4" r="3.1"/>',
-    black: '<rect class="ftd_mark" x="21.9" y="20.3" width="6.2" height="6.2"/>',
-    red: '<path class="ftd_mark" d="M25 20 L28.4 26.2 L21.6 26.2 Z"/>',
-    blue: '<path class="ftd_mark" d="M25 19.8 L28.6 23.4 L25 27 L21.4 23.4 Z"/>',
+    white: '<circle class="ftd_mark" cx="60" cy="68" r="7"/>',
+    green: '<rect class="ftd_mark" x="54" y="62" width="12" height="12"/>',
+    red: '<path class="ftd_mark" d="M60 60 L67.5 74 L52.5 74 Z"/>',
+    blue: '<path class="ftd_mark" d="M60 59 L68 67 L60 75 L52 67 Z"/>',
+};
+// Duck art "E: accessories" (rubber duck facing left, box 100 x 100, content about x 4..95, y 1..86):
+// sailor hat (white), sunglasses (green), bow (red), crown (blue). Source: design/duck_options/make_ducks.py
+const DUCK_ART = {
+    white: '<g stroke="#33404d" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><path d="M80 40 C90 36 95 30 93 26 C88 30 84 31 78 33 Z" fill="#f4f1ea"/><path d="M12 62 C12 44 28 40 42 46 C58 38 80 40 90 34 C92 48 90 82 56 84 C28 85 12 78 12 62Z" fill="#f4f1ea"/><circle cx="33" cy="34" r="20" fill="#f4f1ea"/><path d="M17 40 C6 36 4 44 7 46 C9 50 16 49 20 47Z" fill="#ff9f1c" stroke="#8a4b00" stroke-width="2.2"/></g><path d="M44 62 C54 74 72 72 80 56 C70 60 56 58 44 62Z" fill="#d9d3c6" stroke="#33404d" stroke-width="2.2" stroke-linejoin="round"/><circle cx="29" cy="30" r="4.2" fill="#20242b"/><circle cx="27.53" cy="28.53" r="1.47" fill="#fff"/><g stroke="#1b2a4a" stroke-width="2.4" stroke-linejoin="round"><path d="M16 26 C16 8 50 8 50 26 Z" fill="#fff" transform="rotate(-8 33 18)"/><path d="M15 25 L51 25 L50 19 L17 19Z" fill="#1d3f8f" transform="rotate(-8 33 22)"/><circle cx="33" cy="9.5" r="3" fill="#d63a34" stroke-width="1.8" transform="rotate(-8 33 18)"/></g>',
+    green: '<g stroke="#0f3d14" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><path d="M80 40 C90 36 95 30 93 26 C88 30 84 31 78 33 Z" fill="#2e9d3a"/><path d="M12 62 C12 44 28 40 42 46 C58 38 80 40 90 34 C92 48 90 82 56 84 C28 85 12 78 12 62Z" fill="#2e9d3a"/><circle cx="33" cy="34" r="20" fill="#2e9d3a"/><path d="M17 40 C6 36 4 44 7 46 C9 50 16 49 20 47Z" fill="#ff9f1c" stroke="#8a4b00" stroke-width="2.2"/></g><path d="M44 62 C54 74 72 72 80 56 C70 60 56 58 44 62Z" fill="#237a2d" stroke="#0f3d14" stroke-width="2.2" stroke-linejoin="round"/><path/><g stroke="#000" stroke-width="2" stroke-linejoin="round"><path d="M18 30 H38" stroke-width="3"/><rect x="14" y="26" width="13" height="10" rx="4" fill="#0b0d10" stroke="#ffd23f" stroke-width="1.8"/><rect x="30" y="26" width="13" height="10" rx="4" fill="#0b0d10" stroke="#ffd23f" stroke-width="1.8"/></g><path d="M16 29 L22 28 M32 29 L38 28" stroke="#9fd8ff" stroke-width="1.8" stroke-linecap="round"/>',
+    red: '<g stroke="#4d0f0d" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><path d="M80 40 C90 36 95 30 93 26 C88 30 84 31 78 33 Z" fill="#d63a34"/><path d="M12 62 C12 44 28 40 42 46 C58 38 80 40 90 34 C92 48 90 82 56 84 C28 85 12 78 12 62Z" fill="#d63a34"/><circle cx="33" cy="34" r="20" fill="#d63a34"/><path d="M17 40 C6 36 4 44 7 46 C9 50 16 49 20 47Z" fill="#ff9f1c" stroke="#8a4b00" stroke-width="2.2"/></g><path d="M44 62 C54 74 72 72 80 56 C70 60 56 58 44 62Z" fill="#a82723" stroke="#4d0f0d" stroke-width="2.2" stroke-linejoin="round"/><circle cx="29" cy="30" r="4.2" fill="#20242b"/><circle cx="27.53" cy="28.53" r="1.47" fill="#fff"/><g stroke="#5a3b00" stroke-width="2.2" stroke-linejoin="round"><path d="M33 14 C20 2 14 12 22 18 C27 20 31 17 33 14Z M33 14 C44 2 52 10 45 18 C40 20 36 17 33 14Z" fill="#ffd23f"/><circle cx="33" cy="14" r="4" fill="#ffb300"/></g>',
+    blue: '<g stroke="#0c1f55" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><path d="M80 40 C90 36 95 30 93 26 C88 30 84 31 78 33 Z" fill="#2a62d6"/><path d="M12 62 C12 44 28 40 42 46 C58 38 80 40 90 34 C92 48 90 82 56 84 C28 85 12 78 12 62Z" fill="#2a62d6"/><circle cx="33" cy="34" r="20" fill="#2a62d6"/><path d="M17 40 C6 36 4 44 7 46 C9 50 16 49 20 47Z" fill="#ff9f1c" stroke="#8a4b00" stroke-width="2.2"/></g><path d="M44 62 C54 74 72 72 80 56 C70 60 56 58 44 62Z" fill="#1d49a8" stroke="#0c1f55" stroke-width="2.2" stroke-linejoin="round"/><circle cx="29" cy="30" r="4.2" fill="#f4f1ea"/><circle cx="27.53" cy="28.53" r="1.47" fill="#20242b"/><g stroke="#6b4a00" stroke-width="2.4" stroke-linejoin="round"><path d="M19 17 L21 3 L28 11 L34 1 L40 11 L47 3 L48 17Z" fill="#ffd23f" transform="rotate(-6 33 10)"/><circle cx="21" cy="4" r="2.2" fill="#d63a34" stroke-width="1.2" transform="rotate(-6 33 10)"/><circle cx="34" cy="2" r="2.2" fill="#d63a34" stroke-width="1.2" transform="rotate(-6 33 10)"/><circle cx="46" cy="4" r="2.2" fill="#d63a34" stroke-width="1.2" transform="rotate(-6 33 10)"/></g>',
 };
 
 const ftdImg = (name) => `${typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : ''}img/${name}`;
@@ -143,7 +146,7 @@ export class Game {
     }
 
     colourLabel(colour) {
-        return { white: _('white'), black: _('black'), red: _('red'), blue: _('blue') }[colour] || colour;
+        return { white: _('white'), green: _('green'), red: _('red'), blue: _('blue') }[colour] || colour;
     }
 
     playerName(pid) {
@@ -321,12 +324,8 @@ export class Game {
     }
 
     duckSvg(colour, extraClass = '') {
-        const sc = (1.46 * BOARD.s) / 38;
-        return `<g class="ftd_face" transform="scale(1 1) translate(${(-20 * sc).toFixed(2)} ${(-16.9 * sc).toFixed(2)}) scale(${sc.toFixed(3)})">
-            <path class="ftd_body" d="${DUCK_PATH}"/>
-            <path class="ftd_wing" d="${DUCK_WING}"/>
-            ${DUCK_MARKS[colour]}
-            <circle class="ftd_eye" cx="12.4" cy="8" r="1.4"/></g>`;
+        const sc = (1.46 * BOARD.s) / 91;
+        return `<g class="ftd_face" transform="scale(1 1) translate(${(-50 * sc).toFixed(2)} ${(-44 * sc).toFixed(2)}) scale(${sc.toFixed(3)})">${DUCK_ART[colour]}${DUCK_MARKS[colour]}</g>`;
     }
 
     /** A duck <g> at a cell. Facing: toward the middle of the pond to start with. */
@@ -572,7 +571,7 @@ export class Game {
                 const n = Number(left[c]);
                 const label = {
                     white: this.tr('Place a white duck (${n} left)', { n }),
-                    black: this.tr('Place a black duck (${n} left)', { n }),
+                    green: this.tr('Place a green duck (${n} left)', { n }),
                     red: this.tr('Place a red duck (${n} left)', { n }),
                     blue: this.tr('Place a blue duck (${n} left)', { n }),
                 }[c];
@@ -778,7 +777,7 @@ export class Game {
     }
 
     duckSvgSmall(colour) {
-        return `<g transform="translate(-20 -16.9)"><g class="ftd_face"><path class="ftd_body" d="${DUCK_PATH}"/><path class="ftd_wing" d="${DUCK_WING}"/>${DUCK_MARKS[colour]}<circle class="ftd_eye" cx="12.4" cy="8" r="1.4"/></g></g>`;
+        return `<g transform="translate(-20 -17.6) scale(0.4)">${DUCK_ART[colour]}${DUCK_MARKS[colour]}</g>`;
     }
 
     buildPanel(pid) {
@@ -861,7 +860,7 @@ export class Game {
             <h3>${_('Start')}</h3>
             <p>${_('Starting with White, players take turns placing any duck on a free space of the pond edge (24 ducks fill the edge). White then drops the first breadcrumb on any empty space.')}</p>
             <h3>${_('End of the game')}</h3>
-            <p><span class="ftd_help_inline">${duck('black')}${duck('black')}</span> ${_('The game ends when all the ducks of one colour form a single connected group; that player wins.')}</p>
+            <p><span class="ftd_help_inline">${duck('green')}${duck('green')}</span> ${_('The game ends when all the ducks of one colour form a single connected group; that player wins.')}</p>
             ${goal3}
             <p>${_('If several colours get their group with the same breadcrumb, the player who dropped it chooses the winner among them.')}</p>
             </div>`;

@@ -46,7 +46,7 @@ class Game extends \Bga\GameFramework\Table
 
     protected function setupNewGame($players, $options = [])
     {
-        // Fixed colours: seat 1 plays White and starts, then Black, Red, Blue (rulebook order)
+        // Fixed colours: seat 1 plays White and starts, then Green, Red, Blue (rulebook order)
         $gameinfos = $this->getGameinfos();
         $defaultColors = $gameinfos['player_colors'];
         $values = [];
@@ -167,7 +167,7 @@ class Game extends \Bga\GameFramework\Table
     {
         return match ($colour) {
             'white' => clienttranslate('white'),
-            'black' => clienttranslate('black'),
+            'green' => clienttranslate('green'),
             'red' => clienttranslate('red'),
             default => clienttranslate('blue'),
         };

@@ -341,8 +341,8 @@ async function run() {
   messages.length = 0;
   tap(0, 0);
   check('setup_inner_space_is_explained', messages.length === 1 && game.stage[0] === c0[0], messages[0]);
-  buttons.find((b) => b.opts.id === 'ftd_place_black').fn();
-  check('setup_button_sends_the_colour', calls.length === 1 && calls[0].name === 'actPlaceDuck' && calls[0].args.colour === 'black' && calls[0].args.q === c0[0], JSON.stringify(calls));
+  buttons.find((b) => b.opts.id === 'ftd_place_green').fn();
+  check('setup_button_sends_the_colour', calls.length === 1 && calls[0].name === 'actPlaceDuck' && calls[0].args.colour === 'green' && calls[0].args.q === c0[0], JSON.stringify(calls));
   check('setup_panel_counts_ducks_to_place', $$('.ftd_pnl_txt').every((t) => /to place/.test(t.textContent)), $$('.ftd_pnl_txt')[0].textContent);
   // a duck lands
   const placed = setup.notif.duck;

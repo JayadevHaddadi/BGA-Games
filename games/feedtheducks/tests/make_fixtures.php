@@ -120,14 +120,14 @@ $out['turn3'] = ['datas' => ft_datas($g, $pids, $names), 'args' => ft_args(Playe
 $map = [];
 $used = [];
 foreach ([[-1, -1], [-1, -2], [-1, -3], [-2, -2], [-2, -1], [-3, -1]] as [$q, $r]) { $map[Rules::key($q, $r)] = 'white'; }
-foreach ([[1, 1], [1, 2], [1, 3], [2, 1], [2, 2], [3, 1]] as [$q, $r]) { $map[Rules::key($q, $r)] = 'black'; }
+foreach ([[1, 1], [1, 2], [1, 3], [2, 1], [2, 2], [3, 1]] as [$q, $r]) { $map[Rules::key($q, $r)] = 'green'; }
 foreach ([[-4, 4], [3, -4], [-4, 1], [1, -4], [4, -1], [-1, 4]] as [$q, $r]) { $map[Rules::key($q, $r)] = 'red'; }
 foreach ([[4, -4], [-4, 3], [4, -2], [2, 2 + 2], [0, -4], [-3, 4]] as [$q, $r]) { if (Rules::inBoard($q, $r) && !isset($map[Rules::key($q, $r)])) { $map[Rules::key($q, $r)] = 'blue'; } }
 $fill = [[-4, 0], [0, 4], [4, 0], [0, -4], [-2, 4], [2, -4]];
 foreach ($fill as [$q, $r]) { if (count(array_filter($map, fn($c) => $c === 'blue')) < 6 && !isset($map[Rules::key($q, $r)])) { $map[Rules::key($q, $r)] = 'blue'; } }
 Stub::exec('DELETE FROM duck');
 foreach ($map as $k => $c) { [$q, $r] = array_map('intval', explode(',', $k)); Stub::exec("INSERT INTO duck (colour, q, r) VALUES ('$c', $q, $r)"); }
-$g->globals->set('qualified', ['white', 'black']);
+$g->globals->set('qualified', ['white', 'green']);
 $g->gamestate->changeActivePlayer($pids[2]);
 $out['choose'] = ['datas' => ft_datas($g, $pids, $names), 'args' => ft_args(ChooseWinner::class), 'active' => (int) Stub::$active];
 Stub::$statesByClass[ChooseWinner::class]->actChooseWinner($pids[1], $pids[2]);

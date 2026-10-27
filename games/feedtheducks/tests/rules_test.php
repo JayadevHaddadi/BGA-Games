@@ -159,40 +159,40 @@ foreach (Rules::DIRS as $i => [$dq, $dr]) {
     $m = Rules::movesFor($d, 0, 0);
     ok("direction $i: lone duck at distance 3 moves next to the crumb", count($m) === 1 && $m[0]['from'] === [3 * $dq, 3 * $dr] && $m[0]['to'] === [$dq, $dr]);
     // at distance 4 (the edge)
-    $d = duckmap([[4 * $dq, 4 * $dr, 'black']]);
-    ok("direction $i: duck on the edge moves next to the crumb", moved($d, 0, 0) === [Rules::key($dq, $dr) => 'black']);
+    $d = duckmap([[4 * $dq, 4 * $dr, 'green']]);
+    ok("direction $i: duck on the edge moves next to the crumb", moved($d, 0, 0) === [Rules::key($dq, $dr) => 'green']);
     // already next to the crumb: does not move
     $d = duckmap([[$dq, $dr, 'red']]);
     ok("direction $i: duck next to the crumb stays", Rules::movesFor($d, 0, 0) === []);
     // two ducks: pack in order, colours keep their order
-    $d = duckmap([[2 * $dq, 2 * $dr, 'white'], [4 * $dq, 4 * $dr, 'black']]);
+    $d = duckmap([[2 * $dq, 2 * $dr, 'white'], [4 * $dq, 4 * $dr, 'green']]);
     $r = moved($d, 0, 0);
-    ok("direction $i: two ducks pack against the crumb in order", $r === [Rules::key($dq, $dr) => 'white', Rules::key(2 * $dq, 2 * $dr) => 'black']);
+    ok("direction $i: two ducks pack against the crumb in order", $r === [Rules::key($dq, $dr) => 'white', Rules::key(2 * $dq, 2 * $dr) => 'green']);
     // three ducks with the first already adjacent
-    $d = duckmap([[$dq, $dr, 'white'], [3 * $dq, 3 * $dr, 'black'], [4 * $dq, 4 * $dr, 'red']]);
+    $d = duckmap([[$dq, $dr, 'white'], [3 * $dq, 3 * $dr, 'green'], [4 * $dq, 4 * $dr, 'red']]);
     $m = Rules::movesFor($d, 0, 0);
     ok("direction $i: adjacent duck stays, the others close up behind it", count($m) === 2
-        && moved($d, 0, 0) === [Rules::key($dq, $dr) => 'white', Rules::key(2 * $dq, 2 * $dr) => 'black', Rules::key(3 * $dq, 3 * $dr) => 'red']);
+        && moved($d, 0, 0) === [Rules::key($dq, $dr) => 'white', Rules::key(2 * $dq, 2 * $dr) => 'green', Rules::key(3 * $dq, 3 * $dr) => 'red']);
 }
 // ducks off the six lines never move
-$d = duckmap([[1, 1, 'white'], [-1, -1, 'black'], [2, -1, 'red'], [-2, 1, 'blue'], [3, 1, 'white']]);
+$d = duckmap([[1, 1, 'white'], [-1, -1, 'green'], [2, -1, 'red'], [-2, 1, 'blue'], [3, 1, 'white']]);
 ok('ducks off the six lines stay where they are', Rules::movesFor($d, 0, 0) === [] && moved($d, 0, 0) === $d);
 // a crumb off centre: lines are cut by the board edge
-$d = duckmap([[-4, 2, 'white'], [4, -2, 'black'], [1, -3, 'red'], [-3, -1, 'blue']]);
+$d = duckmap([[-4, 2, 'white'], [4, -2, 'green'], [1, -3, 'red'], [-3, -1, 'blue']]);
 $m = moved($d, 1, 2);
 ok('crumb at (1,2): duck (-4,2) comes along the row to (0,2)', ($m[Rules::key(0, 2)] ?? null) === 'white');
 ok('crumb at (1,2): duck (1,-3) on the column comes down to (1,1)', ($m[Rules::key(1, 1)] ?? null) === 'red');
-$d = duckmap([[4, -1, 'black']]);
-ok('crumb at (1,2): duck (4,-1) on the diagonal comes to (2,1)', (moved($d, 1, 2)[Rules::key(2, 1)] ?? null) === 'black');
+$d = duckmap([[4, -1, 'green']]);
+ok('crumb at (1,2): duck (4,-1) on the diagonal comes to (2,1)', (moved($d, 1, 2)[Rules::key(2, 1)] ?? null) === 'green');
 ok('crumb at (1,2): duck (-3,-1) is off the six lines and stays', ($m[Rules::key(-3, -1)] ?? null) === 'blue');
 // Several lines at once, 6 ducks (like the rulebook example): every duck on a line moves, in every direction
-$d = duckmap([[0, -4, 'white'], [3, -3, 'red'], [-4, 0, 'black'], [4, 0, 'white'], [-3, 3, 'black'], [0, 4, 'red'], [2, 2, 'blue']]);
+$d = duckmap([[0, -4, 'white'], [3, -3, 'red'], [-4, 0, 'green'], [4, 0, 'white'], [-3, 3, 'green'], [0, 4, 'red'], [2, 2, 'blue']]);
 $m = Rules::movesFor($d, 0, 0);
 ok('six ducks on six lines all move (the duck off the lines stays)', count($m) === 6);
 ok('moved ducks never share a cell and keep their colours', count(Rules::applyMoves($d, $m)) === 7);
 $after = Rules::applyMoves($d, $m);
-ok('after the move each line duck is next to the crumb', ($after['0,-1'] ?? '') === 'white' && ($after['1,-1'] ?? '') === 'red' && ($after['-1,0'] ?? '') === 'black'
-    && ($after['1,0'] ?? '') === 'white' && ($after['-1,1'] ?? '') === 'black' && ($after['0,1'] ?? '') === 'red' && ($after['2,2'] ?? '') === 'blue');
+ok('after the move each line duck is next to the crumb', ($after['0,-1'] ?? '') === 'white' && ($after['1,-1'] ?? '') === 'red' && ($after['-1,0'] ?? '') === 'green'
+    && ($after['1,0'] ?? '') === 'white' && ($after['-1,1'] ?? '') === 'green' && ($after['0,1'] ?? '') === 'red' && ($after['2,2'] ?? '') === 'blue');
 // the number of ducks is preserved on random boards, and lines end up packed
 mt_srand(5);
 $packed = true;
@@ -263,23 +263,23 @@ $blob = [[0, 0], [1, 0], [0, 1], [1, 1], [-1, 1], [-1, 0], [2, 0], [2, -1], [0, 
 $w = [];
 foreach ($blob as [$q, $r]) { $w[Rules::key($q, $r)] = 'white'; }
 ok('12 connected white ducks form one group of 12', Rules::groups($w, 'white') === [12]);
-ok('2 players: 12 connected = winner', Rules::winners($w, ['white', 'black'], Rules::goal(2)) === ['white']);
+ok('2 players: 12 connected = winner', Rules::winners($w, ['white', 'green'], Rules::goal(2)) === ['white']);
 $w2 = $w;
 unset($w2['0,2']);
 $w2['4,-4'] = 'white';
-ok('2 players: 11 + 1 apart is not a win', Rules::winners($w2, ['white', 'black'], 12) === [] && Rules::groups($w2, 'white') === [11, 1]);
+ok('2 players: 11 + 1 apart is not a win', Rules::winners($w2, ['white', 'green'], 12) === [] && Rules::groups($w2, 'white') === [11, 1]);
 $w3 = [];
 foreach (array_slice($blob, 0, 8) as [$q, $r]) { $w3[Rules::key($q, $r)] = 'white'; }
 $w3b = $w3;
 unset($w3b[Rules::key(...$blob[7])]);
 $w3b['4,-4'] = 'white';
-ok('3 players: 8 ducks, 7 connected + 1 apart wins (goal 7)', Rules::winners($w3b, ['white', 'black', 'red'], Rules::goal(3)) === ['white']);
-ok('3 players advanced: 7 + 1 apart does not win (goal 8)', Rules::winners($w3b, ['white', 'black', 'red'], Rules::goal(3, true)) === []);
-ok('3 players advanced: all 8 connected wins', Rules::winners($w3, ['white', 'black', 'red'], 8) === ['white']);
+ok('3 players: 8 ducks, 7 connected + 1 apart wins (goal 7)', Rules::winners($w3b, ['white', 'green', 'red'], Rules::goal(3)) === ['white']);
+ok('3 players advanced: 7 + 1 apart does not win (goal 8)', Rules::winners($w3b, ['white', 'green', 'red'], Rules::goal(3, true)) === []);
+ok('3 players advanced: all 8 connected wins', Rules::winners($w3, ['white', 'green', 'red'], 8) === ['white']);
 $w3c = $w3b;
 unset($w3c[Rules::key(...$blob[6])]);
 $w3c['-4,4'] = 'white';
-ok('3 players: 6 connected + 2 apart does not win', Rules::winners($w3c, ['white', 'black', 'red'], 7) === [] && Rules::groups($w3c, 'white') === [6, 1, 1]);
+ok('3 players: 6 connected + 2 apart does not win', Rules::winners($w3c, ['white', 'green', 'red'], 7) === [] && Rules::groups($w3c, 'white') === [6, 1, 1]);
 $w4 = [];
 foreach (array_slice($blob, 0, 6) as [$q, $r]) { $w4[Rules::key($q, $r)] = 'blue'; }
 ok('4 players: 6 connected blue ducks win', Rules::winners($w4, Rules::coloursFor(4), Rules::goal(4)) === ['blue']);
@@ -293,9 +293,9 @@ ok('(0,0) and (1,1) are not neighbours', Rules::groups($knight, 'red') === [1, 1
 // simultaneous winners
 $sim = [];
 foreach (array_slice($blob, 0, 6) as [$q, $r]) { $sim[Rules::key($q, $r)] = 'white'; }
-foreach ([[-4, 0], [-3, 0], [-3, -1], [-2, -1], [-2, -2], [-4, 1]] as [$q, $r]) { $sim[Rules::key($q, $r)] = 'black'; }
-ok('two colours with a group at once are both reported, in seat order', Rules::winners($sim, Rules::coloursFor(4), 6) === ['white', 'black']);
-ok('largest group cells are the group', count(Rules::largestGroupCells($sim, 'black')) === 6);
+foreach ([[-4, 0], [-3, 0], [-3, -1], [-2, -1], [-2, -2], [-4, 1]] as [$q, $r]) { $sim[Rules::key($q, $r)] = 'green'; }
+ok('two colours with a group at once are both reported, in seat order', Rules::winners($sim, Rules::coloursFor(4), 6) === ['white', 'green']);
+ok('largest group cells are the group', count(Rules::largestGroupCells($sim, 'green')) === 6);
 
 // ---------------------------------------------------------------- 5. random setup
 $randOk = true;
@@ -390,7 +390,7 @@ function rt_active(): int { return (int) Stub::$active; }
 foreach ([2 => 12, 3 => 8, 4 => 6] as $n => $per) {
     [$g, $pids, $first] = rt_new($ctx, $n);
     ok("$n players: manual setup starts in SetupPlace", $first === SetupPlace::class && count(rt_ducks()) === 0);
-    ok("$n players: colours are white, black, red, blue in seat order", array_values($g->playerColours()) === Rules::coloursFor($n));
+    ok("$n players: colours are white, green, red, blue in seat order", array_values($g->playerColours()) === Rules::coloursFor($n));
     ok("$n players: first player is active", rt_active() === $pids[0]);
     $st = rt_state(SetupPlace::class);
     $args = $st->getArgs();
@@ -401,16 +401,16 @@ $st = rt_state(SetupPlace::class);
 $ringCells = Rules::ring();
 ok('setup: inner cell refused', rt_refused(fn() => $st->actPlaceDuck(0, 0, 'white', $pids[0])));
 ok('setup: off-board cell refused', rt_refused(fn() => $st->actPlaceDuck(9, 9, 'white', $pids[0])));
-ok('setup: unknown colour refused', rt_refused(fn() => $st->actPlaceDuck($ringCells[0][0], $ringCells[0][1], 'green', $pids[0])));
+ok('setup: unknown colour refused', rt_refused(fn() => $st->actPlaceDuck($ringCells[0][0], $ringCells[0][1], 'purple', $pids[0])));
 ok('setup: red refused in a 2 player game', rt_refused(fn() => $st->actPlaceDuck($ringCells[0][0], $ringCells[0][1], 'red', $pids[0])));
-$ret = $st->actPlaceDuck($ringCells[0][0], $ringCells[0][1], 'black', $pids[0]);   // any colour may be placed by anyone
+$ret = $st->actPlaceDuck($ringCells[0][0], $ringCells[0][1], 'green', $pids[0]);   // any colour may be placed by anyone
 ok('setup: a player may place a duck of another colour; turn passes', $ret === SetupPlace::class && rt_active() === $pids[1] && count(rt_ducks()) === 1);
 ok('setup: occupied cell refused', rt_refused(fn() => $st->actPlaceDuck($ringCells[0][0], $ringCells[0][1], 'white', $pids[1])));
-// run out of one colour: 12 blacks
-for ($i = 1; $i < 12; $i++) { $st->actPlaceDuck($ringCells[$i][0], $ringCells[$i][1], 'black', rt_active()); }
-ok('setup: 12 black ducks placed', count(rt_ducks()) === 12 && array_count_values(rt_ducks())['black'] === 12);
-ok('setup: a 13th black duck is refused', rt_refused(fn() => $st->actPlaceDuck($ringCells[12][0], $ringCells[12][1], 'black', rt_active())));
-ok('setup: args no longer offer black', ((array) $st->getArgs()['remaining'])['black'] === 0 && count($st->getArgs()['cells']) === 12);
+// run out of one colour: 12 greens
+for ($i = 1; $i < 12; $i++) { $st->actPlaceDuck($ringCells[$i][0], $ringCells[$i][1], 'green', rt_active()); }
+ok('setup: 12 green ducks placed', count(rt_ducks()) === 12 && array_count_values(rt_ducks())['green'] === 12);
+ok('setup: a 13th green duck is refused', rt_refused(fn() => $st->actPlaceDuck($ringCells[12][0], $ringCells[12][1], 'green', rt_active())));
+ok('setup: args no longer offer green', ((array) $st->getArgs()['remaining'])['green'] === 0 && count($st->getArgs()['cells']) === 12);
 $last = null;
 for ($i = 12; $i < 24; $i++) { $last = $st->actPlaceDuck($ringCells[$i][0], $ringCells[$i][1], 'white', rt_active()); }
 ok('setup: after 24 ducks the crumb phase starts', $last === PlayerTurn::class);
@@ -463,7 +463,7 @@ foreach (Rules::cells() as $c) { if (on_line([0, 0], $c) && !isset($after[Rules:
 ok('an empty space on a line from the previous crumb is refused with nothing changed', $lineEmpty !== null && rt_refused(fn() => $pt->actDropCrumb($lineEmpty[0], $lineEmpty[1], $pids[1])));
 $tgt = $args['legal'][0];
 $pt->actDropCrumb($tgt[0], $tgt[1], $pids[1]);
-ok('scores follow the largest group', rt_scores()[$pids[0]][0] === Rules::largestGroup(rt_ducks(), 'white') && rt_scores()[$pids[1]][0] === Rules::largestGroup(rt_ducks(), 'black'));
+ok('scores follow the largest group', rt_scores()[$pids[0]][0] === Rules::largestGroup(rt_ducks(), 'white') && rt_scores()[$pids[1]][0] === Rules::largestGroup(rt_ducks(), 'green'));
 $prog = $g->getGameProgression();
 ok('progression is within 10..99 during play', $prog >= 10 && $prog <= 99);
 ok('history keeps the last crumbs, newest first', ($g->globals->get('history')[0]['q'] ?? null) === $tgt[0] && count($g->globals->get('history')) === 2);
@@ -477,12 +477,12 @@ function winning_board_2p(): array
     paint([[0, -4]], 'white', $map);
     paint(grow(nbrs([[0, -1]]), 11, $used), 'white', $map);
     foreach ($map as $k => $_) { $used[$k] = true; }
-    paint(scatter(12, $used), 'black', $map);
+    paint(scatter(12, $used), 'green', $map);
     return $map;
 }
 $b2 = winning_board_2p();
 ok('fixture: 24 ducks, the crumb moves a white duck and white is one group of 12 afterwards', count($b2) === 24 && count(Rules::movesFor($b2, 0, 0)) >= 1 && Rules::largestGroup(moved($b2, 0, 0), 'white') === 12);
-ok('fixture: black stays below 12', Rules::largestGroup(moved($b2, 0, 0), 'black') < 12);
+ok('fixture: green stays below 12', Rules::largestGroup(moved($b2, 0, 0), 'green') < 12);
 [$g, $pids] = rt_new($ctx, 2, [100 => 2]);
 rt_board($b2);
 $pt = rt_state(PlayerTurn::class);
@@ -492,15 +492,15 @@ ok('NextPlayer: one finished group ends the game', rt_state(NextPlayer::class)->
 ok('EndScore reaches the end of the game', rt_state(EndScore::class)->onEnteringState() === 99);
 $sc = rt_scores();
 ok('winner has score 12 and aux 1, the other a smaller score and aux 0', $sc[$pids[0]] === [12, 1] && $sc[$pids[1]][0] < 12 && $sc[$pids[1]][1] === 0);
-// the player who did NOT move can win too (the other colour gathers): black completes with white's crumb
+// the player who did NOT move can win too (the other colour gathers): green completes with white's crumb
 [$g, $pids] = rt_new($ctx, 2, [100 => 2]);
 $swap = [];
-foreach ($b2 as $k => $c) { $swap[$k] = $c === 'white' ? 'black' : 'white'; }
+foreach ($b2 as $k => $c) { $swap[$k] = $c === 'white' ? 'green' : 'white'; }
 rt_board($swap);
 rt_state(PlayerTurn::class)->actDropCrumb(0, 0, $pids[0]);
-ok('white drops the crumb and black wins: winner is the black player', rt_state(NextPlayer::class)->onEnteringState() === EndScore::class && (int) $g->globals->get('winner') === $pids[1]);
+ok('white drops the crumb and green wins: winner is the green player', rt_state(NextPlayer::class)->onEnteringState() === EndScore::class && (int) $g->globals->get('winner') === $pids[1]);
 rt_state(EndScore::class)->onEnteringState();
-ok('the black player is ranked first', rt_scores()[$pids[1]] === [12, 1] && rt_scores()[$pids[0]][1] === 0);
+ok('the green player is ranked first', rt_scores()[$pids[1]] === [12, 1] && rt_scores()[$pids[0]][1] === 0);
 
 // ---- 3 players: goal 7 and the advanced variant
 [$g, $pids] = rt_new($ctx, 3, [100 => 2]);
@@ -522,13 +522,13 @@ $setup3 = function (bool $advanced) use ($ctx) {
     paint([[0, 4]], 'white', $map);                                            // lands on (0,1), far from the others
     $used['0,-4'] = true;
     $used['0,4'] = true;
-    foreach (['black', 'red'] as $c) { paint(scatter(8, $used), $c, $map); }
+    foreach (['green', 'red'] as $c) { paint(scatter(8, $used), $c, $map); }
     rt_board($map);
     return [$g, $pids, $map];
 };
 [$g, $pids, $map] = $setup3(false);
 ok('fixture 3p: 24 ducks, after the crumb white has a group of 7 and one duck apart (got ' . json_encode(Rules::groups(moved($map, 0, 0), 'white')) . ' of ' . count($map) . ')', count($map) === 24 && Rules::groups(moved($map, 0, 0), 'white') === [7, 1]);
-ok('fixture 3p: black and red stay below 7', Rules::largestGroup(moved($map, 0, 0), 'black') < 7 && Rules::largestGroup(moved($map, 0, 0), 'red') < 7);
+ok('fixture 3p: green and red stay below 7', Rules::largestGroup(moved($map, 0, 0), 'green') < 7 && Rules::largestGroup(moved($map, 0, 0), 'red') < 7);
 rt_state(PlayerTurn::class)->actDropCrumb(0, 0, $pids[0]);
 ok('3 players: 7 of 8 connected ends the game with the white player as winner', rt_state(NextPlayer::class)->onEnteringState() === EndScore::class && (int) $g->globals->get('winner') === $pids[0]);
 [$g, $pids, $map] = $setup3(true);
@@ -539,13 +539,13 @@ ok('3 players advanced: 7 of 8 does not end the game', rt_state(NextPlayer::clas
 $used = [];
 $sim4 = [];
 paint(grow([[-1, -1]], 6, $used), 'white', $sim4);
-paint(grow([[2, 1]], 6, $used), 'black', $sim4);
+paint(grow([[2, 1]], 6, $used), 'green', $sim4);
 paint(scatter(6, $used), 'red', $sim4);
 paint(scatter(6, $used), 'blue', $sim4);
 [$g, $pids] = rt_new($ctx, 4, [100 => 2]);
-$fixOk = count($sim4) === 24 && Rules::largestGroup($sim4, 'white') === 6 && Rules::largestGroup($sim4, 'black') === 6 && Rules::largestGroup($sim4, 'red') < 6 && Rules::largestGroup($sim4, 'blue') < 6;
+$fixOk = count($sim4) === 24 && Rules::largestGroup($sim4, 'white') === 6 && Rules::largestGroup($sim4, 'green') === 6 && Rules::largestGroup($sim4, 'red') < 6 && Rules::largestGroup($sim4, 'blue') < 6;
 foreach ($sim4 as $k => $c) { if (on_line([0, 0], array_map('intval', explode(',', $k)))) { $fixOk = false; } }
-ok('fixture 4p: white and black groups complete, nothing on the lines of (0,0)', $fixOk);
+ok('fixture 4p: white and green groups complete, nothing on the lines of (0,0)', $fixOk);
 rt_board($sim4);
 $pt = rt_state(PlayerTurn::class);
 $pt->actDropCrumb(0, 0, $pids[2]);   // the red player is not active: the stub does not check, so activate properly below
@@ -564,13 +564,13 @@ ok('chosen winner ranks first (aux 1), the other finisher has the same score', r
 // zombie in ChooseWinner: a candidate mover picks themselves
 [$g, $pids] = rt_new($ctx, 4, [100 => 2]);
 rt_board($sim4);
-$g->globals->set('qualified', ['white', 'black']);
+$g->globals->set('qualified', ['white', 'green']);
 $g->gamestate->changeActivePlayer($pids[1]);
 $ret = rt_state(ChooseWinner::class)->zombie($pids[1]);
 ok('zombie mover who is a candidate picks themselves', $ret === EndScore::class && (int) $g->globals->get('winner') === $pids[1]);
 [$g, $pids] = rt_new($ctx, 4, [100 => 2]);
 rt_board($sim4);
-$g->globals->set('qualified', ['white', 'black']);
+$g->globals->set('qualified', ['white', 'green']);
 $g->gamestate->changeActivePlayer($pids[3]);
 rt_state(ChooseWinner::class)->zombie($pids[3]);
 ok('zombie mover who is not a candidate picks the first finisher', (int) $g->globals->get('winner') === $pids[0]);
@@ -580,14 +580,14 @@ ok('zombie mover who is not a candidate picks the first finisher', (int) $g->glo
 $used = [];
 $map = [];
 paint(grow([[-1, -1]], 8, $used, [], false), 'white', $map);
-paint(grow([[2, 1]], 7, $used, [], false), 'black', $map);
-paint([[-4, 4]], 'black', $map);
+paint(grow([[2, 1]], 7, $used, [], false), 'green', $map);
+paint([[-4, 4]], 'green', $map);
 $used['-4,4'] = true;
 paint(scatter(8, $used), 'red', $map);
 rt_board($map);
-$g->globals->set('qualified', ['white', 'black']);
+$g->globals->set('qualified', ['white', 'green']);
 $g->globals->set('winner', $pids[1]);
-ok('fixture: 8 white connected, black 7 + 1 apart', Rules::groups($map, 'white') === [8] && Rules::groups($map, 'black') === [7, 1]);
+ok('fixture: 8 white connected, green 7 + 1 apart', Rules::groups($map, 'white') === [8] && Rules::groups($map, 'green') === [7, 1]);
 rt_state(EndScore::class)->onEnteringState();
 ok('3 players: a chosen winner with 7 against 8 is ranked first (score raised to 8, aux 1)', rt_scores()[$pids[1]] === [8, 1] && rt_scores()[$pids[0]][0] === 8 && rt_scores()[$pids[0]][1] === 0);
 

@@ -2,7 +2,7 @@ import os
 OUT='/home/jayadevhaddadi/GitHub/Mandala-helper/games/feedtheducks/design/duck_options'
 C={ # fill, outline, shade(darker), light(highlight), mark colour, eye
  'white':dict(f='#f4f1ea',o='#33404d',s='#d9d3c6',m='#33404d',eye='#20242b'),
- 'black':dict(f='#2b3038',o='#d5e0ea',s='#14171c',m='#e8eef4',eye='#f4f1ea'),
+ 'green':dict(f='#2e9d3a',o='#0f3d14',s='#237a2d',m='#ffffff',eye='#20242b'),
  'red':dict(f='#d63a34',o='#4d0f0d',s='#a82723',m='#ffffff',eye='#20242b'),
  'blue':dict(f='#2a62d6',o='#0c1f55',s='#1d49a8',m='#ffffff',eye='#f4f1ea'),
 }
@@ -11,7 +11,7 @@ def svg(body,defs=''):
     return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100"><defs>{defs}</defs>{body}</svg>\n'
 def mark(name,cx,cy,r,col):
     if name=='white': return f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="{col}"/>'
-    if name=='black': return f'<rect x="{cx-r*.9}" y="{cy-r*.9}" width="{r*1.8}" height="{r*1.8}" fill="{col}"/>'
+    if name=='green': return f'<rect x="{cx-r*.9}" y="{cy-r*.9}" width="{r*1.8}" height="{r*1.8}" fill="{col}"/>'
     if name=='red': return f'<path d="M{cx} {cy-r*1.1} L{cx+r*1.05} {cy+r*.8} L{cx-r*1.05} {cy+r*.8}Z" fill="{col}"/>'
     return f'<path d="M{cx} {cy-r*1.15} L{cx+r*1.15} {cy} L{cx} {cy+r*1.15} L{cx-r*1.15} {cy}Z" fill="{col}"/>'
 def eyeg(cx,cy,r,c,sw=0):
@@ -62,7 +62,7 @@ def B(n,c):
 
 # C geometric top-down w/ symbol
 def C_(n,c):
-    mk='#ffd23f' if n in('black',) else c['m']
+    mk='#ffd23f' if n in('green',) else c['m']
     mk=c['m']
     b=f'''<g stroke="{c['o']}" stroke-width="3.5" stroke-linejoin="round">
 <path d="M70 38 L97 50 L70 62Z" fill="{c['s']}"/>
@@ -100,13 +100,13 @@ def E(n,c):
     if n=='white': # sailor hat navy band, white cap
         acc=f'''<g stroke="#1b2a4a" stroke-width="2.4" stroke-linejoin="round"><path d="M16 26 C16 8 50 8 50 26 Z" fill="#fff" transform="rotate(-8 33 18)"/>
 <path d="M15 25 L51 25 L50 19 L17 19Z" fill="#1d3f8f" transform="rotate(-8 33 22)"/><circle cx="33" cy="9.5" r="3" fill="#d63a34" stroke-width="1.8" transform="rotate(-8 33 18)"/></g>'''
-    elif n=='black': # sunglasses
+    elif n=='green': # sunglasses
         acc='''<g stroke="#000" stroke-width="2" stroke-linejoin="round"><path d="M18 30 H38" stroke-width="3"/><rect x="14" y="26" width="13" height="10" rx="4" fill="#0b0d10" stroke="#ffd23f" stroke-width="1.8"/><rect x="30" y="26" width="13" height="10" rx="4" fill="#0b0d10" stroke="#ffd23f" stroke-width="1.8"/></g><path d="M16 29 L22 28 M32 29 L38 28" stroke="#9fd8ff" stroke-width="1.8" stroke-linecap="round"/>'''
     elif n=='red': # bow on head
         acc='''<g stroke="#5a3b00" stroke-width="2.2" stroke-linejoin="round"><path d="M33 14 C20 2 14 12 22 18 C27 20 31 17 33 14Z M33 14 C44 2 52 10 45 18 C40 20 36 17 33 14Z" fill="#ffd23f"/><circle cx="33" cy="14" r="4" fill="#ffb300"/></g>'''
     else: # crown
         acc='''<g stroke="#6b4a00" stroke-width="2.4" stroke-linejoin="round"><path d="M19 17 L21 3 L28 11 L34 1 L40 11 L47 3 L48 17Z" fill="#ffd23f" transform="rotate(-6 33 10)"/><circle cx="21" cy="4" r="2.2" fill="#d63a34" stroke-width="1.2" transform="rotate(-6 33 10)"/><circle cx="34" cy="2" r="2.2" fill="#d63a34" stroke-width="1.2" transform="rotate(-6 33 10)"/><circle cx="46" cy="4" r="2.2" fill="#d63a34" stroke-width="1.2" transform="rotate(-6 33 10)"/></g>'''
-    if n=='black':
+    if n=='green':
         base=side(c,'<path/>')  # eye hidden by shades
         base=base.replace(eyeg(29,30,4.2,c),'')
     else: base=side(c)

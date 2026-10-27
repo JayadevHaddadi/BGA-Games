@@ -1,6 +1,6 @@
 ==Goal==
 
-Gather all the ducks of your colour into '''one connected group''' before the others do. You are the colour of your seat: White, Black, Red or Blue. Each turn you drop a breadcrumb in the pond and every duck on the six lines around it swims toward it.
+Gather all the ducks of your colour into '''one connected group''' before the others do. You are the colour of your seat: White, Green, Red or Blue. Each turn you drop a breadcrumb in the pond and every duck on the six lines around it swims toward it.
 
 ==Setup==
 
