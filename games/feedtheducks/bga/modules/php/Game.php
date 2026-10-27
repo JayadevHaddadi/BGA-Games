@@ -100,7 +100,7 @@ class Game extends \Bga\GameFramework\Table
         $rows = static::getObjectListFromDb("SELECT `duck_id`, `colour`, `q`, `r` FROM `duck` ORDER BY `duck_id`");
         return array_map(fn($row) => [
             'id' => (int) $row['duck_id'],
-            'colour' => (string) $row['colour'],
+            'colour' => Rules::normColour((string) $row['colour']),
             'q' => (int) $row['q'],
             'r' => (int) $row['r'],
         ], $rows);
@@ -121,7 +121,7 @@ class Game extends \Bga\GameFramework\Table
     {
         $out = [];
         foreach ((array) $this->globals->get('colours', []) as $pid => $colour) {
-            $out[(int) $pid] = (string) $colour;
+            $out[(int) $pid] = Rules::normColour((string) $colour);
         }
         return $out;
     }

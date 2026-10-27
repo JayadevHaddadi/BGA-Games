@@ -115,6 +115,12 @@ class Rules
         return self::ducksPerPlayer($players);
     }
 
+    /** Tables created before the colour was renamed store 'black'; it is the green duck now. */
+    public static function normColour(string $colour): string
+    {
+        return $colour === 'black' ? 'green' : $colour;
+    }
+
     public static function coloursFor(int $players): array
     {
         return array_slice(self::COLOURS, 0, $players);

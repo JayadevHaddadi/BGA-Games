@@ -1,7 +1,7 @@
 """Builds the Feed the Ducks art.
 
-  bga/img/board.jpg   the pond, cropped from design/board.jpg (the publisher's board art, no text on it)
-  bga/img/grass.jpg   a seamless grass tile (the board's own grass, mirrored) for the table background
+  bga/img/board.png   the pond, cropped from design/board.jpg and muted (transparent outside the hexagons)
+  bga/img/scene.jpg   calm pond-side background of the game area (design/make_scene.py)
   design/sprites/     duck sprites for the metadata images (box, icon, banners)
   bga/metadata_assets the Control Panel images (tools/bga_assets.py); displays are the real product photos
 
@@ -22,11 +22,14 @@ GAME = Path(__file__).resolve().parent.parent
 DESIGN = GAME / 'design'
 REPO = GAME.parent.parent
 sys.path.insert(0, str(REPO / 'tools'))
+sys.path.insert(0, str(DESIGN))
 from bga_assets import build_metadata  # noqa: E402
+from make_scene import write_scene  # noqa: E402
 
 CX, CY, S = 1176.0, 1671.0, 156.49       # board centre and hexagon corner radius, original pixels
 CROP = (22, 370, 2330, 2972)              # pond with a margin of grass and glow
 OUT_W = 1000
+LINE_W, LINE_A, LINE_RGB = 2.4, 0.5, (214, 230, 232)   # hexagon lines: width px (of 1000), opacity, colour
 
 # One duck, facing left (Game.js DUCK_PATH is the same path)
 DUCK_PATH = ('M1 12.6 L5.6 10.6 C5.4 6.4 8.2 3.2 12.2 3.2 C16.4 3.2 19 6.2 18.6 10 C18.3 13 16.8 14.6 17.4 17.2 '
@@ -40,25 +43,52 @@ COLOURS = {
 }
 
 
+def hex_poly(cx, cy, r, k):
+    return [(cx + r * math.cos(math.pi / 3 * i) * k, cy + r * math.sin(math.pi / 3 * i) * k) for i in range(6)]
+
+
 def write_board():
+    """The pond: the publisher's water texture, calmer (muted, darker), with thin soft semi-transparent lines.
+    Everything outside the hexagons is transparent (the page background shows through)."""
+    from PIL import ImageFilter
     im = Image.open(DESIGN / 'board.jpg').convert('RGB')
     box = im.crop(CROP)
     k = OUT_W / box.width
-    out = box.resize((OUT_W, round(box.height * k)), Image.LANCZOS)
-    out.save(GAME / 'bga' / 'img' / 'board.jpg', quality=80, optimize=True, progressive=True)
-    print(f'BOARD = {{ w: {out.width}, h: {out.height}, cx: {(CX - CROP[0]) * k:.2f}, cy: {(CY - CROP[1]) * k:.2f}, s: {S * k:.3f} }}')
+    src = box.resize((OUT_W, round(box.height * k)), Image.LANCZOS)
+    W, H = src.size
+    cx, cy, s = (CX - CROP[0]) * k, (CY - CROP[1]) * k, S * k
+    SS = 3
+    # 1. muted water: lower saturation, a little darker
+    h, sat, v = src.convert('HSV').split()
+    sat = sat.point(lambda x: int(x * 0.62))
+    v = v.point(lambda x: int(22 + x * 0.6))
+    water = Image.merge('HSV', (h, sat, v)).convert('RGB')
+    # 2. per hexagon: mean colour under the old lines, the texture only well inside the hexagon
+    base = Image.new('RGB', (W, H), (0, 0, 0))
+    tex_mask = Image.new('L', (W * SS, H * SS), 0)
+    hull_mask = Image.new('L', (W * SS, H * SS), 0)
+    lines = Image.new('L', (W * SS, H * SS), 0)
+    dm, dh, dl, bd = ImageDraw.Draw(tex_mask), ImageDraw.Draw(hull_mask), ImageDraw.Draw(lines), ImageDraw.Draw(base)
+    cells = [(q, r) for q in range(-4, 5) for r in range(-4, 5) if abs(q + r) <= 4]
+    for q, r in cells:
+        x = cx + 1.5 * s * q
+        y = cy + math.sqrt(3) * s * (r + q / 2)
+        inner = water.crop((int(x - s * 0.5), int(y - s * 0.5), int(x + s * 0.5), int(y + s * 0.5))).resize((1, 1), Image.BOX).getpixel((0, 0))
+        bd.polygon(hex_poly(x, y, s, 1.0), fill=inner)
+        dm.polygon([(px * SS, py * SS) for px, py in hex_poly(x, y, s, 0.885)], fill=255)
+        pts = [(px * SS, py * SS) for px, py in hex_poly(x, y, s, 1.0)]
+        dh.polygon(pts, fill=255)
+        dl.line(pts + [pts[0]], fill=255, width=round(LINE_W * SS), joint='curve')
+    tex_mask = tex_mask.resize((W, H), Image.LANCZOS).filter(ImageFilter.GaussianBlur(1.6))
+    pond = Image.composite(water, base, tex_mask)
+    # 3. thin, soft, semi-transparent lines
+    lines = lines.resize((W, H), Image.LANCZOS).filter(ImageFilter.GaussianBlur(0.5)).point(lambda a: int(a * LINE_A))
+    pond = Image.composite(Image.new('RGB', (W, H), LINE_RGB), pond, lines)
+    out = pond.convert('RGBA')
+    out.putalpha(hull_mask.resize((W, H), Image.LANCZOS))
+    out.save(GAME / 'bga' / 'img' / 'board.png', optimize=True)
+    print(f'BOARD = {{ w: {W}, h: {H}, cx: {cx:.2f}, cy: {cy:.2f}, s: {s:.3f} }}')
     return out
-
-
-def write_grass():
-    im = Image.open(DESIGN / 'board.jpg').convert('RGB')
-    tile = im.crop((60, 60, 60 + 320, 60 + 320))
-    big = Image.new('RGB', (640, 640))
-    big.paste(tile, (0, 0))
-    big.paste(tile.transpose(Image.FLIP_LEFT_RIGHT), (320, 0))
-    big.paste(tile.transpose(Image.FLIP_TOP_BOTTOM), (0, 320))
-    big.paste(tile.transpose(Image.ROTATE_180), (320, 320))
-    big.save(GAME / 'bga' / 'img' / 'grass.jpg', quality=78, optimize=True)
 
 
 def bezier_points(path):
@@ -132,7 +162,7 @@ def make_title(path, text='FEED THE DUCKS'):
 if __name__ == '__main__':
     (GAME / 'bga' / 'img').mkdir(parents=True, exist_ok=True)
     write_board()
-    write_grass()
+    write_scene()
     sprites = write_sprites()
     make_title(DESIGN / 'title.png')
     build_metadata(GAME, {

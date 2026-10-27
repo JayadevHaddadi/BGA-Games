@@ -32,6 +32,8 @@ const DUCK_ART = {
     blue: '<g stroke="#0c1f55" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><path d="M80 40 C90 36 95 30 93 26 C88 30 84 31 78 33 Z" fill="#2a62d6"/><path d="M12 62 C12 44 28 40 42 46 C58 38 80 40 90 34 C92 48 90 82 56 84 C28 85 12 78 12 62Z" fill="#2a62d6"/><circle cx="33" cy="34" r="20" fill="#2a62d6"/><path d="M17 40 C6 36 4 44 7 46 C9 50 16 49 20 47Z" fill="#ff9f1c" stroke="#8a4b00" stroke-width="2.2"/></g><path d="M44 62 C54 74 72 72 80 56 C70 60 56 58 44 62Z" fill="#1d49a8" stroke="#0c1f55" stroke-width="2.2" stroke-linejoin="round"/><circle cx="29" cy="30" r="4.2" fill="#f4f1ea"/><circle cx="27.53" cy="28.53" r="1.47" fill="#20242b"/><g stroke="#6b4a00" stroke-width="2.4" stroke-linejoin="round"><path d="M19 17 L21 3 L28 11 L34 1 L40 11 L47 3 L48 17Z" fill="#ffd23f" transform="rotate(-6 33 10)"/><circle cx="21" cy="4" r="2.2" fill="#d63a34" stroke-width="1.2" transform="rotate(-6 33 10)"/><circle cx="34" cy="2" r="2.2" fill="#d63a34" stroke-width="1.2" transform="rotate(-6 33 10)"/><circle cx="46" cy="4" r="2.2" fill="#d63a34" stroke-width="1.2" transform="rotate(-6 33 10)"/></g>',
 };
 
+// Tables created before the colour was renamed store 'black': it is the green duck now
+const ftdNorm = (c) => (c === 'black' ? 'green' : c);
 const ftdImg = (name) => `${typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : ''}img/${name}`;
 const ftdKey = (q, r) => `${q},${r}`;
 const ftdInBoard = (q, r) => Math.abs(q) <= FTD_RADIUS && Math.abs(r) <= FTD_RADIUS && Math.abs(q + r) <= FTD_RADIUS;
@@ -146,6 +148,7 @@ export class Game {
     }
 
     colourLabel(colour) {
+        colour = ftdNorm(colour);
         return { white: _('white'), green: _('green'), red: _('red'), blue: _('blue') }[colour] || colour;
     }
 
@@ -200,8 +203,8 @@ export class Game {
 
     setup(gamedatas) {
         this.gamedatas = gamedatas;
-        (gamedatas.ducks || []).forEach((d) => this.ducks.set(Number(d.id), { id: Number(d.id), colour: d.colour, q: Number(d.q), r: Number(d.r) }));
-        Object.keys(gamedatas.colours || {}).forEach((pid) => { this.colourOf[Number(pid)] = gamedatas.colours[pid]; });
+        (gamedatas.ducks || []).forEach((d) => this.ducks.set(Number(d.id), { id: Number(d.id), colour: ftdNorm(d.colour), q: Number(d.q), r: Number(d.r) }));
+        Object.keys(gamedatas.colours || {}).forEach((pid) => { this.colourOf[Number(pid)] = ftdNorm(gamedatas.colours[pid]); });
         this.goal = Number(gamedatas.goal);
         this.perPlayer = Number(gamedatas.perPlayer);
         this.crumb = Array.isArray(gamedatas.crumb) ? [Number(gamedatas.crumb[0]), Number(gamedatas.crumb[1])] : null;
@@ -227,6 +230,7 @@ export class Game {
         this.bga.gameArea.getElement().appendChild(root);
         this.root = root;
         document.body.classList.add('ftd_page_bg');
+        document.body.classList.toggle('ftd_coords_on', this.coordsOn());
 
         this.buildBoard();
         Object.keys(this.colourOf).forEach((pid) => this.buildPanel(Number(pid)));
@@ -272,7 +276,7 @@ export class Game {
             q: Number(h.q),
             r: Number(h.r),
             moves: (h.moves || []).map((m) => ({
-                id: Number(m.id), colour: m.colour,
+                id: Number(m.id), colour: ftdNorm(m.colour),
                 from: [Number(m.from[0]), Number(m.from[1])], to: [Number(m.to[0]), Number(m.to[1])],
             })),
         };
@@ -286,7 +290,7 @@ export class Game {
         const defs = this.svgEl('defs', {}, svg);
         const marker = this.svgEl('marker', { id: 'ftd_arrowhead', viewBox: '0 0 10 10', refX: '7', refY: '5', markerWidth: '4.2', markerHeight: '4.2', orient: 'auto' }, defs);
         this.svgEl('path', { d: 'M0 0 L10 5 L0 10 Z', class: 'ftd_arrowhead' }, marker);
-        this.svgEl('image', { href: ftdImg('board.jpg'), x: 0, y: 0, width: BOARD.w, height: BOARD.h, preserveAspectRatio: 'none' }, svg);
+        this.svgEl('image', { href: ftdImg('board.png'), x: 0, y: 0, width: BOARD.w, height: BOARD.h, preserveAspectRatio: 'none' }, svg);
 
         this.gNums = this.svgEl('g', { class: 'ftd_nums', 'aria-hidden': 'true' }, svg);
         FTD_CELLS.forEach(([q, r]) => {
@@ -325,7 +329,7 @@ export class Game {
 
     duckSvg(colour, extraClass = '') {
         const sc = (1.46 * BOARD.s) / 91;
-        return `<g class="ftd_face" transform="scale(1 1) translate(${(-50 * sc).toFixed(2)} ${(-44 * sc).toFixed(2)}) scale(${sc.toFixed(3)})">${DUCK_ART[colour]}${DUCK_MARKS[colour]}</g>`;
+        return `<g class="ftd_face" transform="scale(1 1) translate(${(-50 * sc).toFixed(2)} ${(-44 * sc).toFixed(2)}) scale(${sc.toFixed(3)})">${DUCK_ART[ftdNorm(colour)]}${DUCK_MARKS[ftdNorm(colour)]}</g>`;
     }
 
     /** A duck <g> at a cell. Facing: toward the middle of the pond to start with. */
@@ -465,39 +469,49 @@ export class Game {
         }
     }
 
-    /** Ghost crumb, a ghost at each destination, an arrow from each duck that will move, the old place faded. */
-    renderPreview(q, r, arrows = false) {
+    /**
+     * Hover preview (staged = false): ghost crumb, a ghost at each destination, an arrow from each duck that will move,
+     * the old place faded. Staged (the player clicked a space): the board exactly as it will be after the move: the ducks
+     * opaque on their destination spaces (gone from where they were), the breadcrumb on the clicked space, no arrows.
+     */
+    renderPreview(q, r, arrows = false, staged = false) {
         this.clearPreview();
         if (q === null || q === undefined) return;
         const moves = ftdMovesFor(this.duckMap(), q, r);
-        this.gPreview.appendChild(this.crumbEl(q, r, true));
+        this.gPreview.appendChild(this.crumbEl(q, r, !staged));
         const byFrom = new Map();
         this.ducks.forEach((d) => byFrom.set(ftdKey(d.q, d.r), d.id));
         if (arrows) moves.forEach((m) => this.arrowEl(this.gPreview, m.from, m.to));
         moves.forEach((m) => {
             const a = ftdCentre(m.from[0], m.from[1]);
             const b = ftdCentre(m.to[0], m.to[1]);
-            const g = this.svgEl('g', { class: `ftd_duck ftd_ghost ftd_c_${m.colour}` }, this.gPreview);
+            const g = this.svgEl('g', { class: `ftd_duck ${staged ? 'ftd_staged_duck' : 'ftd_ghost'} ftd_c_${m.colour}` }, this.gPreview);
             g.style.transform = `translate(${b.x.toFixed(1)}px, ${b.y.toFixed(1)}px)`;
             g.innerHTML = this.duckSvg(m.colour);
             this.setFacing(g, b.x > a.x + 0.5 ? -1 : (b.x < a.x - 0.5 ? 1 : (a.x < BOARD.cx ? -1 : 1)));
             const el = this.duckEls.get(byFrom.get(ftdKey(m.from[0], m.from[1])));
             if (el) el.classList.add('ftd_will_move');
         });
+        this.svg.classList.toggle('ftd_staged_on', staged);
+        this.stagedFor = staged ? [q, r] : null;
+        this.stagedMemo = staged ? [q, r] : null;   // survives leaveState: the notification may arrive after the state change
         this.previewCount = moves.length;
         const hint = document.getElementById('ftd_hint');
         const coord = ftdLabel(q, r);
+        const here = this.coordsOn();
         if (hint) {
             hint.textContent = moves.length === 0
-                ? this.tr('Breadcrumb on ${coord}: no duck moves.', { coord })
+                ? (here ? this.tr('Breadcrumb on ${coord}: no duck moves.', { coord }) : this.tr('Breadcrumb here: no duck moves.'))
                 : (moves.length === 1
-                    ? this.tr('Breadcrumb on ${coord}: one duck swims toward it.', { coord })
-                    : this.tr('Breadcrumb on ${coord}: ${n} ducks swim toward it.', { coord, n: moves.length }));
+                    ? (here ? this.tr('Breadcrumb on ${coord}: one duck swims toward it.', { coord }) : this.tr('Breadcrumb here: one duck swims toward it.'))
+                    : (here ? this.tr('Breadcrumb on ${coord}: ${n} ducks swim toward it.', { coord, n: moves.length }) : this.tr('Breadcrumb here: ${n} ducks swim toward it.', { n: moves.length })));
         }
     }
 
     clearPreview() {
         this.gPreview.innerHTML = '';
+        if (this.svg) this.svg.classList.remove('ftd_staged_on');
+        this.stagedFor = null;
         this.duckEls.forEach((el) => el.classList.remove('ftd_will_move'));
         this.previewCount = 0;
         const hint = document.getElementById('ftd_hint');
@@ -563,7 +577,7 @@ export class Game {
         }
         if (this.mode === 'turn' && this.stage) {
             const coord = ftdLabel(this.stage[0], this.stage[1]);
-            this.bga.statusBar.addActionButton(this.tr('Drop the breadcrumb on ${coord}', { coord }), () => this.sendCrumb(), { id: 'ftd_confirm', color: 'primary' });
+            this.bga.statusBar.addActionButton(this.coordsOn() ? this.tr('Drop the breadcrumb on ${coord}', { coord }) : this.tr('Drop the breadcrumb here'), () => this.sendCrumb(), { id: 'ftd_confirm', color: 'primary' });
             this.bga.statusBar.addActionButton(_('Cancel'), () => this.setStage(null), { id: 'ftd_cancel', color: 'alert' });
         } else if (this.mode === 'setup') {
             const left = (this.args && this.args.remaining) || (args && args.remaining) || {};
@@ -575,7 +589,7 @@ export class Game {
                     red: this.tr('Place a red duck (${n} left)', { n }),
                     blue: this.tr('Place a blue duck (${n} left)', { n }),
                 }[c];
-                this.bga.statusBar.addActionButton(label, () => this.sendDuck(c), { id: `ftd_place_${c}`, color: 'secondary', disabled: !this.stage });
+                this.bga.statusBar.addActionButton(`<svg class="ftd_btn_duck" viewBox="-30 -22 60 44" aria-hidden="true">${this.duckSvgSmall(c)}</svg> ${label}`, () => this.sendDuck(c), { id: `ftd_place_${c}`, color: 'secondary', disabled: !this.stage });
             });
         } else if (this.mode === 'choose') {
             ((this.args || args || {}).candidates || []).forEach((cand) => {
@@ -593,10 +607,11 @@ export class Game {
 
     setStage(cell) {
         this.stage = cell;
+        if (!cell) this.stagedMemo = null;
         if (cell && this.lastShown) { this.lastShown = false; this.renderLast(); }
         if (this.mode === 'turn') {
             this.renderTurnMarks();
-            if (cell) this.renderPreview(cell[0], cell[1]); else this.clearPreview();
+            if (cell) this.renderPreview(cell[0], cell[1], false, true); else this.clearPreview();
         } else if (this.mode === 'setup') {
             this.renderSetupMarks();
         }
@@ -625,6 +640,11 @@ export class Game {
         } catch (e) {
             return fallback;
         }
+    }
+
+    /** Preference 103: row numbers and column letters on the pond (off by default). */
+    coordsOn() {
+        return this.pref(103, 0) === 1;
     }
 
     confirmationOn() {
@@ -676,7 +696,7 @@ export class Game {
 
     /** Setup: a duck lands on the edge. */
     async notif_duckPlaced(args) {
-        const d = { id: Number(args.duck.id), colour: args.duck.colour, q: Number(args.duck.q), r: Number(args.duck.r) };
+        const d = { id: Number(args.duck.id), colour: ftdNorm(args.duck.colour), q: Number(args.duck.q), r: Number(args.duck.r) };
         this.ducks.set(d.id, d);
         const g = this.makeDuck(d, this.gDucks);
         this.duckEls.set(d.id, g);
@@ -696,6 +716,8 @@ export class Game {
     async notif_crumbDropped(args) {
         const q = Number(args.q);
         const r = Number(args.r);
+        const snap = !!this.stagedMemo && this.stagedMemo[0] === q && this.stagedMemo[1] === r && Number(args.player_id) === this.myId();
+        this.stagedMemo = null;   // the result is already on screen
         this.stage = null;
         this.clearPreview();
         this.clearMarks();
@@ -706,8 +728,8 @@ export class Game {
         this.crumb = [q, r];
         this.renderCrumb();
         this.sfx('ftd_splash');
-        this.splash(q, r);
-        await this.wait(380);
+        if (!snap) this.splash(q, r);
+        if (!snap) await this.wait(380);
 
         const moves = (args.moves || []).map((m) => ({ id: Number(m.id), from: m.from.map(Number), to: m.to.map(Number) }));
         moves.forEach((m) => {
@@ -719,9 +741,11 @@ export class Game {
             if (b.x > a.x + 0.5) this.setFacing(el, -1); else if (b.x < a.x - 0.5) this.setFacing(el, 1);
             d.q = m.to[0];
             d.r = m.to[1];
+            if (snap) el.style.transition = 'none';
             el.style.transform = `translate(${b.x.toFixed(1)}px, ${b.y.toFixed(1)}px)`;
+            if (snap) { void el.getBoundingClientRect(); el.style.transition = ''; }
         });
-        await this.wait(moves.length ? 560 : 200);
+        await this.wait(snap ? 0 : (moves.length ? 560 : 200));
         this.renderLast();
         this.updateButtons(this.args, this.isActive);
         this.refreshPanels(args.scores);
@@ -772,12 +796,12 @@ export class Game {
         if (!box) return;
         const winPlayer = this.playerName(winner);
         const winColour = this.colourLabel(this.colourOf[winner]);
-        box.innerHTML = `<h3>${_('Game finished')}</h3><p><strong>${this.tr('${player} (${colour}) gathered all ducks into one group and won the game!', { player: winPlayer, colour: winColour })}</strong></p>`;
+        box.innerHTML = `<h3>${_('Game finished')}</h3><p><svg class="ftd_final_duck" viewBox="-30 -22 60 44" aria-hidden="true">${this.duckSvgSmall(this.colourOf[winner] || 'white')}</svg> <strong>${this.tr('${player} (${colour}) gathered all ducks into one group and won the game!', { player: winPlayer, colour: winColour })}</strong></p>`;
         box.hidden = false;
     }
 
     duckSvgSmall(colour) {
-        return `<g transform="translate(-20 -17.6) scale(0.4)">${DUCK_ART[colour]}${DUCK_MARKS[colour]}</g>`;
+        return `<g transform="translate(-20 -17.6) scale(0.4)">${DUCK_ART[ftdNorm(colour)]}${DUCK_MARKS[ftdNorm(colour)]}</g>`;
     }
 
     buildPanel(pid) {
@@ -796,7 +820,7 @@ export class Game {
         line.addEventListener('click', show);
         line.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); show(); } });
         if (this.bga.gameui?.addTooltip) {
-            this.bga.gameui.addTooltip(line.id, this.tr('Largest group of ${colour} ducks / ducks needed in one group. Tap to see it on the pond.', { colour: this.colourLabel(colour) }), '');
+            this.bga.gameui.addTooltip(line.id, this.tr('Your biggest connected group of ducks / your ducks. Gather all of them into one group to win.') + (this.playerCount === 3 ? ' ' + this.tr('With 3 players you need ${goal} of your ${n} ducks.', { goal: this.goal, n: this.perPlayer }) : '') + ' ' + this.tr('Tap to see it on the pond.'), '');
         }
     }
 
@@ -822,7 +846,7 @@ export class Game {
                 const left = remaining && remaining[colour] !== undefined ? Number(remaining[colour]) : this.perPlayer - [...this.ducks.values()].filter((d) => d.colour === colour).length;
                 txt.textContent = this.tr('${n} to place', { n: left });
             } else {
-                txt.textContent = this.tr('group ${best} of ${goal}', { best, goal: this.goal });
+                txt.textContent = this.tr('Largest flock: ${best} / ${goal}', { best, goal: this.goal });
             }
             const counter = this.bga.playerPanels.getScoreCounter?.(Number(pid));
             if (scores && counter && scores[pid] !== undefined && counter.toValue) counter.toValue(Number(scores[pid]));

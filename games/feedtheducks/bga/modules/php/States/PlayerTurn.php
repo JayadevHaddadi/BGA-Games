@@ -65,7 +65,7 @@ class PlayerTurn extends GameState
         $moves = Rules::movesFor($map, $q, $r);
         $out = [];
         foreach ($moves as $m) {
-            $out[] = ['id' => $ids[Rules::key(...$m['from'])], 'colour' => $m['colour'], 'from' => $m['from'], 'to' => $m['to']];
+            $out[] = ['id' => $ids[Rules::key(...$m['from'])], 'colour' => Rules::normColour((string) $m['colour']), 'from' => $m['from'], 'to' => $m['to']];
         }
         foreach ($out as $m) {
             Game::DbQuery(sprintf("UPDATE `duck` SET `q` = %d, `r` = %d WHERE `duck_id` = %d", $m['to'][0], $m['to'][1], $m['id']));

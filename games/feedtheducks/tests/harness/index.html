@@ -45,7 +45,7 @@ function makeBga(playerId) {
     states: { register() {} },
     gameArea: { getElement: () => document.getElementById('game_play_area') },
     notifications: { setupPromiseNotifications() {} },
-    userPreferences: { get: () => 1 },
+    userPreferences: { get: (id) => (id === 103 ? (params.get('coords') === '1' ? 1 : 0) : 1) },
     sounds: { play() {} },
     dialogs: { showMessage(text) { messages.push(text); } },
     gameui: { bgaAnimationsActive: () => animations, addTooltip() {} },
@@ -135,7 +135,7 @@ async function run() {
     else {
       game.enterTurn(set.args, true);
       const c = set.cell || set.args.legal[Math.floor(set.args.legal.length / 3)];
-      if (touch) tap(c[0], c[1]); else hover(c[0], c[1]);
+      if (touch || params.get('stage')) tap(c[0], c[1]); else hover(c[0], c[1]);
       if (params.get('notif') && set.notif) { game.leaveState(); await game.notif_crumbDropped(set.notif); }
     }
     await tick(100);
@@ -202,16 +202,18 @@ async function run() {
   const reached = tap(target[0], target[1]);
   check('tap_on_legal_space_reaches_the_cell', reached);
   check('touch_tap_only_stages', game.stage && game.stage[0] === target[0] && game.stage[1] === target[1] && calls.length === 0);
-  check('preview_ghosts_match_the_rules', $$('.ftd_ghost').length === exp.length && $$('.ftd_will_move').length === exp.length, [$$('.ftd_ghost').length, exp.length]);
-  check('preview_ghost_crumb', $$('.ftd_ghost_crumb').length === 1);
+  check('staged_ducks_match_the_rules', $$('.ftd_staged_duck').length === exp.length && $$('.ftd_will_move').length === exp.length && $$('.ftd_ghost').length === 0, [$$('.ftd_staged_duck').length, exp.length]);
+  check('staged_ducks_are_opaque_at_destinations', $$('.ftd_staged_duck').every((el) => getComputedStyle(el).opacity === '1') && exp.every(([, to]) => $$('.ftd_staged_duck').some((el) => { const m = /translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(el.style.transform); const c = hexCentre(to[0], to[1]); return m && Math.abs(m[1] - c.x) < 0.2 && Math.abs(m[2] - c.y) < 0.2; })));
+  check('staged_origins_and_old_crumb_hidden', $$('.ftd_will_move').every((el) => getComputedStyle(el).opacity === '0') && getComputedStyle(document.querySelector('.ftd_crumbs')).opacity === '0' && $$('.ftd_preview .ftd_arrow').length === 0);
+  check('staged_crumb_drawn_normally', $$('.ftd_preview .ftd_crumb').length === 1 && $$('.ftd_ghost_crumb').length === 0);
   check('preview_text', document.getElementById('ftd_hint').textContent.length > 0, document.getElementById('ftd_hint').textContent);
   const labels = buttons.map((b) => b.label);
-  check('confirm_and_cancel_buttons', buttons.length === 2 && buttons[0].opts.color === 'primary' && buttons[1].opts.color === 'alert' && /Drop the breadcrumb on/.test(labels[0]), labels);
+  check('confirm_and_cancel_buttons', buttons.length === 2 && buttons[0].opts.color === 'primary' && buttons[1].opts.color === 'alert' && /Drop the breadcrumb here/.test(labels[0]), labels);
   buttons[0].fn();
   check('confirm_sends_one_action', calls.length === 1 && calls[0].name === 'actDropCrumb' && calls[0].args.q === target[0] && calls[0].args.r === target[1], JSON.stringify(calls));
   check('stage_survives_a_pending_action', game.stage !== null && buttons.length === 2);
   buttons[1].fn();
-  check('cancel_clears_stage_and_preview', game.stage === null && $$('.ftd_ghost').length === 0 && !buttons.some((b) => b.opts.id === 'ftd_confirm'));
+  check('cancel_clears_stage_and_preview', game.stage === null && $$('.ftd_ghost').length === 0 && $$('.ftd_staged_duck').length === 0 && !document.getElementById('ftd_svg').classList.contains('ftd_staged_on') && $$('.ftd_will_move').length === 0 && getComputedStyle(document.querySelector('.ftd_crumbs')).opacity === '1' && !buttons.some((b) => b.opts.id === 'ftd_confirm'));
 
   // first turn: nothing forbidden, every empty space legal
   game = fresh(fx.turn3_first.datas, fx.turn3_first.active, true);
@@ -235,10 +237,10 @@ async function run() {
   const cBtn = buttons.find((b) => b.opts.id === 'ftd_confirm');
   check('confirm_button_present', !!cBtn && cBtn.opts.color === 'primary');
   check('cancel_button_present', buttons.some((b) => b.opts.id === 'ftd_cancel' && b.opts.color === 'alert'));
-  check('staged_shows_result_without_arrows', $$('.ftd_ghost').length === exp4.length && $$('.ftd_preview .ftd_arrow').length === 0 && $$('.ftd_ghost_crumb').length === 1);
+  check('staged_shows_result_without_arrows', $$('.ftd_staged_duck').length === exp4.length && $$('.ftd_ghost').length === 0 && $$('.ftd_preview .ftd_arrow').length === 0 && $$('.ftd_ghost_crumb').length === 0 && $$('.ftd_preview .ftd_crumb').length === 1);
   const other = fx.turn4.legal2 || fx.turn4.args.legal.find((c) => c[0] !== t4[0] || c[1] !== t4[1]);
   hover(other[0], other[1]);
-  check('no_hover_preview_while_staged', game.stage[0] === t4[0] && $$('.ftd_preview .ftd_arrow').length === 0 && $$('.ftd_ghost').length === exp4.length);
+  check('no_hover_preview_while_staged', game.stage[0] === t4[0] && $$('.ftd_preview .ftd_arrow').length === 0 && $$('.ftd_staged_duck').length === exp4.length);
   hover(other[0], other[1], false);
   tap(other[0], other[1]);
   check('click_another_space_restages', game.stage[0] === other[0] && game.stage[1] === other[1] && calls.length === 0);
@@ -306,7 +308,7 @@ async function run() {
   await game.notif_crumbDropped(fx.turn4.notif);
   game.enterTurn(fx.turn4.args, true);
   tap(v[0], v[1]);
-  check('click_dismisses_last_move_and_stages', $$('.ftd_last .ftd_arrow').length === 0 && game.stage && $$('.ftd_ghost').length > 0, [$$('.ftd_last .ftd_arrow').length, JSON.stringify(game.stage), $$('.ftd_ghost').length, JSON.stringify(v)]);
+  check('click_dismisses_last_move_and_stages', $$('.ftd_last .ftd_arrow').length === 0 && game.stage && $$('.ftd_staged_duck').length > 0, [$$('.ftd_last .ftd_arrow').length, JSON.stringify(game.stage), $$('.ftd_ghost').length, JSON.stringify(v)]);
   // a game reloaded after that move shows the same arrows and Seen (history comes from the server)
   game = fresh(fx.turn4.after, viewer, false);
   game.enterTurn(fx.turn4.args, true);
@@ -327,6 +329,40 @@ async function run() {
   await tick(1000);
   check('ripples_removed', $$('.ftd_ripple').length === 0);
   animations = false;
+
+  // confirmed move after staging: the result is already on screen, the notification snaps (no replay)
+  game = fresh(fx.turn4.datas, fx.turn4.active, false);
+  game.enterTurn(fx.turn4.args, true);
+  tap(fx.turn4.cell[0], fx.turn4.cell[1]);
+  check('staged_before_notification', $$('.ftd_staged_duck').length === fx.turn4.notif.moves.length);
+  game.leaveState();
+  animations = true;
+  const snapP = game.notif_crumbDropped(fx.turn4.notif);
+  await tick(5);
+  check('snap_after_staged_move_has_no_splash', $$('.ftd_ripple').length === 0);
+  await snapP;
+  animations = false;
+  check('snap_ducks_end_where_the_server_says', fx.turn4.after.ducks.every((d) => { const el = document.querySelector(`.ftd_duck[data-id="${d.id}"]`); const c = hexCentre(d.q, d.r); const m = /translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(el.style.transform); return m && Math.abs(m[1] - c.x) < 0.2 && Math.abs(m[2] - c.y) < 0.2; }) && $$('.ftd_staged_duck').length === 0);
+
+  // ---------------------------------------------------------------- old tables: 'black' is the green duck
+  const old = JSON.parse(JSON.stringify(fx.turn3.datas));
+  const greenId = Object.keys(old.colours).find((p) => old.colours[p] === 'green');
+  old.colours[greenId] = 'black';
+  old.ducks.forEach((d) => { if (d.colour === 'green') d.colour = 'black'; });
+  game = fresh(old, fx.turn3.active, true);
+  check('black_maps_to_green', $$('.ftd_c_black').length === 0 && $$('.ftd_ducks .ftd_c_green').length === 8 && game.colourOf[greenId] === 'green' && $$('.ftd_ducks .ftd_c_green')[0].innerHTML.includes('#0b0d10'));
+  game.enterTurn(fx.turn3.args, true);
+  const ob = fx.turn3.args.legal[0];
+  tap(ob[0], ob[1]);
+  check('black_ducks_staged_use_green_art', $$('.ftd_c_black').length === 0 && $$('.ftd_preview .ftd_duck').every((el) => el.innerHTML.length > 100));
+
+  // ---------------------------------------------------------------- coordinates (preference 103) and the panel line
+  game = fresh(fx.turn3.datas, fx.turn3.active, true);
+  check('coordinates_hidden_by_default', getComputedStyle(document.querySelector('.ftd_nums')).display === 'none' && !document.body.classList.contains('ftd_coords_on'));
+  document.body.classList.add('ftd_coords_on');
+  check('coordinates_shown_when_on', getComputedStyle(document.querySelector('.ftd_nums')).display !== 'none' && getComputedStyle(document.querySelector('.ftd_num')).opacity < 0.6);
+  document.body.classList.remove('ftd_coords_on');
+  check('panel_line_largest_flock', $$('.ftd_pnl_txt').every((t) => /^Largest flock: \d+ \/ (7|12|6)$/.test(t.textContent)) && $$('.ftd_pnl_txt')[0].textContent.endsWith('/ 7'), $$('.ftd_pnl_txt')[0].textContent);
 
   // ---------------------------------------------------------------- setup
   const setup = fx.setup;

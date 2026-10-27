@@ -1,5 +1,5 @@
 {
-  // user preference ids should be between 100 and 199 (AGENTS.md: 100 colour-blind symbols, 101 sound)
+  // user preference ids should be between 100 and 199 (AGENTS.md: 100 colour-blind symbols, 101 sound, 102 confirmation, 103 coordinates)
   "100": {
     "name": "Colorblind support",
     "values": {
@@ -23,5 +23,13 @@
       "0": { "name": "Disabled" }
     },
     "default": 1
+  },
+  "103": {
+    "name": "Show coordinates",
+    "values": {
+      "1": { "name": "On", "cssPref": "ftd_coords_on" },
+      "0": { "name": "Off", "cssPref": "ftd_coords_off" }
+    },
+    "default": 0
   }
 }

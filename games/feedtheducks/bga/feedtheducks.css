@@ -1,20 +1,13 @@
 /* Feed the Ducks: play area styles. Guidelines: no shadows, no looping animation, no emoji, radius <= 3px. */
 
-/* Table: the grass of the printed board, on the whole page */
-html:has(body.ftd_page_bg),
-body.ftd_page_bg {
-    min-height: 100vh;
-    background-color: #1f3d2a;
-    background-image: url('img/grass.jpg');
-    background-size: 300px 300px;
-}
-
-body.ftd_page_bg #page-content,
-body.ftd_page_bg #ebd-body,
-body.ftd_page_bg #game_play_area,
-body.ftd_page_bg #game_play_area_background,
-body.ftd_page_bg .bga-game-area {
-    background: transparent !important;
+/* Game area only (not the page): a calm, muted pond-side scene, low contrast so the text stays readable */
+body.ftd_page_bg #game_play_area {
+    background-color: #3f5f55;
+    background-image: url('img/scene.jpg');
+    background-size: cover;
+    background-position: center top;
+    background-repeat: no-repeat;
+    padding-top: 8px;
 }
 
 #ftd_root {
@@ -218,17 +211,30 @@ body.ftd_page_bg .bga-game-area {
     text-align: center;
 }
 
+/* Coordinates: off by default (preference 103), subtle when on */
+.ftd_nums {
+    display: none;
+}
+
+.ftd_coords_on .ftd_nums {
+    display: inline;
+}
+
+.ftd_coords_off .ftd_nums {
+    display: none;
+}
+
 .ftd_num {
-    font-size: 17px;
-    fill: #0b3a63;
-    opacity: 0.55;
+    font-size: 15px;
+    fill: #1f4a5e;
+    opacity: 0.45;
     pointer-events: none;
 }
 
 .ftd_col {
-    font-size: 25px;
-    font-weight: bold;
+    font-size: 20px;
     fill: #e8f3d9;
+    opacity: 0.7;
     pointer-events: none;
 }
 
@@ -246,6 +252,18 @@ body.ftd_page_bg .bga-game-area {
 
 .ftd_duck.ftd_will_move {
     opacity: 0.4;
+}
+
+/* Staged move: the board as it will be after the move (ducks opaque at their destinations, old places and crumb hidden) */
+.ftd_staged_on .ftd_duck.ftd_will_move,
+.ftd_staged_on .ftd_crumbs {
+    opacity: 0;
+    transition: none;
+}
+
+.ftd_staged_duck {
+    opacity: 1;
+    transition: none;
 }
 
 .ftd_duck.ftd_drop {
@@ -462,6 +480,16 @@ body.ftd_page_bg .bga-game-area {
 
 #ftd_final li.ftd_final_win {
     font-weight: bold;
+}
+
+.ftd_btn_duck {
+    width: 26px;
+    height: 20px;
+    vertical-align: middle;
+}
+
+#ftd_final p .ftd_final_duck {
+    vertical-align: middle;
 }
 
 .ftd_final_duck {
