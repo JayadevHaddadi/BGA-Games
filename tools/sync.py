@@ -55,6 +55,7 @@ TARGET_MAP = {
     "hipposcrocodiles": ("games/hipposcrocodiles/bga", "hipposcrocodiles"),
     "pentup": ("games/pentup/bga", "pentup"),
     "vaultnestorgames": ("games/vaultnestorgames/bga", "vaultnestorgames"),
+    "feedtheducks": ("games/feedtheducks/bga", "feedtheducks"),
     # <bga:targets>  (tools/bga.py register inserts new games above this line)
 }
 

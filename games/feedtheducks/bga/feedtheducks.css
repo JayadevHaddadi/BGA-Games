@@ -1,0 +1,12 @@
+/* Feed the Ducks: play area styles. Guidelines: no shadows, no looping animation, no emoji, radius <= 3px. */
+
+body.ftd_page_bg {
+    background-color: #1d1f24;
+}
+
+body.ftd_page_bg #page-content,
+body.ftd_page_bg #ebd-body,
+body.ftd_page_bg #game_play_area,
+body.ftd_page_bg #game_play_area_background {
+    background: transparent;
+}

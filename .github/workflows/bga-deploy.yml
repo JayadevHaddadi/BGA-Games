@@ -35,6 +35,7 @@ on:
           - hipposcrocodiles
           - pentup
           - vaultnestorgames
+          - feedtheducks
           # <bga:options>  (tools/bga.py register inserts new games above this line)
 
 jobs:

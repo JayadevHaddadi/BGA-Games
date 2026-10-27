@@ -1,0 +1,14 @@
+{
+    // Statistics for the table (ids 10 and up; every name used in PHP must be here)
+    "table": {
+        "turns_number": { "id": 10, "name": "Number of turns", "type": "int" },
+        "ducks_moved": { "id": 11, "name": "Ducks moved", "type": "int" }
+    },
+
+    // Statistics for each player
+    "player": {
+        "turns_number": { "id": 10, "name": "Number of turns", "type": "int" },
+        "ducks_moved": { "id": 11, "name": "Ducks moved by my breadcrumbs", "type": "int" },
+        "largest_group": { "id": 12, "name": "Largest group at the end", "type": "int" }
+    }
+}

@@ -1,0 +1,51 @@
+{
+  "_comment": "Single source for the Control Panel (Game Metadata Manager). Run: python3 tools/bga.py gmm <slug>",
+  "slug": "feedtheducks",
+  "studio_project": "feedtheducks",
+  "game_name": "Feed the Ducks",
+  "bgg_id": 112532,
+  "bgg_url": "https://boardgamegeek.com/boardgame/112532",
+  "year_published": null,
+  "players": null,
+  "estimated_duration_minutes": 30,
+  "publisher": {
+    "name": "nestorgames",
+    "bgg_id": null,
+    "website": ""
+  },
+  "designers": [],
+  "artists": [],
+  "rules_edits": [],
+  "rules_url": null,
+  "description": "TODO: 1 to 2 paragraphs in English about the theme, the components and the objective.",
+  "zombie_mode_level": 1,
+  "tags": [
+    "Abstract Strategy",
+    "Combinatorial"
+  ],
+  "tags_note": "PROPOSAL: pick from BGA's tag list in the Control Panel.",
+  "characteristics": {
+    "complexity": 3,
+    "luck": 2,
+    "strategy": 3,
+    "diplomacy": 1,
+    "note": "PROPOSAL: sliders 1 to 5 in the Control Panel only."
+  },
+  "licence": {
+    "status": "NOT CONFIRMED",
+    "note": "Add a row to LICENSING_TRACKER.md and confirm before publisher sign-off."
+  },
+  "assets": {
+    "box": "metadata_assets/box_280x280.png",
+    "icon": "metadata_assets/icon_50x50.png",
+    "icon_hi": "metadata_assets/icon_500x500.png",
+    "banner": "metadata_assets/banner_1386x400.jpg",
+    "banner_wide": "metadata_assets/banner_1920x556.jpg",
+    "title": "metadata_assets/title_2000x2000.png",
+    "publisher": "metadata_assets/publisher_280x280.png",
+    "display": [
+      "metadata_assets/display_1.jpg",
+      "metadata_assets/display_2.jpg"
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+{
+    // Name of the game in English (basis for translation)
+    "game_name": "Feed the Ducks",
+    "publisher": "nestorgames",
+    "publisher_website": "https://www.nestorgames.com",
+    "publisher_bgg_id": 0,
+    "bgg_id": 112532,
+    "players": [2, 3, 4],
+    "suggest_player_number": null,
+    "not_recommend_player_number": null,
+    "estimated_duration": 20,
+    "fast_additional_time": 30,
+    "medium_additional_time": 40,
+    "slow_additional_time": 50,
+    "tie_breaker_description": "When several players gather their ducks with the same breadcrumb, the player who dropped it chooses the winner among them.",
+    "losers_not_ranked": false,
+    "solo_mode_ranked": false,
+    "is_coop": 0,
+    "language_dependency": false,
+    "player_colors": ["ffffff", "000000", "c62828", "1565c0"],
+    "favorite_colors_support": false,
+    "disable_player_order_swap_on_rematch": false,
+    "game_interface_width": { "min": 320 },
+    "exception_on_warning": true
+}

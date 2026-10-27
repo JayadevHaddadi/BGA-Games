@@ -1,0 +1,41 @@
+{
+  // option ids should be between 100 and 199
+  "100": {
+    "name": "Setup",
+    "values": {
+      "1": {
+        "name": "Players place the ducks",
+        "description": "Starting with White, players take turns placing any duck on a free space of the pond's edge."
+      },
+      "2": {
+        "name": "Random setup",
+        "description": "The ducks are placed at random around the edge, never more than 2 ducks of the same colour side by side."
+      }
+    },
+    "default": 1
+  },
+  "101": {
+    "name": "Goal (3 players)",
+    "values": {
+      "1": {
+        "name": "7 of 8 ducks",
+        "description": "The game ends when at least 7 ducks of one colour form a single group (all but one)."
+      },
+      "2": {
+        "name": "All 8 ducks (advanced)",
+        "description": "The game ends when all 8 ducks of one colour form a single group."
+      }
+    },
+    "default": 1,
+    "displaycondition": [
+      {
+        "type": "minplayers",
+        "value": 3
+      },
+      {
+        "type": "maxplayers",
+        "value": 3
+      }
+    ]
+  }
+}
