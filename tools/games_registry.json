@@ -14,7 +14,7 @@
    "folder": "games/omega/bga",
    "name": "Omega",
    "licence": "granted (2024)",
-   "notes": "Public alpha since 21 Oct; tutorial video at beta (Digital Board Gamer)",
+   "notes": "Ian approved for Beta 28 Oct (waiting for BGA to switch); log hover highlights added",
    "advertised": "not recorded"
   },
   {
@@ -30,7 +30,7 @@
    "folder": "games/sugargliders/bga",
    "name": "Sugar Gliders",
    "licence": "granted",
-   "notes": "Public alpha since 20 Oct",
+   "notes": "BETA since 28 Oct 2026; Nestor (BGA nickname nestorgames) to confirm licence at /gamepublishers",
    "advertised": "yes: reviewers group + alpha forum, together (Sugar Gliders + Io), date not recorded"
   },
   {
@@ -102,7 +102,7 @@
    "folder": "games/gardensofmars/bga",
    "name": "Gardens of Mars",
    "licence": "given by Nestor",
-   "notes": "Private alpha requested 9 Oct (reminder 19 Oct)",
+   "notes": "Private alpha since 28 Oct",
    "advertised": "not recorded"
   },
   {
@@ -110,7 +110,7 @@
    "folder": "games/gardensofuranus/bga",
    "name": "Gardens of Uranus",
    "licence": "granted",
-   "notes": "Private alpha requested 2 Oct (reminder 19 Oct)",
+   "notes": "Private alpha since 28 Oct; Draft area/side controls need a UX pass before Public Alpha",
    "advertised": "not recorded"
   },
   {
