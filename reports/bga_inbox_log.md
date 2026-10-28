@@ -23,3 +23,5 @@
 | microforge | #8527610 | Stays Private Alpha; full UX pass; PROCESS: stop opening/renewing reviews until shared fixes are applied everywhere, else deprioritized | not started | yes: acknowledgement + focus list Omega, Vault, Microchip, Kiln (user to confirm list) |
 
 **Process change (Ian, 28 Oct):** only 3–4 games in review at a time. Send the drafted replies only for the focus games; hold the others (Red, Hippos, People, Io, Enceladus) or send them as FYI without asking for a new review.
+| gardensofio | bug #251286 (500s when planting) | Crash on planting across the start line with lap bonus | Already fixed 21 Oct (3f565ed); regression test in tests/game_fuzz.php. USER: mark fixed on bug page | - |
+| pushfight | bug #251277 (rematch starter not rotated) | Default first player was random | Now follows table order; deployed 261028-1450. USER: mark fixed on bug page | - |
