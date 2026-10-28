@@ -141,13 +141,27 @@ def duck_sprite(name, size=400):
 
 
 def write_sprites():
+    """Duck design E (accessories) rendered from design/duck_options/duck_E_accessory_<colour>.svg with headless Chrome."""
+    from playwright.sync_api import sync_playwright
     out = DESIGN / 'sprites'
     out.mkdir(exist_ok=True)
+    for old in out.glob('duck_*.png'):
+        old.unlink()
     names = []
-    for n in ['white', 'black', 'red', 'blue']:
-        p = out / f'duck_{n}.png'
-        duck_sprite(n).save(p, optimize=True)
-        names.append(str(p.relative_to(GAME)))
+    with sync_playwright() as p:
+        browser = p.chromium.launch(executable_path='/usr/bin/google-chrome', headless=True)
+        page = browser.new_page(viewport={'width': 400, 'height': 400})
+        for n in ['white', 'green', 'red', 'blue']:
+            svg = (DESIGN / 'duck_options' / f'duck_E_accessory_{n}.svg').read_text(encoding='utf-8')
+            page.set_content('<html><body style="margin:0;background:transparent">'
+                             '<div style="width:400px;height:400px">' + svg.replace('<svg ', '<svg width="400" height="400" ', 1)
+                             + '</div></body></html>')
+            path = out / f'duck_{n}.png'
+            page.screenshot(path=str(path), omit_background=True, clip={'x': 0, 'y': 0, 'width': 400, 'height': 400})
+            im = Image.open(path).convert('RGBA')
+            im.crop(im.getbbox()).save(path, optimize=True)
+            names.append(str(path.relative_to(GAME)))
+        browser.close()
     return names
 
 
