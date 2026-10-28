@@ -18,3 +18,8 @@
 | omega | #9749459 Beta review (Ian) | READY FOR BETA. Optional: log hover highlights stones | Done; deployed 261028-1225 | yes (thanks) |
 | kiln | #3415600 Beta review (Ian) | Generic chrome; arrows/entry points clear on board; only relevant actions; compact panels; mobile tap targets; no passive sounds | Chrome stripped; push-step-only arrows (usable/dimmed/selected) + preview; compact panels; one passive sound removed; deployed 261028-1257 | yes (cc Nestor + info@) |
 | gardensofenceladus | #1691024 Public Alpha review (Ian) | Permanent special-action catalogue; contextual actions; strong highlights; no rules text; mobile | Side list removed; specials from tapped piece, only when usable; rings; deployed 261028-1258 | yes |
+| gardensofmars | #2778118 | Private alpha status fixed by BGA ("should be good now") | - | - |
+| gardensofuranus | #8585837 | Private alpha OK; Draft area/side controls must become contextual before Public Alpha. PROCESS: only 3–4 games in review at a time | not urgent (private alpha) | covered by microforge draft |
+| microforge | #8527610 | Stays Private Alpha; full UX pass; PROCESS: stop opening/renewing reviews until shared fixes are applied everywhere, else deprioritized | not started | yes: acknowledgement + focus list Omega, Vault, Microchip, Kiln (user to confirm list) |
+
+**Process change (Ian, 28 Oct):** only 3–4 games in review at a time. Send the drafted replies only for the focus games; hold the others (Red, Hippos, People, Io, Enceladus) or send them as FYI without asking for a new review.
