@@ -147,6 +147,21 @@ board), **Yavalath** (`fitContainerToScreen`).
     themed background on `body`. Geometry rules are drawn as concrete squares in a test before coding.
 21. ✓ How-to-play text is MediaWiki markup in `bga/GAMEHELP.wiki`. No Markdown rules files.
 
+**Interaction (Ian's review round, 28 Oct 2026: 9 games refused for the same reasons)**
+
+26. Action Bar = one short instruction (`${you} must move a pawn`) + only the buttons relevant right now (Confirm/Cancel
+    while something is staged, Pass/Skip when that is the decision). No rule explanations, counters or option menus in it.
+27. The board is the interface: whatever can be used now gets a clear ring/tint; the selected item a distinct solid
+    state; everything else is not clickable (no error popups). Directions/rotations = handles on the board, not buttons.
+28. No permanent action catalogue or side command panel: show a special action only when it is usable, started from
+    the component it acts on, or a compact contextual choice at that moment.
+29. No rules text on the game screen and no "?" rules overlay, zoom, fullscreen or recenter stacks; rules live in
+    `GAMEHELP.wiki`. Board and pool auto-size to the game area.
+30. Player panels stay compact (score, a few counts). Opponent boards, trays and detailed scoring go in the main area.
+31. No generic web chrome (cards, badges, boxed score blocks): the game components define the structure.
+32. Box image = a photo of the real product, never the logo. BGG id + publisher in `gameinfos.jsonc`.
+33. BGA staggers releases from one developer; one game technically ready does not mean it is released now.
+
 **Process**
 
 22. Feedback from the reviewer on one game applies to every game. Never request a review "to see": run the checklist
@@ -159,7 +174,6 @@ board), **Yavalath** (`fitContainerToScreen`).
 ## 4. Known pitfalls (quick list; each one has bitten us)
 
 * **Reviewer rejected in-game rules screens (Red, 2026-10)**: do not add a "?" rules overlay or a zoom/fullscreen/recenter control stack. Rules belong in `GAMEHELP.wiki`; the board shows valid actions through highlights; keep tooltips short. Auto-size board and pool to the game area instead of offering zoom.
-* **UI: the ? rules button floats**: it is `position:absolute` in a corner of the game area; it must never add its own row, margin or padding.
 * **PossibleAction namespace**: each state class needs `use Bga\GameFramework\States\PossibleAction;` (as in every
   working game). A missing or wrong `use` gives "This move is not authorized now" with no other hint.
 * **`statusBar.addActionButton` signature**: `this.bga.statusBar.addActionButton(label, handler, { color, disabled, id, tooltip })`
