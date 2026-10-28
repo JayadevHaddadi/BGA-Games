@@ -59,7 +59,7 @@ function ft_datas($game, array $pids, array $names): array
     $m = new ReflectionMethod($game, 'getAllDatas');
     $d = $m->invoke($game, $pids[0]);
     $players = [];
-    $hex = ['ffffff', '000000', 'c62828', '1565c0'];
+    $hex = ['ffffff', '2e9d3a', 'd63a34', '2a62d6'];
     foreach ($pids as $i => $pid) { $players[$pid] = ['id' => $pid, 'name' => $names[$i], 'color' => $hex[$i]]; }
     $d['players'] = $players;
     return json_decode(json_encode($d), true);

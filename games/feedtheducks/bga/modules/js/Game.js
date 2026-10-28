@@ -34,6 +34,12 @@ const DUCK_ART = {
 
 // Tables created before the colour was renamed store 'black': it is the green duck now
 const ftdNorm = (c) => (c === 'black' ? 'green' : c);
+const FTD_PLAYER_HEX = {
+    white: 'ffffff',
+    green: '2e9d3a',
+    red: 'd63a34',
+    blue: '2a62d6',
+};
 const ftdImg = (name) => `${typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : ''}img/${name}`;
 const ftdKey = (q, r) => `${q},${r}`;
 const ftdInBoard = (q, r) => Math.abs(q) <= FTD_RADIUS && Math.abs(r) <= FTD_RADIUS && Math.abs(q + r) <= FTD_RADIUS;
@@ -806,6 +812,14 @@ export class Game {
         const el = this.bga.playerPanels.getElement(pid);
         if (!el) return;
         const colour = this.colourOf[pid];
+        el.classList.add(`ftd_player_${colour}`);
+        const hex = FTD_PLAYER_HEX[colour] || 'ffffff';
+        const nameEl = el.querySelector('.player-name, .player_name, [id^="player_name_"]');
+        if (nameEl) {
+            nameEl.style.color = `#${hex}`;
+            const a = nameEl.querySelector('a');
+            if (a) a.style.color = `#${hex}`;
+        }
         const line = document.createElement('div');
         line.className = 'ftd_pnl';
         line.id = `ftd_pnl_${pid}`;

@@ -44,17 +44,23 @@ class Game extends \Bga\GameFramework\Table
         return max(10, min(99, (int) round(10 + 89 * max($best * $best, min(0.6, $turns / 60)))));
     }
 
+    public const PLAYER_HEX = [
+        'white' => 'ffffff',
+        'green' => '2e9d3a',
+        'red' => 'd63a34',
+        'blue' => '2a62d6',
+    ];
+
     protected function setupNewGame($players, $options = [])
     {
         // Fixed colours: seat 1 plays White and starts, then Green, Red, Blue (rulebook order)
-        $gameinfos = $this->getGameinfos();
-        $defaultColors = $gameinfos['player_colors'];
         $values = [];
         $colours = [];
         $i = 0;
         foreach ($players as $pid => $player) {
-            $hex = array_shift($defaultColors);
-            $colours[(int) $pid] = Rules::COLOURS[$i++];
+            $colour = Rules::COLOURS[$i++];
+            $hex = self::PLAYER_HEX[$colour];
+            $colours[(int) $pid] = $colour;
             $values[] = vsprintf("(%s, '%s', '%s')", [$pid, $hex, addslashes($player['player_name'])]);
         }
         static::DbQuery("INSERT INTO `player` (`player_id`, `player_color`, `player_name`) VALUES " . implode(',', $values));
@@ -187,6 +193,10 @@ class Game extends \Bga\GameFramework\Table
 
     protected function getAllDatas(int $currentPlayerId): array
     {
+        // Tables created before the colour was renamed: update black players to green
+        static::DbQuery("UPDATE `player` SET `player_color` = '" . self::PLAYER_HEX['green'] . "' WHERE `player_color` = '000000'");
+        static::DbQuery("UPDATE `duck` SET `colour` = 'green' WHERE `colour` = 'black'");
+
         $ducks = $this->getDucks();
         $map = $this->getDuckMap();
         $best = [];
@@ -218,6 +228,8 @@ class Game extends \Bga\GameFramework\Table
 
     public function upgradeTableDb($from_version)
     {
-        // First public version: nothing to migrate. dbmodel.sql drops and recreates every table.
+        // Tables created before the colour was renamed: update black players to green
+        static::DbQuery("UPDATE `player` SET `player_color` = '" . self::PLAYER_HEX['green'] . "' WHERE `player_color` = '000000'");
+        static::DbQuery("UPDATE `duck` SET `colour` = 'green' WHERE `colour` = 'black'");
     }
 }

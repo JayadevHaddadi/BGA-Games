@@ -501,8 +501,8 @@ body.ftd_page_bg #game_play_area {
 .ftd_pnl {
     display: flex;
     align-items: center;
-    gap: 6px;
-    min-height: 28px;
+    gap: 8px;
+    min-height: 56px;
     margin-top: 4px;
     cursor: pointer;
 }
@@ -513,9 +513,29 @@ body.ftd_page_bg #game_play_area {
 }
 
 .ftd_pnl_duck {
-    width: 36px;
-    height: 27px;
+    width: 72px;
+    height: 54px;
     flex: 0 0 auto;
+}
+
+.ftd_player_white .player-name,
+.ftd_player_white .player-name a {
+    color: #f4f1ea !important;
+}
+
+.ftd_player_green .player-name,
+.ftd_player_green .player-name a {
+    color: #2e9d3a !important;
+}
+
+.ftd_player_red .player-name,
+.ftd_player_red .player-name a {
+    color: #d63a34 !important;
+}
+
+.ftd_player_blue .player-name,
+.ftd_player_blue .player-name a {
+    color: #2a62d6 !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
