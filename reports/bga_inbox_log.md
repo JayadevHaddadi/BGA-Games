@@ -26,3 +26,5 @@
 | gardensofio | bug #251286 (500s when planting) | Crash on planting across the start line with lap bonus | Already fixed 21 Oct (3f565ed); regression test in tests/game_fuzz.php. USER: mark fixed on bug page | - |
 | pushfight | bug #251277 (rematch starter not rotated) | Default first player was random | Now follows table order; deployed 261028-1450. USER: mark fixed on bug page | - |
 | sugargliders | #9502545 | MOVED TO BETA; BGA asks publisher to add licence at /gamepublishers; Nestor replied with his nickname | registry updated | not needed |
+| omega | #9749459 | MOVED TO BETA; publisher to add licence | draft to Nestor (licences + product photos) | - |
+| vaultnestorgames | #8337868 | MOVED TO PUBLIC ALPHA; publisher to add licence | same Nestor draft; earlier Vault reply draft now obsolete (delete it) | - |
