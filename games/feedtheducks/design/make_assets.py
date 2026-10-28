@@ -1,6 +1,6 @@
 """Builds the Feed the Ducks art.
 
-  bga/img/board.png   the pond, cropped from design/board.jpg and muted (transparent outside the hexagons)
+  bga/img/board.webp  the pond, cropped from design/board.jpg and muted (transparent outside the hexagons)
   bga/img/scene.jpg   calm pond-side background of the game area (design/make_scene.py)
   design/sprites/     duck sprites for the metadata images (box, icon, banners)
   bga/metadata_assets the Control Panel images (tools/bga_assets.py); displays are the real product photos
@@ -86,7 +86,8 @@ def write_board():
     pond = Image.composite(Image.new('RGB', (W, H), LINE_RGB), pond, lines)
     out = pond.convert('RGBA')
     out.putalpha(hull_mask.resize((W, H), Image.LANCZOS))
-    out.save(GAME / 'bga' / 'img' / 'board.png', optimize=True)
+    # WebP keeps the transparency and texture at ~40 KB (the PNG was 835 KB and took ~50 s from Studio's image server)
+    out.save(GAME / 'bga' / 'img' / 'board.webp', 'WEBP', quality=80, method=6)
     print(f'BOARD = {{ w: {W}, h: {H}, cx: {cx:.2f}, cy: {cy:.2f}, s: {s:.3f} }}')
     return out
 

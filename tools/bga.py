@@ -900,6 +900,11 @@ def contract_checks(rep, folder, bga, js_text, sound_ids):
     (rep.add('PASS', 'user preference reads are safe on old tables') if unsafe <= 0
      else rep.add('WARN', 'userPreferences.get() outside try/catch (throws on tables older than the preference: clicks die)', f'{unsafe} read(s)'))
 
+    # Studio's image server can be slow (~16 KB/s seen) and BGA waits for every img/ file before the game starts
+    big = [f'{f.name} ({f.stat().st_size // 1024} KB)' for f in (bga / 'img').glob('*') if f.is_file() and f.stat().st_size > 300_000] if (bga / 'img').exists() else []
+    (rep.add('PASS', 'images in img/ are small (<300 KB each)') if not big
+     else rep.add('WARN', 'large image in img/ (slow game loading: use JPG/WebP, smaller size)', ', '.join(big)))
+
     # State ids are unique
     ids = {}
     for php in files_under(php_dir / 'States', ['php']) if (php_dir / 'States').exists() else []:

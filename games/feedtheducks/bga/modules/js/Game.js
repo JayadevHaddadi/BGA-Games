@@ -288,7 +288,7 @@ export class Game {
         const defs = this.svgEl('defs', {}, svg);
         const marker = this.svgEl('marker', { id: 'ftd_arrowhead', viewBox: '0 0 10 10', refX: '7', refY: '5', markerWidth: '4.2', markerHeight: '4.2', orient: 'auto' }, defs);
         this.svgEl('path', { d: 'M0 0 L10 5 L0 10 Z', class: 'ftd_arrowhead' }, marker);
-        this.svgEl('image', { href: ftdImg('board.png'), x: 0, y: 0, width: BOARD.w, height: BOARD.h, preserveAspectRatio: 'none' }, svg);
+        this.svgEl('image', { href: ftdImg('board.webp'), x: 0, y: 0, width: BOARD.w, height: BOARD.h, preserveAspectRatio: 'none' }, svg);
 
         this.gNums = this.svgEl('g', { class: 'ftd_nums', 'aria-hidden': 'true' }, svg);
         FTD_CELLS.forEach(([q, r]) => {
