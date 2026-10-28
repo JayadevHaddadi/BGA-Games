@@ -13,3 +13,6 @@
 | yavalath | #2459477 Beta | Needs 10 reviewer approvals; Cameron confirmed approval | waiting for approvals | - |
 | all | #8552069 | Marianna: small team, be patient | user already replied | - |
 | all (Ian) | microchip + red mails | Releases from one publisher will be staggered | noted | - |
+| people | #8878587 Public Alpha review (Ian) | Action bar too busy (Police/Bulldozer/Roadblock/More people buttons); confirm publication status | Bribe tiles on board supply strip; short titles; deployed 261028-1224. USER: confirm People is commercially available | yes |
+| gardensofio | #7288611 Beta review (Ian) | No rules text on board; clear highlights; contextual controls; less generic UI; accessibility | Rules text + ? overlay removed; ring/tint states; counters contextual; deployed 261028-1222 | yes (cc Nestor) |
+| omega | #9749459 Beta review (Ian) | READY FOR BETA. Optional: log hover highlights stones | Done; deployed 261028-1225 | yes (thanks) |
