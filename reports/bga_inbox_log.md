@@ -29,3 +29,4 @@
 | omega | #9749459 | MOVED TO BETA; publisher to add licence | draft to Nestor (licences + product photos) | - |
 | vaultnestorgames | #8337868 | MOVED TO PUBLIC ALPHA; publisher to add licence | same Nestor draft; earlier Vault reply draft now obsolete (delete it) | - |
 | yavalath | #2459477 Beta | Licence holder still missing at /gamepublishers | draft to Cameron with steps (cc studio) | yes |
+| ALL | Studio data breach notice | SFTP password field leaked; passwords will be disabled; use SSH key | sync.py + CI now use SSH key first (~/.ssh/bga_studio_ed25519 / secret BGA_SFTP_PRIVATE_KEY), password fallback; tested. USER: register public key in Studio + add GitHub secret | - |

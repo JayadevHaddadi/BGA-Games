@@ -63,10 +63,12 @@ jobs:
           BGA_SFTP_PORT: "2022"
           BGA_SFTP_USERNAME: ${{ secrets.BGA_SFTP_USERNAME || 'JayadevHaddadi' }}
           BGA_SFTP_PASSWORD: ${{ secrets.BGA_SFTP_PASSWORD }}
+          # SSH key (BGA disables SFTP passwords after the Oct 2026 Studio breach). Preferred when set.
+          BGA_SFTP_PRIVATE_KEY: ${{ secrets.BGA_SFTP_PRIVATE_KEY }}
         run: |
-          if [ -z "$BGA_SFTP_PASSWORD" ]; then
-            echo "::error::Secret BGA_SFTP_PASSWORD is not set in GitHub repository settings!"
-            echo "Please go to Settings -> Secrets and variables -> Actions and add BGA_SFTP_PASSWORD."
+          if [ -z "$BGA_SFTP_PRIVATE_KEY" ] && [ -z "$BGA_SFTP_PASSWORD" ]; then
+            echo "::error::Neither BGA_SFTP_PRIVATE_KEY nor BGA_SFTP_PASSWORD is set in GitHub repository secrets!"
+            echo "Add BGA_SFTP_PRIVATE_KEY (contents of ~/.ssh/bga_studio_ed25519) under Settings -> Secrets and variables -> Actions."
             exit 1
           fi
 

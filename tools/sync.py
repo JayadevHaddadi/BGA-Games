@@ -93,13 +93,21 @@ def changed_targets(base, head):
             targets.append(key)
     return targets
 
+DEFAULT_KEY_FILE = os.path.expanduser("~/.ssh/bga_studio_ed25519")
+
+
 def load_credentials():
-    if os.environ.get("BGA_SFTP_PASSWORD"):
+    """SSH key first (BGA is disabling SFTP passwords after the Oct 2026 Studio breach), password as fallback.
+    Key sources: env BGA_SFTP_PRIVATE_KEY (key text, used by CI), env BGA_SFTP_KEY_FILE, "key_file" in the config
+    file, or ~/.ssh/bga_studio_ed25519."""
+    if os.environ.get("BGA_SFTP_PRIVATE_KEY") or os.environ.get("BGA_SFTP_PASSWORD"):
         return {
             "host": os.environ.get("BGA_SFTP_HOST", "1.studio.boardgamearena.com"),
             "port": int(os.environ.get("BGA_SFTP_PORT", 2022)),
             "username": os.environ.get("BGA_SFTP_USERNAME", "JayadevHaddadi"),
-            "password": os.environ["BGA_SFTP_PASSWORD"],
+            "password": os.environ.get("BGA_SFTP_PASSWORD"),
+            "key_text": os.environ.get("BGA_SFTP_PRIVATE_KEY"),
+            "key_file": os.environ.get("BGA_SFTP_KEY_FILE"),
         }
     config_paths = [
         os.path.join(ROOT_DIR, "tools", "sftp.config.json"),
@@ -108,16 +116,45 @@ def load_credentials():
     for p in config_paths:
         if os.path.exists(p):
             with open(p, "r", encoding="utf-8") as f:
-                return json.load(f)
+                cfg = json.load(f)
+            cfg.setdefault("key_file", os.environ.get("BGA_SFTP_KEY_FILE"))
+            return cfg
     raise FileNotFoundError("Could not find SFTP configuration in tools/sftp.config.json")
 
-def connect_sftp(host, port, username, password, max_retries=3, timeout=10):
+def load_private_key(key_text=None, key_file=None):
+    """Return a paramiko key from key text or a key file (default ~/.ssh/bga_studio_ed25519), or None."""
+    import io
+    path = key_file or (DEFAULT_KEY_FILE if os.path.exists(DEFAULT_KEY_FILE) else None)
+    if not key_text and not path:
+        return None
+    for cls in (paramiko.Ed25519Key, paramiko.RSAKey, paramiko.ECDSAKey):
+        try:
+            return cls.from_private_key(io.StringIO(key_text)) if key_text else cls.from_private_key_file(path)
+        except Exception:
+            continue
+    print("Warning: SSH key found but could not be loaded; trying the password.")
+    return None
+
+
+def connect_sftp(host, port, username, password=None, max_retries=3, timeout=10, pkey=None):
     for attempt in range(1, max_retries + 1):
         try:
             print(f"Connecting to {host}:{port} as {username} (attempt {attempt}/{max_retries})...")
             transport = paramiko.Transport((host, port))
             transport.banner_timeout = timeout
-            transport.connect(username=username, password=password)
+            if pkey is not None:
+                try:
+                    transport.connect(username=username, pkey=pkey)
+                except paramiko.AuthenticationException:
+                    if not password:
+                        raise
+                    print("SSH key refused; falling back to the password.")
+                    transport.close()
+                    transport = paramiko.Transport((host, port))
+                    transport.banner_timeout = timeout
+                    transport.connect(username=username, password=password)
+            else:
+                transport.connect(username=username, password=password)
             sftp = paramiko.SFTPClient.from_transport(transport)
             return transport, sftp
         except Exception as e:
@@ -257,7 +294,8 @@ def sync_target(target_key, remote_dir=None, dry_run=False, force=False):
 
     cfg = load_credentials()
     transport, sftp = connect_sftp(cfg.get("host", "1.studio.boardgamearena.com"), int(cfg.get("port", 2022)),
-                                   cfg["username"], cfg["password"])
+                                   cfg["username"], cfg.get("password"),
+                                   pkey=load_private_key(cfg.get("key_text"), cfg.get("key_file")))
     try:
         # Pre-purge known forbidden vendor skeletons if present remotely (composer autoload triggers a HAL error)
         try:
