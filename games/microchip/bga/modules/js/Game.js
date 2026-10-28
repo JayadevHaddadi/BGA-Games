@@ -429,40 +429,8 @@ export class Game {
             this.el.main?.classList.add('mc_two_col');
         } else {
             this.el.mine.hidden = false;
-            this.el.others.hidden = true;
+            this.el.others.hidden = false;
         }
-
-        let isDown = false;
-        let startX = 0;
-        let scrollStart = 0;
-        let hasMoved = false;
-
-        this.el.pool.addEventListener('pointerdown', (e) => {
-            if (e.button !== 0) return;
-            isDown = true;
-            hasMoved = false;
-            startX = e.clientX;
-            scrollStart = this.el.pool.scrollLeft;
-        });
-
-        window.addEventListener('pointermove', (e) => {
-            if (!isDown) return;
-            const dx = e.clientX - startX;
-            if (Math.abs(dx) > 4) {
-                hasMoved = true;
-                this.el.pool.classList.add('mc_dragging');
-                this.el.pool.scrollLeft = scrollStart - dx;
-            }
-        });
-
-        window.addEventListener('pointerup', () => {
-            if (!isDown) return;
-            isDown = false;
-            setTimeout(() => {
-                this.el.pool.classList.remove('mc_dragging');
-                hasMoved = false;
-            }, 50);
-        });
 
         const preventFocusScroll = (e) => {
             if (e.target.closest('button, [role="button"], .mc_tile_btn, .mc_space, .mc_placed')) {
@@ -475,11 +443,6 @@ export class Game {
         this.el.tray.addEventListener('mousedown', preventFocusScroll);
 
         this.el.pool.addEventListener('click', (e) => {
-            if (hasMoved) {
-                e.stopPropagation();
-                e.preventDefault();
-                return;
-            }
             const btn = e.target.closest('.mc_tile_btn');
             if (btn) this.onPoolTile(Number(btn.dataset.id));
         }, true);
@@ -803,29 +766,25 @@ export class Game {
         this._lastPoolKey = poolKey;
         wrap.textContent = '';
 
+        // One flex item per pool column, wrapping onto further rows on narrow screens (no sideways scrolling).
+        // row-reverse keeps the draw column (the rightmost) first, at the right of the first row.
         const grid = document.createElement('div');
         grid.className = 'mc_pool_grid';
-        grid.style.gridTemplateColumns = `repeat(${cols}, 50px)`;
-        grid.style.gridTemplateRows = `28px repeat(${rows}, 50px)`;
-
-        if (draw >= 0) {
+        for (let c = 0; c < cols; c++) {
+            const col = document.createElement('div');
+            col.className = 'mc_pool_col' + (c === draw ? ' mc_draw_col' : '');
             const arrowCell = document.createElement('div');
             arrowCell.className = 'mc_draw_arrow';
-            arrowCell.style.gridColumn = String(draw + 1);
-            arrowCell.style.gridRow = '1';
-            arrowCell.setAttribute('aria-label', _('Draw column'));
-            arrowCell.setAttribute('title', _('Draw column'));
-            arrowCell.innerHTML = `<svg viewBox="0 0 24 24" class="mc_draw_arrow_svg" aria-hidden="true"><path d="M12 22L3 13h5.5V2h7v11H21L12 22z" fill="#d32f2f"/></svg>`;
-            grid.appendChild(arrowCell);
-        }
-
-        for (let c = 0; c < cols; c++) {
+            if (c === draw) {
+                arrowCell.setAttribute('aria-label', _('Draw column'));
+                arrowCell.setAttribute('title', _('Draw column'));
+                arrowCell.innerHTML = `<svg viewBox="0 0 24 24" class="mc_draw_arrow_svg" aria-hidden="true"><path d="M12 22L3 13h5.5V2h7v11H21L12 22z" fill="#d32f2f"/></svg>`;
+            }
+            col.appendChild(arrowCell);
             for (let r = 0; r < rows; r++) {
                 const cell = document.createElement('div');
                 const t = at.get(mcKey(r, c));
                 cell.className = 'mc_pool_cell' + (c === draw ? ' mc_draw_col' : '') + (t ? '' : ' mc_empty_cell');
-                cell.style.gridColumn = String(c + 1);
-                cell.style.gridRow = String(r + 2);
                 if (t) {
                     const btn = document.createElement('button');
                     const takable = canDraw && c === draw;
@@ -838,25 +797,11 @@ export class Game {
                     btn.innerHTML = mcTileHTML(t.colour, t.shape, 0);
                     cell.appendChild(btn);
                 }
-                grid.appendChild(cell);
+                col.appendChild(cell);
             }
+            grid.appendChild(col);
         }
         wrap.appendChild(grid);
-
-        // Auto-scroll so draw column is visible
-        if (draw >= 0) {
-            const drawColCell = grid.querySelector('.mc_pool_cell.mc_draw_col');
-            if (drawColCell) {
-                requestAnimationFrame(() => {
-                    const wrapWidth = wrap.clientWidth;
-                    if (wrapWidth > 0) {
-                        const cellLeft = drawColCell.offsetLeft;
-                        const cellWidth = drawColCell.offsetWidth;
-                        wrap.scrollLeft = Math.max(0, cellLeft - Math.round((wrapWidth - cellWidth) / 2));
-                    }
-                });
-            }
-        }
     }
 
     renderMine() {
@@ -873,7 +818,7 @@ export class Game {
             card.className = 'mc_other';
             card.dataset.pid = String(pid);
             card.title = this.playerName(pid);
-            card.innerHTML = this.boardHTML(pid, false) + this.panelTrayHTML(pid);
+            card.innerHTML = `<div class="mc_other_name">${this.playerName(pid)}</div>` + this.boardHTML(pid, false) + this.panelTrayHTML(pid);
             this.el.boards.appendChild(card);
         });
         this.el.boards.hidden = list.length === 0;
@@ -1011,18 +956,9 @@ export class Game {
                 line.hidden = true;
             }
 
-            if (this.me !== null && pid !== this.me) {
-                let boardEl = el.querySelector('.mc_panel_board');
-                if (!boardEl) {
-                    boardEl = document.createElement('div');
-                    boardEl.className = 'mc_panel_board';
-                    el.appendChild(boardEl);
-                }
-                boardEl.innerHTML = this.boardHTML(pid, false) + this.panelTrayHTML(pid);
-            } else {
-                const boardEl = el.querySelector('.mc_panel_board');
-                if (boardEl) boardEl.remove();
-            }
+            // Boards and trays live in the main game zone (Boards section), never in the panel.
+            const oldBoard = el.querySelector('.mc_panel_board');
+            if (oldBoard) oldBoard.remove();
         });
     }
 
@@ -1687,12 +1623,12 @@ export class Game {
                 if (trayTileEl) {
                     trayTileEl.appendChild(mk('-2', false));
                 }
-            } else if (panelEl) {
-                const panelTile = panelEl.querySelector(`.mc_panel_tile[data-id="${step.tile.id}"]`);
+            } else if (panelEl || this.el.boards) {
+                const panelTile = (this.el.boards && this.el.boards.querySelector(`.mc_other[data-pid="${pid}"] .mc_panel_tile[data-id="${step.tile.id}"]`)) || panelEl?.querySelector(`.mc_panel_tile[data-id="${step.tile.id}"]`);
                 if (panelTile) {
                     panelTile.appendChild(mk('-2', false));
                 } else {
-                    const panelLine = panelEl.querySelector('.mc_panel_line');
+                    const panelLine = panelEl && panelEl.querySelector('.mc_panel_line');
                     if (panelLine) {
                         panelLine.hidden = false;
                         const pop = mk('-2', false, 'span');

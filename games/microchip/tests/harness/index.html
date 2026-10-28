@@ -134,7 +134,7 @@ async function run() {
   const drawCount = mode === 'turn' ? 5 : 0;
   if (drawCount) {
     check(minTap >= 32, `draw-column tiles at least 32px (${minTap.toFixed(1)}px)`);
-    const drawArrow = root.querySelector('.mc_draw_arrow');
+    const drawArrow = root.querySelector('.mc_draw_col .mc_draw_arrow, .mc_pool_col.mc_draw_col .mc_draw_arrow');
     check(drawArrow && drawArrow.querySelector('.mc_draw_arrow_svg'), 'red arrow present above draw column');
   }
   const boardSpaces = [...root.querySelectorAll('#mc_board_me .mc_space')];
@@ -147,13 +147,17 @@ async function run() {
   check(traySizes.every((s) => s >= 32), `tray tiles at least 32px (${traySizes.map((s) => s.toFixed(0)).join(',')})`);
 
   // Opponent boards and tray tiles in panels, and live scores
-  check(!document.querySelector('#panel_1 .mc_panel_board'), 'active player panel does not duplicate own board');
-  const p2Board = document.querySelector('#panel_2 .mc_panel_board');
-  const p3Board = document.querySelector('#panel_3 .mc_panel_board');
-  check(p2Board && p2Board.querySelector('.mc_grid'), 'opponent 2 board rendered inside player panel');
-  check(p3Board && p3Board.querySelector('.mc_grid'), 'opponent 3 board rendered inside player panel');
-  const p2Tray = document.querySelector('#panel_2 .mc_panel_tray');
-  check(p2Tray && p2Tray.querySelectorAll('.mc_panel_tile').length > 0, 'opponent 2 tray tiles rendered underneath their board');
+  check(!document.querySelector('.player-panel .mc_panel_board, .player-panel .mc_panel_tray, .player-panel .mc_grid'), 'player panels hold no boards or trays');
+  const o2 = document.querySelector('#mc_boards .mc_other[data-pid="2"]');
+  const o3 = document.querySelector('#mc_boards .mc_other[data-pid="3"]');
+  check(o2 && o2.querySelector('.mc_grid'), 'opponent 2 board rendered in the main game zone');
+  check(o3 && o3.querySelector('.mc_grid'), 'opponent 3 board rendered in the main game zone');
+  check(o2 && o2.querySelectorAll('.mc_panel_tile').length > 0, 'opponent 2 tray tiles rendered under their board');
+  check(document.documentElement.scrollWidth <= window.innerWidth, `no horizontal scroll (${document.documentElement.scrollWidth} <= ${window.innerWidth})`);
+  const poolEl = document.getElementById('mc_pool');
+  check(poolEl.scrollWidth <= poolEl.clientWidth + 1, `pool needs no sideways scroll (${poolEl.scrollWidth} <= ${poolEl.clientWidth})`);
+  const poolBtns = [...poolEl.querySelectorAll('.mc_tile_btn')].map((b) => b.getBoundingClientRect().width);
+  check(poolBtns.length > 0 && Math.min(...poolBtns) >= 36, `pool tiles at least 36px (${Math.min(...poolBtns)})`);
   check(typeof scores[1] === 'number', `live score computed for player 1: ${scores[1]}`);
 
   if (mode === 'turn') {
@@ -355,7 +359,7 @@ async function run() {
 
   const blocksInfo = [...root.querySelectorAll('.mc_pool_grid')].map((b) => {
     const r = b.getBoundingClientRect();
-    return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height), cells: b.children.length, cols: b.style.gridTemplateColumns };
+    return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height), cols: b.children.length };
   });
   const poolWrap = root.querySelector('#mc_pool').getBoundingClientRect();
   check(true, `pool wrap w=${Math.round(poolWrap.width)} blocks=${JSON.stringify(blocksInfo)}`);

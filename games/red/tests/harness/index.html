@@ -85,6 +85,8 @@ function fixture() {
   ];
   const tiles = [
     { id: 1, player_id: 1, size: 1, bg: 'white', circle: 'black', x: 0, y: 0 },
+    { id: 2, player_id: 2, size: 1, bg: 'black', circle: 'red', x: 1, y: 0 },
+    { id: 3, player_id: 3, size: 2, bg: 'red', circle: 'white', x: 0, y: 1 },
   ];
   return {
     players: {
@@ -122,7 +124,7 @@ try {
     const horizontalOverflow = Math.max(0, document.documentElement.scrollWidth - vp);
 
     // Measure pool tiles
-    const poolTiles = document.querySelectorAll('.red_pool_tile');
+    const poolTiles = document.querySelectorAll('.red_pool_btn');
     let minPoolSize = 999;
     poolTiles.forEach(c => {
       const r = c.getBoundingClientRect();
@@ -130,13 +132,20 @@ try {
       if (s > 0 && s < minPoolSize) minPoolSize = s;
     });
 
+    const pr = (document.getElementById('red_pool') || document.body).getBoundingClientRect();
+    const removed = ['red_help_btn', 'red_help', 'red_zoom_in', 'red_zoom_out', 'red_zoom_fit', 'red_rotate', 'red_ctrl']
+      .filter((id) => document.getElementById(id));
     const report = {
+      poolWidth: Math.round(pr.width),
+      poolRight: Math.round(pr.right),
+      boardRight: Math.round(boardRect.right),
+      controlsStillPresent: removed,
       viewport: vp,
       boardWidth: Math.round(boardRect.width),
       horizontalOverflow: Math.round(horizontalOverflow),
       poolTargetMin: minPoolSize === 999 ? 0 : Math.round(minPoolSize),
       jsErrors: window.errors,
-      ok: window.errors.length === 0 && horizontalOverflow === 0,
+      ok: window.errors.length === 0 && horizontalOverflow === 0 && removed.length === 0 && pr.right <= vp && boardRect.right <= vp && boardRect.left >= 0,
     };
 
     document.getElementById('out').textContent = JSON.stringify(report, null, 2);

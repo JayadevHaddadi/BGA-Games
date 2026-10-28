@@ -14,49 +14,39 @@ body.red_page_bg #game_play_area_background {
 }
 
 #red_root {
-    max-width: 680px;
-    margin: 0 auto;
-    padding: 0 6px 10px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    padding: 0 4px 8px;
     box-sizing: border-box;
 }
 
 #red_board_wrap {
     position: relative;
-    width: 100%;
     min-width: 0;
+    max-width: 100%;
 }
 
+/* Wide game area: board and pool side by side, centred as one group. */
 #red_root.red_wide {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 230px;
-    align-items: start;
-    gap: 0 16px;
-    max-width: 1100px;
-    padding: 0 6px 16px;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 24px;
 }
 
 #red_root.red_wide #red_pool {
-    grid-column: 2;
-    grid-row: 1;
-    align-self: center;
+    flex: none;
     margin-top: 0;
-    gap: 22px;
-}
-
-@media (max-width: 800px) {
-    #red_pool {
-        gap: 6px 10px;
-        margin-top: 6px;
-    }
-    #red_root {
-        padding: 0 4px 6px;
-    }
+    gap: 16px;
 }
 
 #red_board_scroll {
     display: flex;
-    overflow: auto;
-    -webkit-overflow-scrolling: touch;
+    justify-content: center;
+    overflow: hidden;
 }
 
 #red_board {
@@ -81,8 +71,8 @@ body.red_page_bg #game_play_area_background {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 14px;
-    margin-top: 12px;
+    gap: 8px;
+    margin-top: 8px;
 }
 
 .red_pool_group {
@@ -90,7 +80,11 @@ body.red_page_bg #game_play_area_background {
     flex-wrap: wrap;
     justify-content: center;
     align-items: flex-start;
-    gap: 10px 14px;
+    gap: 8px 6px;
+}
+
+#red_root.red_wide .red_pool_group {
+    gap: 10px 10px;
 }
 
 .red_pool_item {
@@ -171,147 +165,6 @@ body.red_page_bg #game_play_area_background {
 
 .red_total {
     font-size: 24px;
-}
-
-#red_root {
-    position: relative;
-}
-
-#red_ctrl {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    z-index: 5;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    padding: 0;
-}
-
-@media (min-width: 801px) {
-    #red_ctrl {
-        right: 18px;
-    }
-}
-
-.red_vbtn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex: none;
-    width: 44px;
-    height: 44px;
-    margin: 0;
-    padding: 0;
-    border: 2px solid #1e1d1b;
-    border-radius: 50%;
-    background: #f1ede3;
-    color: #1e1d1b;
-    font-size: 24px;
-    font-weight: bold;
-    line-height: 1;
-    cursor: pointer;
-}
-
-#red_help {
-    position: fixed;
-    inset: 0;
-    z-index: 1000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 12px;
-    box-sizing: border-box;
-    background: rgba(20, 12, 8, 0.75);
-}
-
-#red_help[hidden] {
-    display: none;
-}
-
-.red_help_card {
-    width: 100%;
-    max-width: 520px;
-    max-height: 100%;
-    overflow-y: auto;
-    box-sizing: border-box;
-    padding: 14px 16px 16px;
-    border-radius: 3px;
-    background: #f1ede3;
-    color: #1e1d1b;
-}
-
-.red_help_head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.red_help_head h2 {
-    margin: 0;
-    font-size: 22px;
-}
-
-.red_help_close {
-    width: 44px;
-    height: 44px;
-    border: 2px solid #1e1d1b;
-    border-radius: 3px;
-    background: none;
-    color: #1e1d1b;
-    font-size: 26px;
-    line-height: 1;
-    cursor: pointer;
-}
-
-.red_help_list {
-    list-style: none;
-    margin: 8px 0 0;
-    padding: 0;
-}
-
-.red_help_list li {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 8px 0;
-    border-top: 1px solid #bfb5a0;
-}
-
-.red_help_pic {
-    flex: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    width: 130px;
-}
-
-.red_help_text {
-    font-size: 16px;
-    line-height: 1.3;
-}
-
-.red_mark { flex: none; }
-
-.red_mini {
-    flex: none;
-    display: block;
-}
-
-.red_eq {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 6px;
-    border-radius: 3px;
-    background: #3a2a1f;
-    color: #f1ede3;
-}
-
-.red_eq i {
-    font-style: normal;
-    font-size: 20px;
 }
 
 .red_glyph {

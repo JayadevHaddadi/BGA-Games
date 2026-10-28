@@ -202,23 +202,35 @@
 /* Hover ghost (desktop): faint, never intercepts the mouse */
 .hippos_ghost_hover { opacity: 0.5; z-index: 2; pointer-events: none; }
 
-/* Status bar buttons: BGA tap-target guideline, at least 44 x 44 px */
-.hippos_rot_btn { min-width: 44px; min-height: 44px; box-sizing: border-box; }
-
-/* Keyboard shortcut keycap inside the desktop rotation buttons */
-.hippos_key {
-    display: inline-block;
-    min-width: 1.3em;
-    margin-left: 6px;
-    padding: 0 4px;
-    border: 1px solid #888;
-    border-bottom-width: 2px;
-    border-radius: 3px;
+/* Direction handles drawn around the staged animal: 44 px tap targets on the board */
+#hippos_handles {
+    position: absolute;
+    pointer-events: none;
+    z-index: 4;
+}
+.hippos_handle {
+    position: absolute;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+    cursor: pointer;
     background: #fff;
-    color: #333;
-    font: bold 0.85em/1.4 monospace;
-    text-align: center;
-    vertical-align: middle;
+    color: #111;
+    border: 2px solid #111;
+    border-radius: 3px;
+    font: bold 24px/1 sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+.hippos_handle_on { background: #1e6fd9; color: #fff; }
+@media (hover: hover) {
+    .hippos_handle:hover { background: #dbe9ff; }
+    .hippos_handle_on:hover { background: #1e6fd9; }
 }
 
 /* Current orientation picture in the status bar */
@@ -239,22 +251,3 @@
 .hippos_colors_bright .hippos_panel_icon.hippos_species_hippo { background-image: url(img/piece_hippo_bright.png); }
 .hippos_colors_bright .hippos_piece_crocodile .hippos_tile,
 .hippos_colors_bright .hippos_panel_icon.hippos_species_crocodile { background-image: url(img/piece_crocodile_bright.png); }
-
-/* One clearly separated chip per direction in the Easy status text: count + small animal */
-.hippos_dir {
-    display: inline-flex;
-    align-items: center;
-    gap: 2px;
-    margin: 0 3px;
-    padding: 1px 6px;
-    border: 1px solid #9aa;
-    border-radius: 3px;
-    background: rgba(255, 255, 255, 0.6);
-    vertical-align: middle;
-}
-.hippos_dir .hippos_title_icon { margin-left: 2px; }
-.hippos_dir_current {
-    border-color: #1e6fd9;
-    background: #dbe9ff;
-    font-weight: bold;
-}

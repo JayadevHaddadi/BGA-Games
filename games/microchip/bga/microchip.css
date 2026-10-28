@@ -99,29 +99,27 @@ html, body, #microc_root, .mc_root, .mc_pool, .mc_main, .mc_mine, .mc_grid {
 
 .mc_pool {
     width: 100%;
-    overflow-x: auto;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-x;
-    scrollbar-width: thin;
-    padding-bottom: 6px;
-    cursor: grab;
-    user-select: none;
-    -webkit-user-select: none;
     box-sizing: border-box;
-}
-
-.mc_pool.mc_dragging {
-    cursor: grabbing;
+    --mc-pool-tile: 50px;
 }
 
 .mc_pool_grid {
-    display: grid;
-    gap: 4px;
-    width: max-content;
-    margin: 0 auto;
-    padding: 2px 8px;
+    display: flex;
+    flex-direction: row-reverse;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px 4px;
+    width: 100%;
+    padding: 2px 0;
     box-sizing: border-box;
+}
+
+.mc_pool_col {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 0 0 auto;
+    width: var(--mc-pool-tile);
 }
 
 .mc_draw_arrow {
@@ -141,8 +139,8 @@ html, body, #microc_root, .mc_root, .mc_pool, .mc_main, .mc_mine, .mc_grid {
 .mc_pool_cell {
     position: relative;
     aspect-ratio: 1 / 1;
-    width: 50px;
-    height: 50px;
+    width: var(--mc-pool-tile);
+    height: var(--mc-pool-tile);
     min-width: 0;
     border-radius: 3px;
     box-sizing: border-box;
@@ -491,6 +489,13 @@ button.mc_space {
     min-width: 0;
 }
 
+.mc_other_name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+    overflow-wrap: anywhere;
+}
+
 /* ---------- Player panel line (persistent, compact) ---------- */
 
 .mc_panel_line {
@@ -562,6 +567,12 @@ button.mc_space {
 @media (min-width: 760px) {
     .mc_main.mc_two_col {
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .mc_pool {
+        --mc-pool-tile: 38px;
     }
 }
 

@@ -128,6 +128,7 @@ export class Game {
                     <div id="hippos_board" class="hippos_map_${mapName}">
                         <div id="hippos_grid" style="--rows: ${this.rows}; --cols: ${this.cols};"></div>
                         <div id="hippos_pieces"></div>
+                        <div id="hippos_handles"></div>
                     </div>
                 </div>
                 <div id="hippos_status_msg"></div>
@@ -163,7 +164,7 @@ export class Game {
     layoutBoard() {
         const { w, h, x, y, pitch } = this.art;
         const board = document.getElementById('hippos_board');
-        const box = [document.getElementById('hippos_grid'), document.getElementById('hippos_pieces')];
+        const box = [document.getElementById('hippos_grid'), document.getElementById('hippos_pieces'), document.getElementById('hippos_handles')];
         board.style.aspectRatio = `${w} / ${h}`;
         for (const el of box) {
             el.style.left = `${(x / w) * 100}%`;
@@ -344,6 +345,53 @@ export class Game {
 
     clearPreviews() {
         for (const el of document.querySelectorAll('.hippos_ghost')) el.remove();
+        this.clearHandles();
+    }
+
+    clearHandles() {
+        const box = document.getElementById('hippos_handles');
+        if (box) box.innerHTML = '';
+    }
+
+    // Direction handles drawn on the board around the staged animal (replaces direction buttons in the Action Bar).
+    // Each is >= 44 px; centres are in cell units and clamped so the handle never leaves the board.
+    renderHandles() {
+        this.clearHandles();
+        const box = document.getElementById('hippos_handles');
+        if (!box || !this.stage || !this.isActive || !this.args?.species) return;
+        const sp = this.args.species;
+        const { r, c, rot } = this.stage;
+        const shape = SHAPES[sp][rot];
+        const [pr, pc] = PIVOT[sp][rot];
+        const gridRect = document.getElementById('hippos_grid').getBoundingClientRect();
+        const cellPx = (gridRect.width / this.cols) || 24;
+        const hc = 44 / cellPx; // handle size in cells
+        const clampX = (x) => Math.min(Math.max(x, hc / 2), this.cols - hc / 2);
+        const clampY = (y) => Math.min(Math.max(y, hc / 2), this.rows - hc / 2);
+        const px = c + pc + 0.5, py = r + pr + 0.5; // pivot centre
+        const gap = hc / 2 + 0.15;
+        const defs = sp === 'trunk'
+            ? [{ dir: 1, label: '↔', name: _('Horizontal'), x: c + shape.cols + gap, y: py, on: rot === 0 },
+               { dir: 0, label: '↕', name: _('Vertical'), x: px, y: r - gap, on: rot === 1 }]
+            : [{ dir: 0, label: '↑', name: _('Up'), x: px, y: r - gap },
+               { dir: 1, label: '→', name: _('Right'), x: c + shape.cols + gap, y: py },
+               { dir: 2, label: '↓', name: _('Down'), x: px, y: r + shape.rows + gap },
+               { dir: 3, label: '←', name: _('Left'), x: c - gap, y: py }];
+        for (const d of defs) {
+            const hr = sp === 'trunk' ? (d.dir % 2 === 0 ? 1 : 0) : HEAD_DIR[sp].indexOf(d.dir);
+            if (this.easy && !this.legalIn(hr).length) continue; // no legal placement that way: no handle
+            const on = sp === 'trunk' ? d.on : HEAD_DIR[sp][rot] === d.dir;
+            const el = document.createElement('div');
+            el.className = 'hippos_handle' + (on ? ' hippos_handle_on' : '');
+            el.id = `hippos_handle_${d.dir}`;
+            el.setAttribute('role', 'button');
+            el.setAttribute('aria-label', d.name);
+            el.textContent = d.label;
+            el.style.left = `${(clampX(d.x) / this.cols) * 100}%`;
+            el.style.top = `${(clampY(d.y) / this.rows) * 100}%`;
+            el.addEventListener('click', (e) => { e.stopPropagation(); this.onDirection(d.dir); });
+            box.appendChild(el);
+        }
     }
 
     rotCount() {
@@ -425,28 +473,10 @@ export class Game {
         const icon = this.titleIcon(species, this.currentRot);
         const sub = (t, o) => Object.keys(o).reduce((a, k) => a.replace('${' + k + '}', o[k]), t);
         let text;
-        if (!this.easy) {
-            text = sub(_('You must place a ${animal} ${icon}'), { animal: name, icon });
-        } else if (!(this.args.legal_placements || []).length) {
+        if (this.easy && !(this.args.legal_placements || []).length) {
             text = _('No legal placement is available.');
         } else {
-            const counts = [0, 0, 0, 0]; // per direction: up, right, down, left
-            let parts;
-            const bold = (str, on) => (on ? `<b>${str}</b>` : str);
-            if (isTrunk) {
-                const h = this.legalIn(0).length, v = this.legalIn(1).length;
-                parts = sub(_('horizontal ${h}, vertical ${v}'), {
-                    h: bold(String(h), this.currentRot === 0), v: bold(String(v), this.currentRot === 1),
-                });
-            } else {
-                // One entry per direction (up, left, down, right): the count and the animal at half size pointing that way
-                parts = [0, 3, 2, 1].map((d) => {
-                    const rot = HEAD_DIR[species].indexOf(d);
-                    const cls = rot === this.currentRot ? 'hippos_dir hippos_dir_current' : 'hippos_dir';
-                    return `<span class="${cls}">${this.legalIn(rot).length}${this.titleIcon(species, rot, 10)}</span>`;
-                }).join('');
-            }
-            text = sub(_('You must place a ${animal} ${icon}  Possible spots: ${spots}'), { animal: name, icon, spots: parts });
+            text = sub(_('You must place a ${animal} ${icon}'), { animal: name, icon });
         }
         try { this.bga.statusBar.setTitle(text); } catch (e) {}
     }
@@ -470,7 +500,7 @@ export class Game {
 
         if (this.isDesktop()) {
             const pm = this.pivotAt(r, c, this.currentRot);
-            if (!pm) { this.say(_("Doesn't fit here")); return; }
+            if (!pm) return; // not a legal spot: nothing happens
             if (Number((() => { try { return this.bga?.userPreferences?.get?.(102); } catch (e) { return undefined; } })() ?? 1) === 1) {
                 // Preference "Confirm placement" on (default): stage it and wait for Confirm
                 this.stagePlacement(Number(pm.r), Number(pm.c), this.currentRot);
@@ -484,7 +514,7 @@ export class Game {
         }
 
         let m = this.pivotAt(r, c, this.currentRot);
-        if (!m && !this.easy) { this.say(_("Doesn't fit here")); return; }
+        if (!m && !this.easy) return;
         m = m || this.bestCovering(r, c, this.currentRot);
         if (!m) {
             // Another rotation may reach this cell
@@ -522,6 +552,7 @@ export class Game {
         ghost.appendChild(pivot);
         document.getElementById('hippos_pieces').appendChild(ghost);
 
+        this.renderHandles();
         this.updateButtons(this.args, this.isActive);
     }
 
@@ -548,9 +579,8 @@ export class Game {
 
     applyRotation(rot) {
         const oldRot = this.currentRot;
-        // Desktop: the staged animal stays put; only the hover ghost / next hover rotation changes.
-        // Touch: no hover, so rotating the staged animal is the only way to rotate.
-        const old = this.isDesktop() ? null : this.stage;
+        // A staged animal turns around its pivot (board handles, W/A/S/D); otherwise only the hover ghost changes.
+        const old = this.stage;
         this.currentRot = rot;
         if (old) {
             const [pr, pc] = this.pivotOf(old, oldRot);
@@ -599,23 +629,11 @@ export class Game {
 
         const bar = this.bga.statusBar;
         const isTrunk = args?.species === 'trunk';
-        const desk = this.isDesktop();
-        // On desktop the button shows its keyboard shortcut as a small keycap
-        const dirBtn = (label, key, dir) => bar.addActionButton(desk ? `${label} <kbd class="hippos_key">${key}</kbd>` : label, () => this.onDirection(dir), {
-            color: 'secondary', classes: 'hippos_rot_btn', tooltip: desk ? `${label} (${key})` : undefined,
-        });
-        if (this.stage) bar.addActionButton(isTrunk ? _('Confirm trunk') : _('Confirm placement'), () => this.onConfirm(), { color: 'primary', classes: 'hippos_rot_btn' });
-        if (isTrunk) {
-            dirBtn(_('↔ Horizontal'), 'A/D', 1);
-            dirBtn(_('↕ Vertical'), 'W/S', 0);
-        } else {
-            dirBtn(_('↑ Up'), 'W', 0);
-            dirBtn(_('← Left'), 'A', 3);
-            dirBtn(_('↓ Down'), 'S', 2);
-            dirBtn(_('→ Right'), 'D', 1);
-        }
-        if (this.stage) bar.addActionButton(_('Cancel'), () => this.onCancel(), { color: 'alert', classes: 'hippos_rot_btn' });
-        if (!isTrunk && !this.easy) bar.addActionButton(_('Surrender'), () => this.onSurrender(), { color: 'alert', classes: 'hippos_rot_btn', id: 'hippos_surrender' });
+        // Action Bar stays concise: Confirm / Cancel once a preview exists, plus Surrender in Hard mode.
+        // Direction handles live on the board (renderHandles) and W/A/S/D.
+        if (this.stage) bar.addActionButton(_('Confirm'), () => this.onConfirm(), { color: 'primary', id: 'hippos_confirm' });
+        if (this.stage) bar.addActionButton(_('Cancel'), () => this.onCancel(), { color: 'alert', id: 'hippos_cancel' });
+        if (!isTrunk && !this.easy) bar.addActionButton(_('Surrender'), () => this.onSurrender(), { color: 'alert', id: 'hippos_surrender' });
     }
 
     /* ------------------------------------------------------------------------ Notifications */

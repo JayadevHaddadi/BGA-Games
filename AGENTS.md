@@ -158,6 +158,7 @@ board), **Yavalath** (`fitContainerToScreen`).
 
 ## 4. Known pitfalls (quick list; each one has bitten us)
 
+* **Reviewer rejected in-game rules screens (Red, 2026-10)**: do not add a "?" rules overlay or a zoom/fullscreen/recenter control stack. Rules belong in `GAMEHELP.wiki`; the board shows valid actions through highlights; keep tooltips short. Auto-size board and pool to the game area instead of offering zoom.
 * **UI: the ? rules button floats**: it is `position:absolute` in a corner of the game area; it must never add its own row, margin or padding.
 * **PossibleAction namespace**: each state class needs `use Bga\GameFramework\States\PossibleAction;` (as in every
   working game). A missing or wrong `use` gives "This move is not authorized now" with no other hint.
