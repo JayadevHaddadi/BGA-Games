@@ -220,6 +220,36 @@ export class Game {
         this.updateScoresDisplay(gamedatas.scores || {});
         this.setupNotifications();
         this.setupResponsiveScaling();
+        this.setupLogHighlights();
+    }
+
+    // Game logs (D.2): hovering / focusing / tapping a log entry rings its stones on the board.
+    // The server puts a hidden <span class="omega_logcells" data-cells="q_r;q_r"> in the entry, so
+    // it also works for logs replayed after a reload.
+    setupLogHighlights() {
+        if (this._logHlReady) return;
+        this._logHlReady = true;
+        const cellsOf = (target) => {
+            const log = target && target.closest ? target.closest('.log') : null;
+            const tag = log ? log.querySelector('.omega_logcells') : null;
+            return tag ? (tag.getAttribute('data-cells') || '').split(';').filter(Boolean) : null;
+        };
+        const clear = () => document.querySelectorAll('.omega_log_hl').forEach(c => c.classList.remove('omega_log_hl'));
+        const show = (target) => {
+            clear();
+            const cells = cellsOf(target);
+            if (cells) cells.forEach(k => this.cellEls[k]?.classList.add('omega_log_hl'));
+        };
+        document.addEventListener('mouseover', (e) => show(e.target));
+        document.addEventListener('mouseout', (e) => {
+            const log = e.target.closest ? e.target.closest('.log') : null;
+            if (log && !(e.relatedTarget && log.contains(e.relatedTarget))) clear();
+        });
+        document.addEventListener('focusin', (e) => show(e.target));
+        document.addEventListener('focusout', clear);
+        document.addEventListener('click', (e) => {
+            if (cellsOf(e.target)) show(e.target); else if (!e.target.closest?.('.omega_cell')) clear();
+        });
     }
 
     getMyColor() {
@@ -369,6 +399,10 @@ export class Game {
                             <circle class="omega_stone" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(size * 0.68).toFixed(1)}" style="display:none;" />
                             <path class="omega_sym" d="" />
                             <circle class="omega_ghost_stone" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(size * 0.68).toFixed(1)}" style="display:none;" />
+                            <g class="omega_log_marker">
+                                <circle class="omega_log_ring_dark" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(size * 0.8).toFixed(1)}" />
+                                <circle class="omega_log_ring_light" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(size * 0.8).toFixed(1)}" />
+                            </g>
                             <g class="omega_last_marker" style="display:none;">
                                 <circle class="omega_last_ring_dark" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(size * 0.8).toFixed(1)}" />
                                 <circle class="omega_last_ring_light" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(size * 0.8).toFixed(1)}" />

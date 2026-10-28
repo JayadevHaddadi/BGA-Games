@@ -163,3 +163,11 @@
         transition: none !important;
     }
 }
+
+/* Log hover: ring on the stones of the hovered log entry (no shadows) */
+.omega_logcells { display: none; }
+.omega_log_marker { display: none; pointer-events: none; }
+.omega_cell.omega_log_hl .omega_log_marker { display: inline; }
+.omega_log_ring_dark { fill: none; stroke: #1a1109; stroke-width: 7; }
+.omega_log_ring_light { fill: none; stroke: #00d4ff; stroke-width: 3.5; }
+.log:has(.omega_logcells) { cursor: pointer; }

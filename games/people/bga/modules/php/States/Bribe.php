@@ -23,6 +23,8 @@ class Bribe extends GameState
             $game,
             id: 20,
             type: StateType::ACTIVE_PLAYER,
+            description: clienttranslate('${actplayer} may bribe'),
+            descriptionMyTurn: clienttranslate('${you} may bribe or skip'),
         );
     }
 

@@ -104,7 +104,9 @@ class PlayerTurn extends GameState
             $this->bga->playerScore->set((int)$pId, (int)$data['score']);
         }
 
-        $this->game->notifyAllPlayers('turnConfirmed', clienttranslate('${player_name} placed their stones and confirmed their turn'), [
+        $this->game->notifyAllPlayers('turnConfirmed', clienttranslate('${player_name} placed their stones and confirmed their turn${cells_tag}'), [
+            'cells' => implode(';', array_map(fn($st) => ((int) $st['q']) . '_' . ((int) $st['r']), $stones)),
+            'cells_tag' => '<span class="omega_logcells" data-cells="' . implode(';', array_map(fn($st) => ((int) $st['q']) . '_' . ((int) $st['r']), $stones)) . '"></span>',
             'player_id' => $activePlayerId,
             'player_name' => $this->game->loadPlayersBasicInfos()[$activePlayerId]['player_name'],
             'stones' => $stones,
@@ -151,7 +153,9 @@ class PlayerTurn extends GameState
         }
 
         // Notify table
-        $this->game->notifyAllPlayers('stonePlaced', clienttranslate('${player_name} placed a ${color} stone at (${q}, ${r})'), [
+        $this->game->notifyAllPlayers('stonePlaced', clienttranslate('${player_name} placed a ${color} stone at (${q}, ${r})${cells_tag}'), [
+            'cells' => $q . '_' . $r,
+            'cells_tag' => '<span class="omega_logcells" data-cells="' . $q . '_' . $r . '"></span>',
             'player_id' => $activePlayerId,
             'player_name' => $this->game->loadPlayersBasicInfos()[$activePlayerId]['player_name'],
             'q' => $q,

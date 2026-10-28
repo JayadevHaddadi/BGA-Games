@@ -128,6 +128,17 @@ try {
     cell.dispatchEvent(new MouseEvent('click', { bubbles: true }));
   }
 
+  // Log hover: a log entry carrying data-cells rings those cells; leaving clears them
+  const logEl = document.createElement('div');
+  logEl.className = 'log';
+  logEl.innerHTML = '<div class="roundedbox">Alice placed a white stone at (0, 0)<span class="omega_logcells" data-cells="0_0;1_-1"></span></div>';
+  document.body.appendChild(logEl);
+  logEl.firstChild.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+  const hlOn = document.querySelectorAll('.omega_log_hl').length;
+  const ringShown = getComputedStyle(document.querySelector('.omega_log_hl .omega_log_marker')).display !== 'none';
+  logEl.firstChild.dispatchEvent(new MouseEvent('mouseout', { bubbles: true, relatedTarget: document.body }));
+  const hlOff = document.querySelectorAll('.omega_log_hl').length;
+
   setTimeout(() => {
     const board = document.getElementById('omega_container') || document.getElementById('omega_board_svg');
     const boardRect = board ? board.getBoundingClientRect() : { width: 0 };
@@ -147,8 +158,9 @@ try {
       boardWidth: Math.round(boardRect.width),
       horizontalOverflow: Math.round(horizontalOverflow),
       cellTargetMin: minCell === 999 ? 0 : Math.round(minCell),
+      logHighlightOn: hlOn, logHighlightOff: hlOff, logRingVisible: ringShown,
       jsErrors: window.errors,
-      ok: window.errors.length === 0 && horizontalOverflow === 0 && minCell >= 32,
+      ok: hlOn === 2 && hlOff === 0 && ringShown && window.errors.length === 0 && horizontalOverflow === 0 && minCell >= 32,
     };
 
     document.getElementById('out').textContent = JSON.stringify(report, null, 2);

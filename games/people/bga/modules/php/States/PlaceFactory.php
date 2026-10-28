@@ -24,6 +24,8 @@ class PlaceFactory extends GameState
             $game,
             id: 10,
             type: StateType::ACTIVE_PLAYER,
+            description: clienttranslate('${actplayer} is building a factory'),
+            descriptionMyTurn: clienttranslate('${you} must build a factory'),
         );
     }
 

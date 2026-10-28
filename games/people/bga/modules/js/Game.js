@@ -15,7 +15,6 @@ const PP_PITCH = 100 / PP_GRID; // one district and its half gutters on each sid
 const PP_GUTTER = 0.7483; // from a district edge to the gutter centre (measured on the scan)
 const PP_DIST = PP_PITCH - 2 * PP_GUTTER; // the district itself
 const PP_COLOURS = ['red', 'blue', 'yellow', 'green'];
-const PP_MODES = ['police', 'sweep', 'roadblock', 'more'];
 const PP_SHAPES = {
     red: '<path d="M5 1.5 L9 8.5 L1 8.5 Z"/>',
     blue: '<rect x="2" y="2" width="6" height="6"/>',
@@ -103,6 +102,10 @@ export class Game {
         this.cropBoard();
         document.getElementById('pp_grid').style.backgroundImage = `url("${ppImg('board.jpg')}")`;
         document.getElementById('pp_sweep').addEventListener('click', (e) => this.onSweepPanelTap(e));
+        document.getElementById('pp_info').addEventListener('click', (e) => {
+            const el = e.target.closest('.pp_tile');
+            if (el && !el.disabled && this.isActive && this.stateName === 'Bribe') this.chooseMode(el.dataset.mode);
+        });
         this.fitContainerToScreen(root);
         window.addEventListener('resize', () => this.fitContainerToScreen(root));
         this.refresh();
@@ -243,6 +246,7 @@ export class Game {
             el.classList.toggle('pp_recipient', !!stage && stage.kind === 'police' && stage.recipients.some((p) => ppSame(p, [r, c])));
             el.classList.toggle('pp_selected', !!stage && this.stageDistrict(stage, r, c));
             el.classList.toggle('pp_source', this.isBulldozer(r, c) && this.mode === 'sweep');
+            el.classList.toggle('pp_token', this.isBulldozer(r, c) && this.isActive && this.stateName === 'Bribe' && !this.mode && !!this.args && this.bribeWhy('sweep', this.args) === '');
 
             const dropIdx = stage && stage.kind === 'sweep' ? stage.path.findIndex((p) => ppSame(p, [r, c])) : -1;
             const drop = el.querySelector('.pp_drop');
@@ -373,7 +377,12 @@ export class Game {
     }
 
     tapDistrict(r, c) {
-        if (this.stateName !== 'Bribe' || !this.mode) return;
+        if (this.stateName !== 'Bribe') return;
+        if (!this.mode) {
+            // The bulldozer token on the board is the bulldozer bribe
+            if (this.isBulldozer(r, c) && this.bribeWhy('sweep', this.args) === '') this.chooseMode('sweep');
+            return;
+        }
         if (this.mode === 'police') {
             this.tapPolice(r, c);
         } else if (this.mode === 'sweep' && this.args.options.sweep.some((p) => ppSame(p, [r, c])) && this.sweepDistance([r, c]) <= this.sweepTake()) {
@@ -456,7 +465,7 @@ export class Game {
         let html = '';
         const st = this.stage;
         if (st && st.kind === 'sweep') {
-            html += `<div class="pp_sweep_row"><span>${ppIco('sweep')} ${_('Humans dropped on each district')}</span></div>`;
+            html += `<div class="pp_sweep_row"><span>${ppIco('sweep')} ${_('Humans per district')}</span></div>`;
             st.path.forEach(([r, c], i) => {
                 html += `<div class="pp_sweep_row"><span class="pp_sweep_name">${ppCoord(r, c)}</span>
                     <button type="button" class="pp_step" data-drop="${i}" data-delta="-1" aria-label="${_('Fewer')}" ${st.drops[i] <= 1 ? 'disabled' : ''}>-</button>
@@ -520,29 +529,21 @@ export class Game {
 
     stageHint() {
         if (!this.isActive) return this.waitingText();
-        if (this.stateName === 'PlaceFactory') {
-            return _('Build a factory between two districts: it scores the product of the humans in the two districts.');
-        }
+        if (this.stateName === 'PlaceFactory') return _('Build a factory on a street');
         if (this.stateName !== 'Bribe') return '';
-        if (!this.mode) return _('Factory built. Optional bribe, costs 1 bitcoin: choose one, skip, or undo the factory.');
+        if (!this.mode) return _('Bribe (1 bitcoin) or skip');
         const st = this.stage;
         if (this.mode === 'police') {
-            if (!st) return _("Police: tap a district with humans (not the bulldozer's). One human goes to each open neighbour.");
-            if (st.recipients.length < st.need) {
-                return _('Police: tap ${n} open neighbour(s) to receive a human.').replace('${n}', String(st.need - st.recipients.length));
-            }
-            return _('Confirm the police, or tap another district.');
+            if (!st) return _('Tap a district');
+            if (st.recipients.length < st.need) return _('Tap ${n} neighbour(s)').replace('${n}', String(st.need - st.recipients.length));
+            return _('Confirm the police');
         }
         if (this.mode === 'sweep') {
-            if (!st) return _('Bulldozer: choose how many humans to take, then tap where it drives.');
-            return this.sweepLeft() === 0
-                ? _('Confirm the bulldozer, or change the humans dropped on each district.')
-                : _('Bulldozer: ${n} more human(s) to drop. Every district on the way gets at least one.').replace('${n}', String(this.sweepLeft()));
+            if (!st) return _('Tap where it drives');
+            return this.sweepLeft() === 0 ? _('Confirm the bulldozer') : _('Drop ${n} more').replace('${n}', String(this.sweepLeft()));
         }
-        if (this.mode === 'roadblock') {
-            return st ? _('Confirm the roadblock, or tap another edge.') : _('Roadblock: tap an empty edge to block it.');
-        }
-        return st ? _('Confirm the new humans, or tap another square.') : _('More people: tap a crossing of four districts; each gets one human from outside.');
+        if (this.mode === 'roadblock') return st ? _('Confirm the roadblock') : _('Tap a street');
+        return st ? _('Confirm the new people') : _('Tap a crossing');
     }
 
     waitingText() {
@@ -593,10 +594,26 @@ export class Game {
         });
     }
 
+    /**
+     * The supply strip doubles as the bribe choice: the police shield, the bulldozer, the roadblock pile and the
+     * people outside the game area are the components of the four bribes. While a bribe can be chosen they are
+     * buttons (dashed outline); the chosen one is outlined solid.
+     */
     renderInfo() {
-        document.getElementById('pp_info').innerHTML =
-            `<span class="pp_stat">${_('Outside the game area')} ${ppIco('human')}<b>${this.pool}</b></span>
-             <span class="pp_stat">${_('Roadblocks left')} ${ppIco('roadblock')}<b>${this.roadblocks}</b></span>`;
+        const pick = this.isActive && this.stateName === 'Bribe' && !!this.args;
+        const tiles = [
+            ['police', _('Police'), ppIco('police'), ''],
+            ['sweep', _('Bulldozer'), ppIco('sweep'), ''],
+            ['roadblock', _('Roadblocks'), ppIco('roadblock'), `<b>${this.roadblocks}</b>`],
+            ['more', _('Outside'), ppIco('human'), `<b>${this.pool}</b>`],
+        ];
+        document.getElementById('pp_info').innerHTML = tiles.map(([mode, label, ico, n]) => {
+            const why = pick ? this.bribeWhy(mode, this.args) : 'x';
+            const on = pick && why === '';
+            const cls = `pp_tile${on ? ' pp_pick' : ''}${this.mode === mode ? ' pp_chosen' : ''}`;
+            return `<button type="button" class="${cls}" data-mode="${mode}" ${on ? '' : 'disabled'}
+                title="${pick && why ? why : label}" aria-pressed="${this.mode === mode}">${ico}<span class="pp_tile_label">${label}</span>${n}</button>`;
+        }).join('');
     }
 
     colourName(colour) {
@@ -661,17 +678,7 @@ export class Game {
             bar.addActionButton(_('Cancel'), () => this.chooseMode(null), { color: 'alert' });
             return;
         }
-        const labels = { police: _('Police'), sweep: _('Bulldozer'), roadblock: _('Roadblock'), more: _('More people') };
-        PP_MODES.forEach((m) => {
-            const why = this.bribeWhy(m, args);
-            bar.addActionButton(labels[m], () => this.chooseMode(m), {
-                color: 'secondary',
-                disabled: why !== '',
-                tooltip: why || undefined,
-                title: why ? `${labels[m]}: ${why}` : labels[m],
-            });
-        });
-        bar.addActionButton(_('Undo'), () => this.bga.actions.performAction('actUndo', {}), { color: 'alert', tooltip: _('Take back the factory you just built.') });
+        bar.addActionButton(_('Undo'), () => this.bga.actions.performAction('actUndo', {}), { color: 'alert' });
         bar.addActionButton(_('Skip bribe'), () => this.bga.actions.performAction('actSkipBribe', {}), { color: 'primary' });
     }
 

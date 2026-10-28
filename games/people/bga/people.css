@@ -423,10 +423,42 @@ body.people_page_bg #page-title #pagemaintitle {
 }
 
 #pp_info {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px 18px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
 }
+
+.pp_tile {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-height: 64px;
+    padding: 4px;
+    border: 2px solid transparent;
+    border-radius: 2px;
+    background: transparent;
+    color: var(--pp-ink);
+    font: inherit;
+    font-size: 12px;
+    line-height: 1.1;
+    cursor: default;
+}
+
+.pp_tile:disabled { opacity: 1; color: var(--pp-ink); }
+.pp_tile.pp_pick { border: 2px dashed var(--pp-line); background: #fbfaf6; cursor: pointer; }
+.pp_tile.pp_chosen { border: 3px solid var(--pp-line); background: #fff; }
+.pp_tile .pp_ico { width: 28px; height: 28px; }
+.pp_tile b { font-size: 18px; }
+.pp_tile_label { font-weight: 700; }
+
+.pp_dist.pp_token::before {
+    outline: 3px dashed var(--pp-line);
+    outline-offset: -4px;
+}
+.pp_dist.pp_token { cursor: pointer; }
 
 #pp_info .pp_stat .pp_ico {
     width: 28px;

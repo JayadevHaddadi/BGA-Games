@@ -177,6 +177,9 @@ const rect = (el) => el.getBoundingClientRect();
 // Scripted player: taps the board as a player would and presses the buttons the page offers.
 const tap = (el) => el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 const press = (label) => { const b = log.buttons.find((x) => x.label === label); if (b && !b.disabled) log.fns[label](); return !!b; };
+const tileEl = (m) => document.querySelector(`.pp_tile[data-mode="${m}"]`);
+const tileOn = (m) => !tileEl(m).disabled;
+const pressTile = (m) => { if (tileOn(m)) tileEl(m).click(); return tileOn(m); };
 const enabled = (label) => log.buttons.some((x) => x.label === label && !x.disabled);
 const script = {};
 const tick = () => new Promise((r) => setTimeout(r, 0));
@@ -192,6 +195,10 @@ if (mode === 'script') {
     script.factoryTapped = target.dataset.key;
     game.enterBribe(bribeArgs, true);
     script.bribeButtons = log.buttons.map((b) => `${b.label}:${b.color}${b.disabled ? ':off' : ''}`);
+    script.tilesOn = ['police', 'sweep', 'roadblock', 'more'].filter(tileOn).join(',');
+    script.tileMin = Math.round(Math.min(...[...document.querySelectorAll('.pp_tile')].map((el) => Math.min(rect(el).width, rect(el).height))));
+    script.bribeTitle = log.title;
+    script.bullTokenTap = (() => { const el = document.querySelector('.pp_dist[data-r="2"][data-c="2"]'); const lit = el.classList.contains('pp_token'); tap(el); const m = game.mode; game.chooseMode(null); return lit && m === 'sweep'; })();
     script.noBribeBarInPlayArea = !document.getElementById('pp_bribes');
     press('Undo');
     script.undoAction = log.actions.slice(-1)[0];
@@ -203,10 +210,11 @@ if (mode === 'script') {
     game.enterBribe(bribeArgs, true);
     script.brokeDisabled = log.buttons.filter((b) => b.disabled).length;
     playersData[1].bitcoins = savedCoins;
+    script.brokeTilesOn = ['police', 'sweep', 'roadblock', 'more'].filter(tileOn).length;
     game.enterBribe({ options: { ...bribeArgs.options, more: [] }, bitcoins: 9 }, true);
-    script.moreDisabled = log.buttons.filter((b) => b.disabled).map((b) => b.label).join(',');
+    script.moreDisabled = ['police', 'sweep', 'roadblock', 'more'].filter((m) => !tileOn(m)).join(',');
     game.enterBribe(bribeArgs, true);
-    press('Police');
+    pressTile('police');
     const first = bribeArgs.options.police[0];
     tap(document.querySelector(`.pp_dist[data-r="${first[0]}"][data-c="${first[1]}"]`));
     script.policeStage = { need: first[2], open: first[3].length, confirmEnabled: enabled('Confirm') };
@@ -223,15 +231,15 @@ if (mode === 'script') {
 
     game.enterBribe(bribeArgs, true);
     log.pick = null; // popup closed without a choice: back to the bribe list
-    press('Bulldozer');
+    pressTile('sweep');
     script.litWhileAsking = lit();
     await tick();
     script.popupOffered = log.dialogs.slice(-1)[0];
-    script.cancelLeavesMode = log.buttons.some((b) => b.label === 'Police');
+    script.cancelLeavesMode = tileOn('police') && !tileEl('sweep').classList.contains('pp_chosen');
     script.noInlineTakeRow = document.querySelectorAll('#pp_sweep [data-take]').length === 0 && document.getElementById('pp_sweep').hidden;
 
     log.pick = '5';
-    press('Bulldozer');
+    pressTile('sweep');
     await tick();
     script.sweepLitMax = lit();
     script.countButton = humansLabel();
@@ -329,10 +337,12 @@ const report = {
         sweepAction: { ok: !!script.sweepAction && script.sweepAction.name === 'actSweep' && JSON.stringify(script.sweepAction.args) === JSON.stringify({ r: 2, c: 2, count: 4, tr: 2, tc: 4, drops: '2,2' }) },
         factoryAction: { ok: !!script.factoryAction && script.factoryAction.name === 'actPlaceFactory' && script.factoryAction.args.edge === script.factoryTapped && script.factoryButtonsBefore === 0 },
         factoryOutlines: { ok: script.outlines === free.length && script.outlineColour === 'solid' },
-        bribeButtons: { ok: script.bribeButtons.join('|') === 'Police:secondary|Bulldozer:secondary|Roadblock:secondary|More people:secondary|Undo:alert|Skip bribe:primary' && script.noBribeBarInPlayArea },
+        bribeButtons: { ok: script.bribeButtons.join('|') === 'Undo:alert|Skip bribe:primary' && script.noBribeBarInPlayArea },
+        bribeTiles: { ok: script.tilesOn === 'police,sweep,roadblock,more' && script.tileMin >= 44 && script.bullTokenTap === true },
+        shortTitle: { ok: script.bribeTitle.length <= 30 },
         undoAction: { ok: !!script.undoAction && script.undoAction.name === 'actUndo' },
         skipAction: { ok: !!script.skipAction && script.skipAction.name === 'actSkipBribe' },
-        disabledBribes: { ok: script.brokeDisabled === 4 && script.moreDisabled === 'More people' },
+        disabledBribes: { ok: script.brokeTilesOn === 0 && script.moreDisabled === 'more' },
         policeAction: { ok: !!script.policeAction && script.policeAction.name === 'actPolice' },
     } : undefined,
 };
