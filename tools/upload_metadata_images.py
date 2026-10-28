@@ -56,7 +56,7 @@ def load_cookies():
             cookies.append({'name': name, 'value': val, 'domain': 'studio.boardgamearena.com', 'path': '/'})
     return cookies
 
-def upload_single_asset(page, trigger_finder, file_path, label, project_slug):
+def upload_single_asset(page, trigger_finder, file_path, label, project_slug, is_prod=False):
     if not file_path.exists():
         print(f"    [!] File not found: {file_path}")
         return False
@@ -103,15 +103,16 @@ def upload_single_asset(page, trigger_finder, file_path, label, project_slug):
         print(f"    [!] Exception waiting for upload response: {e}")
 
     page.wait_for_timeout(2500)
-    navigate_to_media(page, project_slug)
+    navigate_to_media(page, project_slug, is_prod=is_prod)
     return True
 
-def delete_all_display_images(page, project_slug):
+def delete_all_display_images(page, project_slug, is_prod=False):
     print("    Clearing old display images...")
-    navigate_to_media(page, project_slug)
-    if "has been deployed" in page.content():
-        print(f"    [!] {project_slug} has been deployed, media cannot be modified in Studio.")
-        return
+    navigate_to_media(page, project_slug, is_prod=is_prod)
+    if not is_prod and "has been deployed" in page.content():
+        print(f"    [!] {project_slug} has been deployed, switching to production GMM...")
+        is_prod = True
+        navigate_to_media(page, project_slug, is_prod=True)
 
     max_deletes = 10
     attempts = 0
@@ -145,10 +146,11 @@ def delete_all_display_images(page, project_slug):
                 except Exception as e:
                     print(f"      [!] Delete response note: {e}")
         page.wait_for_timeout(2000)
-        navigate_to_media(page, project_slug)
+        navigate_to_media(page, project_slug, is_prod=is_prod)
 
-def navigate_to_media(page, project_slug):
-    url = f'https://studio.boardgamearena.com/controlpanelgames?game={project_slug}'
+def navigate_to_media(page, project_slug, is_prod=False):
+    host = 'boardgamearena.com' if is_prod else 'studio.boardgamearena.com'
+    url = f'https://{host}/controlpanelgames?game={project_slug}'
     page.goto(url, wait_until='domcontentloaded')
     page.wait_for_timeout(2500)
 
@@ -159,7 +161,7 @@ def navigate_to_media(page, project_slug):
     else:
         print("    [!] Could not locate Media tab")
 
-def upload_game_media(page, slug, replace_displays=False, displays_only=False):
+def upload_game_media(page, slug, replace_displays=False, displays_only=False, is_prod=False):
     project_slug = PROJECT_MAP.get(slug, slug)
     game_folder = 'KILN' if slug.lower() == 'kiln' else slug
     meta_dir = ROOT / 'games' / game_folder / 'bga' / 'metadata_assets'
@@ -168,10 +170,11 @@ def upload_game_media(page, slug, replace_displays=False, displays_only=False):
     print(f"Processing media upload for: {slug} (project: {project_slug})")
     print(f"=======================================================")
 
-    navigate_to_media(page, project_slug)
-    if "has been deployed" in page.content():
-        print(f"    [!] {project_slug} has been deployed, media cannot be modified in Studio.")
-        return
+    navigate_to_media(page, project_slug, is_prod=is_prod)
+    if not is_prod and "has been deployed" in page.content():
+        print(f"    [!] {project_slug} has been deployed, switching to production GMM...")
+        is_prod = True
+        navigate_to_media(page, project_slug, is_prod=True)
 
     if not displays_only:
         # 1. Box image
@@ -183,7 +186,7 @@ def upload_game_media(page, slug, replace_displays=False, displays_only=False):
                 return btns
             return parent.locator('div.cursor-pointer')
 
-        upload_single_asset(page, find_box_trigger, meta_dir / 'box_280x280.png', 'Box', project_slug)
+        upload_single_asset(page, find_box_trigger, meta_dir / 'box_280x280.png', 'Box', project_slug, is_prod=is_prod)
 
         # 2. Icon image
         def find_icon_trigger():
@@ -191,7 +194,7 @@ def upload_game_media(page, slug, replace_displays=False, displays_only=False):
             parent = h.locator('xpath=../..')
             return parent.locator('div.cursor-pointer')
 
-        upload_single_asset(page, find_icon_trigger, meta_dir / 'icon_50x50.png', 'Icon', project_slug)
+        upload_single_asset(page, find_icon_trigger, meta_dir / 'icon_50x50.png', 'Icon', project_slug, is_prod=is_prod)
 
         # 3. Banner image
         def find_banner_trigger():
@@ -199,7 +202,7 @@ def upload_game_media(page, slug, replace_displays=False, displays_only=False):
             parent = h.locator('xpath=../..')
             return parent.locator('div.cursor-pointer')
 
-        upload_single_asset(page, find_banner_trigger, meta_dir / 'banner_1386x400.jpg', 'Banner', project_slug)
+        upload_single_asset(page, find_banner_trigger, meta_dir / 'banner_1386x400.jpg', 'Banner', project_slug, is_prod=is_prod)
 
         # 4. Publisher image
         def find_publisher_trigger():
@@ -207,11 +210,11 @@ def upload_game_media(page, slug, replace_displays=False, displays_only=False):
             parent = h.locator('xpath=../..')
             return parent.locator('a.bga-button:has-text("+")')
 
-        upload_single_asset(page, find_publisher_trigger, meta_dir / 'publisher_280x280.png', 'Publisher', project_slug)
+        upload_single_asset(page, find_publisher_trigger, meta_dir / 'publisher_280x280.png', 'Publisher', project_slug, is_prod=is_prod)
 
     # Display images
     if replace_displays:
-        delete_all_display_images(page, project_slug)
+        delete_all_display_images(page, project_slug, is_prod=is_prod)
 
     def find_display_trigger():
         h = page.get_by_text('Display images', exact=True).first
@@ -220,7 +223,7 @@ def upload_game_media(page, slug, replace_displays=False, displays_only=False):
 
     display_files = sorted(meta_dir.glob('display_*.jpg'))
     for d_file in display_files:
-        upload_single_asset(page, find_display_trigger, d_file, f'Display ({d_file.name})', project_slug)
+        upload_single_asset(page, find_display_trigger, d_file, f'Display ({d_file.name})', project_slug, is_prod=is_prod)
 
     if not displays_only:
         # 7. Title image
@@ -229,7 +232,7 @@ def upload_game_media(page, slug, replace_displays=False, displays_only=False):
             parent = h.locator('xpath=../..')
             return parent.locator('a.bga-button:has-text("+")')
 
-        upload_single_asset(page, find_title_trigger, meta_dir / 'title_2000x2000.png', 'Title', project_slug)
+        upload_single_asset(page, find_title_trigger, meta_dir / 'title_2000x2000.png', 'Title', project_slug, is_prod=is_prod)
 
     # Final screenshot of Media tab
     page.screenshot(path=f'/tmp/{slug}_media_final.png')
