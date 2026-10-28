@@ -63,7 +63,7 @@ class StatePlayerTurn {
         this.game.clearKilnHighlights();
 
         if (isCurrentPlayerActive) {
-            this.bga.statusBar.setTitle(_('${you} must select an arrow to move the outer tile and push'));
+            this.bga.statusBar.setTitle(_('${you} must choose where to push the tile into the kiln'));
             this.game.highlightValidPushArrows(args.valid_slots || []);
         } else {
             this.bga.statusBar.setTitle(_('${actplayer} is choosing where to push the tile into the kiln'));
@@ -73,6 +73,7 @@ class StatePlayerTurn {
 
     onLeavingState(args, isCurrentPlayerActive) {
         this.game.clearArrowHighlights();
+        this.game.clearActionButtons();
     }
 }
 
@@ -524,6 +525,8 @@ export class Game {
         this.currentPlacementNorm = null;
         this.currentPlacementAnchors = [];
         this.stagedAnchor = null;
+        this.stagedSlot = null;
+        this.pushSlots = null;
     }
 
     isCurrentPlayerActive() {
@@ -554,6 +557,8 @@ export class Game {
             btn_fix_mess: _('Erase 1 painted cell from your warehouse to make room, then place the shape.'),
             btn_skip_placement: _('Skip copying the shape this turn. Nothing is erased.'),
             btn_skip_fix: _('Skip erasing: no shape is copied this turn.'),
+            btn_confirm_push: _('Push the tile into the selected line.'),
+            btn_cancel_push: _('Choose another entry point.'),
             btn_confirm_place: _('Place the shape in the highlighted cell.'),
             btn_confirm_sell: _('Sell the selected lines for points.'),
             btn_toggle_type: _('Switch the selection between rows and columns.'),
@@ -643,6 +648,7 @@ export class Game {
         this.buildMainLayout();
         this.setupBoardScaler();
         this.setupPanelGlyphs();
+        this.updatePanelCounts();
         this.setupTooltips();
         this.applyTooltipPreference();
         if (this.bga?.userPreferences) {
@@ -753,6 +759,24 @@ export class Game {
         });
     }
 
+    /** Compact player panel: score (framework) plus tiles on the mat. The full mat stays in the game area. */
+    updatePanelCounts() {
+        Object.keys(this.gamedatas.players || {}).forEach(pId => {
+            const panel = this.bga?.playerPanels?.getElement?.(pId);
+            if (!panel) return;
+            let el = panel.querySelector('.kiln_panel_counts');
+            if (!el) {
+                el = document.createElement('div');
+                el.className = 'kiln_panel_counts';
+                panel.appendChild(el);
+            }
+            const wh = this.warehouses[pId] || [];
+            let n = 0;
+            for (let y = 0; y < 5; y++) for (let x = 0; x < 5; x++) if (wh[y] && wh[y][x]) n++;
+            el.textContent = `${_('Mat')} ${n}/25`;
+        });
+    }
+
     buildMainLayout() {
         const area = this.bga.gameArea.getElement();
         area.innerHTML = '';
@@ -774,9 +798,6 @@ export class Game {
             <div id="kiln_main_layout" class="kiln_main_layout ${isMultiplayer ? 'kiln_multiplayer' : ''} ${numPlayers === 3 ? 'kiln_3player' : ''}">
                 <!-- Score Track: Top-Left in 3-4p, Left beside kiln in 2p -->
                 <div class="kiln_track_panel" id="kiln_track_panel">
-                    <div class="kiln_panel_header">
-                        <span class="kiln_panel_title">${_('Score Track')}</span>
-                    </div>
                     <div id="kiln_score_track" class="kiln_score_track"></div>
                     ${Number(this.variantBonusSpaces) === 1 ? `
                         <div class="kiln_track_legend" id="kiln_track_legend" title="${_('Spaces 5, 8, 14, 17, 19, 23, 26 award an extra turn in the Heating up the Kiln variant')}">
@@ -795,7 +816,7 @@ export class Game {
                 <!-- Central Kiln (6x6) with 24 push arrows -->
                 <div class="kiln_center_panel" id="kiln_center_panel">
                     <!-- Black Tile Push Rule Indicator (Top-Left Corner) -->
-                    <div class="kiln_black_rule_badge" id="kiln_black_rule_badge" role="button" tabindex="0" title="${_('Pushing black tile out gives 1 extra turn')}">
+                    <div class="kiln_black_rule_badge" id="kiln_black_rule_badge" role="img" aria-label="${_('Pushing the black tile out of the kiln gives 1 extra turn')}">
                         <div class="kiln_black_rule_tile">
                             <span class="kiln_black_push_arrow">&gt;</span>
                         </div>
@@ -837,30 +858,6 @@ export class Game {
         this.renderKilnBoard();
         this.renderWarehouses();
         this.updateOuterTileVisual();
-        this.setupBlackTileBadge();
-    }
-
-    /**
-     * Interactivity for black tile rule badge in top-left corner of the central board
-     */
-    setupBlackTileBadge() {
-        const badge = document.getElementById('kiln_black_rule_badge');
-        if (!badge) return;
-
-        badge.addEventListener('click', (e) => {
-            e.stopPropagation();
-            badge.classList.toggle('kiln_tooltip_active');
-            const msg = _('Pushing black tile out gives 1 extra turn');
-            if (typeof this.showMessage === 'function') {
-                this.showMessage(msg, 'info');
-            } else if (typeof gameui !== 'undefined' && typeof gameui.showMessage === 'function') {
-                gameui.showMessage(msg, 'info');
-            }
-        });
-
-        document.addEventListener('click', () => {
-            badge.classList.remove('kiln_tooltip_active');
-        });
     }
 
     /**
@@ -940,6 +937,10 @@ export class Game {
         `;
 
         el.addEventListener('click', () => this.onArrowClicked(slot));
+        if (this.hasHover()) {
+            el.addEventListener('mouseenter', () => this.onArrowHover(slot, true));
+            el.addEventListener('mouseleave', () => this.onArrowHover(slot, false));
+        }
         return el;
     }
 
@@ -1205,33 +1206,117 @@ export class Game {
     }
 
     /**
-     * Arrow click interaction
+     * Arrow interaction. Mouse: hover previews the push, click pushes. Touch: the first tap selects an
+     * entry point (the push is previewed on the kiln), a second tap on it or the action bar button pushes.
      */
-    onArrowClicked(slot) {
-        if (!this.isCurrentPlayerActive()) return;
-        const curSlot = this.outerTile.border_slot;
-        if (slot === curSlot) return;
-
-        this.clearArrowHighlights();
-        this.bga.statusBar.setTitle(_('Pushing tile into the kiln...'));
-
-        this.bga.actions.performAction('actPushTile', { targetSlot: slot });
+    hasHover() {
+        return !!(window.matchMedia && window.matchMedia('(hover: hover)').matches);
     }
 
+    onArrowClicked(slot) {
+        if (!this.isCurrentPlayerActive() || !this.pushSlots) return;
+        if (!this.pushSlots.includes(slot) || slot === this.outerTile.border_slot) return;
+
+        if (!this.hasHover() && this.askConfirmPlacement()) {
+            if (this.stagedSlot === slot) {
+                this.confirmPush();
+            } else {
+                this.stagePush(slot);
+            }
+            return;
+        }
+        this.stagedSlot = slot;
+        this.confirmPush();
+    }
+
+    onArrowHover(slot, isEnter) {
+        if (this.stagedSlot !== null || !this.pushSlots || !this.isCurrentPlayerActive()) return;
+        if (isEnter && this.pushSlots.includes(slot) && slot !== this.outerTile.border_slot) this.previewPush(slot);
+        else this.clearPushPreview();
+    }
+
+    stagePush(slot) {
+        this.stagedSlot = slot;
+        this.previewPush(slot);
+        this.clearActionButtons();
+        this.bga.statusBar.setTitle(_('${you} push the tile into this line, the tile at the far end leaves the kiln'));
+        this.addActionButton('btn_confirm_push', _('Push'), () => this.confirmPush(), 'primary');
+        this.addActionButton('btn_cancel_push', _('Cancel'), () => this.cancelPush(), 'alert');
+    }
+
+    cancelPush() {
+        this.stagedSlot = null;
+        this.clearPushPreview();
+        this.clearActionButtons();
+        this.bga.statusBar.setTitle(_('${you} must choose where to push the tile into the kiln'));
+    }
+
+    confirmPush() {
+        if (this.stagedSlot === null) return;
+        // Keep the selection and buttons until the server accepts the move (a refusal leaves a working Push)
+        this.bga.actions.performAction('actPushTile', { targetSlot: this.stagedSlot });
+    }
+
+    /** Cells of the line a slot pushes, from the entry to the far end (same as the server's getPushLine). */
+    pushLine(slot) {
+        const cells = [];
+        if (slot <= 5) for (let y = 0; y < 6; y++) cells.push({ x: slot, y });
+        else if (slot <= 11) for (let x = 5; x >= 0; x--) cells.push({ x, y: slot - 6 });
+        else if (slot <= 17) for (let y = 5; y >= 0; y--) cells.push({ x: slot - 12, y });
+        else for (let x = 0; x < 6; x++) cells.push({ x, y: slot - 18 });
+        return cells;
+    }
+
+    /** Show the result of pushing at a slot: the line, the entering tile and the tile that leaves. */
+    previewPush(slot) {
+        this.clearPushPreview();
+        const line = this.pushLine(slot);
+        const colour = this.outerTile.color;
+        line.forEach((c, i) => {
+            const t = document.getElementById(`kiln_tile_${c.x}_${c.y}`);
+            if (!t) return;
+            t.classList.add('kiln_push_line');
+            if (i === 0) t.classList.add('kiln_push_in', `kiln_pin_${colour}`);
+            if (i === line.length - 1) t.classList.add('kiln_push_out');
+        });
+        const arrow = document.getElementById(`kiln_arrow_${slot}`);
+        if (arrow) arrow.classList.add('kiln_arrow_picked', `kiln_pin_${colour}`);
+        document.getElementById('kiln_oven_wrapper')?.classList.add('kiln_has_pick');
+    }
+
+    clearPushPreview() {
+        document.querySelectorAll('.kiln_push_line').forEach(t => {
+            t.classList.remove('kiln_push_line', 'kiln_push_in', 'kiln_push_out');
+            [...t.classList].filter(c => c.startsWith('kiln_pin_')).forEach(c => t.classList.remove(c));
+        });
+        document.querySelectorAll('.kiln_arrow_picked').forEach(a => {
+            a.classList.remove('kiln_arrow_picked');
+            [...a.classList].filter(c => c.startsWith('kiln_pin_')).forEach(c => a.classList.remove(c));
+        });
+        document.getElementById('kiln_oven_wrapper')?.classList.remove('kiln_has_pick');
+    }
+
+    /** Push step: usable entry points are strong, the others dimmed and not clickable. */
     highlightValidPushArrows(validSlots) {
+        this.pushSlots = validSlots.slice();
+        this.stagedSlot = null;
+        this.clearPushPreview();
+        document.getElementById('kiln_oven_wrapper')?.classList.add('kiln_pushing');
         document.querySelectorAll('.kiln_arrow_slot').forEach(el => {
             const slot = parseInt(el.getAttribute('data-slot'), 10);
-            if (validSlots.includes(slot)) {
-                el.classList.add('kiln_arrow_clickable');
-            } else {
-                el.classList.remove('kiln_arrow_clickable');
-            }
+            const ok = validSlots.includes(slot) && slot !== this.outerTile.border_slot;
+            el.classList.toggle('kiln_arrow_clickable', ok);
+            el.classList.toggle('kiln_arrow_unavailable', !ok);
         });
     }
 
     clearArrowHighlights() {
+        this.pushSlots = null;
+        this.stagedSlot = null;
+        this.clearPushPreview();
+        document.getElementById('kiln_oven_wrapper')?.classList.remove('kiln_pushing');
         document.querySelectorAll('.kiln_arrow_slot').forEach(el => {
-            el.classList.remove('kiln_arrow_clickable');
+            el.classList.remove('kiln_arrow_clickable', 'kiln_arrow_unavailable');
         });
     }
 
@@ -1294,6 +1379,7 @@ export class Game {
         this.currentPlacementAnchors = validAnchors;
 
         const myId = this.bga?.players?.getCurrentPlayerId?.();
+        document.getElementById(`kiln_wh_grid_${myId}`)?.classList.add('kiln_wh_placing');
         validAnchors.forEach(a => {
             const cell = document.getElementById(`kiln_wh_${myId}_${a.ox}_${a.oy}`);
             if (cell) cell.classList.add('kiln_anchor_valid');
@@ -1305,8 +1391,9 @@ export class Game {
         this.currentPlacementNorm = null;
         this.currentPlacementAnchors = [];
         document.querySelectorAll('.kiln_wh_cell').forEach(c => {
-            c.classList.remove('kiln_anchor_valid', 'kiln_ghost_valid', 'kiln_ghost_invalid');
+            c.classList.remove('kiln_anchor_valid', 'kiln_anchor_staged', 'kiln_ghost_valid', 'kiln_ghost_invalid');
         });
+        document.querySelectorAll('.kiln_wh_placing').forEach(g => g.classList.remove('kiln_wh_placing'));
     }
 
     onWarehouseCellHover(wx, wy, isEnter) {
@@ -1342,6 +1429,8 @@ export class Game {
     stagePlacement(wx, wy) {
         this.stagedAnchor = { wx, wy };
         this.showPlacementGhost(wx, wy);
+        document.querySelectorAll('.kiln_anchor_staged').forEach(c => c.classList.remove('kiln_anchor_staged'));
+        document.getElementById(`kiln_wh_${this.bga?.players?.getCurrentPlayerId?.()}_${wx}_${wy}`)?.classList.add('kiln_anchor_staged');
         this.clearActionButtons();
         this.bga.statusBar.setTitle(_('${you} must confirm this placement, or tap another highlighted cell'));
         this.addActionButton('btn_confirm_place', _('Confirm placement'), () => this.confirmPlacement(), 'primary');
@@ -1375,8 +1464,7 @@ export class Game {
 
         // Touch: a first tap stages the shape (preview) and needs Confirm, unless the player
         // turned off "Confirm placement" in preferences. Mouse: hover previews, click places.
-        const hasHover = window.matchMedia && window.matchMedia('(hover: hover)').matches;
-        if (!hasHover && this.askConfirmPlacement()) {
+        if (!this.hasHover() && this.askConfirmPlacement()) {
             this.stagePlacement(wx, wy);
             return;
         }
@@ -1715,6 +1803,7 @@ export class Game {
                 cell.className = `kiln_wh_cell kiln_wh_filled kiln_tile_${pColor}`;
             }
         });
+        this.updatePanelCounts();
         sounds.playPlace();
     }
 
@@ -1739,6 +1828,7 @@ export class Game {
         const scores = {};
         scores[player_id] = new_score;
         this.updateScores(scores);
+        this.updatePanelCounts();
         sounds.playScore();
     }
 
@@ -1758,6 +1848,7 @@ export class Game {
         this.clearKilnHighlights();
         this.clearWarehousePlacement();
         this.clearSellHighlights();
+        this.updatePanelCounts();
         sounds.playReset();
     }
 
@@ -1785,6 +1876,7 @@ export class Game {
         if (cell) {
             cell.className = 'kiln_wh_cell';
         }
+        this.updatePanelCounts();
         sounds.playReset();
     }
 
@@ -1793,6 +1885,6 @@ export class Game {
     }
 
     async notif_groupCannotFit(notif) {
-        sounds.playReset();
+        // No sound: nothing was done by a player here (the shape just does not fit)
     }
 }

@@ -109,37 +109,123 @@ function fixture() {
   };
 }
 
+const $ = (id) => document.getElementById(id);
+const vis = (el) => !!el && getComputedStyle(el).visibility !== 'hidden' && Number(getComputedStyle(el).opacity) > 0.05;
+const minSize = (nodes) => {
+  let m = 999;
+  nodes.forEach((c) => { const r = c.getBoundingClientRect(); const v = Math.min(r.width, r.height); if (v > 0 && v < m) m = v; });
+  return m === 999 ? 0 : Math.round(m);
+};
+const flows = {};
+
 try {
   const game = new Game(bga);
-  game.setup(fixture());
+  const fx = fixture();
+  fx.player_colors = { 1: 'red', 2: 'blue' };
+  fx.board = fx.board.map((row) => row.map((c) => (c === 'white' ? 'green' : c)));
+  fx.board.push(fx.board[0].slice());
+  fx.board.forEach((row) => { while (row.length < 6) row.push('red'); });
+  game.setup(fx);
+  window.__game = game; window.__turn = turnState;
 
-  if (turnState) {
-    turnState.onEnteringState({ valid_slots: [0, 1, 2, 3, 4] }, true);
-  }
+  // Not the push step: no arrows at all
+  flows.arrowsHiddenOutsidePush = { ok: ![...document.querySelectorAll('.kiln_arrow_svg')].some(vis) };
+
+  // Push step: valid arrows strong, others dimmed and not clickable
+  turnState.onEnteringState({ valid_slots: [1, 2, 3, 4, 5, 7] }, true);
+  const clickable = document.querySelectorAll('.kiln_arrow_clickable').length;
+  const unavailable = document.querySelectorAll('.kiln_arrow_unavailable').length;
+  flows.pushHighlights = { clickable, unavailable, ok: clickable === 6 && unavailable === 18 && vis(document.querySelector('.kiln_arrow_clickable .kiln_arrow_svg')) };
+  game.onArrowClicked(10);
+  game.onArrowClicked(0);
+  flows.invalidArrowIgnored = { ok: calls.length === 0 };
+
+  // Mouse: hover previews, click pushes straight away
+  game.hasHover = () => true;
+  game.onArrowHover(2, true);
+  const hoverLine = document.querySelectorAll('.kiln_push_line').length;
+  game.onArrowHover(2, false);
+  game.onArrowClicked(2);
+  flows.mouse = { hoverLine, pushed: calls.length === 1 && calls[0].name === 'actPushTile' && calls[0].args.targetSlot === 2,
+    ok: hoverLine === 6 && calls.length === 1 && calls[0].args.targetSlot === 2 };
+  calls.length = 0;
+  turnState.onEnteringState({ valid_slots: [1, 2, 3, 4, 5, 7] }, true);
+
+  // Touch: tap selects + previews, Push confirms, Cancel returns
+  game.hasHover = () => false;
+  game.onArrowClicked(3);
+  const staged = {
+    picked: !!document.querySelector('.kiln_arrow_picked'),
+    line: document.querySelectorAll('.kiln_push_line').length,
+    entering: document.querySelectorAll('.kiln_push_in').length,
+    leaving: document.querySelectorAll('.kiln_push_out').length,
+    buttons: buttons.map((b) => b.text).join('|'),
+    sent: calls.length,
+  };
+  game.cancelPush();
+  const afterCancel = { picked: !!document.querySelector('.kiln_arrow_picked'), buttons: buttons.length };
+  game.onArrowClicked(3);
+  buttons.find((b) => b.text === 'Push').callback();
+  flows.touch = { staged, afterCancel, sent: calls.map((c) => c.args.targetSlot),
+    ok: staged.picked && staged.line === 6 && staged.entering === 1 && staged.leaving === 1 && staged.buttons === 'Push|Cancel'
+        && staged.sent === 0 && !afterCancel.picked && afterCancel.buttons === 0 && calls.length === 1 && calls[0].args.targetSlot === 3 };
+  calls.length = 0;
+  turnState.onLeavingState({}, true);
+  flows.arrowsGoneAfterPush = { ok: ![...document.querySelectorAll('.kiln_arrow_svg')].some(vis) };
+
+  // Placement: valid cells strong, rest dimmed, staged cell distinct
+  game.setupWarehousePlacement([{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }], [{ ox: 0, oy: 0 }, { ox: 2, oy: 2 }]);
+  game.isCurrentPlayerActive = () => true;
+  game.onWarehouseCellClick(2, 2);
+  flows.placement = { valid: document.querySelectorAll('.kiln_anchor_valid').length, staged: document.querySelectorAll('.kiln_anchor_staged').length,
+    ghost: document.querySelectorAll('.kiln_ghost_valid').length,
+    dimmed: Number(getComputedStyle($('kiln_wh_1_4_4')).opacity) < 0.6,
+    ok: document.querySelectorAll('.kiln_anchor_valid').length === 2 && document.querySelectorAll('.kiln_anchor_staged').length === 1 };
+  game.clearWarehousePlacement();
+
+  // Sell step: sell arrows hidden until it is relevant, unusable ones stay hidden
+  const sellArrowsBefore = [...document.querySelectorAll('.kiln_row_arrow_btn, .kiln_col_arrow_btn')].some(vis);
+  game.playerTurnSell.onEnteringState({ completed_rows: [1], completed_cols: [] }, true);
+  const sellVisible = [...document.querySelectorAll('.kiln_row_arrow_btn, .kiln_col_arrow_btn')].filter(vis).length;
+  flows.sell = { sellArrowsBefore, sellVisible, buttons: buttons.map((b) => b.text).join('|'), ok: !sellArrowsBefore && sellVisible >= 1 };
+
+  // Layout and tap targets (after the push step is shown again so arrows are measurable)
+  turnState.onEnteringState({ valid_slots: [1, 2, 3, 4, 5, 7] }, true);
+  game.updateScores({ 1: 3, 2: 5 });
+  game.updatePanelCounts();
 
   setTimeout(() => {
-    const board = document.getElementById('kiln_main_container') || document.getElementById('kiln_board');
-    const boardRect = board ? board.getBoundingClientRect() : { width: 0 };
+    const layout = $('kiln_main_layout');
+    const lr = layout.getBoundingClientRect();
+    const grid = $('kiln_board_grid').getBoundingClientRect();
     const vp = window.innerWidth;
     const horizontalOverflow = Math.max(0, document.documentElement.scrollWidth - vp);
-
-    // Measure cell tap target size
-    let minCell = 999;
-    document.querySelectorAll('.kiln_cell, .kiln_arrow_slot').forEach(c => {
-      const r = c.getBoundingClientRect();
-      const s = Math.min(r.width, r.height);
-      if (s > 0 && s < minCell) minCell = s;
-    });
+    const boardCentreOffset = Math.round(Math.abs((grid.left + grid.width / 2) - (lr.left + lr.width / 2)));
+    const targets = {
+      arrowsClickable: minSize(document.querySelectorAll('.kiln_arrow_clickable')),
+      boardTiles: minSize(document.querySelectorAll('.kiln_board_tile')),
+      myWarehouseCells: minSize(document.querySelectorAll('#kiln_wh_grid_1 .kiln_wh_cell')),
+      sellArrows: minSize(document.querySelectorAll('.kiln_row_arrow_btn.kiln_arrow_available, .kiln_row_arrow_btn.kiln_arrow_selected')),
+    };
+    targets.ok = targets.arrowsClickable >= 32 && targets.boardTiles >= 32 && targets.myWarehouseCells >= 32 && targets.sellArrows >= 32;
+    const chrome = [...document.querySelectorAll('.kiln_track_panel, .kiln_center_panel, .kiln_warehouse_card, .kiln_price_table')]
+      .filter((e) => { const cs = getComputedStyle(e); return cs.boxShadow !== 'none' || (cs.borderTopWidth !== '0px' && cs.borderTopStyle !== 'none') || cs.backgroundColor !== 'rgba(0, 0, 0, 0)'; }).length;
+    const radii = [...document.querySelectorAll('.kiln_game_root *, #kiln_main_layout *')]
+      .filter((e) => parseFloat(getComputedStyle(e).borderTopLeftRadius) > 3 && getComputedStyle(e).borderTopLeftRadius.indexOf('%') < 0 && !e.classList.contains('kiln_score_disc') && !e.classList.contains('kiln_player_color_dot')).length;
 
     const report = {
       viewport: vp,
-      boardWidth: Math.round(boardRect.width),
+      boardWidth: Math.round(lr.width),
       horizontalOverflow: Math.round(horizontalOverflow),
-      cellTargetMin: minCell === 999 ? 0 : Math.round(minCell),
+      boardCentreOffset,
+      cellTargetMin: Math.min(targets.arrowsClickable, targets.boardTiles, targets.myWarehouseCells),
+      tapTargets: targets,
+      genericChromeBoxes: { count: chrome, ok: chrome === 0 },
+      radiiOver3px: { count: radii, ok: radii === 0 },
+      flows,
       jsErrors: window.errors,
-      ok: window.errors.length === 0 && horizontalOverflow === 0,
+      ok: window.errors.length === 0 && horizontalOverflow === 0 && boardCentreOffset <= 1,
     };
-
     document.getElementById('out').textContent = JSON.stringify(report, null, 2);
     document.body.dataset.done = '1';
   }, 350);
