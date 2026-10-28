@@ -94,70 +94,6 @@ body.enceladus_page_bg #game_play_area_background {
     white-space: nowrap;
 }
 
-/* ---------- special actions strip (sits above the garden, like the printed board) ---------- */
-
-#enc_specials {
-    display: grid;
-    grid-template-columns: repeat(var(--enc-cols, 10), 1fr);
-    gap: 3px;
-    margin: 0 auto 4px;
-}
-
-.enc_special {
-    position: relative;
-    min-height: 40px;
-    padding: 3px;
-    border: 1px solid rgba(20, 35, 58, 0.45);
-    border-radius: 3px;
-    background: #eef3f8;
-    cursor: pointer;
-}
-
-.enc_special > .enc_spr:first-child {
-    width: 84%;
-    margin: 0 auto;
-}
-
-.enc_special.enc_usable {
-    outline: 2px solid var(--enc-go);
-    outline-offset: 1px;
-}
-
-.enc_special.enc_unavailable {
-    opacity: 0.45;
-}
-
-.enc_special.enc_used {
-    cursor: default;
-}
-
-/* A used special action is covered by a disc in the colour of the player who used it, with their Martian (as in Gardens of Io) */
-.enc_cover {
-    position: absolute;
-    right: -4px;
-    bottom: -4px;
-    width: 58%;
-    height: 58%;
-    box-sizing: border-box;
-    border: 3px solid #ffffff;
-    border-radius: 50%;
-    background: var(--tc, #ffffff);
-    overflow: hidden;
-    pointer-events: none;
-}
-
-.enc_cover .enc_spr {
-    width: 100%;
-    height: 100%;
-    aspect-ratio: auto;
-    background-size: 500% 100%;
-}
-
-.enc_special[aria-pressed="true"] {
-    outline: 3px solid var(--enc-sel);
-    outline-offset: 1px;
-}
-
 /* ---------- the garden ---------- */
 
 #enc_board_wrap {
@@ -426,57 +362,27 @@ body.enceladus_page_bg #game_play_area_background {
     cursor: pointer;
 }
 
+/* A Martian you can tap (to move it or to start a special action): dashed ring + tint, like the other selectable pieces */
+.enc_martian.enc_can_move::after {
+    content: "";
+    position: absolute;
+    left: 3%;
+    top: 3%;
+    width: 94%;
+    height: 94%;
+    box-sizing: border-box;
+    border: 3px dashed var(--enc-go);
+    border-radius: 50%;
+    background: rgba(217, 105, 12, 0.18);
+    pointer-events: none;
+}
+
 .enc_martian.enc_selected .enc_spr {
     outline: 4px solid var(--enc-sel);
     outline-offset: 2px;
 }
 
 /* ---------- reserve, tube, player panels ---------- */
-
-#enc_pay {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    margin: 10px 0 4px;
-}
-
-#enc_pay[hidden],
-#enc_info[hidden] {
-    display: none;
-}
-
-#enc_pay.enc_pay_popup {
-    position: absolute;
-    z-index: 100;
-    background: #ffffff;
-    border: 2px solid var(--enc-ink);
-    border-radius: 3px;
-    padding: 8px 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    margin: 0;
-}
-
-.enc_pay_chips {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-}
-
-#enc_info {
-    margin: 6px auto 0;
-    max-width: 640px;
-    padding: 6px 10px;
-    border: 1px solid rgba(20, 35, 58, 0.4);
-    border-radius: 3px;
-    background: rgba(255, 255, 255, 0.7);
-    color: var(--enc-ink);
-    font-size: 14px;
-    text-align: center;
-}
 
 /* the reserve in the status bar: one row of colours (fewest first), the wildflower on its own row */
 .enc_sb_row {
@@ -505,13 +411,21 @@ body.enceladus_page_bg #game_play_area_background {
     font-weight: bold;
 }
 
-.enc_chip {
-    display: inline-flex;
+/* the tube: how many flowers of each colour are inside. A tap target (dashed ring) only while the Tube action is usable. */
+#enc_tube {
+    display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 4px;
-    min-width: 58px;
+    justify-content: center;
+    gap: 6px;
+    margin: 4px 6px 6px;
+}
+
+.enc_tube_btn,
+.enc_wild_btn {
+    box-sizing: border-box;
     min-height: 44px;
-    padding: 4px 8px;
+    padding: 4px 10px;
     border: 1px solid rgba(20, 35, 58, 0.4);
     border-radius: 3px;
     background: rgba(255, 255, 255, 0.7);
@@ -520,34 +434,28 @@ body.enceladus_page_bg #game_play_area_background {
     cursor: default;
 }
 
-.enc_chip .enc_spr {
-    width: 28px;
-    height: 28px;
-}
-
-.enc_chip b {
-    font-size: 16px;
-}
-
-.enc_chip.enc_payable {
-    border-color: var(--enc-go);
-    border-width: 2px;
-    cursor: pointer;
-}
-
-.enc_chip.enc_selected {
-    outline: 3px solid var(--enc-sel);
-    outline-offset: 1px;
-}
-
-/* the tube, just below the special actions: how many flowers of each colour are inside */
-#enc_tube {
+.enc_tube_btn {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: center;
     gap: 2px 12px;
-    margin: 4px 0 6px;
+}
+
+.enc_wild_btn {
+    width: 44px;
+    padding: 4px;
+}
+
+.enc_wild_btn .enc_spr {
+    width: 100%;
+}
+
+#enc_tube .enc_target {
+    outline: 3px dashed var(--enc-go);
+    outline-offset: -3px;
+    background-color: rgba(217, 105, 12, 0.22);
+    cursor: pointer;
 }
 
 .enc_tube_title {
@@ -569,6 +477,19 @@ body.enceladus_page_bg #game_play_area_background {
 .enc_tube_empty {
     font-size: 16px;
     font-style: italic;
+}
+
+/* the special actions this player has used, as small icons in their panel */
+.enc_panel_used {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin-top: 4px;
+}
+
+.enc_panel_used .enc_spr {
+    width: 26px;
+    height: 26px;
 }
 
 /* "Score: 2-3-3-4-5" on its own row in the player panel; the framework star shows the rank points */
@@ -655,21 +576,12 @@ body.enceladus_page_bg #game_play_area_background {
     .enc_candidate:hover {
         outline-color: var(--enc-ink);
     }
-
-    .enc_special:not(.enc_used):hover {
-        border-color: var(--enc-go);
-    }
 }
 
 /* ---------- wide screens: special actions and tube in a column to the right of the garden ---------- */
 
-.enc_special_label {
-    display: none;
-}
-
 #enc_main,
-#enc_side,
-#enc_actions_wrap {
+#enc_side {
     display: contents;
 }
 
@@ -693,75 +605,8 @@ body.enceladus_page_bg #game_play_area_background {
 
 #enc_root.enc_wide #enc_side {
     order: 2;
-    display: flex;
-    flex-direction: row;
-    align-items: flex-start;
-    flex: 0 0 auto;
-    gap: 12px;
-}
-
-#enc_root.enc_wide #enc_actions_wrap {
-    display: flex;
-    flex-direction: column;
-    width: 190px;
-    flex: 0 0 190px;
-    gap: 3px;
-    position: relative;
-}
-
-#enc_root.enc_wide #enc_specials {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    margin: 0;
-    gap: 3px;
-}
-
-#enc_root.enc_wide .enc_special {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    min-height: 40px;
-    padding: 2px 6px 2px 2px;
-    text-align: left;
-    color: var(--enc-ink);
-    font: inherit;
-}
-
-#enc_root.enc_wide .enc_special > .enc_spr:first-child {
-    flex: 0 0 36px;
-    width: 36px;
-    margin: 0;
-}
-
-#enc_root.enc_wide .enc_special_label {
     display: block;
-    flex: 1 1 auto;
-    font-size: 13px;
-    font-weight: 600;
-}
-
-#enc_root.enc_wide .enc_cover {
-    width: 24px;
-    height: 24px;
-    right: 4px;
-    bottom: auto;
-    top: 50%;
-    margin-top: -12px;
-    border-width: 2px;
-}
-
-#enc_root.enc_wide #enc_pay,
-#enc_root.enc_wide #enc_info,
-#enc_root.enc_wide #enc_final {
-    margin: 0;
-    max-width: none;
-}
-
-#enc_root.enc_wide #enc_info {
-    text-align: left;
-    max-width: 190px;
-    box-sizing: border-box;
+    flex: 0 0 auto;
 }
 
 /* the tube as a vertical glass tube listing its contents */
@@ -769,13 +614,18 @@ body.enceladus_page_bg #game_play_area_background {
     flex-direction: column;
     align-items: stretch;
     flex-wrap: nowrap;
-    gap: 4px;
     margin: 0;
+}
+
+#enc_root.enc_wide .enc_tube_btn {
+    flex-direction: column;
+    align-items: stretch;
+    flex-wrap: nowrap;
+    gap: 4px;
     padding: 8px 10px 12px;
     border: 3px solid #3d5470;
     border-top-width: 8px;
-    border-radius: 3px 3px 22px 22px;
-    background: rgba(255, 255, 255, 0.55);
+    border-radius: 3px;
     min-width: 90px;
 }
 
@@ -787,6 +637,10 @@ body.enceladus_page_bg #game_play_area_background {
     justify-content: space-between;
 }
 
+#enc_root.enc_wide .enc_wild_btn {
+    align-self: center;
+}
+
 /* Phones: no side padding, the garden takes the full width of the screen */
 @media (max-width: 800px) {
     #enc_table {
@@ -794,18 +648,9 @@ body.enceladus_page_bg #game_play_area_background {
         padding: 0 0 10px;
     }
 
-    #enc_info,
-    #enc_pay,
-    #enc_tube,
     #enc_final {
         margin-left: 6px;
         margin-right: 6px;
     }
 }
 
-@media (max-width: 420px) {
-
-    .enc_chip {
-        min-width: 50px;
-    }
-}

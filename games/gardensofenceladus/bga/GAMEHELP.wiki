@@ -23,10 +23,17 @@ Help your little Martian gardener harvest flowers from the icy garden of Encelad
 
 ==Special actions==
 
-Pay 3 flowers of one colour. The paid flowers go into the carrying tube. The icons read left to right on the strip above the garden.
+Pay 3 flowers of one colour. The paid flowers go into the carrying tube. There is no list of actions on the screen: the game offers only the special actions you can use right now.
+
+* Tap your '''Martian''' to see the actions that start from it (Jump, Diagonal, Swap Martian).
+* Tap a '''flower''' or a '''peak''' to see the actions that start from it (Pick, Swap, Move).
+* Tap the '''tube''' to use the Tube action, or the grey wildflower beside it to take it.
+* Or press '''Special action''' in the bar above the board to see everything you can use now.
+
+The board then highlights the squares you can choose. Choose the squares, pay with a colour (if you have more than one colour with 3 or more flowers, the colour buttons ask you), and confirm.
 
 {| class="wikitable"
-! Icon !! Action
+! No. !! Action
 |-
 | 1 || '''Tube''': pick 3 random flowers from the tube (you do not look). It needs at least 3 flowers in the tube.
 |-
@@ -49,7 +56,7 @@ Pay 3 flowers of one colour. The paid flowers go into the carrying tube. The ico
 | 10 || '''Wildflower''': take the grey wildflower into your reserve. It is not covered with a counter: once it is taken, this action is no longer available.
 |}
 
-After a special action is used, it is covered with a disc in the colour of the player who used it, showing that player's Martian. On wide screens the special actions and the tube form a column to the right of the garden; the tube lists how many flowers of each colour are inside it (payments are public). A Martian still standing outside the garden cannot use the actions that move a Martian (jump, diagonal and swap Martian). It enters the garden with its first move.
+The special actions a player has already used are shown as small icons in that player's panel. The tube is shown next to the garden (above it on a phone) and lists how many flowers of each colour are inside it (payments are public). A Martian still standing outside the garden cannot use the actions that move a Martian (jump, diagonal and swap Martian). It enters the garden with its first move.
 
 ==Scoring your hand==
 

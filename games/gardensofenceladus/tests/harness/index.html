@@ -114,7 +114,7 @@ const turnArgs = {
     moves: [{ martian: 1, targets: flowersInRow(4, 0, 1) }],
     jumps: [{ martian: 1, targets: [] }],
     diagonals: [{ martian: 1, targets: [[3, 1], [2, 2]] }],
-    specials: Object.fromEntries([1,2,3,4,5,6,7,8,9,10].map((s) => [s, { kind: '', used: false, available: [1, 4, 5, 8, 10].includes(s), martian: [2, 3, 5].includes(s), cells: 1 }])),
+    specials: Object.fromEntries([1,2,3,4,5,6,7,8,9,10].map((s) => [s, { kind: '', used: false, available: [1, 3, 4, 5, 8, 10].includes(s), martian: [2, 3, 5].includes(s), cells: 1 }])),
     payable: ['blue', 'green'],
     flowers: [], peaks: [], empties: [],
     reserve: gamedatas.reserves[1],
@@ -180,18 +180,13 @@ async function run() {
     const root = rect(q('#game_play_area'));
     const tableRect = rect(q('#enc_table'));
     const wrapRect = rect(q('#enc_board_wrap'));
-    results.debug_rects = { value: { game_play_area: [Math.round(root.left), Math.round(root.width)], enc_table: [Math.round(tableRect.left), Math.round(tableRect.width)], wrap: [Math.round(wrapRect.left), Math.round(wrapRect.width)], board: [Math.round(boardRect.left), Math.round(boardRect.width)], specials_cols: getComputedStyle(q('#enc_specials')).gridTemplateColumns, first_special: [Math.round(rect(q('.enc_special')).width), Math.round(rect(q('.enc_special')).height)] } };
     const wideNow = q("#enc_root").classList.contains("enc_wide");
     const centreOffset = wideNow ? (boardRect.left + boardRect.width / 2) - (wrapRect.left + wrapRect.width / 2) : (boardRect.left + boardRect.width / 2) - (root.left + root.width / 2);
-    const specialRect = qa('.enc_special').map((el) => rect(el));
-    const minSpecialW = Math.min(...specialRect.map((r) => r.width));
-    const minSpecialH = Math.min(...specialRect.map((r) => r.height));
     results.viewport = { value: `${innerWidth}x${innerHeight}, page ${W || 'auto'}` };
     results.board_css_px = { value: Math.round(boardRect.width) };
     results.gutter_px = { value: Math.round(rect(q('#enc_board_wrap')).left - (W || innerWidth) * 0) };
     results.cell_px = { value: Math.round(cell.width * 10) / 10 };
     results.cell_tap_min_px = { value: Math.round(Math.min(...cells.map((el) => Math.min(rect(el).width, rect(el).height))) * 10) / 10 };
-    results.special_button_px = { value: `${Math.round(minSpecialW)}x${Math.round(minSpecialH)}` };
     results.board_centre_offset_px = { value: Math.round(centreOffset * 10) / 10 };
     results.horizontal_overflow_px = { value: document.documentElement.scrollWidth - (W || innerWidth) };
     results.errors_after_setup = { value: window.errors.slice() };
@@ -221,15 +216,13 @@ async function run() {
         {
             const wideExpected = q('#enc_root').clientWidth >= 900;
             check('wide_mode_matches_width', q('#enc_root').classList.contains('enc_wide') === wideExpected, q('#enc_root').clientWidth);
+            check('no_permanent_action_list', !q('#enc_specials') && qa('.enc_special').length === 0 && !q('#enc_pay') && !q('#enc_info'), null);
             if (wideExpected) {
-                const b = rect(q('#enc_board')), sp = rect(q('#enc_specials')), tu = rect(q('#enc_tube'));
-                check('wide_specials_right_of_board', sp.left >= b.right - 1 && tu.left >= b.right - 1, [b.right, sp.left, tu.left]);
-                const tops = qa('.enc_special').map((e) => rect(e).top);
-                check('wide_specials_stacked', tops.every((t, i) => i === 0 || t > tops[i - 1]) && new Set(qa('.enc_special').map((e) => Math.round(rect(e).left))).size === 1, tops);
-                check('wide_tube_right_of_specials', tu.left >= sp.right - 1, [sp.right, tu.left]);
+                const b = rect(q('#enc_board')), tu = rect(q('#enc_tube'));
+                check('wide_tube_right_of_board', tu.left >= b.right - 1, [b.right, tu.left]);
                 check('wide_board_big', b.width >= 600, b.width);
             } else {
-                check('phone_specials_above_board', rect(q('#enc_specials')).bottom <= rect(q('#enc_board_wrap')).top + 1, null);
+                check('phone_tube_above_board', rect(q('#enc_tube')).bottom <= rect(q('#enc_board_wrap')).top + 1, null);
             }
         }
         check('single_martian_targets_live', qa('#enc_board .enc_target').length === turnArgs.moves[0].targets.length, qa('#enc_board .enc_target').length);
@@ -251,18 +244,16 @@ async function run() {
             const img = q('#panel_1 .enc_panel_item .enc_spr');
             check('panel_flowers_big', rect(img).width >= 30 && parseFloat(getComputedStyle(q('#panel_1 .enc_panel_item b')).fontSize) >= 24, rect(img).width);
         }
-        const isWide = q('#enc_root').classList.contains('enc_wide');
-        check('tube_position_correct', isWide ? rect(q('#enc_tube')).left >= rect(q('#enc_specials')).right - 1 : (rect(q('#enc_tube')).top > rect(q('#enc_specials')).bottom && rect(q('#enc_tube')).bottom < rect(q('#enc_board_wrap')).top), null);
         check('tube_shows_counts', qa('#enc_tube .enc_tube_item b').map((b) => b.textContent).join(',') === '3,2' && /5/.test(q('#enc_tube .enc_tube_title').textContent), q('#enc_tube').textContent);
         game.notif_tubeChanged({ tube: { blue: 0, red: 1, yellow: 0, green: 0, magenta: 0 } });
         check('tube_updates_on_notification', qa('#enc_tube .enc_tube_item b').map((b) => b.textContent).join(',') === '1', q('#enc_tube').textContent);
         game.notif_tubeChanged({ tube: gamedatas.tube });
         game.notif_specialUsed({ slot: 6, player_id: 2 });
         {
-            const cover = q('#enc_special_6 .enc_cover');
-            check('used_special_disc_in_player_colour', !!cover && cover.style.getPropertyValue('--tc') === '#0000ff' && !!cover.querySelector('.enc_spr'), cover && cover.outerHTML);
+            const used = q('#panel_2 .enc_panel_used .enc_spr');
+            check('used_special_icon_in_player_panel', !!used && /peak and flower/i.test(used.getAttribute('aria-label')) && !q('#panel_1 .enc_panel_used'), used && used.outerHTML);
             game.specials[6] = { used: false, by: 0 };
-            game.renderSpecials();
+            game.renderPanels();
         }
         {
             // tap a live target with no Martian selected first
@@ -281,18 +272,6 @@ async function run() {
             await flush();
             check('two_martians_need_selection', qa('#enc_board .enc_target').length === 0, qa('#enc_board .enc_target').length);
             game.martians = saved;
-            game.enterTurn(turnArgs, true);
-            await flush();
-        }
-        {
-            // tapping an unaffordable special explains it; an affordable one explains and starts
-            tap(q('.enc_special[data-slot="2"]'));
-            await flush();
-            const info = q('#enc_info');
-            check('special_tap_explains_unaffordable', !info.hidden && /Jump/.test(info.textContent) && /cannot/i.test(info.textContent) && !game.stage, info.textContent);
-            tap(q('.enc_special[data-slot="4"]'));
-            await flush();
-            check('special_tap_explains_affordable', /Pick any flower/.test(q('#enc_info').textContent) && /can use/i.test(q('#enc_info').textContent) && !!game.stage, q('#enc_info').textContent);
             game.enterTurn(turnArgs, true);
             await flush();
         }
@@ -380,23 +359,6 @@ async function run() {
         game.enterTurn(turnArgs, true);
         await flush();
 
-        // Why a special is faded comes from the server reason, one text per reason
-        {
-            const reasons = { used: /already used/i, no_pay: /3 flowers/i, tube: /tube/i, outside: /not in the garden/i, no_target: /nothing/i };
-            const ok = Object.entries(reasons).every(([reason, re]) => {
-                game.args = { ...turnArgs, specials: { ...turnArgs.specials, 2: { ...turnArgs.specials[2], available: false, reason } } };
-                return re.test(game.specialBlocker(2) || '');
-            });
-            check('special_blocker_text_follows_server_reason', ok, null);
-            game.args = { ...turnArgs, specials: { ...turnArgs.specials, 4: { ...turnArgs.specials[4], available: true, reason: null } } };
-            check('available_special_has_no_blocker', game.specialBlocker(4) === null, game.specialBlocker(4));
-            game.enterTurn({ ...turnArgs, specials: { ...turnArgs.specials, 4: { ...turnArgs.specials[4], available: true } }, payable: ['red'] }, true);
-            await flush();
-            check('payable_colours_follow_server_not_stale_reserve', JSON.stringify(game.myPayable()) === JSON.stringify(['red']), game.myPayable());
-            game.enterTurn(turnArgs, true);
-            await flush();
-        }
-
         // Last-move marks: landing = tinted square with double ring, adjacent = small dashed ring, older moves dashed
         {
             game.notif_martianMoved({ last_moves: [{ pid: 2, r: 2, c: 5, ar: 2, ac: 6 }, { pid: 1, r: 4, c: 3, ar: -1, ac: -1 }] });
@@ -422,48 +384,119 @@ async function run() {
             check('sounds_queued_not_stacked', immediate === 1 && log.sounds.length - before === 2, [immediate, log.sounds.length - before]);
         }
 
-        // Special action: the tube (slot 1). Needs a payable colour, then Confirm.
+        // Only usable specials are offered: one compact entry in the action bar, nothing else
         game.enterTurn(turnArgs, true);
         await flush();
-        tap(q('.enc_special[data-slot="1"]'));
+        check('special_entry_only_when_available', buttonLabels().join() === 'Special action', buttonLabels());
+        {
+            game.enterTurn({ ...turnArgs, specials: Object.fromEntries(Object.entries(turnArgs.specials).map(([k, v]) => [k, { ...v, available: false }])) }, true);
+            await flush();
+            check('no_special_button_when_none_usable', buttonLabels().length === 0, buttonLabels());
+            check('tube_not_tappable_when_unusable', q('.enc_tube_btn').disabled && !q('.enc_wild_btn'), null);
+            game.enterTurn(turnArgs, true);
+            await flush();
+        }
+        // The choice lists exactly the usable specials (server list), each as a short button
+        tap(q('.enc_martian[data-id="1"]'));
+        await flush();
+        check('martian_tap_offers_only_its_specials', buttonLabels().join() === 'Diagonal,Swap Martian,Undo', buttonLabels());
+        statusBar.buttons.find((b) => b.label === 'Undo').fn();
+        game.enterTurn(turnArgs, true);
+        await flush();
+        const entry = statusBar.buttons.find((b) => b.label === 'Special action');
+        entry.fn();
+        await flush();
+        check('choice_lists_usable_only', buttonLabels().join() === 'Tube,Diagonal,Pick a flower,Swap Martian,Move a flower,Wildflower,Undo', buttonLabels());
+        check('no_rules_text_on_board', !q('#enc_root').textContent.match(/pay 3|cannot|you can/i), q('#enc_root').textContent.slice(0, 200));
+
+        // Tube: tap the tube itself, pay, confirm
+        game.enterTurn(turnArgs, true);
+        await flush();
+        check('tube_is_target_when_usable', q('.enc_tube_btn').classList.contains('enc_target') && !!q('.enc_wild_btn'), null);
+        tap(q('.enc_tube_btn'));
         await flush();
         const payBlue = statusBar.buttons.find((b) => /Blue/i.test(b.label));
-        check('pay_option_in_status_bar', !!payBlue, buttonLabels());
+        check('pay_option_in_status_bar', !!payBlue && !statusBar.buttons.some((b) => b.label === 'Confirm'), buttonLabels());
         if (payBlue) payBlue.fn();
-        await flush();
-        const c2 = statusBar.buttons.find((b) => b.label === 'Confirm');
-        check('special_confirm_after_payment', !!c2 && !c2.disabled, buttonLabels());
-        c2.fn();
         const spec = log.actions.find((a) => a.name === 'actSpecial');
         check('special_action_sent', !!spec && spec.args.slot === 1 && spec.args.colour === 'blue', spec);
 
-        // Only one payable colour: it is chosen automatically
+        // Only one payable colour: chosen automatically, Confirm
         game.enterTurn({ ...turnArgs, payable: ['blue'] }, true);
         await flush();
-        tap(q('.enc_special[data-slot="1"]'));
+        tap(q('.enc_tube_btn'));
         await flush();
         const cAuto = statusBar.buttons.find((b) => b.label === 'Confirm');
-        check('single_payable_auto_selected', !!cAuto && !cAuto.disabled && game.stage.colour === 'blue' && q('#enc_pay').hidden, buttonLabels());
+        check('single_payable_auto_selected', !!cAuto && game.stage.colour === 'blue', buttonLabels());
 
-        // Undo clears a stage
+        // Wildflower from the tube strip
         game.enterTurn(turnArgs, true);
         await flush();
-        tap(q('.enc_special[data-slot="4"]'));
+        tap(q('.enc_wild_btn'));
         await flush();
-        const undo = statusBar.buttons.find((b) => b.label === 'Undo');
-        check('undo_button_during_stage', !!undo, buttonLabels());
-        undo.fn();
+        check('wildflower_stage', game.stage && game.stage.slot === 10, game.stage);
+        game.enterTurn(turnArgs, true);
         await flush();
-        check('undo_clears_stage', !statusBar.buttons.some((b) => b.label === 'Confirm'), buttonLabels());
 
-        // A flower the server did not offer is refused on the spot, with a reason
+        // Tap a plain flower (not a move target): compact choice with the usable flower specials, the flower marked
+        {
+            const [fr, fc] = [7, 0];
+            check('plain_flower_is_not_target', !q(`#enc_board .enc_cell[data-r="${fr}"][data-c="${fc}"]`).classList.contains('enc_target'), null);
+            tap(q(`#enc_board .enc_cell[data-r="${fr}"][data-c="${fc}"]`));
+            await flush();
+            check('flower_tap_offers_flower_specials', buttonLabels().join() === 'Pick a flower,Move a flower,Undo', buttonLabels());
+            check('tapped_flower_marked_solid', getComputedStyle(q(`#enc_board .enc_cell[data-r="${fr}"][data-c="${fc}"]`)).outlineStyle === 'solid', null);
+            statusBar.buttons.find((b) => b.label === 'Move a flower').fn();
+            await flush();
+            check('flower_preselected_then_empty_squares_offered', game.stage.cells.length === 1 && qa('#enc_board .enc_target').length === 2, [game.stage.cells, qa('#enc_board .enc_target').length]);
+            tap(q('#enc_board .enc_cell[data-r="2"][data-c="5"]'));
+            await flush();
+            check('move_flower_needs_colour_choice', buttonLabels().join() === 'Blue (3),Green (3),Undo', buttonLabels());
+            statusBar.buttons.find((b) => /Green/.test(b.label)).fn();
+            const sp8 = log.actions.filter((a) => a.name === 'actSpecial').pop();
+            check('move_flower_sent', sp8.args.slot === 8 && sp8.args.r1 === 7 && sp8.args.c1 === 0 && sp8.args.r2 === 2 && sp8.args.c2 === 5 && sp8.args.colour === 'green', sp8);
+        }
+        // Tap a peak: no peak special usable, so nothing happens
+        game.enterTurn(turnArgs, true);
+        await flush();
+        tap(q('#enc_board .enc_cell[data-r="3"][data-c="3"]'));
+        await flush();
+        check('peak_tap_without_special_does_nothing', !game.stage, game.stage);
+        // With the peak specials usable a peak opens the choice; swap peak and flower accepts either order and sends the peak first
+        {
+            const sp = { ...turnArgs.specials, 6: { ...turnArgs.specials[6], available: true }, 9: { ...turnArgs.specials[9], available: true } };
+            game.enterTurn({ ...turnArgs, specials: sp, payable: ['red'] }, true);
+            await flush();
+            tap(q('#enc_board .enc_cell[data-r="8"][data-c="1"]'));
+            await flush();
+            statusBar.buttons.find((b) => b.label === 'Swap peak and flower').fn();
+            await flush();
+            check('flower_first_then_peak_targets', qa('#enc_board .enc_target').length === 5, qa('#enc_board .enc_target').length);
+            tap(q('#enc_board .enc_cell[data-r="5"][data-c="7"]'));
+            await flush();
+            statusBar.buttons.find((b) => b.label === 'Confirm').fn();
+            const sp6 = log.actions.filter((a) => a.name === 'actSpecial').pop();
+            check('swap_peak_flower_peak_sent_first', sp6.args.slot === 6 && sp6.args.r1 === 5 && sp6.args.c1 === 7 && sp6.args.r2 === 8 && sp6.args.c2 === 1, sp6);
+        }
+        // Invalid taps are silent: no status change, no stage
         game.enterTurn(turnArgs, true);
         await flush();
         tap(q('.enc_martian[data-id="1"]'));
         await flush();
+        const before = statusBar.title;
         tap(q('#enc_board .enc_cell[data-r="0"][data-c="0"]'));
         await flush();
-        check('refusal_has_reason', /not|cannot|No Martian|Tap/.test(statusBar.title), statusBar.title);
+        check('invalid_tap_is_silent', statusBar.title === before && game.stage.type === 'move' && !game.stage.target, statusBar.title);
+        check('action_bar_short_labels', statusBar.buttons.every((b) => b.label.length <= 22), buttonLabels());
+
+        // Undo clears a stage
+        game.enterTurn(turnArgs, true);
+        await flush();
+        game.openChoice(null, game.allOptions());
+        await flush();
+        statusBar.buttons.find((b) => b.label === 'Undo').fn();
+        await flush();
+        check('undo_clears_stage', !game.stage && !statusBar.buttons.some((b) => b.label === 'Confirm'), buttonLabels());
     }
 
     // ?demo=1: leave the page in a mid-move state (landing chosen, adjacent offered, last moves marked) for screenshots
@@ -473,6 +506,22 @@ async function run() {
         tap(q('.enc_martian[data-id="1"]'));
         tap(q('#enc_board .enc_cell[data-r="4"][data-c="3"]'));
         await flush();
+    }
+
+    // ?shot=idle|martian|flower|move8: leave the page in a state for screenshots
+    {
+        const shot = new URLSearchParams(location.search).get('shot');
+        if (shot && mode === 'turn') {
+            game.martians = [{ id: 1, pid: 1, type: 'bot', r: 4, c: 0 }, { id: 2, pid: 2, type: 'ali', r: 0, c: 8 }];
+            game.fitLayout();
+            game.enterTurn(turnArgs, true);
+            await flush();
+            if (shot === 'martian') tap(q('.enc_martian[data-id="1"]'));
+            if (shot === 'flower') tap(q('#enc_board .enc_cell[data-r="7"][data-c="0"]'));
+            if (shot === 'move8') { tap(q('#enc_board .enc_cell[data-r="7"][data-c="0"]')); statusBar.buttons.find((b) => b.label === 'Move a flower').fn(); }
+            await flush();
+            q('#statusbar').innerHTML = statusBar.title + '<div>' + statusBar.buttons.map((b) => '[' + b.label + ']').join(' ') + '</div>';
+        }
     }
 
     // Sprites: every sprite element has a real sheet, a non-zero size and a position inside the sheet; each sheet loads
