@@ -256,6 +256,44 @@ $player = function (object $state, int $pid, object $game) {
     return $next;
 };
 
+// Rematch rotation: option 101 = 1 follows player_table_order (White moves first); swapping the order swaps the starter.
+function pf_setup_first(array $tableOrders, int $opt101): array
+{
+    $ctx = zr_context(basename(dirname(__DIR__)));
+    Stub::reset();
+    Stub::$slug = $ctx['slug'];
+    Stub::$gameinfos = $ctx['gameinfos'];
+    Stub::$statDefs = $ctx['stats'];
+    Stub::$prefDefaults = $ctx['prefs'];
+    Stub::$options = [101 => $opt101] + zr_defaults($ctx['options'], false);
+    Stub::loadSchema($ctx['sql']);
+    $class = $ctx['gameClass'];
+    $game = new $class();
+    $players = [];
+    foreach ($tableOrders as $id => $order) {
+        $players[$id] = ['player_name' => "P$id", 'player_color' => 'ff0000', 'player_canal' => 'c', 'player_avatar' => '', 'player_table_order' => $order];
+    }
+    Stub::$playerOrder = array_keys($players);
+    foreach ($ctx['stateClasses'] as $cls) {
+        $o = new $cls($game);
+        Stub::$states[$o->id] = $o;
+        Stub::$statesByClass[$cls] = $o;
+    }
+    (new ReflectionMethod($game, 'setupNewGame'))->invoke($game, $players, Stub::$options);
+    Stub::$playersCache = null;
+    return [$game->getWhitePlayerId(), (int) Stub::$active];
+}
+foreach ([1 => [11, 22], 2 => [22, 11]] as $label => $firstId) {
+    $order = $firstId[0] === 11 ? [11 => 1, 22 => 2] : [11 => 2, 22 => 1];
+    [$white, $active] = pf_setup_first($order, 1);
+    pf_check($white === $firstId[0], "table order case $label: first in table order must play White, got $white");
+    pf_check($active === $firstId[0], "table order case $label: first in table order must be the active player, got $active");
+}
+[$w, ] = pf_setup_first([11 => 2, 22 => 1], 2);
+pf_check($w === 11, 'option 2 keeps the table creator (first key) as White');
+[$w, ] = pf_setup_first([11 => 1, 22 => 2], 3);
+pf_check($w === 22, 'option 3 keeps the opponent (second key) as White');
+
 $code = zombie_run_game(basename(dirname(__DIR__)), ['60', '--random-options'], $player);
 $P = $GLOBALS['pf'];
 echo "fuzz: {$P['decisions']} decisions, {$P['moves']} slides, {$P['pushes']} pushes ({$P['ends_off']} opp off, {$P['ends_own']} own off), {$P['undo']} undo, {$P['skip']} skip, {$P['ends_trap']} trapped, {$P['free']} free placements, {$P['refused']} refusals, {$P['checks']} checks\n";

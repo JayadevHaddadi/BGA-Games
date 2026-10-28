@@ -416,12 +416,11 @@ class Game extends \Bga\GameFramework\Table
             // Opponent plays White / First Player
             $playerIds = [(int)$rawIds[1], (int)$rawIds[0]];
         } else {
-            // Option 1: Random
-            if (bga_rand(0, 1) === 1) {
-                $playerIds = [(int)$rawIds[1], (int)$rawIds[0]];
-            } else {
-                $playerIds = [(int)$rawIds[0], (int)$rawIds[1]];
-            }
+            // Option 1 (default): the first player in BGA table order plays White and moves first. BGA rotates the
+            // table order on a rematch with the same players, so the starting player alternates. The keys of $players
+            // are not in turn order; player_table_order is.
+            $playerIds = array_map('intval', $rawIds);
+            usort($playerIds, fn(int $x, int $y): int => (int) ($players[$x]['player_table_order'] ?? 0) <=> (int) ($players[$y]['player_table_order'] ?? 0));
         }
 
         // White is player_no 1, Brown is player_no 2

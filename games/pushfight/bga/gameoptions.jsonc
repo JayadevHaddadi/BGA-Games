@@ -20,8 +20,8 @@
     "name": "First Player / White Team",
     "values": {
       "1": {
-        "name": "Random",
-        "description": "Randomly determine who plays White (moves first)."
+        "name": "Default (table order)",
+        "description": "The first player in table order plays White (moves first). On a rematch with the same players the starting player alternates."
       },
       "2": {
         "name": "Table Creator",
