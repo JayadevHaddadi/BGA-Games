@@ -20,8 +20,8 @@ class PlayerTurn extends GameState
             $game,
             id: 30,
             type: StateType::ACTIVE_PLAYER,
-            description: clienttranslate('${actplayer} must walk or jump with a pawn'),
-            descriptionMyTurn: clienttranslate('${you} must walk (select a pawn, then a neighbouring square) or jump (select a pawn, then a landing square)'),
+            description: clienttranslate('${actplayer} must move a pawn'),
+            descriptionMyTurn: clienttranslate('${you} must move a pawn'),
         );
     }
 
