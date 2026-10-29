@@ -66,15 +66,15 @@ function redTileSvg(size, bg, circle, x, y) {
 /** Panel icon: a tile showing only a coloured border (the player's border group). */
 function redBorderIcon(colour, px) {
     return `<svg class="red_icon" viewBox="0 0 40 40" width="${px}" height="${px}" aria-hidden="true">`
-        + `<rect x="1" y="1" width="38" height="38" fill="${RED_HEX[colour]}" stroke="#1e1d1b" stroke-width="2"/>`
-        + `<rect x="9" y="9" width="22" height="22" fill="${RED_MAT}"/></svg>`;
+        + `<rect x="0.5" y="0.5" width="39" height="39" fill="${RED_HEX[colour]}" stroke="#1e1d1b" stroke-width="1"/>`
+        + `<rect x="9.5" y="9.5" width="21" height="21" fill="${RED_MAT}" stroke="#1e1d1b" stroke-width="1"/></svg>`;
 }
 
 /** Panel icon: a dot in the player's colour (the circle group). */
 function redCircleIcon(colour, px) {
     return `<svg class="red_icon" viewBox="0 0 40 40" width="${px}" height="${px}" aria-hidden="true">`
-        + `<rect x="1" y="1" width="38" height="38" fill="${RED_MAT}" stroke="#1e1d1b" stroke-width="2"/>`
-        + `<circle cx="20" cy="20" r="14" fill="${RED_HEX[colour]}" stroke="#1e1d1b" stroke-width="1.5"/></svg>`;
+        + `<rect x="0.5" y="0.5" width="39" height="39" fill="${RED_MAT}" stroke="#1e1d1b" stroke-width="1"/>`
+        + `<circle cx="20" cy="20" r="14" fill="${RED_HEX[colour]}" stroke="#1e1d1b" stroke-width="1"/></svg>`;
 }
 
 class PlayerTurnState {
@@ -179,7 +179,7 @@ export class Game {
                 + `<span class="red_op" aria-hidden="true">=</span>`
                 + `<b class="red_num red_total" data-part="score">0</b>`;
             el.appendChild(panel);
-            const tips = [[panel, this.colourLabel(colour)], [panel.querySelector('.red_term[id$=_border]'), _('Largest border group')], [panel.querySelector('.red_term[id$=_circle]'), _('Largest circle group')]];
+            const tips = [[panel.querySelector('.red_term[id$=_border]'), _('Largest square (border) group')], [panel.querySelector('.red_term[id$=_circle]'), _('Largest circle group')]];
             tips.forEach(([tel, ttext]) => {
                 const gui = this.bga?.gameui || (typeof gameui !== 'undefined' ? gameui : null);
                 if (gui && typeof gui.addTooltip === 'function') { try { if (typeof gui.removeTooltip === 'function') gui.removeTooltip(tel.id); gui.addTooltip(tel.id, ttext, ''); tel.removeAttribute('title'); } catch (e) { tel.title = ttext; } } else { tel.title = ttext; }
@@ -428,7 +428,6 @@ export class Game {
             const s = this.stage;
             const side = s.size * C - RED_GAP * 2;
             html += `<g class="red_ghost" opacity="0.7">${redTileSvg(s.size, s.bg, s.circle, s.x, s.y)}</g>`;
-            html += `<rect x="${s.x * C + RED_GAP}" y="${s.y * C + RED_GAP}" width="${side}" height="${side}" fill="none" stroke="${RED_INK}" stroke-width="7"/>`;
         }
         html += `</g>`;
 
