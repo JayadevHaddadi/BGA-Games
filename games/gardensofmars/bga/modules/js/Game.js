@@ -574,6 +574,11 @@ export class Game {
         }
     }
 
+    setPanelTip(el, text) {
+        const gui = this.bga?.gameui || (typeof gameui !== 'undefined' ? gameui : null);
+        if (gui && typeof gui.addTooltip === 'function') { try { if (typeof gui.removeTooltip === 'function') gui.removeTooltip(el.id); gui.addTooltip(el.id, text, ''); el.removeAttribute('title'); } catch (e) { el.title = text; } } else { el.title = text; }
+    }
+
     getColorName(color) {
         const names = {
             blue: _('Blue'),
@@ -1116,8 +1121,8 @@ export class Game {
                 box = document.createElement('div');
                 box.id = `gom_reserve_${pid}`;
                 box.className = 'gom_panel_reserve';
-                box.title = _('Flower reserve (public)');
                 panel.appendChild(box);
+                this.setPanelTip(box, _('Flower reserve (public)'));
             }
             box.innerHTML = '';
 
@@ -1143,6 +1148,7 @@ export class Game {
             });
 
             let total = 0;
+            const tips = [];
             const flowerList = document.createElement('div');
             flowerList.className = 'gom_panel_flower_list';
 
@@ -1151,11 +1157,13 @@ export class Game {
                 total += n;
                 const item = document.createElement('span');
                 item.className = 'gom_panel_flower';
-                item.title = `${col}: ${n}`;
+                item.id = `gom_panel_flower_${pid}_${col}`;
                 item.innerHTML = `<img src="${this.imgUrl(`flower_${col}.png`)}" alt="${col}"><b>${n}</b>`;
                 flowerList.appendChild(item);
+                tips.push([item, `${col}: ${n}`]);
             });
             box.appendChild(flowerList);
+            tips.forEach(([el, t]) => this.setPanelTip(el, t));
 
             const pen = document.createElement('div');
             pen.className = 'gom_panel_penalty';

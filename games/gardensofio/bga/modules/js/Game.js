@@ -321,17 +321,33 @@ export class Game {
             const res = this.reserves[pid] || {};
             const m = this.martians[pid] || { dist: -1 };
             const laps = m.dist >= 0 ? Math.floor(m.dist / 40) : 0;
-            line.title = `${_('Score')}: ${Math.max(0, m.dist)}, ${_('laps')}: ${laps}`;
             const alien = `<span class="gio_pmartian" style="--tc:${this.playerColour(pid)}">${this.martianImg(pid)}</span>`;
             const limit = this.gamedatas.special_limit || 1;
             const left = Math.max(0, limit - (m.specials_used || 0));
             line.innerHTML = alien + GIO_COLOURS.map((col) => `
-                <span class="gio_pcount" title="${this.colourLabel(col)}">
-                    <img src="${gioImg(`flower_${col}.png`)}" alt="${this.colourLabel(col)}" width="32" height="35"><b>${res[col] || 0}</b>
+                <span class="gio_pcount" id="gio_pcount_${pid}_${col}">
+                    <img src="${gioImg(`flower_${col}.png`)}" alt="${this.colourLabel(col)}" width="40" height="44"><b>${res[col] || 0}</b>
                 </span>`).join('') + this.tokensHtml(pid, left);
+            line.id = `gio_panel_${pid}`;
+            this.panelTip(line, `${_('Score')}: ${Math.max(0, m.dist)}, ${_('laps')}: ${laps}`);
+            GIO_COLOURS.forEach((col) => this.panelTip(document.getElementById(`gio_pcount_${pid}_${col}`), this.colourLabel(col)));
+            this.panelTip(line.querySelector('.gio_ptokens'), _('Special action tokens'));
         });
     }
 
+
+    /** BGA tooltip (shown beside the element, never under the mouse); native title= only as a fallback. */
+    panelTip(el, text) {
+        if (!el || !el.id) { if (el) el.title = text; return; }
+        const gui = this.bga?.gameui || (typeof gameui !== 'undefined' ? gameui : null);
+        if (gui && typeof gui.addTooltip === 'function') {
+            try {
+                if (typeof gui.removeTooltip === 'function') gui.removeTooltip(el.id);
+                gui.addTooltip(el.id, text, '');
+                el.removeAttribute('title');
+            } catch (e) { el.title = text; }
+        } else { el.title = text; }
+    }
     /**
      * The player's unused special action tokens: one disc (player colour with their Martian) per special action
      * still available to them. Using a special action puts the disc on that counter of the board.
@@ -340,7 +356,7 @@ export class Game {
         if (left <= 0) return '';
         const label = _('Special action tokens');
         const disc = `<span class="gio_ptoken" style="--tc:${this.playerColour(pid)}">${this.martianImg(pid)}</span>`;
-        return `<span class="gio_ptokens" role="img" title="${label}" aria-label="${label}">${disc.repeat(left)}</span>`;
+        return `<span class="gio_ptokens" id="gio_ptokens_${pid}" role="img" aria-label="${label}">${disc.repeat(left)}</span>`;
     }
 
     /* ------------------------------------------------------------------------ states */

@@ -507,19 +507,20 @@ body.vaultn_cb_on .vaultn_tone_3::before {
 .vaultn_panel_line {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 3px 6px;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 6px 10px;
     margin-top: 4px;
     background: rgba(0, 0, 0, 0.2);
     border-radius: 3px;
     color: #e0e6ed;
-    line-height: 1;
+    line-height: 1.3;
 }
 
 .vaultn_panel_pip {
     display: inline-block;
-    width: 20px;
-    height: 20px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     box-sizing: border-box;
     flex-shrink: 0;
@@ -539,7 +540,7 @@ body.vaultn_cb_on .vaultn_tone_3::before {
     font-weight: 800;
     font-size: 26px;
     color: #ffffff;
-    line-height: 1;
+    line-height: 1.3;
 }
 
 /* Rules / Help modal */

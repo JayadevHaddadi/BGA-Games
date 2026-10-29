@@ -753,9 +753,9 @@ export class Game {
             glyph.id = `kiln_glyph_${pId}`;
             glyph.setAttribute('aria-label', color);
             const letters = { red: 'N', blue: 'K', green: 'I', yellow: 'L' };
-            if (this.tipsOn()) glyph.setAttribute('title', `${this.gamedatas.players[pId]?.name || ''}: ${color} = ${letters[color] || '?'}`);
             const nameEl = panel.querySelector('.player-name, .player_name');
             if (nameEl) nameEl.prepend(glyph); else panel.prepend(glyph);
+            this.tip(glyph.id, `${this.gamedatas.players[pId]?.name || ''}: ${color} = ${letters[color] || '?'}`);
         });
     }
 

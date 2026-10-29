@@ -431,17 +431,40 @@ export class Game {
                 el.appendChild(line);
             }
             line.innerHTML = this.panelLine(pid);
+            this.panelTips(line, `enc_ptip_${pid}`);
+        });
+    }
+
+    /** BGA tooltip (shown beside the element, never under the mouse); native title= only as a fallback. */
+    panelTip(el, text) {
+        if (!el) return;
+        const gui = this.bga?.gameui || (typeof gameui !== 'undefined' ? gameui : null);
+        if (el.id && gui && typeof gui.addTooltip === 'function') {
+            try {
+                if (typeof gui.removeTooltip === 'function') gui.removeTooltip(el.id);
+                gui.addTooltip(el.id, text, '');
+                el.removeAttribute('title');
+            } catch (e) { el.title = text; }
+        } else { el.title = text; }
+    }
+
+    /** Give every [data-tip] inside a panel line a stable id and a BGA tooltip. */
+    panelTips(line, prefix) {
+        line.querySelectorAll('[data-tip]').forEach((n, i) => {
+            if (!n.id) n.id = `${prefix}_${i}`;
+            this.panelTip(n, n.getAttribute('data-tip'));
+            n.removeAttribute('data-tip');
         });
     }
 
     panelLine(pid) {
         const res = this.reserves[pid] || {};
-        const item = (col) => `<span class="enc_panel_item" title="${this.colourLabel(col)}">
+        const item = (col) => `<span class="enc_panel_item" data-tip="${this.colourLabel(col)}">
             ${encSpr('f', col, this.colourLabel(col))}<b>${res[col] || 0}</b></span>`;
-        const score = `<div class="enc_panel_score" title="${_('Flowers of each colour, sorted from lowest to highest')}">${_('Score')}: <b>${this.handText(pid)}</b></div>`;
+        const score = `<div class="enc_panel_score" data-tip="${_('Flowers of each colour, sorted from lowest to highest')}">${_('Score')}: <b>${this.handText(pid)}</b></div>`;
         const usedBy = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].filter((slot) => this.specials[slot] && this.specials[slot].used && Number(this.specials[slot].by) === Number(pid));
         const used = usedBy.length
-            ? `<div class="enc_panel_used" title="${_('Special actions used')}">${usedBy.map((slot) => (slot === 10 ? encSpr('f', 'wild', this.specialName(slot)) : encSpr('sp', slot, this.specialName(slot)))).join('')}</div>` : '';
+            ? `<div class="enc_panel_used" data-tip="${_('Special actions used')}">${usedBy.map((slot) => (slot === 10 ? encSpr('f', 'wild', this.specialName(slot)) : encSpr('sp', slot, this.specialName(slot)))).join('')}</div>` : '';
         return `${score}<div class="enc_panel_row">${this.coloursAscending(res).map(item).join('')}</div><div class="enc_panel_row">${item('wild')}</div>${used}`;
     }
 

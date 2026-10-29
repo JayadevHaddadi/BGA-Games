@@ -220,11 +220,11 @@ export class Game {
             box.classList.toggle('used', powersOn && used);
             const name = this.martianLabel(g.martian);
             if (powersOn) {
-                box.title = `${name} - ${this.powerName(g.martian)}: ${this.powerHelp(g.martian)}`;
                 box.innerHTML = `<img src="${this.imgUrl(`${g.martian}.png`)}" alt=""><span>${name}: ${this.powerName(g.martian)} (${used ? _('used') : _('available')})</span>`;
+                this.setPanelTip(box, `${name} - ${this.powerName(g.martian)}: ${this.powerHelp(g.martian)}`);
             } else {
-                box.title = name;
                 box.innerHTML = `<img src="${this.imgUrl(`${g.martian}.png`)}" alt=""><span>${name}</span>`;
+                this.setPanelTip(box, name);
             }
         });
     }
@@ -602,6 +602,11 @@ export class Game {
         if (bubble) bubble.style.display = 'none';
     }
 
+    setPanelTip(el, text) {
+        const gui = this.bga?.gameui || (typeof gameui !== 'undefined' ? gameui : null);
+        if (gui && typeof gui.addTooltip === 'function') { try { if (typeof gui.removeTooltip === 'function') gui.removeTooltip(el.id); gui.addTooltip(el.id, text, ''); el.removeAttribute('title'); } catch (e) { el.title = text; } } else { el.title = text; }
+    }
+
     registerCardTooltips() {
         if (this.touchMode) return;
         const gui = this.bga?.gameui || (typeof gameui !== 'undefined' ? gameui : null);
@@ -737,27 +742,31 @@ export class Game {
                 box = document.createElement('div');
                 box.id = `gou_reserve_${pid}`;
                 box.className = 'gou_panel_reserve';
-                box.title = _('Flower reserve (public)');
                 panel.appendChild(box);
+                this.setPanelTip(box, _('Flower reserve (public)'));
             }
             box.innerHTML = '';
             let total = 0;
+            const tips = [];
             colors.forEach(color => {
                 const n = all[pid]?.[color] || 0;
                 total += n;
                 const item = document.createElement('span');
                 item.className = 'gou_panel_flower';
-                item.title = `${this.colorLabel(color)}: ${n}`;
-                item.setAttribute('aria-label', item.title);
+                item.id = `gou_panel_flower_${pid}_${color}`;
+                item.setAttribute('aria-label', `${this.colorLabel(color)}: ${n}`);
+                tips.push([item, `${this.colorLabel(color)}: ${n}`]);
                 item.innerHTML = `<img data-flower="${color}" src="${this.flowerSrc(color)}" alt="${this.colorLabel(color)}"><b>${n}</b>`;
                 box.appendChild(item);
             });
             const penalty = (total * (total + 1)) / 2;
             const pen = document.createElement('div');
             pen.className = 'gou_panel_penalty';
-            pen.title = _('Unused flowers cost points at the end of the game. Plant them to shrink this penalty.');
+            pen.id = `gou_panel_penalty_${pid}`;
             pen.textContent = `${total} ${_('flowers left')}: ${penalty > 0 ? '-' : ''}${penalty} VP`;
             box.appendChild(pen);
+            tips.forEach(([el, t]) => this.setPanelTip(el, t));
+            this.setPanelTip(pen, _('Unused flowers cost points at the end of the game. Plant them to shrink this penalty.'));
         });
         this.renderScoredCards();
         this.renderPowerStatus();
@@ -786,13 +795,11 @@ export class Game {
                 const img = document.createElement('img');
                 img.src = this.imgUrl(`cards/card_${id}.jpg`);
                 img.alt = this.getCardInfo(id).name;
-                img.title = this.getCardInfo(id).name;
                 img.className = 'gou_scored_thumb';
                 const info = this.getCardInfo(id);
-                img.title = `${info.name}: ${info.desc}`;
                 img.id = `gou_scored_${pid}_${id}`;
-                img.dataset.gouTipId = id;
                 box.appendChild(img);
+                this.setPanelTip(img, `${info.name}: ${info.desc}`);
             });
         });
         this.registerCardTooltips();

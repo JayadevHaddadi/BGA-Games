@@ -1400,3 +1400,24 @@
         width: 200px;
     }
 }
+
+/* Player panel: own text/icons 2x (AGENTS.md rule 34) */
+.gp_panel_info {
+    margin-top: 12px;
+    padding: 12px 16px;
+    font-size: 22px;
+    line-height: 1.3;
+}
+.gp_panel_info .gp_team_cars_list { gap: 8px; flex-wrap: wrap; }
+.gp_panel_info .gp_team_car_row { flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
+.gp_panel_info .gp_team_car_icon { width: 50px; height: 50px; font-size: 28px; margin-right: 12px; }
+.gp_panel_info .gp_mini_car_svg { width: 50px; height: 50px; }
+.gp_panel_info .gp_mini_num { font-size: 22px; }
+.gp_panel_info .gp_team_car_info { flex-wrap: wrap; gap: 6px; }
+.gp_panel_info .gp_team_car_pips { font-size: 22px; letter-spacing: 0; line-height: 1.3; display: flex; flex-wrap: wrap; gap: 6px; }
+.gp_panel_info .gp_panel_pip { width: 24px; height: 24px; margin-right: 0; border-radius: 4px; }
+.gp_panel_info .gp_team_car_status { margin-left: 12px; font-size: 22px; }
+.gp_panel_info .gp_team_car_tag { font-size: 22px; line-height: 1.3; padding: 2px 10px; }
+.gp_panel_info .gp_car_items_row { gap: 8px; margin-top: 6px; }
+.gp_panel_info .gp_car_item_badge { font-size: 24px; padding: 2px 8px; }
+.gp_panel_info .gp_item_badge_mini { width: 44px; height: 44px; padding: 4px; }

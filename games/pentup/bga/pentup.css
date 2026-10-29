@@ -282,12 +282,12 @@ body.pu_page_bg #game_play_area_background {
 
 .pu_swatch {
     display: inline-block;
-    width: 11px;
-    height: 11px;
-    margin-right: 5px;
+    width: 24px;
+    height: 24px;
+    margin-right: 8px;
     border: 1px solid #8a8d96;
     border-radius: 2px;
-    vertical-align: -1px;
+    vertical-align: -3px;
 }
 
 .pu_sw_white { background: #f0e9d6; }
@@ -493,4 +493,4 @@ body.pu_page_bg #game_play_area_background {
 #pu_root:not(.pu_narrow) #pu_levelbar > label.pu_check { width: auto !important; display: flex; }
 
 /* Per-player tile counter inside the BGA player panel */
-.pu_panel { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 14px; }
+.pu_panel { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-top: 4px; font-size: 28px; line-height: 1.3; }

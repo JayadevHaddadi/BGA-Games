@@ -601,21 +601,28 @@ export class Game {
 
             box.innerHTML = `
                 <div class="mf_panel_stats">
-                    <span class="mf_stat mf_credits" title="${_('Credits')}">
+                    <span class="mf_stat mf_credits" id="mf_tip_credits_${pid}">
                         <img src="${base}img/icons/credit.svg" class="mf_stat_icon" alt="${_('Credits')}"> <b>${s.credits}</b>
                     </span>
-                    <span class="mf_stat mf_missions" title="${_('Missions completed')}">
+                    <span class="mf_stat mf_missions" id="mf_tip_missions_${pid}">
                         <img src="${base}img/icons/mission.svg" class="mf_stat_icon" alt="${_('Missions')}"> <b>${s.missions_done}</b>
                     </span>
                 </div>
                 <div class="mf_panel_sub">
-                    <span class="mf_stat mf_army" title="${_('Army: Bots and Mechs on the map')}">
+                    <span class="mf_stat mf_army" id="mf_tip_army_${pid}">
                         <img src="${base}img/icons/bot.svg" class="mf_stat_icon" alt="Bots"> ${bots}
                         <img src="${base}img/icons/mech.svg" class="mf_stat_icon" alt="Mechs" style="margin-left:4px"> ${mechs}
                     </span>
-                    <span class="mf_income_tag" title="${_('Income next turn')}">+${s.income}</span>
+                    <span class="mf_income_tag" id="mf_tip_income_${pid}">+${s.income}</span>
                 </div>`;
+            [['credits', _('Credits')], ['missions', _('Missions completed')], ['army', _('Army: Bots and Mechs on the map')], ['income', _('Income next turn')]].forEach(([k, t]) => this.setPanelTip(document.getElementById(`mf_tip_${k}_${pid}`), t));
         });
+    }
+
+    setPanelTip(el, text) {
+        if (!el) return;
+        const gui = this.bga?.gameui || (typeof gameui !== 'undefined' ? gameui : null);
+        if (gui && typeof gui.addTooltip === 'function') { try { if (typeof gui.removeTooltip === 'function') gui.removeTooltip(el.id); gui.addTooltip(el.id, text, ''); el.removeAttribute('title'); } catch (e) { el.title = text; } } else { el.title = text; }
     }
 
     renderNotice() {

@@ -895,11 +895,11 @@ export class Game {
 
                 let carStatus;
                 if (racer.finish_rank > 0) {
-                    carStatus = `<span class="gp_team_car_tag finished" title="${_('Finished the race')}">${_('Finished')} P${racer.finish_rank}</span>`;
+                    carStatus = `<span class="gp_team_car_tag finished" id="gp_car_tag_${rId}" data-ptip="${_('Finished the race')}">${_('Finished')} P${racer.finish_rank}</span>`;
                 } else if (racer.is_belly_up) {
-                    carStatus = `<span class="gp_team_car_tag belly_up" title="${_('Crashed: flip the car upright on its next turn')}">${_('Crashed')}</span>`;
+                    carStatus = `<span class="gp_team_car_tag belly_up" id="gp_car_tag_${rId}" data-ptip="${_('Crashed: flip the car upright on its next turn')}">${_('Crashed')}</span>`;
                 } else {
-                    carStatus = `<span class="gp_team_car_tag lap" title="${_('Current lap')}">${_('Lap')} ${Math.min(totalLaps, laps + 1)}/${totalLaps}</span>`;
+                    carStatus = `<span class="gp_team_car_tag lap" id="gp_car_tag_${rId}" data-ptip="${_('Current lap')}">${_('Lap')} ${Math.min(totalLaps, laps + 1)}/${totalLaps}</span>`;
                 }
 
                 let itemsHtml = '';
@@ -914,11 +914,11 @@ export class Game {
                 const carLabel = `${_('Car')} ${rId} (${racer.car_color})`;
                 carsHtml += `
                     <div class="gp_team_car_row ${isActiveCar ? 'active_turn' : ''}" id="gp_team_car_row_${rId}">
-                        <div class="gp_team_car_icon gp_mini_car_svg gp_color_${racer.car_color}" title="${carLabel}">
+                        <div class="gp_team_car_icon gp_mini_car_svg gp_color_${racer.car_color}" id="gp_car_icon_${rId}" data-ptip="${carLabel}">
                             ${this.getCarSvg('chibi_kart')}<span class="gp_mini_num">${rId}</span>
                         </div>
                         <div class="gp_team_car_info">
-                            <span class="gp_team_car_pips" title="${_('Dice available')}: ${diceAvailable}/6" aria-label="${_('Dice available')}: ${diceAvailable}/6">${pips}</span>
+                            <span class="gp_team_car_pips" id="gp_car_pips_${rId}" data-ptip="${_('Dice available')}: ${diceAvailable}/6" aria-label="${_('Dice available')}: ${diceAvailable}/6">${pips}</span>
                             ${itemsHtml}
                         </div>
                         <div class="gp_team_car_status">
@@ -929,10 +929,16 @@ export class Game {
             });
 
             panelInfo.innerHTML = `<div class="gp_team_cars_list">${carsHtml}</div>`;
+            panelInfo.querySelectorAll('[data-ptip]').forEach(el => { const t = el.getAttribute('data-ptip'); el.removeAttribute('data-ptip'); this.setPanelTip(el, t); });
             panelInfo.querySelectorAll('.gp_car_item_badge').forEach(badge => {
                 badge.addEventListener('click', () => badge.classList.toggle('gp_item_pinned'));
             });
         });
+    }
+
+    setPanelTip(el, text) {
+        const gui = this.bga?.gameui || (typeof gameui !== 'undefined' ? gameui : null);
+        if (gui && typeof gui.addTooltip === 'function') { try { if (typeof gui.removeTooltip === 'function') gui.removeTooltip(el.id); gui.addTooltip(el.id, text, ''); el.removeAttribute('title'); } catch (e) { el.title = text; } } else { el.title = text; }
     }
 
     getCarSvg(model = 'chibi_kart') {

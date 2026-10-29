@@ -1080,6 +1080,28 @@ export class Game {
         return this.tiles.reduce((n, t) => n + (Number(t.player_id) === Number(pid) ? Number(t.level) : 0), 0);
     }
 
+    /** BGA tooltip (shown beside the element, never under the mouse); native title= only as a fallback. */
+    panelTip(el, text) {
+        if (!el) return;
+        const gui = this.bga?.gameui || (typeof gameui !== 'undefined' ? gameui : null);
+        if (el.id && gui && typeof gui.addTooltip === 'function') {
+            try {
+                if (typeof gui.removeTooltip === 'function') gui.removeTooltip(el.id);
+                gui.addTooltip(el.id, text, '');
+                el.removeAttribute('title');
+            } catch (e) { el.title = text; }
+        } else { el.title = text; }
+    }
+
+    /** Give every [data-tip] inside a panel line a stable id and a BGA tooltip. */
+    panelTips(line, prefix) {
+        line.querySelectorAll('[data-tip]').forEach((n, i) => {
+            if (!n.id) n.id = `${prefix}_${i}`;
+            this.panelTip(n, n.getAttribute('data-tip'));
+            n.removeAttribute('data-tip');
+        });
+    }
+
     /** Remaining tile count of every player, shown inside their BGA player panel. */
     renderPanels() {
         for (const [pid, list] of Object.entries(this.hands || {})) {
@@ -1095,7 +1117,8 @@ export class Game {
             const n = list.length;
             const col = this.colourOf(pid);
             const label = puFmt(_('${n} tiles left'), { n });
-            line.innerHTML = `<i class="pu_swatch pu_sw_${col}" aria-hidden="true"></i><span title="${label}" aria-label="${label}">\u25A2 <b>${n}</b></span>`;
+            line.innerHTML = `<i class="pu_swatch pu_sw_${col}" aria-hidden="true"></i><span data-tip="${label}" aria-label="${label}">\u25A2 <b>${n}</b></span>`;
+            this.panelTips(line, `pu_ptip_${pid}`);
         }
     }
 

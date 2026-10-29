@@ -172,13 +172,18 @@ export class Game {
             const colour = this.colours[pid];
             const panel = document.createElement('div');
             panel.className = 'red_panel';
-            panel.title = this.colourLabel(colour);
-            panel.innerHTML = `<span class="red_term" title="${_('Largest border group')}">${redBorderIcon(colour, 30)}<b class="red_num" data-part="border">0</b></span>`
+            panel.id = `red_panel_${pid}`;
+            panel.innerHTML = `<span class="red_term" id="red_panel_${pid}_border">${redBorderIcon(colour, 40)}<b class="red_num" data-part="border">0</b></span>`
                 + `<span class="red_op" aria-hidden="true">&times;</span>`
-                + `<span class="red_term" title="${_('Largest circle group')}">${redCircleIcon(colour, 30)}<b class="red_num" data-part="circle">0</b></span>`
+                + `<span class="red_term" id="red_panel_${pid}_circle">${redCircleIcon(colour, 40)}<b class="red_num" data-part="circle">0</b></span>`
                 + `<span class="red_op" aria-hidden="true">=</span>`
                 + `<b class="red_num red_total" data-part="score">0</b>`;
             el.appendChild(panel);
+            const tips = [[panel, this.colourLabel(colour)], [panel.querySelector('.red_term[id$=_border]'), _('Largest border group')], [panel.querySelector('.red_term[id$=_circle]'), _('Largest circle group')]];
+            tips.forEach(([tel, ttext]) => {
+                const gui = this.bga?.gameui || (typeof gameui !== 'undefined' ? gameui : null);
+                if (gui && typeof gui.addTooltip === 'function') { try { if (typeof gui.removeTooltip === 'function') gui.removeTooltip(tel.id); gui.addTooltip(tel.id, ttext, ''); tel.removeAttribute('title'); } catch (e) { tel.title = ttext; } } else { tel.title = ttext; }
+            });
         });
         this.renderScores();
     }

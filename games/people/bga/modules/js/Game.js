@@ -576,6 +576,28 @@ export class Game {
         this.setStatus(this.stageHint());
     }
 
+    /** BGA tooltip (shown beside the element, never under the mouse); native title= only as a fallback. */
+    panelTip(el, text) {
+        if (!el) return;
+        const gui = this.bga?.gameui || (typeof gameui !== 'undefined' ? gameui : null);
+        if (el.id && gui && typeof gui.addTooltip === 'function') {
+            try {
+                if (typeof gui.removeTooltip === 'function') gui.removeTooltip(el.id);
+                gui.addTooltip(el.id, text, '');
+                el.removeAttribute('title');
+            } catch (e) { el.title = text; }
+        } else { el.title = text; }
+    }
+
+    /** Give every [data-tip] inside a panel line a stable id and a BGA tooltip. */
+    panelTips(line, prefix) {
+        line.querySelectorAll('[data-tip]').forEach((n, i) => {
+            if (!n.id) n.id = `${prefix}_${i}`;
+            this.panelTip(n, n.getAttribute('data-tip'));
+            n.removeAttribute('data-tip');
+        });
+    }
+
     /** Persistent per-player info goes in the player panel: colour, bitcoins and factories left. */
     renderPanels() {
         this.order.forEach((pid) => {
@@ -589,8 +611,9 @@ export class Game {
             }
             const p = this.players[pid];
             if (!p) return;
-            line.innerHTML = `<span class="pp_stat" title="${_('bitcoins')}" aria-label="${p.bitcoins} ${_('bitcoins')}">${ppIco('coin')}<b>${p.bitcoins}</b></span>
-                <span class="pp_stat" title="${this.colourName(p.colour)}: ${_('factories')}" aria-label="${p.factories} ${_('factories')}">${ppIco(`f_${p.colour}`)}<b>${p.factories}</b></span>`;
+            line.innerHTML = `<span class="pp_stat" data-tip="${_('bitcoins')}" aria-label="${p.bitcoins} ${_('bitcoins')}">${ppIco('coin')}<b>${p.bitcoins}</b></span>
+                <span class="pp_stat" data-tip="${this.colourName(p.colour)}: ${_('factories')}" aria-label="${p.factories} ${_('factories')}">${ppIco(`f_${p.colour}`)}<b>${p.factories}</b></span>`;
+            this.panelTips(line, `pp_ptip_${pid}`);
         });
     }
 

@@ -188,7 +188,7 @@ body.hippos_page_bg #game_play_area {
 }
 
 /* Player panel reserve line (BGA default panel colours) */
-.hippos_panel { display: flex; align-items: center; gap: 12px; margin-top: 6px; font-size: 26px; }
+.hippos_panel { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 6px; font-size: 26px; line-height: 1.3; }
 .hippos_panel_icon { display: inline-block; background-repeat: no-repeat; background-size: 100% 100%; flex: none; }
 .hippos_panel_icon.hippos_species_hippo { width: 48px; height: 36px; background-image: url(img/piece_hippo.png); }
 .hippos_panel_icon.hippos_species_trunk { width: 72px; height: 24px; background-image: url(img/piece_trunk.png); }

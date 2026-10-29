@@ -905,7 +905,10 @@ export class Game {
                 <span class="vaultn_panel_pip ${roleClass}"></span>
                 <b class="vaultn_panel_count">${count}</b>
             `;
-            line.title = `${colorName}: ${count} ${_('pawns')}`;
+            line.id = `vaultn_panel_line_${pid}`;
+            const tipText = `${colorName}: ${count} ${_('pawns')}`;
+            const gui = this.bga?.gameui || (typeof gameui !== 'undefined' ? gameui : null);
+            if (gui && typeof gui.addTooltip === 'function') { try { if (typeof gui.removeTooltip === 'function') gui.removeTooltip(line.id); gui.addTooltip(line.id, tipText, ''); line.removeAttribute('title'); } catch (e) { line.title = tipText; } } else { line.title = tipText; }
         });
     }
 }

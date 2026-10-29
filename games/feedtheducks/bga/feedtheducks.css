@@ -501,9 +501,12 @@ body.ftd_page_bg #game_play_area {
 .ftd_pnl {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 8px;
     min-height: 56px;
     margin-top: 4px;
+    font-size: 26px;
+    line-height: 1.3;
     cursor: pointer;
 }
 
