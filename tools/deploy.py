@@ -152,8 +152,9 @@ def build_version(page, slug, comment):
             body: body
         });
         const status = r.status;
+        const text = await r.text();
         let data = null;
-        try { data = await r.json(); } catch(e) { data = await r.text(); }
+        try { data = JSON.parse(text); } catch(e) { data = text; }
         return {status, data};
     }''', {'slug': slug, 'comment': comment})
 
@@ -162,6 +163,9 @@ def build_version(page, slug, comment):
         return None
 
     data = res.get('data') or {}
+    if not isinstance(data, dict):
+        print(f"  [!] Build returned a non-JSON reply (Studio busy or logged out?): {str(data)[:300]}")
+        return None
     blocks = data.get('blocks', [])
     has_failure = False
     for b in blocks:
@@ -218,6 +222,9 @@ def deploy_version(page, slug, version):
         return False
 
     data = res.get('data') or {}
+    if not isinstance(data, dict):
+        print(f"  [!] Build returned a non-JSON reply (Studio busy or logged out?): {str(data)[:300]}")
+        return None
     blocks = data.get('blocks', [])
     for b in blocks:
         title = b.get('title', 'Deploy step')
