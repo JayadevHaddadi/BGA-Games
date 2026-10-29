@@ -148,13 +148,31 @@ def delete_all_display_images(page, project_slug, is_prod=False):
         page.wait_for_timeout(2000)
         navigate_to_media(page, project_slug, is_prod=is_prod)
 
+def dismiss_popups(page):
+    """BGA overlays (new trophy, news, ...) cover the page and swallow clicks: press their Continue/OK/Close."""
+    for _ in range(5):
+        hit = False
+        for label in ('Continue', 'OK', 'Close'):
+            btn = page.get_by_text(label, exact=True)
+            try:
+                if btn.first.is_visible():
+                    btn.first.click(timeout=3000)
+                    page.wait_for_timeout(800)
+                    hit = True
+            except Exception:
+                pass
+        if not hit:
+            return
+
+
 def navigate_to_media(page, project_slug, is_prod=False):
     host = 'boardgamearena.com' if is_prod else 'studio.boardgamearena.com'
     url = f'https://{host}/controlpanelgames?game={project_slug}'
     page.goto(url, wait_until='domcontentloaded')
     page.wait_for_timeout(2500)
+    dismiss_popups(page)
 
-    tabs = [t for t in page.locator('div.cursor-pointer').all() if t.is_visible() and t.inner_text().strip() == 'Media']
+    tabs =[t for t in page.locator('div.cursor-pointer').all() if t.is_visible() and t.inner_text().strip() == 'Media']
     if tabs:
         tabs[0].click()
         page.wait_for_timeout(1500)
