@@ -449,7 +449,9 @@ def main():
             comment = args.comment or generate_comment(audit['unreleased'])
 
             print(f"\nDeploying single game: {slug} (Stage: {audit['stage']})...")
-            sync_sftp(slug)
+            if not sync_sftp(slug):
+                print("SFTP sync failed: not building (the build would release the old Studio files).")
+                sys.exit(1)
             new_ver = build_version(page, slug, comment)
             if not new_ver:
                 print("Build failed.")
