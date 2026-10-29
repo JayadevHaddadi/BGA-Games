@@ -16,6 +16,7 @@
 </head>
 <body data-done="0">
 <div id="page-content">
+  <div id="title" style="font-size:20px;padding:6px;min-height:40px"></div>
   <div id="statusbar"></div>
   <div id="game_play_area"></div>
 </div>
@@ -76,7 +77,7 @@ const bga = {
       b.onclick = callback;
       document.getElementById('statusbar').appendChild(b);
     },
-    setTitle(t) { window.__lastTitle = t; },
+    setTitle(t) { window.__lastTitle = t; document.getElementById('title').innerHTML = t; },
   },
   actions: {
     performAction(name, args) { calls.push({ name, args }); return Promise.resolve(); },
@@ -132,7 +133,7 @@ function fixture() {
 }
 
 try {
-  const game = new Game(bga);
+  const game = new Game(bga); window.__game = game;
   game.setup(fixture());
 
   // Enter turn state with legal placements
@@ -155,7 +156,7 @@ try {
   const hasConfirm = buttons.some(b => b.text && b.text.includes('Confirm'));
   const barOk = hasConfirm && buttons.length === 2 && buttons.every((b) => /^(Confirm|Cancel)$/.test(b.text));
 
-  const rotBtns = [...document.querySelectorAll('.hippos_handle')].map((b) => b.getBoundingClientRect());
+  const rotBtns = [...document.querySelectorAll('.hippos_rotate')].map((b) => b.getBoundingClientRect());
   const minBtn = rotBtns.length ? Math.round(Math.min(...rotBtns.map((r) => Math.min(r.width, r.height)))) : 0;
   const barLabels = buttons.map((b) => b.text.replace(/<[^>]*>/g, '').trim()).join('|');
   const handleCount = rotBtns.length;
@@ -272,16 +273,52 @@ try {
       // Touch: rotation buttons still rotate the staged animal
       game.desktopOverride = false; game.hover = null; game.clearHoverGhost();
       game.currentRot = 0; game.onCellClicked(sr, sc);
-      const hd = document.getElementById('hippos_handle_2');
-      desk.handlesOnBoard = document.querySelectorAll('.hippos_handle').length >= 2 && !!document.querySelector('#hippos_handles .hippos_handle_on');
-      if (hd) hd.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      else game.onDirection(2);
-      desk.touchRotatesStage = !game.stage || game.stage.rot === 1;
+      const rb = document.getElementById('hippos_rotate');
+      desk.handlesOnBoard = document.querySelectorAll('.hippos_rotate').length === 1 && !!rb
+        && !buttons.some((b) => /Rotate|[↑←↓→↻]/.test(b.text));
+      desk.rotateTooltip = !!rb && /R/.test(rb.title || '') && /Shift\+R/.test(rb.title || '') && /W\/A\/S\/D/.test(rb.title || '');
+      desk.rotateSize = !!rb && Math.round(rb.getBoundingClientRect().width) >= 44;
+      const nextRot = (x) => { const pv = game.pivotOf(game.stage, game.stage.rot); for (let i = 1; i <= 4; i++) { const n = (x + i) % 4; if (game.pivotAt(pv[0], pv[1], n)) return n; } for (let i = 1; i <= 4; i++) { const n = (x + i) % 4; if (game.legalIn(n).length) return n; } return x; };
+      const r0 = game.stage.rot;
+      const e0 = nextRot(r0);
+      rb.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      desk.buttonRotates = !!game.stage && game.stage.rot === e0;
+      const r1 = game.stage.rot;
+      const e1 = nextRot(r1);
+      document.querySelector('.hippos_ghost').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      desk.pieceTapRotates = !!game.stage && game.stage.rot === e1;
+      game.desktopOverride = true;
+      const r2 = game.stage.rot;
+      const e2 = nextRot(r2); key('r'); desk.keyR = !!game.stage && game.stage.rot === e2;
+      const r3 = game.stage.rot;
+      document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'R', shiftKey: true, bubbles: true, cancelable: true }));
+      desk.keyShiftR = !!game.stage && game.stage.rot !== r3;
+      desk.barAfter = buttons.map((b) => b.text).join('|');
+      desk.barLabelsOk = desk.barAfter === 'Confirm|Cancel';
+      // Layout: title icon is a fixed box and the board never moves across the orientations
+      const tops = [], sizes = [];
+      for (let rr = 0; rr < 4; rr++) {
+        game.currentRot = rr; game.updateTitle();
+        const ic = document.querySelector('#title .hippos_title_icon').getBoundingClientRect();
+        sizes.push(`${Math.round(ic.width)}x${Math.round(ic.height)}`);
+        tops.push(Math.round(document.getElementById('hippos_board').getBoundingClientRect().top * 10) / 10);
+      }
+      desk.iconSizes = sizes.join(',');
+      desk.boardTops = tops.join(',');
+      desk.noJump = new Set(sizes).size === 1 && sizes[0] === '28x28' && new Set(tops).size === 1;
+      for (const sp of ['crocodile', 'trunk']) {
+        game.args.species = sp; const ts = new Set(), tp = new Set();
+        for (let rr = 0; rr < (sp === 'trunk' ? 2 : 4); rr++) { game.currentRot = rr; game.updateTitle(); const ic = document.querySelector('#title .hippos_title_icon').getBoundingClientRect(); ts.add(`${Math.round(ic.width)}x${Math.round(ic.height)}`); tp.add(Math.round(document.getElementById('hippos_board').getBoundingClientRect().top)); }
+        desk.noJump = desk.noJump && ts.size === 1 && ts.has('28x28') && tp.size === 1;
+        game.args.species = 'hippo';
+      }
+      game.currentRot = game.stage.rot; game.updateTitle();
       game.desktopOverride = true;
     }
     desk.extra = desk.stageKept !== false && desk.hoverRotChanged !== false && desk.stagedGhostKept !== false
       && desk.noLegalTarget !== false && desk.pivotHints !== false && desk.hintsOff !== false && desk.easyText !== false && desk.hintsBack !== false
-      && desk.orderOk !== false && desk.surrenderEasy !== false && desk.surrenderHard !== false && desk.surrenderAction !== false && desk.surrenderCancel !== false && desk.touchRotatesStage !== false && desk.handlesOnBoard !== false;
+      && desk.orderOk !== false && desk.surrenderEasy !== false && desk.surrenderHard !== false && desk.surrenderAction !== false && desk.surrenderCancel !== false && desk.touchRotatesStage !== false && desk.handlesOnBoard !== false
+      && desk.rotateTooltip !== false && desk.rotateSize !== false && desk.buttonRotates !== false && desk.pieceTapRotates !== false && desk.keyR !== false && desk.keyShiftR !== false && desk.barLabelsOk !== false && desk.noJump !== false;
     desk.ok = desk.extra && desk.hoverGhost === 1 && desk.wasdHippo && desk.wasdCroc && desk.afterD === 0 && desk.afterA === 2 && desk.afterS === 1 && !desk.chatFocused
       && desk.ghostAfterKeys === 1 && desk.chatKeyUntouched && (params.get('shot') === 'desktop' || desk.clickPlaced)
       && !touchHasTooltip;
@@ -309,7 +346,7 @@ try {
       minRotButtonPx: minBtn,
       handleCount, barLabels, barOk,
       desktop: desk,
-      ok: window.errors.length === 0 && minBtn >= 44 && barOk && handleCount >= 1 && (desk.ok !== false) && horizontalOverflow === 0 && cellPx >= 32 && hasConfirm,
+      ok: window.errors.length === 0 && minBtn >= 44 && barOk && handleCount === 1 && (desk.ok !== false) && horizontalOverflow === 0 && cellPx >= 32 && hasConfirm,
     };
 
     document.getElementById('out').textContent = JSON.stringify(report, null, 2);

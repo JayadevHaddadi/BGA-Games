@@ -188,11 +188,12 @@ body.hippos_page_bg #game_play_area {
 }
 
 /* Player panel reserve line (BGA default panel colours) */
-.hippos_panel { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 6px; font-size: 26px; line-height: 1.3; }
+.hippos_panel { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px; font-size: 20px; line-height: 1.3; }
+.hippos_panel b { font-size: 22px; }
 .hippos_panel_icon { display: inline-block; background-repeat: no-repeat; background-size: 100% 100%; flex: none; }
-.hippos_panel_icon.hippos_species_hippo { width: 48px; height: 36px; background-image: url(img/piece_hippo.png); }
-.hippos_panel_icon.hippos_species_trunk { width: 72px; height: 24px; background-image: url(img/piece_trunk.png); }
-.hippos_panel_icon.hippos_species_crocodile { width: 28px; height: 56px; background-image: url(img/piece_crocodile.png); }
+.hippos_panel_icon.hippos_species_hippo { width: 43px; height: 32px; background-image: url(img/piece_hippo.png); }
+.hippos_panel_icon.hippos_species_trunk { width: 96px; height: 32px; background-image: url(img/piece_trunk.png); }
+.hippos_panel_icon.hippos_species_crocodile { width: 16px; height: 32px; background-image: url(img/piece_crocodile.png); }
 
 /* Pivot marker on the staged animal: bold white ring with dark outline and a centre dot */
 .hippos_pivot {
@@ -210,13 +211,13 @@ body.hippos_page_bg #game_play_area {
 /* Hover ghost (desktop): faint, never intercepts the mouse */
 .hippos_ghost_hover { opacity: 0.5; z-index: 2; pointer-events: none; }
 
-/* Direction handles drawn around the staged animal: 44 px tap targets on the board */
+/* One rotate button next to the staged animal: grey, round, 44 px tap target, no shadow */
 #hippos_handles {
     position: absolute;
     pointer-events: none;
     z-index: 4;
 }
-.hippos_handle {
+.hippos_rotate {
     position: absolute;
     width: 44px;
     height: 44px;
@@ -227,19 +228,18 @@ body.hippos_page_bg #game_play_area {
     justify-content: center;
     pointer-events: auto;
     cursor: pointer;
-    background: #fff;
-    color: #111;
-    border: 2px solid #111;
-    border-radius: 3px;
-    font: bold 24px/1 sans-serif;
+    background: #cfd2d6;
+    color: #222;
+    border: 2px solid #5f6368;
+    border-radius: 50%;
+    font: bold 26px/1 sans-serif;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
 }
-.hippos_handle_on { background: #1e6fd9; color: #fff; }
 @media (hover: hover) {
-    .hippos_handle:hover { background: #dbe9ff; }
-    .hippos_handle_on:hover { background: #1e6fd9; }
+    .hippos_rotate:hover { background: #e2e4e7; }
 }
+.hippos_ghost { pointer-events: auto; cursor: pointer; }
 
 /* Current orientation picture in the status bar */
 .hippos_title_icon {
@@ -247,6 +247,9 @@ body.hippos_page_bg #game_play_area {
     position: relative;
     vertical-align: middle;
     margin-left: 6px;
+    width: 28px;
+    height: 28px;
+    flex: none;
 }
 .hippos_title_icon .hippos_panel_icon {
     position: absolute;

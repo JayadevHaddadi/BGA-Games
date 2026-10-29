@@ -90,14 +90,15 @@ export class Game {
             if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) return;
             const k = (e.key || '').toLowerCase();
             const dir = { w: 0, d: 1, s: 2, a: 3 }[k];
-            if (dir === undefined) return;
+            if (dir === undefined && k !== 'r') return;
             e.preventDefault();
             e.stopImmediatePropagation();
             if (e.repeat) return;
             if (document.activeElement && document.activeElement !== document.body && document.activeElement.blur) {
                 try { document.activeElement.blur(); } catch (err) {}
             }
-            this.onDirection(dir);
+            if (k === 'r') this.onRotate(e.shiftKey ? 3 : 1);
+            else this.onDirection(dir);
         }, { capture: true });
     }
 
@@ -180,6 +181,7 @@ export class Game {
         if (!board) return;
         // Never blow a cell up beyond ~40 px on desktop; phones fill the width.
         board.style.maxWidth = `${Math.round(this.art.w * 40 / this.art.pitch)}px`;
+        if (this.stage) this.renderHandles();
     }
 
     sfx(id) {
@@ -354,8 +356,8 @@ export class Game {
         if (box) box.innerHTML = '';
     }
 
-    // Direction handles drawn on the board around the staged animal (replaces direction buttons in the Action Bar).
-    // Each is >= 44 px; centres are in cell units and clamped so the handle never leaves the board.
+    // One grey round rotate button on the board, at the top-right corner of the staged animal (outside the piece,
+    // clamped inside the board). >= 44 px tap target; shortcuts live in its tooltip only.
     renderHandles() {
         this.clearHandles();
         const box = document.getElementById('hippos_handles');
@@ -363,36 +365,58 @@ export class Game {
         const sp = this.args.species;
         const { r, c, rot } = this.stage;
         const shape = SHAPES[sp][rot];
-        const [pr, pc] = PIVOT[sp][rot];
         const gridRect = document.getElementById('hippos_grid').getBoundingClientRect();
         const cellPx = (gridRect.width / this.cols) || 24;
-        const hc = 44 / cellPx; // handle size in cells
+        const hc = 44 / cellPx; // button size in cells
         const clampX = (x) => Math.min(Math.max(x, hc / 2), this.cols - hc / 2);
         const clampY = (y) => Math.min(Math.max(y, hc / 2), this.rows - hc / 2);
-        const px = c + pc + 0.5, py = r + pr + 0.5; // pivot centre
-        const gap = hc / 2 + 0.15;
-        const defs = sp === 'trunk'
-            ? [{ dir: 1, label: '↔', name: _('Horizontal'), x: c + shape.cols + gap, y: py, on: rot === 0 },
-               { dir: 0, label: '↕', name: _('Vertical'), x: px, y: r - gap, on: rot === 1 }]
-            : [{ dir: 0, label: '↑', name: _('Up'), x: px, y: r - gap },
-               { dir: 1, label: '→', name: _('Right'), x: c + shape.cols + gap, y: py },
-               { dir: 2, label: '↓', name: _('Down'), x: px, y: r + shape.rows + gap },
-               { dir: 3, label: '←', name: _('Left'), x: c - gap, y: py }];
-        for (const d of defs) {
-            const hr = sp === 'trunk' ? (d.dir % 2 === 0 ? 1 : 0) : HEAD_DIR[sp].indexOf(d.dir);
-            if (this.easy && !this.legalIn(hr).length) continue; // no legal placement that way: no handle
-            const on = sp === 'trunk' ? d.on : HEAD_DIR[sp][rot] === d.dir;
-            const el = document.createElement('div');
-            el.className = 'hippos_handle' + (on ? ' hippos_handle_on' : '');
-            el.id = `hippos_handle_${d.dir}`;
-            el.setAttribute('role', 'button');
-            el.setAttribute('aria-label', d.name);
-            el.textContent = d.label;
-            el.style.left = `${(clampX(d.x) / this.cols) * 100}%`;
-            el.style.top = `${(clampY(d.y) / this.rows) * 100}%`;
-            el.addEventListener('click', (e) => { e.stopPropagation(); this.onDirection(d.dir); });
-            box.appendChild(el);
+        const h2 = hc / 2;
+        // Candidate centres, best first: top-right corner outside the piece, then the other sides
+        const cands = [
+            [c + shape.cols + h2, r - h2], [c + shape.cols + h2, r + h2], [c + shape.cols - h2, r - h2],
+            [c - h2, r - h2], [c - h2, r + h2], [c + shape.cols + h2, r + shape.rows + h2],
+            [c - h2, r + shape.rows + h2], [c + shape.cols - h2, r + shape.rows + h2],
+        ];
+        const overlaps = (x, y) => x + h2 > c + 0.01 && x - h2 < c + shape.cols - 0.01 && y + h2 > r + 0.01 && y - h2 < r + shape.rows - 0.01;
+        let pos = null;
+        for (const [x, y] of cands) {
+            const cx = clampX(x), cy = clampY(y);
+            if (!overlaps(cx, cy)) { pos = [cx, cy]; break; }
         }
+        if (!pos) pos = [clampX(cands[0][0]), clampY(cands[0][1])];
+        const label = _('Rotate');
+        const el = document.createElement('div');
+        el.className = 'hippos_rotate';
+        el.id = 'hippos_rotate';
+        el.setAttribute('role', 'button');
+        el.setAttribute('aria-label', label);
+        el.textContent = '\u21BB';
+        el.style.left = `${(pos[0] / this.cols) * 100}%`;
+        el.style.top = `${(pos[1] / this.rows) * 100}%`;
+        el.addEventListener('click', (e) => { e.stopPropagation(); this.onRotate(1); });
+        box.appendChild(el);
+        this.tip(el, sp === 'trunk'
+            ? _('Rotate (R). W/S: vertical. A/D: horizontal.')
+            : _('Rotate (R). Shift+R: rotate back. W/A/S/D: point up/left/down/right.'));
+    }
+
+    /** BGA tooltip (shown beside the element, never under the pointer); native title only as a fallback. */
+    tip(el, text) {
+        const gui = this.bga?.gameui || (typeof gameui !== 'undefined' ? gameui : null);
+        if (gui && typeof gui.addTooltip === 'function') {
+            try {
+                if (typeof gui.removeTooltip === 'function') gui.removeTooltip(el.id);
+                gui.addTooltip(el.id, text, '');
+                el.removeAttribute('title');
+                return;
+            } catch (e) {}
+        }
+        el.title = text;
+    }
+
+    stageIsLegal() {
+        const s = this.stage;
+        return !!s && !!this.args?.legal_placements?.some((m) => Number(m.rot) === s.rot && Number(m.r) === s.r && Number(m.c) === s.c);
     }
 
     rotCount() {
@@ -456,12 +480,13 @@ export class Game {
         return best;
     }
 
-    /** Picture of the piece in the given rotation, for the status bar (20 px per cell by default). */
-    titleIcon(species, rot, px = 20) {
+    /** Picture of the piece in the given rotation, for the status bar. Always the same fixed square box (28 px,
+     *  see .hippos_title_icon) so the status bar and the board never change size when the orientation changes. */
+    titleIcon(species, rot, box = 28) {
         const base = { hippo: [4, 3], crocodile: [3, 6], trunk: [3, 1] }[species] || [3, 3];
-        const [w, h] = [base[0] * px, base[1] * px];
-        const [bw, bh] = rot % 2 ? [h, w] : [w, h];
-        return `<span class="hippos_title_icon" style="width:${bw}px;height:${bh}px">`
+        const k = box / Math.max(base[0], base[1]);
+        const w = Math.round(base[0] * k * 100) / 100, h = Math.round(base[1] * k * 100) / 100;
+        return `<span class="hippos_title_icon">`
             + `<span class="hippos_panel_icon hippos_species_${species}" style="width:${w}px;height:${h}px;`
             + `transform:translate(-50%,-50%) rotate(${rot * 90}deg)"></span></span>`;
     }
@@ -542,6 +567,7 @@ export class Game {
         const legal = this.args.legal_placements?.some((m) => Number(m.rot) === rot && Number(m.r) === r && Number(m.c) === c);
         const ghost = this.makePieceEl(this.args.species, rot, r, c);
         ghost.classList.add('hippos_ghost', legal ? 'hippos_ghost_ok' : 'hippos_ghost_bad');
+        ghost.addEventListener('click', (e) => { e.stopPropagation(); this.onRotate(1); }); // tap the piece = rotate
         const [pr, pc] = PIVOT[this.args.species][rot];
         const shape = SHAPES[this.args.species][rot];
         const pivot = document.createElement('div');
@@ -557,16 +583,29 @@ export class Game {
         this.updateButtons(this.args, this.isActive);
     }
 
-    // delta: 1 = clockwise (Right), 3 = counter-clockwise (Left), 2 = half turn.
-    // A staged animal keeps its pivot on the same cell: we move to the legal placement in the new rotation with the
-    // pivot there, or else the one with the nearest pivot (so Confirm stays available instead of a dead red ghost).
+    // delta: 1 = clockwise, 3 = counter-clockwise. Easy: skips orientations that do not fit (for a staged animal, those
+    // with no legal spot around its pivot first); Hard: cycles through all orientations.
     onRotate(delta) {
-        if (!this.isActive || !this.args) return;
+        if (!this.isActive || !this.args?.species) return;
         const rn = this.rotCount();
-        let rot = (this.currentRot + delta) % rn;
-        // Skip rotations with no legal placement at all
-        for (let i = 0; this.easy && i < rn && !this.legalIn(rot).length; i++) rot = (rot + (delta === 3 ? rn - 1 : 1)) % rn;
-        this.applyRotation(rot);
+        const step = delta === 3 ? rn - 1 : 1;
+        const base = this.stage ? this.stage.rot : this.currentRot;
+        const pv = this.stage ? this.pivotOf(this.stage, this.stage.rot) : null;
+        let rot = null;
+        if (!this.easy) rot = (base + step) % rn;
+        else {
+            const tests = [];
+            if (pv) tests.push((x) => !!this.pivotAt(pv[0], pv[1], x));
+            tests.push((x) => this.legalIn(x).length > 0);
+            for (const ok of tests) {
+                for (let i = 1; i <= rn && rot === null; i++) {
+                    const cand = (base + i * step) % rn;
+                    if (ok(cand)) rot = cand;
+                }
+                if (rot !== null) break;
+            }
+        }
+        if (rot !== null && rot !== base) this.applyRotation(rot);
     }
 
     // Absolute direction (0 up, 1 right, 2 down, 3 left): animals look that way; trunks W/S = vertical, A/D = horizontal.
@@ -588,6 +627,10 @@ export class Game {
             const m = this.pivotAt(pr, pc, rot) || (this.easy ? this.nearestPivot(pr, pc, rot) : null);
             if (m) {
                 this.stagePlacement(Number(m.r), Number(m.c), rot);
+            } else if (!this.easy) {
+                // Hard: keep the pivot on the same cell and show the (red) spot even when it does not fit
+                const [qr, qc] = PIVOT[this.args.species][rot];
+                this.stagePlacement(pr - qr, pc - qc, rot);
             } else {
                 this.stage = null;
                 this.clearPreviews();
@@ -631,8 +674,8 @@ export class Game {
         const bar = this.bga.statusBar;
         const isTrunk = args?.species === 'trunk';
         // Action Bar stays concise: Confirm / Cancel once a preview exists, plus Surrender in Hard mode.
-        // Direction handles live on the board (renderHandles) and W/A/S/D.
-        if (this.stage) bar.addActionButton(_('Confirm'), () => this.onConfirm(), { color: 'primary', id: 'hippos_confirm' });
+        // The rotate button lives on the board (renderHandles); R and W/A/S/D work too.
+        if (this.stage && this.stageIsLegal()) bar.addActionButton(_('Confirm'), () => this.onConfirm(), { color: 'primary', id: 'hippos_confirm' });
         if (this.stage) bar.addActionButton(_('Cancel'), () => this.onCancel(), { color: 'alert', id: 'hippos_cancel' });
         if (!isTrunk && !this.easy) bar.addActionButton(_('Surrender'), () => this.onSurrender(), { color: 'alert', id: 'hippos_surrender' });
     }
