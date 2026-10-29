@@ -269,6 +269,19 @@ body.sg_page_bg .bga-game-area {
     }
 }
 
+
+/* Glider style (pref 103): 1 = Nestor's original figure (default), 2 = classic drawing. Both are in the SVG. */
+.sg-gl-classic { display: none; }
+.sg_gl_classic .sg-gl-classic { display: inline; }
+.sg_gl_classic .sg-gl-orig { display: none; }
+.sg-orig-fig { stroke-linejoin: round; }
+.sg-orig-fig.color-white { fill: #ffffff; stroke: #546e7a; }
+.sg-orig-fig.color-purple { fill: #8e44e0; stroke: #3a0f73; }
+.sg-orig-fig.color-red { fill: #ed1c24; stroke: #6d0a10; }
+.sg-orig-fig.color-blue { fill: #3d5bd9; stroke: #0c1745; }
+.sg-orig-fig.color-yellow { fill: #fddc03; stroke: #7a5f00; }
+.sg-orig-fig.color-green { fill: #00a651; stroke: #04512b; }
+
 /* Torpor: resting glider is dimmed and labelled (no looping decoration) */
 .sg-glider-piece.in-torpor .sg-glider-inner {
     filter: saturate(0.7) brightness(0.92);

@@ -290,6 +290,7 @@ export class Game {
     enterTurn(args, isActive) {
         this.args = args;
         this.isActive = isActive;
+        document.body.classList.add('hippos_placing'); // reserves the 56 px icon line in the title
         this.stage = null;
         this.clearPreviews();
         if (isActive) this.ensureRotation();
@@ -356,48 +357,9 @@ export class Game {
         if (box) box.innerHTML = '';
     }
 
-    // One grey round rotate button on the board, at the top-right corner of the staged animal (outside the piece,
-    // clamped inside the board). >= 44 px tap target; shortcuts live in its tooltip only.
+    // The rotate control lives in the Action Bar (updateButtons); nothing is drawn on the board.
     renderHandles() {
         this.clearHandles();
-        const box = document.getElementById('hippos_handles');
-        if (!box || !this.stage || !this.isActive || !this.args?.species) return;
-        const sp = this.args.species;
-        const { r, c, rot } = this.stage;
-        const shape = SHAPES[sp][rot];
-        const gridRect = document.getElementById('hippos_grid').getBoundingClientRect();
-        const cellPx = (gridRect.width / this.cols) || 24;
-        const hc = 44 / cellPx; // button size in cells
-        const clampX = (x) => Math.min(Math.max(x, hc / 2), this.cols - hc / 2);
-        const clampY = (y) => Math.min(Math.max(y, hc / 2), this.rows - hc / 2);
-        const h2 = hc / 2;
-        // Candidate centres, best first: top-right corner outside the piece, then the other sides
-        const cands = [
-            [c + shape.cols + h2, r - h2], [c + shape.cols + h2, r + h2], [c + shape.cols - h2, r - h2],
-            [c - h2, r - h2], [c - h2, r + h2], [c + shape.cols + h2, r + shape.rows + h2],
-            [c - h2, r + shape.rows + h2], [c + shape.cols - h2, r + shape.rows + h2],
-        ];
-        const overlaps = (x, y) => x + h2 > c + 0.01 && x - h2 < c + shape.cols - 0.01 && y + h2 > r + 0.01 && y - h2 < r + shape.rows - 0.01;
-        let pos = null;
-        for (const [x, y] of cands) {
-            const cx = clampX(x), cy = clampY(y);
-            if (!overlaps(cx, cy)) { pos = [cx, cy]; break; }
-        }
-        if (!pos) pos = [clampX(cands[0][0]), clampY(cands[0][1])];
-        const label = _('Rotate');
-        const el = document.createElement('div');
-        el.className = 'hippos_rotate';
-        el.id = 'hippos_rotate';
-        el.setAttribute('role', 'button');
-        el.setAttribute('aria-label', label);
-        el.textContent = '\u21BB';
-        el.style.left = `${(pos[0] / this.cols) * 100}%`;
-        el.style.top = `${(pos[1] / this.rows) * 100}%`;
-        el.addEventListener('click', (e) => { e.stopPropagation(); this.onRotate(1); });
-        box.appendChild(el);
-        this.tip(el, sp === 'trunk'
-            ? _('Rotate (R). W/S: vertical. A/D: horizontal.')
-            : _('Rotate (R). Shift+R: rotate back. W/A/S/D: point up/left/down/right.'));
     }
 
     /** BGA tooltip (shown beside the element, never under the pointer); native title only as a fallback. */
@@ -480,9 +442,9 @@ export class Game {
         return best;
     }
 
-    /** Picture of the piece in the given rotation, for the status bar. Always the same fixed square box (28 px,
+    /** Picture of the piece in the given rotation, for the status bar. Always the same fixed square box (56 px,
      *  see .hippos_title_icon) so the status bar and the board never change size when the orientation changes. */
-    titleIcon(species, rot, box = 28) {
+    titleIcon(species, rot, box = 56) {
         const base = { hippo: [4, 3], crocodile: [3, 6], trunk: [3, 1] }[species] || [3, 3];
         const k = box / Math.max(base[0], base[1]);
         const w = Math.round(base[0] * k * 100) / 100, h = Math.round(base[1] * k * 100) / 100;
@@ -674,7 +636,14 @@ export class Game {
         const bar = this.bga.statusBar;
         const isTrunk = args?.species === 'trunk';
         // Action Bar stays concise: Confirm / Cancel once a preview exists, plus Surrender in Hard mode.
-        // The rotate button lives on the board (renderHandles); R and W/A/S/D work too.
+        // Order: [Rotate] [Confirm] [Cancel] (+ Surrender in Hard mode). Rotate also works before a piece is staged.
+        if (args?.species) {
+            bar.addActionButton('\u21BB ' + _('Rotate'), () => this.onRotate(1), { color: 'secondary', id: 'hippos_rotate' });
+            const rb = document.getElementById('hippos_rotate');
+            if (rb) this.tip(rb, isTrunk
+                ? _('Rotate (R). W/S: vertical. A/D: horizontal.')
+                : _('Rotate (R). Shift+R: rotate back. W/A/S/D: point up/left/down/right.'));
+        }
         if (this.stage && this.stageIsLegal()) bar.addActionButton(_('Confirm'), () => this.onConfirm(), { color: 'primary', id: 'hippos_confirm' });
         if (this.stage) bar.addActionButton(_('Cancel'), () => this.onCancel(), { color: 'alert', id: 'hippos_cancel' });
         if (!isTrunk && !this.easy) bar.addActionButton(_('Surrender'), () => this.onSurrender(), { color: 'alert', id: 'hippos_surrender' });

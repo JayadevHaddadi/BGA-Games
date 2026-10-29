@@ -9,11 +9,10 @@ use Bga\GameFramework\States\GameState;
 use Bga\Games\hipposcrocodiles\Game;
 use Bga\Games\hipposcrocodiles\Rules;
 
-const ST_END_GAME = 99;
-
 class EndScore extends GameState
 {
     public const ID = 90;
+    public const END_GAME = 99;
 
     public function __construct(
         protected Game $game,
@@ -27,11 +26,22 @@ class EndScore extends GameState
 
     public function onEnteringState(): int
     {
-        $allPlayers = array_keys($this->game->loadPlayersBasicInfos());
+        $infos = $this->game->loadPlayersBasicInfos();
+        $allPlayers = array_map('intval', array_keys($infos));
         $activePlayerId = (int) $this->game->getActivePlayerId();
 
-        // The player who is currently active in NextPlayer was unable to place or out of pieces
-        $loserId = $activePlayerId;
+        // Loser: a player who conceded / left (zombie or eliminated) first; otherwise the active player, who could not
+        // place (or surrendered). On concede / neutralization there may be no valid active player: never use an unknown id.
+        $loserId = 0;
+        foreach ($infos as $pid => $info) {
+            if ((int) ($info['player_zombie'] ?? 0) === 1 || (int) ($info['player_eliminated'] ?? 0) === 1) {
+                $loserId = (int) $pid;
+                break;
+            }
+        }
+        if ($loserId === 0) {
+            $loserId = in_array($activePlayerId, $allPlayers, true) ? $activePlayerId : (int) end($allPlayers);
+        }
         [$winnerId, $loserId] = Rules::surrenderOutcome($allPlayers, $loserId);
 
         $this->game->playerScore->set($winnerId, 1);
@@ -44,6 +54,6 @@ class EndScore extends GameState
             'loser_name' => $this->game->getPlayerNameById($loserId),
         ]);
 
-        return ST_END_GAME;
+        return self::END_GAME;
     }
 }

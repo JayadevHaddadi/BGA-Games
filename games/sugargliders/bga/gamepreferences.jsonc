@@ -1,6 +1,6 @@
 {
     // user preferences ids should be between 100 and 199
-    // (id 100 was "Sound effects" and is gone; it is not reused, so old tables never read a stale value)
+    // (id 100 was "Sound effects" and is gone; it is not reused, so old tables never read a stale value; 103 = glider style)
     "101": {
         "name": "Confirm jump before moving",
         "needReload": false,
@@ -19,5 +19,14 @@
             "1": { "name": "On", "cssPref": "sg_cb_on" }
         },
         "default": 0
+    },
+    "103": {
+        "name": "Glider style",
+        "needReload": false,
+        "values": {
+            "1": { "name": "Original figure (Nestor's wooden glider)", "cssPref": "sg_gl_orig" },
+            "2": { "name": "Classic drawing", "cssPref": "sg_gl_classic" }
+        },
+        "default": 1
     }
 }
