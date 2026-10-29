@@ -13,7 +13,7 @@
    "slug": "omega",
    "folder": "games/omega/bga",
    "name": "Omega",
-   "licence": "granted (2024)",
+   "licence": "DISPUTED: Eclipse registered the licence without Nestor's consent; Nestor complained, no reply; asked us to tell BGA (28 Oct)",
    "notes": "BETA since 28 Oct 2026; Nestor to confirm licence at /gamepublishers",
    "advertised": "not recorded"
   },
@@ -29,7 +29,7 @@
    "slug": "sugargliders",
    "folder": "games/sugargliders/bga",
    "name": "Sugar Gliders",
-   "licence": "granted",
+   "licence": "BGA licence confirmed 28 Oct 2026 (#2568030)",
    "notes": "BETA since 28 Oct 2026; Nestor (BGA nickname nestorgames) to confirm licence at /gamepublishers",
    "advertised": "yes: reviewers group + alpha forum, together (Sugar Gliders + Io), date not recorded"
   },
@@ -85,7 +85,7 @@
    "slug": "hipposcrocodiles",
    "folder": "games/hipposcrocodiles/bga",
    "name": "Hippos & Crocodiles",
-   "licence": "MISSING: Nestor must register (BGG 51197)",
+   "licence": "BGA licence confirmed 28 Oct 2026 (#6461371)",
    "notes": "Private alpha requested 23 Oct; old project hipposandcrocodiles can be deleted",
    "advertised": "not recorded"
   },
@@ -93,7 +93,7 @@
    "slug": "vaultnestorgames",
    "folder": "games/vaultnestorgames/bga",
    "name": "Vault (nestorgames)",
-   "licence": "granted",
+   "licence": "BGA licence confirmed 28 Oct 2026 (#3824062)",
    "notes": "PUBLIC ALPHA since 28 Oct 2026; default board 8x8 (owner decision); Nestor to confirm licence",
    "advertised": "not recorded"
   },
@@ -157,7 +157,7 @@
    "slug": "feedtheducks",
    "folder": "games/feedtheducks/bga",
    "name": "Feed the Ducks",
-   "licence": "ask Nestor to register (BGG 112532)",
+   "licence": "BGA licence confirmed 28 Oct 2026 (#1701871)",
    "notes": "new",
    "advertised": "not recorded"
   }

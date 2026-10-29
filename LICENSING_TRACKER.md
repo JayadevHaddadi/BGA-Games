@@ -8,7 +8,7 @@ This document tracks publisher/designer permissions, communications, contact inf
 
 | Game | Designer | Publisher / Rights Holder | Status | Priority / Phase |
 | :--- | :--- | :--- | :--- | :--- |
-| **Sugar Gliders** | Néstor Romeral Andrés | Eclipse Editorial / nestorgames / Grok | ✅ **BGA License Granted (2026-10-01)** | Active Dev (`sugargliders`) |
+| **Sugar Gliders** | Néstor Romeral Andrés | Eclipse Editorial / nestorgames / Grok | ✅ **BGA License confirmed (2026-10-28, #2568030)** | Beta (`sugargliders`) |
 | **KILN** | Néstor Romeral Andrés | Eclipse Editorial / nestorgames | ✅ **BGA License Granted (2026-10-01)** | Active Dev (`kiln`) |
 | **nestorgames GP** | Néstor Romeral Andrés | nestorgames | ✅ **BGA License Granted (2026-10-01)** | Active Dev (`nestorgamesgp`) |
 | **Gardens of Uranus** | Néstor Romeral Andrés | nestorgames | ✅ **BGA License Granted (2026-10-01)** | Active Dev (`gardensofuranus`) |
@@ -18,8 +18,9 @@ This document tracks publisher/designer permissions, communications, contact inf
 | **Microchip** | Néstor Romeral Andrés | nestorgames | ⚠️ **NOT CONFIRMED: not on BGA's licence list; ask Nestor to add it at gamepublishers** | Implemented, on Studio (`microchip`) |
 | **People** | Néstor Romeral Andrés | nestorgames | ⚠️ **NOT CONFIRMED: not on BGA's licence list; ask Nestor to add it at gamepublishers** | Implemented, on Studio (`people`) |
 | **Red** | Néstor Romeral Andrés | nestorgames | ⚠️ **NOT CONFIRMED: not on BGA's licence list; ask Nestor to add it at gamepublishers** | Implemented 19 Oct (`red`; verify bgg_id 112118) |
-| **Hippos and Crocodiles** | Néstor Romeral Andrés | nestorgames | ⚠️ **NOT CONFIRMED: not on BGA's licence list; ask Nestor to add it at gamepublishers** | Implemented, in nightly E2E (`hipposcrocodiles`) |
-| **Omega** | Néstor Romeral Andrés | Eclipse Editorial / nestorgames | ✅ **BGA License Granted (2024-07-24)** | Ready for Testing (`omega`) |
+| **Hippos and Crocodiles** | Néstor Romeral Andrés | nestorgames | ✅ **BGA License confirmed (2026-10-28, #6461371)** | Implemented, in nightly E2E (`hipposcrocodiles`) |
+| **Feed the Ducks** | Néstor Romeral Andrés | nestorgames | ✅ **BGA License confirmed (2026-10-28, #1701871)** | Private Alpha (`feedtheducks`) |
+| **Omega** | Néstor Romeral Andrés | Eclipse Editorial / nestorgames | ⚠️ **DISPUTED (2026-10-28): Eclipse registered it on BGA without Nestor's consent; Nestor asked us to tell BGA** | Beta (`omega`) |
 | **Seven** | Néstor Romeral Andrés | Eclipse Editorial / nestorgames | ✅ **BGA License Granted (2024-07-24)** | Scaffolding / Assets In Hand |
 | **Taiji** | Néstor Romeral Andrés | Eclipse Editorial / nestorgames | ✅ **BGA License Granted (2024-07-24)** | Already on BGA (Nestor, 23 Sep): skip |
 | **Pent-Up** | Néstor Romeral Andrés | Eclipse Editorial / nestorgames | ✅ **BGA License Granted (2024-09-05)** | Backlog / Approved |
@@ -30,7 +31,7 @@ This document tracks publisher/designer permissions, communications, contact inf
 | **Mandala** | Trevor Benjamin, Brett J. Gilbert | Lookout Games / Asmodee | ✅ **Live / Released** | Maintained (`mandala`) |
 | **Yavalath** | Cameron Browne, Ludi | Cameron Browne / Cyberite Ltd | ⚠️ **Public Alpha (2026-10-06); licence form was filled by us on Cameron's behalf, confirmation mail came to us: Cameron must submit or confirm it** | Reviewer Testing (`yavalath`) |
 | **Lords of Scotland**| Richard James (Evertide Games) | Rights reverted to designer | 🔴 **Blocked: need designer contact (Lupe silent since 3 Oct)** | Core Engine Ready (`lordsofscotland`) |
-| **Vault** | Néstor Romeral Andrés | nestorgames | ✅ **BGA License Granted (2026-10-24)** | Ready for Testing (`vaultnestorgames`) |
+| **Vault** | Néstor Romeral Andrés | nestorgames | ✅ **BGA License confirmed (2026-10-28, #3824062)** | Public Alpha (`vaultnestorgames`) |
 | **Amazons** | Walter Zamkauskas | nestorgames (edition) | ⚪ Inquiry Sent | Backlog |
 | **ConHex** | Michail Antonow | nestorgames (edition) | ⚪ Inquiry Sent | Backlog |
 
