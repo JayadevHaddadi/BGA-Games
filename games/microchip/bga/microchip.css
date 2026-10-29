@@ -502,11 +502,11 @@ button.mc_space {
     gap: 10px;
 }
 
-/* Each opponent: own near-black container (flat, no shadow) */
+/* Each opponent: light tint of their colour (set in JS), edged in the full colour */
 .mc_other {
     min-width: 0;
-    background: #1b1b1b;
-    color: #f2f0ea;
+    color: #1b1b1b;
+    border: 3px solid #7b7b7b;
     border-radius: 3px;
     padding: 8px;
     box-sizing: border-box;
@@ -515,27 +515,13 @@ button.mc_space {
 .mc_other_name {
     font-weight: 600;
     font-size: 0.95rem;
-    color: #f2f0ea;
+    color: #1b1b1b;
     margin-bottom: 6px;
     overflow-wrap: anywhere;
 }
 
 .mc_other .mc_panel_tray {
-    background: rgba(0, 0, 0, 0.25);
-}
-
-/* Light player colours (white, yellow...): dark name and a thin outline so the card edge shows */
-.mc_other.mc_other_light,
-.mc_other.mc_other_light .mc_other_name {
-    color: #1b1b1b;
-}
-
-.mc_other.mc_other_light {
-    outline: 1px solid rgba(0, 0, 0, 0.35);
-}
-
-.mc_other.mc_other_light .mc_panel_tray {
-    background: rgba(0, 0, 0, 0.12);
+    background: rgba(0, 0, 0, 0.08);
 }
 
 /* ---------- Player panel line (persistent, compact) ---------- */

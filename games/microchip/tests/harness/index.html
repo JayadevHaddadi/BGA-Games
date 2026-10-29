@@ -158,8 +158,7 @@ async function run() {
   // Opponents: black containers, Opponents title, no warnings, desktop arrangement
   const others = [...document.querySelectorAll('#mc_boards .mc_other')];
   check(others.length === PIDS.length - 1, `opponent containers: ${others.length}`);
-  const hexRgb = (h) => { const n = parseInt(h, 16); return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`; };
-  check(others.every((o) => getComputedStyle(o).backgroundColor === hexRgb(gd.players[o.dataset.pid].color || '1b1b1b') && parseFloat(getComputedStyle(o).borderTopLeftRadius) <= 3 && getComputedStyle(o).boxShadow === 'none'), 'opponent containers use the player colour, radius <= 3px, no shadow');
+  check(others.every((o) => getComputedStyle(o).backgroundColor === `rgb(${o.dataset.tint.split(',').join(', ')})` && parseFloat(getComputedStyle(o).borderTopLeftRadius) <= 3 && getComputedStyle(o).boxShadow === 'none'), 'opponent containers use a light tint of the player colour, radius <= 3px, no shadow');
   { // own section tinted with my player colour (Ana, red ff0000): 18% over #f7f5f0
     const t = document.getElementById('mc_mine').dataset.tint;
     check(t === '248,201,197', `own section tint applied (${t})`);
@@ -167,7 +166,7 @@ async function run() {
   }
   check(document.getElementById('mc_h_others').textContent === 'Opponents', 'section title is Opponents');
   check(!document.querySelector('#mc_boards .mc_tile_err, #mc_boards .mc_tile_open, #mc_boards .mc_err, #mc_boards .mc_open'), 'no warning or ! marks inside opponents');
-  check(others.every((o) => { const c = getComputedStyle(o.querySelector('.mc_other_name')).color; return o.classList.contains('mc_other_light') ? c === 'rgb(27, 27, 27)' : c === 'rgb(242, 240, 234)'; }), 'opponent names readable on their player colour');
+  check(others.every((o) => getComputedStyle(o.querySelector('.mc_other_name')).color === 'rgb(27, 27, 27)'), 'opponent names dark on the light tint');
   if (window.innerWidth >= 1000) {
     const rr = (e) => e.getBoundingClientRect();
     const pr = rr(document.getElementById('mc_pool_section')), mr = rr(document.getElementById('mc_mine')), or = rr(document.querySelector('.mc_others'));
