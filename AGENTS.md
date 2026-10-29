@@ -163,9 +163,9 @@ board), **Yavalath** (`fitContainerToScreen`).
 31. No generic web chrome (cards, badges, boxed score blocks): the game components define the structure.
 32. Box image = a photo of the real product, never the logo. BGG id + publisher in `gameinfos.jsonc`.
 33. BGA staggers releases from one developer; one game technically ready does not mean it is released now.
-34. Owner preference: the game's own text and icons inside the BGA player panels are 2x the size we used to make them
-    (fonts ~26px, icons ~36-44px); panels may get taller. Tooltips never cover the hovered element (use the framework
-    tooltip API, or position beside/above it).
+34. Player panel standard (owner, 29 Oct 2026), the same in every game: the game's own panel text 20px (key numbers
+    bold 22px), icons/pieces 32px, gaps 8px, line-height 1.3, flex-wrap. Tooltips never cover the hovered element
+    (framework `addTooltip`, never a native `title=` on an element that has one).
 
 **Process**
 
