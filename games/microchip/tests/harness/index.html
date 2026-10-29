@@ -160,6 +160,11 @@ async function run() {
   check(others.length === PIDS.length - 1, `opponent containers: ${others.length}`);
   const hexRgb = (h) => { const n = parseInt(h, 16); return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`; };
   check(others.every((o) => getComputedStyle(o).backgroundColor === hexRgb(gd.players[o.dataset.pid].color || '1b1b1b') && parseFloat(getComputedStyle(o).borderTopLeftRadius) <= 3 && getComputedStyle(o).boxShadow === 'none'), 'opponent containers use the player colour, radius <= 3px, no shadow');
+  { // own section tinted with my player colour (Ana, red ff0000): 18% over #f7f5f0
+    const t = document.getElementById('mc_mine').dataset.tint;
+    check(t === '248,201,197', `own section tint applied (${t})`);
+    check(getComputedStyle(document.getElementById('mc_mine')).backgroundColor !== 'rgb(247, 245, 240)' || t === '247,245,240', 'own section background is the tint');
+  }
   check(document.getElementById('mc_h_others').textContent === 'Opponents', 'section title is Opponents');
   check(!document.querySelector('#mc_boards .mc_tile_err, #mc_boards .mc_tile_open, #mc_boards .mc_err, #mc_boards .mc_open'), 'no warning or ! marks inside opponents');
   check(others.every((o) => { const c = getComputedStyle(o.querySelector('.mc_other_name')).color; return o.classList.contains('mc_other_light') ? c === 'rgb(27, 27, 27)' : c === 'rgb(242, 240, 234)'; }), 'opponent names readable on their player colour');
@@ -171,7 +176,11 @@ async function run() {
     const left = Math.min(pr.left, mr.left), right = or.right, vw = document.documentElement.clientWidth;
     check(Math.abs(left - (vw - right)) <= 2, `group centred (left gap ${left.toFixed(1)}, right gap ${(vw - right).toFixed(1)})`);
     check(mr.width >= 470, `own board column keeps its size (${mr.width.toFixed(0)}px)`);
+    const bw = rr(document.getElementById('mc_board_me')), tw = rr(document.getElementById('mc_tray'));
+    check(tw.left >= bw.right - 1 && bw.width >= 400, `desktop: tray is right of the board (${tw.left.toFixed(0)} >= ${bw.right.toFixed(0)}, board ${bw.width.toFixed(0)}px)`);
   } else {
+    const bw = document.getElementById('mc_board_me').getBoundingClientRect(), tw = document.getElementById('mc_tray').getBoundingClientRect();
+    check(tw.top >= bw.bottom - 1, `mobile: tray is under the board (${tw.top.toFixed(0)} >= ${bw.bottom.toFixed(0)})`);
     const tops = ['mc_pool_section', 'mc_mine'].map((id) => document.getElementById(id).getBoundingClientRect().top);
     check(tops[0] < tops[1] && tops[1] < document.querySelector('.mc_others').getBoundingClientRect().top, 'mobile order: pool, own board, opponents');
   }

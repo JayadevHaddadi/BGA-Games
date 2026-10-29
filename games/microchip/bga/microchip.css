@@ -442,6 +442,10 @@ button.mc_space {
 
 /* ---------- Tray and other boards ---------- */
 
+.mc_mine_body {
+    display: block;
+}
+
 .mc_tray {
     display: flex;
     flex-wrap: wrap;
@@ -630,8 +634,40 @@ button.mc_space {
     .mc_main > .mc_mine { grid-area: mine; }
     .mc_main > .mc_others { grid-area: others; align-self: start; }
 
+    /* Your board (480px) with the tray to its right (2-wide tile grid), inside one tinted section */
     .mc_main > .mc_mine {
-        width: 480px;
+        align-self: start;
+        width: auto;
+        max-width: none;
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    .mc_mine_body {
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+    }
+
+    .mc_mine_boardcol {
+        width: 460px;
+        flex: 0 0 460px;
+        min-width: 0;
+    }
+
+    .mc_mine_traycol {
+        flex: 0 0 auto;
+        width: 128px;
+    }
+
+    .mc_mine_traycol .mc_tray {
+        display: grid;
+        grid-template-columns: repeat(2, 56px);
+        gap: 8px;
+    }
+
+    .mc_mine_traycol .mc_head {
+        margin-top: 0;
     }
 
     .mc_boards {

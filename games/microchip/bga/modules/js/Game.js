@@ -400,10 +400,16 @@ export class Game {
                 </section>
                 <section class="mc_block mc_mine" id="mc_mine" aria-labelledby="mc_h_mine">
                     <div class="mc_head"><h3 id="mc_h_mine">${_('Your board')}</h3></div>
-                    <div id="mc_board_me"></div>
-                    <p class="mc_hint" id="mc_hint" aria-live="polite"></p>
-                    <div class="mc_head"><h3>${_('Your tray')}</h3></div>
-                    <div class="mc_tray" id="mc_tray"></div>
+                    <div class="mc_mine_body">
+                        <div class="mc_mine_boardcol">
+                            <div id="mc_board_me"></div>
+                            <p class="mc_hint" id="mc_hint" aria-live="polite"></p>
+                        </div>
+                        <div class="mc_mine_traycol">
+                            <div class="mc_head"><h3>${_('Your tray')}</h3></div>
+                            <div class="mc_tray" id="mc_tray"></div>
+                        </div>
+                    </div>
                 </section>
                 <section class="mc_block mc_others" aria-labelledby="mc_h_others">
                     <div class="mc_head"><h3 id="mc_h_others">${_('Opponents')}</h3></div>
@@ -820,7 +826,25 @@ export class Game {
         this.el.board.innerHTML = this.boardHTML(this.me, true);
     }
 
+    /** Light tint of my player colour for my own section: 18% colour over the light panel colour. */
+    tintMine() {
+        if (!this.el.mine) return;
+        const hex = String(this.gd?.players?.[this.me]?.color || '').replace('#', '');
+        const m = /^[0-9a-fA-F]{6}$/.test(hex) ? parseInt(hex, 16) : null;
+        const base = [247, 245, 240]; // #f7f5f0, the normal panel colour
+        let rgb = base;
+        if (m !== null) {
+            const c = [(m >> 16) & 255, (m >> 8) & 255, m & 255];
+            const lum = (0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]) / 255;
+            if (lum < 0.12) rgb = [226, 225, 222]; // black: light grey
+            else if (lum < 0.97) rgb = base.map((b, i) => Math.round(b * 0.82 + c[i] * 0.18));
+        }
+        this.el.mine.style.backgroundColor = `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
+        this.el.mine.dataset.tint = rgb.join(',');
+    }
+
     renderOthers() {
+        this.tintMine();
         if (this.el.others && this.el.others.hidden) return;
         const list = this.order.filter((pid) => pid !== this.me);
         this.el.boards.textContent = '';
