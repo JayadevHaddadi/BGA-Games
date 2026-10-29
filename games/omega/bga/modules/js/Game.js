@@ -577,6 +577,7 @@ export class Game {
             if (!info) {
                 info = document.createElement('div');
                 info.className = 'omega_panel_info';
+                info.id = `omega_panel_info_${playerId}`;
                 panel.appendChild(info);
             }
 
@@ -593,7 +594,17 @@ export class Game {
                 tieTooltip = _('Turn order #${order}: wins ties against earlier turns.').replace('${order}', orderNum);
             }
 
-            info.title = tieTooltip;
+            // BGA tooltip (placed beside the element, never over it); native title= would sit under the mouse
+            const gui = this.bga?.gameui || (typeof gameui !== 'undefined' ? gameui : null);
+            if (gui && typeof gui.addTooltip === 'function') {
+                try {
+                    if (typeof gui.removeTooltip === 'function') gui.removeTooltip(info.id);
+                    gui.addTooltip(info.id, tieTooltip, '');
+                    info.removeAttribute('title');
+                } catch (e) { info.title = tieTooltip; }
+            } else {
+                info.title = tieTooltip;
+            }
             info.innerHTML = `
                 <span class="omega_panel_stone omega_panel_stone_${color}"></span>
                 <span class="omega_panel_order">#${orderNum}</span>

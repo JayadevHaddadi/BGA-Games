@@ -39,7 +39,23 @@ const calls = [];
 const buttons = [];
 let turnHandler = null;
 
+const tips = {};
 const bga = {
+  gameui: {
+    addTooltip(id, text) {
+      tips[id] = text;
+      const el = document.getElementById(id);
+      el.addEventListener('mouseenter', () => {
+        const r = el.getBoundingClientRect();
+        const t = document.createElement('div');
+        t.id = 'mock_tip'; t.textContent = text;
+        t.style.cssText = 'position:fixed;z-index:9999;background:#fff;border:1px solid #333;padding:6px;max-width:260px;left:' + Math.max(0, Math.min(r.left, innerWidth - 270)) + 'px;top:' + (r.bottom + 8) + 'px';
+        document.body.appendChild(t);
+      });
+      el.addEventListener('mouseleave', () => document.getElementById('mock_tip')?.remove());
+    },
+    removeTooltip() {},
+  },
   states: {
     register(name, handler) {
       if (name === 'PlayerTurn') turnHandler = handler;
@@ -139,6 +155,13 @@ try {
   logEl.firstChild.dispatchEvent(new MouseEvent('mouseout', { bubbles: true, relatedTarget: document.body }));
   const hlOff = document.querySelectorAll('.omega_log_hl').length;
 
+  const infoEl = document.getElementById('omega_panel_info_1');
+  const tipRegistered = !!(infoEl && tips['omega_panel_info_1'] && !infoEl.getAttribute('title'));
+  if (infoEl) infoEl.dispatchEvent(new MouseEvent('mouseenter'));
+  const tipEl = document.getElementById('mock_tip');
+  const overlap = (a, b) => a && b && !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom);
+  const tipOverlapsInfo = overlap(infoEl?.getBoundingClientRect(), tipEl?.getBoundingClientRect());
+
   setTimeout(() => {
     const board = document.getElementById('omega_container') || document.getElementById('omega_board_svg');
     const boardRect = board ? board.getBoundingClientRect() : { width: 0 };
@@ -158,9 +181,10 @@ try {
       boardWidth: Math.round(boardRect.width),
       horizontalOverflow: Math.round(horizontalOverflow),
       cellTargetMin: minCell === 999 ? 0 : Math.round(minCell),
+      tipRegistered, tipOverlapsInfo,
       logHighlightOn: hlOn, logHighlightOff: hlOff, logRingVisible: ringShown,
       jsErrors: window.errors,
-      ok: hlOn === 2 && hlOff === 0 && ringShown && window.errors.length === 0 && horizontalOverflow === 0 && minCell >= 32,
+      ok: tipRegistered && !tipOverlapsInfo && hlOn === 2 && hlOff === 0 && ringShown && window.errors.length === 0 && horizontalOverflow === 0 && minCell >= 32,
     };
 
     document.getElementById('out').textContent = JSON.stringify(report, null, 2);
