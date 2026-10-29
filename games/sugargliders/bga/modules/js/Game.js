@@ -195,7 +195,7 @@ export class Game {
                 </div>
 
                 <div id="sg_board_scaler" class="game-board-scaler">
-                    <div id="sg_board_wrapper">
+                    <div id="sg_board_wrapper" class="${this.HEX_RADIUS === 3 ? 'compact-tree' : ''}">
                         <svg id="sg_board_svg" role="img" aria-label="${_('Sugar Gliders tree board')}"></svg>
                     </div>
                 </div>
@@ -308,7 +308,10 @@ export class Game {
         if (!svg) return;
 
         const radius = this.HEX_RADIUS;
-        const size = 34.0;
+        // Hex size and grid centre are calibrated to the board art (640x640 art space; compact art has bigger hexes)
+        const size = (radius === 3) ? 39.5 : 34.0;
+        const artCx = (radius === 3) ? 323 : 321;
+        const artCy = (radius === 3) ? 328 : 325;
         this.HEX_SIZE = size;
 
         // Bounding box of the cells that exist for this tree (radius 3 = 37 cells, 4 = 61 cells)
@@ -324,10 +327,12 @@ export class Game {
             }
         }
         const padSide = 4, padTop = 18, padBottom = 8; // room for the lifted/leaping glider on the top row
-        this.GRID_CX = padSide - minX;
-        this.GRID_CY = padTop - minY;
-        this.boardW = Math.ceil(maxX - minX + padSide * 2);
-        this.boardH = Math.ceil(maxY - minY + padTop + padBottom);
+        // The board JPG is pre-cropped to this same box (whole pixels of the 640 art space), so hexes line up with the art
+        const ox = Math.floor(artCx + minX - padSide), oy = Math.floor(artCy + minY - padTop);
+        this.GRID_CX = artCx - ox;
+        this.GRID_CY = artCy - oy;
+        this.boardW = Math.ceil(artCx + maxX + padSide) - ox;
+        this.boardH = Math.ceil(artCy + maxY + padBottom) - oy;
         const cx = this.GRID_CX;
         const cy = this.GRID_CY;
 
@@ -403,7 +408,7 @@ export class Game {
     renderFoodTileSvg(x, y, value, tileId, cellKey) {
         const themeUrl = typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : '';
         const tileImg = `${themeUrl}img/tile_${value}.png`;
-        const w = 48;
+        const w = (this.HEX_RADIUS === 3) ? 54 : 48;
         const h = Math.round(w * 0.92);
 
         return `
