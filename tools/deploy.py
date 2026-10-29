@@ -303,6 +303,21 @@ def audit_game(page, slug, rel_path):
     }
 
 
+def check_and_add_nestor_admin(page, slug):
+    """Ensures Nestor is invited and promoted to admin of the game's group on BGA."""
+    try:
+        from add_nestor_to_groups import find_group_for_slug, ensure_nestor_admin
+        gid = find_group_for_slug(page, slug)
+        if gid:
+            print(f"Ensuring Nestor is Admin on group {gid} for {slug}...")
+            res = ensure_nestor_admin(page, gid)
+            print(f"  Nestor group admin status: {res.get('finalRole', 'unknown')} (actions: {res.get('actions', [])})")
+        else:
+            print(f"  [Notice] No BGA group found for {slug} yet.")
+    except Exception as e:
+        print(f"  [Warning] Failed to ensure Nestor admin for {slug}: {e}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="BGA Automatic Deployment Tool")
     parser.add_argument('action', nargs='?', default='status',
@@ -414,6 +429,8 @@ def main():
                     results.append({'slug': slug, 'success': False, 'error': 'Prod deploy failed'})
                     continue
 
+                check_and_add_nestor_admin(page, slug)
+
                 results.append({
                     'slug': slug,
                     'success': True,
@@ -463,6 +480,7 @@ def main():
                     print("Deploy failed.")
                     sys.exit(1)
                 print(f"\n[DONE] {slug} deployed version {new_ver} to {audit['stage']}!")
+                check_and_add_nestor_admin(page, slug)
             else:
                 print(f"\n[NOTE] {slug} is not in Alpha ({audit['stage']}). Version {new_ver} was built on Studio but cannot be deployed to production.")
 
