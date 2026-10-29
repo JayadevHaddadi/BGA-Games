@@ -211,35 +211,11 @@ body.hippos_page_bg #game_play_area {
 /* Hover ghost (desktop): faint, never intercepts the mouse */
 .hippos_ghost_hover { opacity: 0.5; z-index: 2; pointer-events: none; }
 
-/* One rotate button next to the staged animal: grey, round, 44 px tap target, no shadow */
-#hippos_handles {
-    position: absolute;
-    pointer-events: none;
-    z-index: 4;
-}
-.hippos_rotate {
-    position: absolute;
-    width: 44px;
-    height: 44px;
-    transform: translate(-50%, -50%);
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    pointer-events: auto;
-    cursor: pointer;
-    background: #cfd2d6;
-    color: #222;
-    border: 2px solid #5f6368;
-    border-radius: 50%;
-    font: bold 26px/1 sans-serif;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-}
-@media (hover: hover) {
-    .hippos_rotate:hover { background: #e2e4e7; }
-}
+#hippos_handles { position: absolute; pointer-events: none; z-index: 4; }
 .hippos_ghost { pointer-events: auto; cursor: pointer; }
+
+/* Placement states: the title line is always as tall as the 56 px orientation icon, so it never jumps */
+.hippos_placing #pagemaintitletext { display: inline-block; min-height: 56px; line-height: 56px; vertical-align: middle; }
 
 /* Current orientation picture in the status bar */
 .hippos_title_icon {
@@ -247,8 +223,8 @@ body.hippos_page_bg #game_play_area {
     position: relative;
     vertical-align: middle;
     margin-left: 6px;
-    width: 28px;
-    height: 28px;
+    width: 56px;
+    height: 56px;
     flex: none;
 }
 .hippos_title_icon .hippos_panel_icon {

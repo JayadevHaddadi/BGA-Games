@@ -71,6 +71,7 @@ const bga = {
     addActionButton(text, callback, opts) {
       buttons.push({ text, callback, opts });
       const b = document.createElement('a');
+      if (opts?.id) b.id = opts.id;
       b.className = 'bgabutton bgabutton_' + (opts?.color || 'blue') + ' ' + (opts?.classes || '');
       b.textContent = text;
       if (opts?.tooltip) b.title = opts.tooltip;
@@ -154,12 +155,12 @@ try {
 
   // Check that Confirm button appeared
   const hasConfirm = buttons.some(b => b.text && b.text.includes('Confirm'));
-  const barOk = hasConfirm && buttons.length === 2 && buttons.every((b) => /^(Confirm|Cancel)$/.test(b.text));
+  const barOk = hasConfirm && buttons.length === 3 && buttons.every((b) => /^(\u21BB Rotate|Confirm|Cancel)$/.test(b.text));
 
-  const rotBtns = [...document.querySelectorAll('.hippos_rotate')].map((b) => b.getBoundingClientRect());
+  const rotBtns = [...document.querySelectorAll('#statusbar #hippos_rotate')].map((b) => b.getBoundingClientRect());
   const minBtn = rotBtns.length ? Math.round(Math.min(...rotBtns.map((r) => Math.min(r.width, r.height)))) : 0;
   const barLabels = buttons.map((b) => b.text.replace(/<[^>]*>/g, '').trim()).join('|');
-  const handleCount = rotBtns.length;
+  const handleCount = document.querySelectorAll('#hippos_handles .hippos_rotate, .hippos_rotate').length; // on-board rotate buttons: none
   const touchLabels = buttons.map((b) => b.text).join('|');
   const touchHasTooltip = buttons.some((b) => b.opts?.tooltip);
 
@@ -274,14 +275,14 @@ try {
       game.desktopOverride = false; game.hover = null; game.clearHoverGhost();
       game.currentRot = 0; game.onCellClicked(sr, sc);
       const rb = document.getElementById('hippos_rotate');
-      desk.handlesOnBoard = document.querySelectorAll('.hippos_rotate').length === 1 && !!rb
-        && !buttons.some((b) => /Rotate|[↑←↓→↻]/.test(b.text));
+      desk.handlesOnBoard = document.querySelectorAll('#hippos_handles .hippos_rotate').length === 0 && !!rb && rb.classList.contains('bgabutton_secondary')
+        && buttons[0].text === '\u21BB Rotate' && buttons[0].opts.color === 'secondary';
       desk.rotateTooltip = !!rb && /R/.test(rb.title || '') && /Shift\+R/.test(rb.title || '') && /W\/A\/S\/D/.test(rb.title || '');
-      desk.rotateSize = !!rb && Math.round(rb.getBoundingClientRect().width) >= 44;
+      desk.rotateSize = !!rb; // real size comes from BGA's bgabutton styles
       const nextRot = (x) => { const pv = game.pivotOf(game.stage, game.stage.rot); for (let i = 1; i <= 4; i++) { const n = (x + i) % 4; if (game.pivotAt(pv[0], pv[1], n)) return n; } for (let i = 1; i <= 4; i++) { const n = (x + i) % 4; if (game.legalIn(n).length) return n; } return x; };
       const r0 = game.stage.rot;
       const e0 = nextRot(r0);
-      rb.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      rb.click();
       desk.buttonRotates = !!game.stage && game.stage.rot === e0;
       const r1 = game.stage.rot;
       const e1 = nextRot(r1);
@@ -294,7 +295,7 @@ try {
       document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'R', shiftKey: true, bubbles: true, cancelable: true }));
       desk.keyShiftR = !!game.stage && game.stage.rot !== r3;
       desk.barAfter = buttons.map((b) => b.text).join('|');
-      desk.barLabelsOk = desk.barAfter === 'Confirm|Cancel';
+      desk.barLabelsOk = desk.barAfter === '\u21BB Rotate|Confirm|Cancel';
       // Layout: title icon is a fixed box and the board never moves across the orientations
       const tops = [], sizes = [];
       for (let rr = 0; rr < 4; rr++) {
@@ -305,20 +306,30 @@ try {
       }
       desk.iconSizes = sizes.join(',');
       desk.boardTops = tops.join(',');
-      desk.noJump = new Set(sizes).size === 1 && sizes[0] === '28x28' && new Set(tops).size === 1;
+      desk.noJump = new Set(sizes).size === 1 && sizes[0] === '56x56' && new Set(tops).size === 1;
       for (const sp of ['crocodile', 'trunk']) {
         game.args.species = sp; const ts = new Set(), tp = new Set();
         for (let rr = 0; rr < (sp === 'trunk' ? 2 : 4); rr++) { game.currentRot = rr; game.updateTitle(); const ic = document.querySelector('#title .hippos_title_icon').getBoundingClientRect(); ts.add(`${Math.round(ic.width)}x${Math.round(ic.height)}`); tp.add(Math.round(document.getElementById('hippos_board').getBoundingClientRect().top)); }
-        desk.noJump = desk.noJump && ts.size === 1 && ts.has('28x28') && tp.size === 1;
+        desk.noJump = desk.noJump && ts.size === 1 && ts.has('56x56') && tp.size === 1;
         game.args.species = 'hippo';
       }
       game.currentRot = game.stage.rot; game.updateTitle();
+      const topStaged = Math.round(document.getElementById('hippos_board').getBoundingClientRect().top);
+      // Rotate works before anything is staged: rotates the hover orientation, Easy legal spots follow
+      game.onCancel(); game.currentRot = 0; game.highlightLegal(); game.updateButtons(game.args, true);
+      desk.unstagedBar = buttons.map((b) => b.text).join('|').startsWith('\u21BB Rotate');
+      const pivBefore = [...document.querySelectorAll('.hippos_pivot_target')].map((e) => e.id).join();
+      document.getElementById('hippos_rotate').click();
+      const pivAfter = [...document.querySelectorAll('.hippos_pivot_target')].map((e) => e.id).join();
+      desk.topSame = Math.round(document.getElementById('hippos_board').getBoundingClientRect().top) === topStaged;
+      desk.unstagedRotates = desk.topSame && !game.stage && game.currentRot !== 0 && pivBefore !== pivAfter;
+      game.currentRot = 0; game.highlightLegal(); game.updateTitle();
       game.desktopOverride = true;
     }
     desk.extra = desk.stageKept !== false && desk.hoverRotChanged !== false && desk.stagedGhostKept !== false
       && desk.noLegalTarget !== false && desk.pivotHints !== false && desk.hintsOff !== false && desk.easyText !== false && desk.hintsBack !== false
       && desk.orderOk !== false && desk.surrenderEasy !== false && desk.surrenderHard !== false && desk.surrenderAction !== false && desk.surrenderCancel !== false && desk.touchRotatesStage !== false && desk.handlesOnBoard !== false
-      && desk.rotateTooltip !== false && desk.rotateSize !== false && desk.buttonRotates !== false && desk.pieceTapRotates !== false && desk.keyR !== false && desk.keyShiftR !== false && desk.barLabelsOk !== false && desk.noJump !== false;
+      && desk.rotateTooltip !== false && desk.rotateSize !== false && desk.buttonRotates !== false && desk.pieceTapRotates !== false && desk.keyR !== false && desk.keyShiftR !== false && desk.barLabelsOk !== false && desk.unstagedBar !== false && desk.unstagedRotates !== false && desk.noJump !== false;
     desk.ok = desk.extra && desk.hoverGhost === 1 && desk.wasdHippo && desk.wasdCroc && desk.afterD === 0 && desk.afterA === 2 && desk.afterS === 1 && !desk.chatFocused
       && desk.ghostAfterKeys === 1 && desk.chatKeyUntouched && (params.get('shot') === 'desktop' || desk.clickPlaced)
       && !touchHasTooltip;
@@ -346,7 +357,7 @@ try {
       minRotButtonPx: minBtn,
       handleCount, barLabels, barOk,
       desktop: desk,
-      ok: window.errors.length === 0 && minBtn >= 44 && barOk && handleCount === 1 && (desk.ok !== false) && horizontalOverflow === 0 && cellPx >= 32 && hasConfirm,
+      ok: window.errors.length === 0 && barOk && handleCount === 0 && rotBtns.length === 1 && (desk.ok !== false) && horizontalOverflow === 0 && cellPx >= 32 && hasConfirm,
     };
 
     document.getElementById('out').textContent = JSON.stringify(report, null, 2);

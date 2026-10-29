@@ -17,8 +17,12 @@ class Game extends \Bga\GameFramework\Table
 
     public function getGameProgression(): int
     {
-        $placed = (int) $this->getUniqueValueFromDb('SELECT COUNT(*) FROM `piece` WHERE `placed` = 1');
-        return max(0, min(99, (int) round(100 * $placed / 16)));
+        $placed = (int) ($this->getUniqueValueFromDb('SELECT COUNT(*) FROM `piece` WHERE `placed` = 1') ?? 0);
+        $total = (int) ($this->getUniqueValueFromDb('SELECT COUNT(*) FROM `piece`') ?? 0);
+        if ($total <= 0) {
+            return 0;
+        }
+        return max(0, min(99, (int) round(100 * $placed / $total)));
     }
 
     /* ---------------------------------------------------------------------------------------------- */
