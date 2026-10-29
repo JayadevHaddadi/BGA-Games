@@ -38,16 +38,18 @@ import { Game } from '../../bga/modules/js/Game.js';
 const calls = [];
 const buttons = [];
 let turnState = null;
+let setupState = null;
 
 const bga = {
   states: {
     register(name, handler) {
       if (name === 'PlayerTurn') turnState = handler;
+      if (name === 'SetupPlacement') setupState = handler;
     }
   },
   gameArea: { getElement: () => document.getElementById('game_play_area') },
   notifications: { setupPromiseNotifications() {} },
-  userPreferences: { get: (id) => (id === 102 ? Number(QP.get('cb') || 0) : 1) },
+  userPreferences: { get: (id) => (id === 102 ? Number(QP.get('cb') || 0) : id === 103 ? Number(QP.get('gl') || 1) : 1) },
   statusBar: {
     setTitle() {},
     addActionButton(text, callback, opts) {
@@ -97,7 +99,7 @@ function fixture() {
   for (let i = 1; i <= NP; i++) {
     players[i] = { id: i, name: 'Player' + i, color: cols[i - 1] };
     player_colors[i] = ['red', 'blue', 'yellow', 'green'][i - 1];
-    gliders[i] = { player_id: i, q: gl[i - 1][0], r: gl[i - 1][1] };
+    gliders[i] = { player_id: i, q: gl[i - 1][0], r: gl[i - 1][1], in_torpor: QP.get('asleep') === '1' };
     player_reserves[i] = [{ tile_id: 900 + i, value: 2 }, { tile_id: 910 + i, value: 4 }];
     jumping_tiles[i] = { tile_id: 950 + i, value: 3 };
     scores[i] = 6;
@@ -125,7 +127,59 @@ try {
     }, true);
   }
 
-  setTimeout(() => {
+  // End-of-game check: BGA's end panel buttons ("N tables are waiting", "Back to main page") must stay clickable.
+  // Simulates the last jump (with an animation that never finishes, as in a background tab), the final scoring
+  // notifications and the game end, then puts a mock end-panel button where BGA draws it.
+  async function endOfGame() {
+    const res = { ok: true, problems: [] };
+    const fail = (m) => { res.ok = false; res.problems.push(m); };
+    const realAnimate = Element.prototype.animate;
+    const t0 = performance.now();
+    try {
+      // a frozen animation (never finishes) must not freeze the notification promise
+      Element.prototype.animate = function () { return { onfinish: null, oncancel: null, cancel() {} }; };
+      const p = game.notif_sugarGliderJumped({ args: { player_id: 1, from_q: 0, from_r: 1, to_q: 1, to_r: 1,
+        collected_tile: { tile_id: 777, value: 2 }, new_jumping_tile: { tile_id: 778, value: 2 }, current_score: 8 } });
+      const winner = await Promise.race([p.then(() => 'resolved'), new Promise(r => setTimeout(() => r('stuck'), 4000))]);
+      if (winner !== 'resolved') fail('jump notification promise never resolved (would freeze the BGA notification queue)');
+      Element.prototype.animate = realAnimate;
+      res.promiseMs = Math.round(performance.now() - t0);
+
+      // leave the turn state, then the final scoring notifications
+      if (turnState) turnState.onLeavingState();
+      game.notif_finalCollect({ args: { player_id: 1, collected_tile: { tile_id: 778, value: 2 }, current_score: 10 } });
+      for (const id of Object.keys(game.gamedatas.players)) game.notif_finalScore({ args: { player_id: Number(id), score: 10 } });
+      game.notif_endGameScores({ args: { winner_ids: [1], player_name: 'Player1', score: 10, scores: { 1: 10 } } });
+      if (buttons.length) fail('stale action buttons were re-added after the turn ended: ' + buttons.map(b => b.text).join(', '));
+      if (document.querySelector('.sg-hex-cell.selectable')) fail('stale highlights left after the turn ended');
+    } catch (e) {
+      Element.prototype.animate = realAnimate;
+      fail('exception at game end: ' + (e.stack || e));
+    }
+    // mock of BGA's end-of-game panel: one block under the play area, one fixed at the top like the page header
+    const panel = document.createElement('div');
+    panel.id = 'mock_end_panel';
+    panel.innerHTML = '<button id="mock_next_table" style="width:220px;height:40px">659 tables are waiting for me</button> <button id="mock_main" style="width:160px;height:40px">Back to main page</button>';
+    document.getElementById('page-content').appendChild(panel);
+    const top = document.createElement('button');
+    top.id = 'mock_top_btn'; top.textContent = 'top'; top.style.cssText = 'position:fixed;top:4px;right:4px;width:80px;height:40px;z-index:10';
+    document.body.appendChild(top);
+    let clicks = 0;
+    for (const id of ['mock_next_table', 'mock_main', 'mock_top_btn']) {
+      const b = document.getElementById(id);
+      b.addEventListener('click', () => { clicks++; });
+      b.scrollIntoView({ block: 'center' });
+      const r = b.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      if (hit !== b) fail(id + ' is covered by ' + (hit ? (hit.id || hit.tagName + '.' + hit.className) : 'nothing'));
+      b.click();
+    }
+    if (clicks !== 3) fail('end-panel buttons did not receive clicks');
+    return res;
+  }
+
+  setTimeout(async () => {
+    const gameEnd = QP.get('noend') ? { ok: true, skipped: true } : await endOfGame();
     const board = document.getElementById('sg_container') || document.getElementById('sg_board_svg');
     const boardRect = board ? board.getBoundingClientRect() : { width: 0 };
     const vp = window.innerWidth;
@@ -145,7 +199,8 @@ try {
       horizontalOverflow: Math.round(horizontalOverflow),
       cellTargetMin: minCell === 999 ? 0 : Math.round(minCell),
       jsErrors: window.errors,
-      ok: window.errors.length === 0 && horizontalOverflow === 0 && minCell >= 32,
+      gameEnd,
+      ok: gameEnd.ok && window.errors.length === 0 && horizontalOverflow === 0 && minCell >= 32,
     };
 
     document.getElementById('out').textContent = JSON.stringify(report, null, 2);

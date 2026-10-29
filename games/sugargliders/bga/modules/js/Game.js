@@ -7,6 +7,9 @@
  *------
  */
 
+// Nestor's official wooden sugar glider silhouette (from SG_token.ai), centred on 0,0, 44 units wide, faces right
+const SG_ORIGINAL_FIGURE = "M 22 6.4 C 22 6.8 21.8 7 21.6 7.2 C 21.5 7.2 21.5 7.2 21.4 7.3 C 21.4 7.3 21.4 7.3 21.3 7.3 C 21.3 7.3 21.3 7.3 21.3 7.3 C 20.4 7.5 18 7.7 17.1 7.4 C 16.5 7.2 16 7 15.6 6.7 C 14.4 5.7 12.9 5.6 12.9 5.6 C 12.9 5.6 11.6 5.2 11.6 7.2 C 11.6 9.3 12.5 9.3 13 9.5 C 13.4 9.7 15 9.6 15 9.6 L 15.7 11.5 L 10.7 11.5 C 10.7 11.5 7.9 11.1 5.9 8.7 C 4 6.3 2.5 6.3 2.5 6.3 C 2.5 6.3 1.7 8 -0.3 7.8 C -0.3 7.8 -0.3 9 0.7 9.3 C 1.5 9.6 3.1 9.5 3.1 9.5 L 4.3 11.5 L -1.3 11.5 L -3.6 9.3 C -3.6 9.3 -4.2 10.7 -5.9 11.5 L -10.4 11.5 C -22 5 -15.7 -9.4 -9.5 -11.2 L -9.8 -9.5 C -9.8 -9.5 -7.1 -11.5 -2.9 -10.5 L -3.5 -9 C -3.5 -9 -1.3 -8.8 1 -9.9 C 1 -9.9 -0.1 -5.3 -3.4 -4.1 C -6.6 -2.9 -9.4 -4 -9.4 -4 C -9.4 -4 -12.4 -1.3 -12.1 3.1 C -11.9 7.5 -8.2 9.3 -7.3 8 C -6.8 7.2 -6.6 6.1 -6.7 5.1 C -6.8 2.4 -5.2 -0.4 -3 -2 C -1.6 -3.1 0.2 -3.7 2 -3.8 C 4 -3.9 5.8 -3.2 7.5 -2.2 C 7.5 -2.1 7.6 -2 7.7 -2 C 10.9 -0 12.1 -0.2 12.1 -0.2 C 11.6 -1.4 11.2 -3 13 -3.3 C 14.9 -3.5 15.3 -0.5 15.3 -0.5 C 15.3 -0.5 18.3 0.2 19.4 1 C 19.4 1 19.4 1 19.4 1 C 19.8 1.3 20.1 1.7 20.2 2.3 L 20.2 2.2 C 20.2 2.2 20.3 2.9 20.5 3.5 C 20.5 3.6 20.5 3.6 20.5 3.6 C 20.6 4 20.7 4.3 20.9 4.6 C 20.9 4.6 20.9 4.7 20.9 4.7 C 20.9 4.7 21 4.7 21 4.8 C 21.1 5.1 21.3 5.4 21.5 5.6 C 21.6 5.7 21.6 5.7 21.7 5.8 C 22 6 22 6.2 22 6.4";
+
 class SetupPlacementState {
     constructor(game, bga) {
         this.game = game;
@@ -37,6 +40,7 @@ class SetupPlacementState {
 
     onLeavingState() {
         this.game.clearHighlights();
+        this.game.currentArgs = null; // stale args must never re-add buttons or highlights later (e.g. at game end)
     }
 }
 
@@ -78,6 +82,7 @@ class PlayerTurnState {
         this.game.clearHighlights();
         this.game.hideReserveTray();
         this.game.clearActionButtons();
+        this.game.currentArgs = null; // stale args must never re-add buttons or highlights later (e.g. at game end)
     }
 }
 
@@ -177,7 +182,15 @@ export class Game {
         return Number((() => { try { return this.bga?.userPreferences?.get?.(102); } catch (e) { return undefined; } })() ?? 0) === 1;
     }
 
+    // Pref 103: glider style, 1 = original figure (default), 2 = classic drawing. Safe read (old tables lack it).
+    // cssPref sg_gl_orig / sg_gl_classic switches the look live; both figures are always in the SVG.
+    gliderStyle() {
+        const v = Number((() => { try { return this.bga?.userPreferences?.get?.(103); } catch (e) { return undefined; } })() ?? 1);
+        return v === 2 ? 2 : 1;
+    }
+
     applyColourBlindPref() {
+        document.body.classList.toggle('sg_gl_classic', this.gliderStyle() === 2);
         document.body.classList.toggle('sg_cb_on', this.colourBlindOn());
         document.body.classList.add('sg_page_bg');
     }
@@ -450,7 +463,10 @@ export class Game {
         const symFill = dark ? '#263238' : '#ffffff';
         const symStroke = dark ? '#ffffff' : '#263238';
 
+        const origMark = `<g class="sg-cb-mark">${this.symbolSvg(symbol, -3, 1, 3.4, symFill, symStroke)}</g>`;
         return `
+            <g class="sg-gl-orig" transform="scale(1.25)"><path d="${SG_ORIGINAL_FIGURE}" class="sg-orig-fig color-${colorName}" stroke-width="1.3" stroke-linejoin="round" />${origMark}</g>
+            <g class="sg-gl-classic">
             <path d="${wingPath}" class="sg-glider-wings color-${colorName}" stroke-width="1.4" stroke-linejoin="round" />
             <path d="${bellyPath}" class="sg-glider-belly color-${colorName}" />
             <path d="${tailPath}" class="sg-glider-tail color-${colorName}" stroke-width="1" />
@@ -458,6 +474,7 @@ export class Game {
             <circle cx="7" cy="-16" r="3.8" class="sg-glider-ear color-${colorName}" />
             <ellipse cx="0" cy="-11" rx="7.5" ry="6" class="sg-glider-head sg-glider-dorsal color-${colorName}" stroke-width="1.2" />
             <g class="sg-cb-mark">${this.symbolSvg(symbol, 0, 4, 4.2, symFill, symStroke)}</g>
+            </g>
         `;
     }
 
@@ -469,7 +486,7 @@ export class Game {
                 <circle class="sg-turn-halo" cx="0" cy="6" r="30" />
                 <g class="sg-glider-inner">
                     ${this.gliderBodySvg(colorName, symbol, inTorpor)}
-                    ${inTorpor ? `<text x="14" y="-12" class="sg-torpor-zzz">Zz</text>` : ''}
+                    ${inTorpor ? `<text x="10" y="-18" class="sg-torpor-zzz">zzz</text>` : ''}
                 </g>
             </g>
         `;
@@ -974,16 +991,24 @@ export class Game {
         ];
 
         if (typeof gliderEl.animate === 'function') {
+            // The callback must run exactly once and ALWAYS: it resolves the notification promise, and a promise
+            // that never resolves (animation paused in a background tab, element removed, error) freezes BGA's
+            // notification queue, so the end-of-game panel buttons never work.
+            let done = false;
+            const finish = () => {
+                if (done) return;
+                done = true;
+                try { anim.cancel(); } catch (e) {}
+                if (callback) callback();
+            };
             const anim = gliderEl.animate(keyframes, {
                 duration: duration,
                 easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
                 fill: 'forwards'
             });
-
-            anim.onfinish = () => {
-                anim.cancel();
-                if (callback) callback();
-            };
+            anim.onfinish = finish;
+            anim.oncancel = finish;
+            setTimeout(finish, duration + 400);
         } else {
             if (callback) callback();
         }
@@ -1032,10 +1057,13 @@ export class Game {
                     this.gliders[player_id].in_torpor = false;
                 }
 
-                this.renderBoard();
-                this.updatePlayerPanels();
-
-                this.updateInfoStrip(0);
+                try {
+                    this.renderBoard();
+                    this.updatePlayerPanels();
+                    this.updateInfoStrip(0);
+                } catch (e) {
+                    console.error('sugargliders: board refresh after jump failed', e);
+                }
                 resolve();
             });
         });
@@ -1087,8 +1115,10 @@ export class Game {
             const pcolor = (this.gamedatas.players[player_id] && this.gamedatas.players[player_id].color) || '000000';
             this.bga?.gameui?.displayScoring?.(anchor, pcolor, score, 1200);
         } catch (e) {}
-        const counter = this.bga?.playerPanels?.getScoreCounter?.(player_id);
-        if (counter && typeof counter.toValue === 'function') counter.toValue(score);
+        try {
+            const counter = this.bga?.playerPanels?.getScoreCounter?.(player_id);
+            if (counter && typeof counter.toValue === 'function') counter.toValue(score);
+        } catch (e) {}
     }
 
     notif_endGameScores(notif) {
