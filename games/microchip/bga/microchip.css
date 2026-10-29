@@ -517,7 +517,21 @@ button.mc_space {
 }
 
 .mc_other .mc_panel_tray {
-    background: rgba(255, 255, 255, 0.14);
+    background: rgba(0, 0, 0, 0.25);
+}
+
+/* Light player colours (white, yellow...): dark name and a thin outline so the card edge shows */
+.mc_other.mc_other_light,
+.mc_other.mc_other_light .mc_other_name {
+    color: #1b1b1b;
+}
+
+.mc_other.mc_other_light {
+    outline: 1px solid rgba(0, 0, 0, 0.35);
+}
+
+.mc_other.mc_other_light .mc_panel_tray {
+    background: rgba(0, 0, 0, 0.12);
 }
 
 /* ---------- Player panel line (persistent, compact) ---------- */

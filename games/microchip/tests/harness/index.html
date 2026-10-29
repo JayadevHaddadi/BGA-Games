@@ -93,7 +93,7 @@ function fixture() {
     }
   }
   return {
-    players: { 1: { name: 'Ana' }, 2: { name: 'Ben' }, 3: { name: 'Cy' }, 4: { name: 'Di' } },
+    players: { 1: { name: 'Ana', color: 'ff0000' }, 2: { name: 'Ben', color: '008000' }, 3: { name: 'Cy', color: 'ffffff' }, 4: { name: 'Di', color: '0000ff' } },
     player_order: PIDS,
     tiles,
     spaces,
@@ -158,10 +158,11 @@ async function run() {
   // Opponents: black containers, Opponents title, no warnings, desktop arrangement
   const others = [...document.querySelectorAll('#mc_boards .mc_other')];
   check(others.length === PIDS.length - 1, `opponent containers: ${others.length}`);
-  check(others.every((o) => getComputedStyle(o).backgroundColor === 'rgb(27, 27, 27)' && parseFloat(getComputedStyle(o).borderTopLeftRadius) <= 3 && getComputedStyle(o).boxShadow === 'none'), 'opponent containers are near-black, radius <= 3px, no shadow');
+  const hexRgb = (h) => { const n = parseInt(h, 16); return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`; };
+  check(others.every((o) => getComputedStyle(o).backgroundColor === hexRgb(gd.players[o.dataset.pid].color || '1b1b1b') && parseFloat(getComputedStyle(o).borderTopLeftRadius) <= 3 && getComputedStyle(o).boxShadow === 'none'), 'opponent containers use the player colour, radius <= 3px, no shadow');
   check(document.getElementById('mc_h_others').textContent === 'Opponents', 'section title is Opponents');
   check(!document.querySelector('#mc_boards .mc_tile_err, #mc_boards .mc_tile_open, #mc_boards .mc_err, #mc_boards .mc_open'), 'no warning or ! marks inside opponents');
-  check(others.every((o) => getComputedStyle(o.querySelector('.mc_other_name')).color === 'rgb(242, 240, 234)'), 'opponent names are light text');
+  check(others.every((o) => { const c = getComputedStyle(o.querySelector('.mc_other_name')).color; return o.classList.contains('mc_other_light') ? c === 'rgb(27, 27, 27)' : c === 'rgb(242, 240, 234)'; }), 'opponent names readable on their player colour');
   if (window.innerWidth >= 1000) {
     const rr = (e) => e.getBoundingClientRect();
     const pr = rr(document.getElementById('mc_pool_section')), mr = rr(document.getElementById('mc_mine')), or = rr(document.querySelector('.mc_others'));

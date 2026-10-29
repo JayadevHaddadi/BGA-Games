@@ -828,6 +828,12 @@ export class Game {
             const card = document.createElement('div');
             card.className = 'mc_other';
             card.dataset.pid = String(pid);
+            // Card in the opponent's player colour; dark text on light colours.
+            const hex = String(this.gd?.players?.[pid]?.color || '1b1b1b').replace('#', '');
+            const n = parseInt(hex.length === 6 ? hex : '1b1b1b', 16);
+            const lum = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+            card.style.background = '#' + hex;
+            if (lum > 0.6) card.classList.add('mc_other_light');
             card.title = this.playerName(pid);
             card.innerHTML = `<div class="mc_other_name">${this.playerName(pid)}</div>` + this.boardHTML(pid, false) + this.panelTrayHTML(pid);
             this.el.boards.appendChild(card);
