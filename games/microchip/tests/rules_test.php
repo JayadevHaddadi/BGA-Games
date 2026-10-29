@@ -120,6 +120,27 @@ check(Rules::invalidPlacements($board, $ip) === ['2,2'], 'a wrong-colour tile is
 $ip = ['0,0' => ['colour' => 'blue', 'shape' => 'end', 'rot' => 0]];
 check(Rules::invalidPlacements($board, $ip) === ['0,0'], 'a connection pointing off the board is an invalid placement');
 
+// A tile only ever goes on a space of its own colour: every colour on every space of a random board
+foreach (Rules::COLOURS as $tc) {
+    $rb = Rules::randomBoard();
+    for ($r = 0; $r < 5; $r++) {
+        for ($c = 0; $c < 5; $c++) {
+            $p = Rules::placementProblem($rb, [], $tc, 'plus', 0, $r, $c);
+            // a plus always points off the board at an edge space, so only inner spaces can come back clean
+            if ($rb[$r][$c] !== $tc) {
+                check($p === 'colour', "a $tc tile on a {$rb[$r][$c]} space ($r,$c) is refused with 'colour'");
+            } elseif ($r > 0 && $r < 4 && $c > 0 && $c < 4) {
+                check($p === null, "a $tc tile on a $tc space ($r,$c) is accepted");
+            }
+        }
+    }
+}
+$src = file_get_contents(__DIR__ . '/../bga/modules/php/Game.php');
+check(strpos($src, "'colour' => clienttranslate('The tile colour must match the colour of the space.')") !== false, 'the colour refusal is a translated message');
+check(strpos($src, 'throw new UserException($this->problemMessage($problem))') !== false, 'placeTile throws a UserException with the problem message');
+// Mismatch rule unchanged: blocks finishing whichever tile is new
+check(Rules::mismatchesNeighbour(['0,0' => tile('end', 1)], 'end', 2, 0, 1), 'mismatchesNeighbour still flags a new tile that does not match its neighbour');
+
 // Placing a tile that meets a matching neighbour on both sides is legal and error-free
 $placed = ['2,2' => tile('end', 1)]; // connection east
 check(Rules::placementProblem($board, $placed, 'blue', 'end', 3, 2, 3) === null, 'end with a west connection meets an end with an east connection');

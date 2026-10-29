@@ -63,8 +63,12 @@ function mcProblem(spaces, placed, colour, shape, rot, r, c) {
     return null;
 }
 
-/** Returns a Set of "r,c" keys for placed tiles that have connection errors (pointing off-board or mismatching an adjacent tile). */
-function mcTileErrors(placed) {
+/**
+ * Returns a Set of "r,c" keys for placed tiles that have connection errors (pointing off-board or mismatching an adjacent tile).
+ * A mismatch between two tiles is marked on the tile(s) placed or moved this turn (ids in `touched`), never on the
+ * neighbour that was already there. When neither tile was touched this turn (e.g. after a reload) both are marked.
+ */
+function mcTileErrors(placed, touched) {
     const errors = new Set();
     const keys = Object.keys(placed);
     for (const key of keys) {
@@ -83,8 +87,10 @@ function mcTileErrors(placed) {
             if (!other) continue;
             const otherConn = mcConn(other.shape, other.rot);
             if (otherConn[(side + 2) % 4] !== conn[side]) {
-                errors.add(key);
-                errors.add(nKey);
+                const mineNew = Boolean(touched && touched.has(tile.id));
+                const otherNew = Boolean(touched && touched.has(other.id));
+                if (mineNew || !otherNew) errors.add(key);
+                if (otherNew || !mineNew) errors.add(nKey);
             }
         }
     }
@@ -109,7 +115,7 @@ function mcOpenTiles(placed) {
 }
 
 /** "r,c" keys of tiles whose placement is illegal (wrong colour, a connection off the board, or a mismatch with a neighbour). */
-function mcInvalidTiles(spaces, placed) {
+function mcInvalidTiles(spaces, placed, touched) {
     const bad = new Set();
     Object.keys(placed).forEach((key) => {
         const [r, c] = key.split(',').map(Number);
@@ -118,7 +124,7 @@ function mcInvalidTiles(spaces, placed) {
         if (mcProblem(spaces, others, placed[key].colour, placed[key].shape, placed[key].rot, r, c) !== null) bad.add(key);
     });
     // Rulebook: a tile that creates an open end against a neighbouring tile is an illegal placement too
-    mcTileErrors(placed).forEach((key) => bad.add(key));
+    mcTileErrors(placed, touched).forEach((key) => bad.add(key));
     return bad;
 }
 
@@ -268,6 +274,8 @@ export class Game {
         this.ghost = null;
         // The tile placed or moved last: marked on its board so it is easy to find after a move
         this.lastId = null;
+        // Per player: ids of the tiles placed, moved or swapped since that player last drew a tile ("this turn")
+        this.touched = {};
         this.bga.states.register('Play', new PlayState(this));
     }
 
@@ -679,9 +687,9 @@ export class Game {
             const placedList = this.boardTiles(pid);
             const placedMap = {};
             placedList.forEach((t) => {
-                placedMap[mcKey(t.r, t.c)] = { shape: t.shape, rot: t.rot, colour: t.colour };
+                placedMap[mcKey(t.r, t.c)] = { id: t.id, shape: t.shape, rot: t.rot, colour: t.colour };
             });
-            this.errorKeys[pid] = mcInvalidTiles(this.spaces[pid], placedMap);
+            this.errorKeys[pid] = mcInvalidTiles(this.spaces[pid], placedMap, this.touched[pid]);
             this.openKeys[pid] = mcOpenTiles(placedMap);
             const owned = placedList.length + this.trayTiles(pid).length;
             const s = mcScoreBoard(placedMap, owned);
@@ -749,7 +757,8 @@ export class Game {
         if (poolSection) poolSection.hidden = false;
 
         const cols = this.poolCols;
-        const rows = this.poolRows;
+        // Only the rows that still hold a tile are drawn, so the box shrinks as tiles are taken
+        const rows = Math.min(this.poolRows, Math.max(...poolTiles.map((t) => t.row)) + 1);
         const at = new Map(poolTiles.map((t) => [mcKey(t.row, t.col), t]));
         const draw = this.drawCol();
         const canDraw = this.me !== null && this.drawer === this.me && !this.finished[this.me];
@@ -771,6 +780,8 @@ export class Game {
         const grid = document.createElement('div');
         grid.className = 'mc_pool_grid';
         for (let c = 0; c < cols; c++) {
+            // Columns already emptied take no room: the box shrinks as the pool is drawn
+            if (!poolTiles.some((t) => t.col === c)) continue;
             const col = document.createElement('div');
             col.className = 'mc_pool_col' + (c === draw ? ' mc_draw_col' : '');
             const arrowCell = document.createElement('div');
@@ -1137,6 +1148,11 @@ export class Game {
         }
         if (this._actionPending) return;
         const t = this.tiles.get(this.sel.id);
+        // A tile only ever goes on a space of its own colour: no staging, no request
+        if (this.spaces[this.me][r][c] !== t.colour) {
+            this.hint(this.problemText('colour'));
+            return;
+        }
         const legal = this.getLegalRotations(this.sel.id, r, c);
         if (legal.length === 0) {
             // No legal rotation here: show the tile anyway, in its current rotation, marked invalid (not stored on the server)
@@ -1344,6 +1360,7 @@ export class Game {
 
     async notif_tileDrawn(args) {
         this._actionPending = false;
+        this.touched[Number(args.player_id)] = new Set();
         const t = this.tiles.get(args.tile.id);
         const animPromise = this.animateTileDrawn(args.tile, args.player_id);
         if (t) {
@@ -1368,9 +1385,16 @@ export class Game {
         this.renderAll();
     }
 
+    touch(pid, ...ids) {
+        pid = Number(pid);
+        if (!this.touched[pid]) this.touched[pid] = new Set();
+        ids.forEach((id) => this.touched[pid].add(id));
+    }
+
     notif_tilePlaced(args) {
         this._actionPending = false;
         this.lastId = args.tile.id;
+        this.touch(args.player_id, args.tile.id);
         const t = this.tiles.get(args.tile.id);
         if (t) {
             t.location = 'board';
@@ -1392,6 +1416,7 @@ export class Game {
 
     notif_tileReturned(args) {
         this._actionPending = false;
+        this.touched[Number(args.player_id)]?.delete(args.tile.id);
         const t = this.tiles.get(args.tile.id);
         if (t) {
             t.location = 'hand';
@@ -1412,6 +1437,9 @@ export class Game {
 
     notif_tileSwapped(args) {
         this._actionPending = false;
+        this.touch(args.player_id, args.tile_a.id);
+        if (args.type === 'board_board') this.touch(args.player_id, args.tile_b.id);
+        if (args.type === 'tray_board') this.touched[Number(args.player_id)]?.delete(args.tile_b.id);
         if (args.type === 'tray_board') {
             this.lastId = args.tile_a.id;
             const tA = this.tiles.get(args.tile_a.id);

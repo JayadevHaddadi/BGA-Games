@@ -158,9 +158,32 @@ async function run() {
   check(poolEl.scrollWidth <= poolEl.clientWidth + 1, `pool needs no sideways scroll (${poolEl.scrollWidth} <= ${poolEl.clientWidth})`);
   const poolBtns = [...poolEl.querySelectorAll('.mc_tile_btn')].map((b) => b.getBoundingClientRect().width);
   check(poolBtns.length > 0 && Math.min(...poolBtns) >= 36, `pool tiles at least 36px (${Math.min(...poolBtns)})`);
+  // Points 1 and 2: the pool box hugs its tiles (8px padding), is centred in the game area, and its height follows its rows
+  const poolBox = () => {
+    const sec = root.querySelector('#mc_pool_section');
+    const cs = getComputedStyle(sec);
+    const sr = sec.getBoundingClientRect();
+    const gr = sec.querySelector('.mc_pool_grid').getBoundingClientRect();
+    const ar = document.getElementById('game_play_area').getBoundingClientRect();
+    return { sec: sr, grid: gr, pad: [cs.paddingLeft, cs.paddingRight, cs.paddingTop, cs.paddingBottom], offset: Math.abs((sr.left + sr.right) / 2 - (ar.left + ar.right) / 2), minH: cs.minHeight, h: cs.height };
+  };
+  const pb = poolBox();
+  check(pb.pad.every((v) => v === '8px'), `pool box has 8px padding all round (${pb.pad})`);
+  check(pb.offset <= 1, `pool box is centred in the game area (offset ${pb.offset.toFixed(1)}px)`);
+  check(pb.sec.bottom - pb.grid.bottom <= 10 && pb.grid.left - pb.sec.left <= 10 && pb.sec.right - pb.grid.right <= 10, `pool box hugs its tiles (left ${(pb.grid.left - pb.sec.left).toFixed(1)}, right ${(pb.sec.right - pb.grid.right).toFixed(1)}, bottom ${(pb.sec.bottom - pb.grid.bottom).toFixed(1)})`);
+  check(pb.minH === '0px' || pb.minH === 'auto', `pool box has no minimum height (${pb.minH})`);
+  if (window.innerWidth > 800) check(pb.sec.width < 760, `pool box on desktop is not stretched across the page (${pb.sec.width.toFixed(0)}px)`);
   check(typeof scores[1] === 'number', `live score computed for player 1: ${scores[1]}`);
 
   if (mode === 'turn') {
+    if (params.get('shot') === 'pool') {
+      // Screenshot state: most of the pool already drawn, the box must have shrunk
+      [...game.tiles.values()].filter((t) => t.location === 'pool').sort((x, y) => y.col - x.col || x.row - y.row).slice(17).forEach((t) => { t.location = 'box'; });
+      game.renderAll();
+      await new Promise((r) => setTimeout(r, 300));
+      document.body.dataset.done = '1';
+      return;
+    }
     // 2. Draw: tap a draw-column tile -> sends actDraw immediately, and the drawn tile becomes selected
     root.querySelector('.mc_can').click();
     await Promise.resolve();
@@ -178,13 +201,15 @@ async function run() {
     const space = (r, c) => [...root.querySelectorAll('#mc_board_me .mc_space')].find((s) => +s.dataset.r === r && +s.dataset.c === c);
     const placedEl = (tid) => root.querySelector(`#mc_board_me .mc_placed[data-id="${tid}"]`);
 
-    // A wrong colour space (no legal rotation): the tile is shown there anyway, marked invalid with a red !, not sent to the server
+    // Point 3: a wrong-colour space is never offered or staged: nothing sent, no ghost, a hint, the tile stays where it was
     const nBefore = calls.length;
     space(0, 2).click();
     check(calls.length === nBefore, 'a wrong-colour space sends nothing to the server');
-    check(placedEl(40) && placedEl(40).classList.contains('mc_bad') && placedEl(40).querySelector('.mc_tile_err'), 'tile on a wrong-colour space is shown invalid with a red ! badge');
-    check(placedEl(40).querySelector('.mc_tile_err').title === 'Invalid placement', 'invalid badge has the tooltip');
-    check(game.sel && game.sel.id === 40, 'invalid tile stays selected');
+    check(!placedEl(40) && !root.querySelector('#mc_board_me .mc_ghost'), 'a wrong-colour space stages no tile (no ghost, no red !)');
+    check(game.ghost === null && game.sel && game.sel.id === 40 && game.sel.r === null, 'tile stays selected in the tray after tapping a wrong-colour space');
+    check(root.querySelector('#mc_hint').textContent === 'The tile colour must match the colour of the space.', 'hint explains the colour rule');
+    const targetCells = [...root.querySelectorAll('#mc_board_me .mc_target')];
+    check(targetCells.length > 0 && targetCells.every((e) => e.classList.contains('mc_sp_blue')), 'only blue spaces are highlighted for a blue tile');
     check(!labels().includes('Finish'), 'no Finish while the pool is not empty');
 
     // (2,1) is legal: actPlace sent, in a legal rotation, tile stays selected
@@ -253,6 +278,13 @@ async function run() {
     game.onPoolTile(51);
     check(calls.length === callsBefore + 1 && calls[calls.length - 1].args.tileId === 50, 'rapid pool tile clicks are guarded against concurrent actDraw');
     game._actionPending = false;
+    game.renderAll();
+    const pb2 = poolBox();
+    const tileSize = root.querySelector('.mc_pool_cell').getBoundingClientRect().height;
+    check(pb2.grid.height <= 28 + 2 * tileSize + 2 * 4 + 2, `pool with one column left: box follows its content (grid ${pb2.grid.height.toFixed(0)}px, tile ${tileSize.toFixed(0)}px)`);
+    check(root.querySelectorAll('#mc_pool .mc_pool_col').length === 1 && root.querySelectorAll('#mc_pool .mc_pool_cell').length === 2, `only the used column and rows are drawn (${root.querySelectorAll('#mc_pool .mc_pool_cell').length} cells)`);
+    check(pb2.sec.width < 120 && pb2.sec.height < pb.sec.height + 1, `pool box shrinks once columns are emptied (${pb.sec.width.toFixed(0)}x${pb.sec.height.toFixed(0)} -> ${pb2.sec.width.toFixed(0)}x${pb2.sec.height.toFixed(0)})`);
+    check(pb2.offset <= 1, `shrunk pool box stays centred (offset ${pb2.offset.toFixed(1)}px)`);
 
     // 9. Replace: a selected tray tile + a same-colour board tile -> actSwap; different colour -> just selects
     game.tiles.forEach((t) => { if (t.owner === 1 && t.location === 'board') { t.location = 'hand'; t.r = null; t.c = null; t.rot = 0; } });
@@ -273,6 +305,33 @@ async function run() {
     check(game.tiles.get(44).location === 'hand' && game.tiles.get(41).location === 'board' && game.tiles.get(41).r === 1 && game.tiles.get(41).c === 4, 'board tile went back to the tray, incoming tile placed');
     check(game.sel && game.sel.id === 41 && game.sel.from === 'board' && root.querySelector('#mc_board_me .mc_placed.mc_sel[data-id="41"]'), 'incoming tile stays selected');
     check(root.querySelector('.mc_tray .mc_tile_btn[data-id="44"]'), 'replaced tile shows in the tray');
+
+    // 10. Point 4: the red ! sits only on the tile placed this turn, not on the neighbour already on the board
+    game.tiles.forEach((t) => { if (t.owner === 1 && t.location === 'board') { t.location = 'hand'; t.r = null; t.c = null; t.rot = 0; } });
+    Object.assign(game.tiles.get(43), { location: 'board', owner: 1, r: 0, c: 0, rot: 1, colour: 'blue', shape: 'end' }); // east; was there before this turn
+    game.touched = {}; game.sel = null; game.ghost = null; game._actionPending = false;
+    const red44 = Object.assign(game.tiles.get(44), { colour: 'red', shape: 'end' });
+    game.notif_tilePlaced({ player_id: 1, tile: { id: 44, colour: 'red', shape: 'end' }, r: 0, c: 1, rot: 2, moved: false, coord: 'B1' }); // south, no west side
+    const errOn = (tid) => !!root.querySelector(`#mc_board_me .mc_placed[data-id="${tid}"] .mc_tile_err`);
+    check(errOn(44) && !errOn(43), `mismatch: ! only on the tile placed this turn (new ${errOn(44)}, old ${errOn(43)})`);
+    check(game.hasInvalid(), 'a mismatch still blocks finishing (hasInvalid)');
+    if (params.get('shot') === 'mismatch') {
+      game.sel = null; game.renderAll();
+      await new Promise((r) => setTimeout(r, 300));
+      document.body.dataset.done = '1';
+      return;
+    }
+    // both tiles touched this turn: both marked; a tile moved away leaves no mark
+    game.notif_tilePlaced({ player_id: 1, tile: { id: 43, colour: 'blue', shape: 'end' }, r: 0, c: 0, rot: 1, moved: true, coord: 'A1' });
+    check(errOn(44) && errOn(43), 'both tiles touched this turn: both are marked');
+    // a new turn (a draw) forgets the touched tiles; an untouched pair falls back to marking both so the block is visible
+    game.touched = { 1: new Set([50]) };
+    game.renderAll();
+    check(errOn(44) && errOn(43), 'neither tile touched this turn (e.g. after a reload): both are marked');
+    // the old tile placed last, the new one already there: only the moved one is marked
+    game.touched = { 1: new Set([43]) };
+    game.renderAll();
+    check(errOn(43) && !errOn(44), 'the tile that was just placed is the one marked, whichever it is');
   } else {
     // 6. Build: pool empty. Temporary mismatches show ! and block Finish
     const t44 = game.tiles.get(44);
@@ -282,10 +341,11 @@ async function run() {
     check(openCount === 2 && root.querySelectorAll('#mc_board_me .mc_tile_err').length === 0, `mismatched neighbours show yellow open badges, no red (${openCount})`);
     check(labels().includes('Finish') && !labels().includes('Finish(off)'), 'open connections do not block Finish');
 
-    // An invalid placement (tray tile on a wrong-colour space) blocks Finish
+    // An invalid placement (a plus on an edge space) blocks Finish
     game.tiles.get(40).location = 'hand';
+    game.tiles.get(40).shape = 'plus'; // every rotation points off the board at an edge space
     game.onTrayTile(40);
-    game.onSpace(0, 2);
+    game.onSpace(3, 4);
     check(root.querySelectorAll('#mc_board_me .mc_tile_err').length === 1, 'invalid placement shows a red ! badge');
     check(labels().includes('Finish(off)'), 'invalid placement disables Finish');
     const callsBeforeFin = calls.length;

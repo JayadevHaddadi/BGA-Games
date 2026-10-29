@@ -10,14 +10,14 @@
 <!-- Runs index.html inside an iframe of the chosen width, so the page sees a real phone-width viewport.
      Headless Chrome will not shrink its own window below about 500px. -->
 <iframe id="f" title="harness" width="375" height="2400"></iframe>
-<pre id="out">waiting</pre>
+<pre id="out" style="display:none">waiting</pre>
 <script>
 const params = new URLSearchParams(location.search);
 const w = Number(params.get('w') || 375);
 const mode = params.get('mode') || 'turn';
 const f = document.getElementById('f');
 f.width = String(w);
-f.src = `index.html?mode=${mode}`;
+f.src = `index.html?mode=${mode}` + ['clean', 'shot', 'zoom'].filter((k) => params.get(k)).map((k) => `&${k}=${params.get(k)}`).join('');
 const started = Date.now();
 const poll = setInterval(() => {
     let doc = null;
