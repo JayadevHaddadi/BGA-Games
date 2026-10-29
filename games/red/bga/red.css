@@ -134,10 +134,8 @@ body.red_page_bg #game_play_area_background {
     flex-wrap: wrap;
     gap: 6px;
     margin-top: 6px;
-    padding: 4px 6px;
-    border-radius: 3px;
-    background: #3a2a1f;
-    color: #f1ede3;
+    padding: 4px 0;
+    color: #1e1e1e;
     font-size: 20px;
     line-height: 1;
 }

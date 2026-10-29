@@ -66,15 +66,15 @@ function redTileSvg(size, bg, circle, x, y) {
 /** Panel icon: a tile showing only a coloured border (the player's border group). */
 function redBorderIcon(colour, px) {
     return `<svg class="red_icon" viewBox="0 0 40 40" width="${px}" height="${px}" aria-hidden="true">`
-        + `<rect x="0" y="0" width="40" height="40" fill="${RED_HEX[colour]}"/>`
+        + `<rect x="1" y="1" width="38" height="38" fill="${RED_HEX[colour]}" stroke="#1e1d1b" stroke-width="2"/>`
         + `<rect x="9" y="9" width="22" height="22" fill="${RED_MAT}"/></svg>`;
 }
 
 /** Panel icon: a dot in the player's colour (the circle group). */
 function redCircleIcon(colour, px) {
     return `<svg class="red_icon" viewBox="0 0 40 40" width="${px}" height="${px}" aria-hidden="true">`
-        + `<rect x="0" y="0" width="40" height="40" fill="${RED_MAT}"/>`
-        + `<circle cx="20" cy="20" r="14" fill="${RED_HEX[colour]}"/></svg>`;
+        + `<rect x="1" y="1" width="38" height="38" fill="${RED_MAT}" stroke="#1e1d1b" stroke-width="2"/>`
+        + `<circle cx="20" cy="20" r="14" fill="${RED_HEX[colour]}" stroke="#1e1d1b" stroke-width="1.5"/></svg>`;
 }
 
 class PlayerTurnState {
