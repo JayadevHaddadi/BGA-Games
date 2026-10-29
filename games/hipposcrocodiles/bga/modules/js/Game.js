@@ -122,6 +122,7 @@ export class Game {
 
         const root = document.createElement('div');
         root.id = 'hippos_root';
+        document.body.classList.add('hippos_page_bg');
         root.innerHTML = `
             <div id="hippos_container">
                 <div id="hippos_board_wrap">
