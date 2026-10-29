@@ -1,14 +1,6 @@
 {
     // user preferences ids should be between 100 and 199
-    "100": {
-        "name": "Sound effects",
-        "needReload": false,
-        "values": {
-            "1": { "name": "On" },
-            "2": { "name": "Off" }
-        },
-        "default": 1
-    },
+    // (id 100 was "Sound effects" and is gone; it is not reused, so old tables never read a stale value)
     "101": {
         "name": "Confirm jump before moving",
         "needReload": false,
@@ -18,5 +10,14 @@
             "3": { "name": "Never" }
         },
         "default": 1
+    },
+    "102": {
+        "name": "Colour-blind support (a distinct symbol on each player's glider)",
+        "needReload": false,
+        "values": {
+            "0": { "name": "Off", "cssPref": "sg_cb_off" },
+            "1": { "name": "On", "cssPref": "sg_cb_on" }
+        },
+        "default": 0
     }
 }

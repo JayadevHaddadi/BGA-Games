@@ -6,7 +6,7 @@
 <title>Sugar Gliders harness</title>
 <link rel="stylesheet" href="../../bga/sugargliders.css">
 <style>
-  body { margin: 0; font-family: sans-serif; background: #fff; }
+  body { margin: 0; font-family: sans-serif; background: transparent; }
   #game_play_area { padding: 0; }
   #out { white-space: pre-wrap; font: 12px monospace; padding: 8px; }
 </style>
@@ -47,8 +47,7 @@ const bga = {
   },
   gameArea: { getElement: () => document.getElementById('game_play_area') },
   notifications: { setupPromiseNotifications() {} },
-  userPreferences: { get: () => 1 },
-  sounds: { play() {} },
+  userPreferences: { get: (id) => (id === 102 ? Number(QP.get('cb') || 0) : 1) },
   statusBar: {
     setTitle() {},
     addActionButton(text, callback, opts) {
@@ -78,37 +77,36 @@ const bga = {
   },
 };
 
+const QP = new URLSearchParams(location.search);
 function fixture() {
   const board_tiles = {};
-  const HEX_RADIUS = 4;
+  const HEX_RADIUS = Number(QP.get('radius') || 4);
+  const NP = Number(QP.get('players') || 2);
   let id = 1;
-  for (let q = -HEX_RADIUS + 1; q < HEX_RADIUS; q++) {
-    const r1 = Math.max(-HEX_RADIUS + 1, -q - HEX_RADIUS + 1);
-    const r2 = Math.min(HEX_RADIUS - 1, -q + HEX_RADIUS - 1);
+  for (let q = -HEX_RADIUS; q <= HEX_RADIUS; q++) {
+    const r1 = Math.max(-HEX_RADIUS, -q - HEX_RADIUS);
+    const r2 = Math.min(HEX_RADIUS, -q + HEX_RADIUS);
     for (let r = r1; r <= r2; r++) {
       board_tiles[`${q}_${r}`] = { tile_id: id, value: (id % 4) + 1, q, r };
       id++;
     }
   }
+  const cols = ['ff0000', '0000ff', 'ffd700', '008000'];
+  const gl = [[0, 0], [1, -1], [-2, 1], [2, 0]];
+  const players = {}, player_colors = {}, gliders = {}, player_reserves = {}, jumping_tiles = {}, scores = {};
+  for (let i = 1; i <= NP; i++) {
+    players[i] = { id: i, name: 'Player' + i, color: cols[i - 1] };
+    player_colors[i] = ['red', 'blue', 'yellow', 'green'][i - 1];
+    gliders[i] = { player_id: i, q: gl[i - 1][0], r: gl[i - 1][1] };
+    player_reserves[i] = [{ tile_id: 900 + i, value: 2 }, { tile_id: 910 + i, value: 4 }];
+    jumping_tiles[i] = { tile_id: 950 + i, value: 3 };
+    scores[i] = 6;
+  }
+  delete board_tiles['0_0'];
   return {
-    players: {
-      1: { id: 1, name: 'Alice', color: 'ff0000' },
-      2: { id: 2, name: 'Bob', color: '0000ff' },
-    },
-    player_colors: { 1: '#ff0000', 2: '#0000ff' },
-    hex_radius: 4,
-    game_mode: 1,
-    total_tiles: 37,
-    turn_count: 1,
-    consecutive_torpor: 0,
+    players, player_colors, hex_radius: HEX_RADIUS, game_mode: 1, total_tiles: 37, turn_count: 1, consecutive_torpor: 0,
+    gliders, player_reserves, jumping_tiles, scores,
     board_tiles,
-    gliders: {
-      1: { player_id: 1, q: 0, r: 0 },
-      2: { player_id: 2, q: 1, r: -1 },
-    },
-    player_reserves: { 1: [], 2: [] },
-    jumping_tiles: { 1: [], 2: [] },
-    scores: { 1: 0, 2: 0 },
   };
 }
 

@@ -7,7 +7,21 @@
  *------
  */
 
-/* Subtle forest-floor playmat: textured, low contrast, slightly blurred so the board stays the focus */
+/* One solid calm forest green behind everything: no gradient, image or pattern, and no boxes on top of it.
+   BGA's wrappers stay transparent so the colour shows edge to edge. */
+html,
+body.sg_page_bg {
+    background: #2f4a32;
+}
+
+body.sg_page_bg #page-content,
+body.sg_page_bg #ebd-body,
+body.sg_page_bg #game_play_area,
+body.sg_page_bg #game_play_area_wrap,
+body.sg_page_bg .bga-game-area {
+    background: transparent !important;
+}
+
 #sg_container {
     position: relative;
     display: flex;
@@ -16,13 +30,9 @@
     width: 100%;
     box-sizing: border-box;
     margin: 0 auto;
-    padding: 12px 8px 8px 8px;
-    border-radius: 10px;
-    overflow-x: auto;
-    background-color: #cfe0c8;
-    background-image:
-        radial-gradient(ellipse at 30% 20%, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0) 60%),
-        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.2  0 0 0 0 0.35  0 0 0 0 0.2  0 0 0 0.10 0'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
+    padding: 8px 4px 8px 4px;
+    overflow-x: hidden;
+    color: #f1f5ee;
     user-select: none;
     -webkit-user-select: none;
 }
@@ -56,7 +66,7 @@
     width: 48px;
     height: 48px;
     padding: 2px;
-    border-radius: 6px;
+    border-radius: 3px;
     background: #ffffff;
     border: 2px solid #8a8a8a;
     cursor: pointer;
@@ -90,7 +100,6 @@
     max-width: none;
     overflow: hidden;
     margin: 0 auto;
-    border-radius: 12px;
     flex: 0 0 auto;
 }
 
@@ -100,13 +109,7 @@
     left: 0;
     width: 640px;
     height: 640px;
-    background: #18371b url('img/board_full.jpg') no-repeat center center;
-    background-size: 100% 100%;
     transform-origin: top left;
-}
-
-#sg_board_wrapper.compact-tree {
-    background-image: url('img/board_compact.jpg');
 }
 
 #sg_board_svg {
@@ -127,8 +130,8 @@
 
 /* Hexagons in SVG */
 .sg-hex {
-    fill: rgba(255, 255, 255, 0.08);
-    stroke: rgba(255, 255, 255, 0.22);
+    fill: rgba(255, 255, 255, 0.10);
+    stroke: rgba(255, 255, 255, 0.38);
     stroke-width: 1.2;
 }
 
@@ -154,8 +157,10 @@
     stroke-width: 3;
 }
 
-.sg-hex-cell.selectable:hover .sg-hex {
-    fill: rgba(255, 235, 59, 0.5);
+@media (hover: hover) {
+    .sg-hex-cell.selectable:hover .sg-hex {
+        fill: rgba(255, 235, 59, 0.5);
+    }
 }
 
 .sg-hex-cell.sg-target-selected .sg-hex {
@@ -173,6 +178,11 @@
     stroke-width: 2;
     stroke-dasharray: 3, 3;
 }
+
+/* Colour-blind symbols: hidden unless the preference is on (default off) */
+.sg-cb-mark { display: none; }
+.sg_cb_on .sg-cb-mark { display: inline; }
+.sg_cb_on .sg-cb-off-mark { display: none; }
 
 /* Food tile SVG */
 .sg-food-tile {
@@ -267,20 +277,21 @@
     paint-order: stroke;
 }
 
-/* Player panel: one compact line */
+/* Player panel: text and images at twice the default size */
 .sg_panel_inventory {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    padding: 4px 0 2px 0;
-    font-size: 13px;
+    gap: 8px;
+    padding: 8px 0 4px 0;
+    font-size: 26px;
+    line-height: 1.15;
 }
 
 .sg_panel_row {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 4px 10px;
+    gap: 8px 16px;
 }
 
 .sg_panel_label {
@@ -290,45 +301,45 @@
 .sg_panel_under,
 .sg_panel_reserve {
     display: inline-flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 4px;
+    gap: 8px 10px;
 }
 
 .sg_panel_torpor {
     font-weight: bold;
-    padding: 0 5px;
-    border: 1px solid currentColor;
-    border-radius: 4px;
-    line-height: 16px;
+    padding: 0 10px;
+    border: 2px solid currentColor;
+    border-radius: 3px;
+    line-height: 32px;
 }
 
 .sg_panel_symbol {
-    width: 18px;
-    height: 18px;
+    width: 36px;
+    height: 36px;
 }
 
 .sg_panel_tile_item {
     display: inline-flex;
     align-items: center;
-    gap: 2px;
+    gap: 4px;
     font-weight: bold;
 }
 
 .sg_panel_none {
-    min-width: 20px;
+    min-width: 40px;
     justify-content: center;
 }
 
 .sg_panel_tile_img {
-    width: 22px;
-    height: 20px;
+    width: 44px;
+    height: 40px;
     object-fit: contain;
 }
 
 @media (max-width: 480px) {
     #sg_container {
-        padding: 8px 2px 6px 2px;
-        border-radius: 0;
+        padding: 6px 2px 6px 2px;
     }
     .sg_tray_label {
         flex-basis: 100%;

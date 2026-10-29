@@ -7,28 +7,6 @@
  *------
  */
 
-// Native BGA sounds (files in sounds/), so BGA volume/mute settings apply. Only fired from confirmed game events.
-class SoundController {
-    constructor() {
-        this.bga = null;
-        this.isMuted = () => false;
-    }
-
-    play(id) {
-        if (this.isMuted()) return;
-        try {
-            this.bga?.sounds?.play?.(id);
-        } catch (e) {}
-    }
-
-    playJump() { this.play('sugargliders_jump'); }
-    playHarvest() { this.play('sugargliders_collect'); }
-    playTorpor() { this.play('sugargliders_torpor'); }
-    playVictory() { this.play('sugargliders_win'); }
-}
-
-const sounds = new SoundController();
-
 class SetupPlacementState {
     constructor(game, bga) {
         this.game = game;
@@ -185,13 +163,23 @@ export class Game {
         this.jumpingTiles = gamedatas.jumping_tiles || {};
         this.scores = gamedatas.scores || {};
 
-        sounds.bga = this.bga;
-        sounds.isMuted = () => Number((() => { try { return this.bga?.userPreferences?.get?.(100); } catch (e) { return undefined; } })() ?? 1) === 2;
+        this.applyColourBlindPref();
         this.initDom();
         this.initScaler();
         this.renderBoard();
         this.updatePlayerPanels();
         this.setupNotifications();
+    }
+
+    // Pref 102: colour-blind symbols (default OFF). Safe read: the pref may be missing on old tables.
+    // The preference also has a cssPref (sg_cb_on / sg_cb_off) so a live change needs no reload.
+    colourBlindOn() {
+        return Number((() => { try { return this.bga?.userPreferences?.get?.(102); } catch (e) { return undefined; } })() ?? 0) === 1;
+    }
+
+    applyColourBlindPref() {
+        document.body.classList.toggle('sg_cb_on', this.colourBlindOn());
+        document.body.classList.add('sg_page_bg');
     }
 
     initDom() {
@@ -207,7 +195,7 @@ export class Game {
                 </div>
 
                 <div id="sg_board_scaler" class="game-board-scaler">
-                    <div id="sg_board_wrapper" class="${this.HEX_RADIUS === 3 ? 'compact-tree' : ''}">
+                    <div id="sg_board_wrapper">
                         <svg id="sg_board_svg" role="img" aria-label="${_('Sugar Gliders tree board')}"></svg>
                     </div>
                 </div>
@@ -269,25 +257,26 @@ export class Game {
         const container = document.getElementById('sg_container');
         if (!scaler || !wrapper || !container) return;
 
+        // The board is cropped to the bounding box of the cells in play (set by renderBoard), so a
+        // 37-cell tree fills the same space with bigger hexes than the 61-cell one.
         const updateScale = () => {
-            const baseDim = 640;
+            const bw = this.boardW || 640;
+            const bh = this.boardH || 640;
             const availW = Math.max(280, container.clientWidth - 8);
-            // On narrow screens crop the empty art margin so the hexes stay large enough to tap
-            const crop = availW < 560 ? 40 : 0;
-            const dim = baseDim - crop * 2;
-            let scale = availW / dim;
-            const landscape = window.innerWidth > window.innerHeight;
-            if (landscape && window.innerWidth < 1000) {
-                scale = Math.min(scale, Math.max(0.75, (window.innerHeight - 70) / dim));
-            }
-            scale = Math.max(0.5, Math.min(1.3, scale));
+            let scale = availW / bw;
+            // Keep the whole board on screen without scrolling when the window is wide but short
+            const maxH = Math.max(380, window.innerHeight - 150);
+            if (window.innerWidth >= 600) scale = Math.min(scale, maxH / bh);
+            scale = Math.max(0.5, Math.min(2.2, scale));
 
-            const target = Math.round(dim * scale);
-            scaler.style.width = `${target}px`;
-            scaler.style.height = `${target}px`;
-            wrapper.style.transform = `translate(${-crop * scale}px, ${-crop * scale}px) scale(${scale})`;
+            scaler.style.width = `${Math.round(bw * scale)}px`;
+            scaler.style.height = `${Math.round(bh * scale)}px`;
+            wrapper.style.width = `${bw}px`;
+            wrapper.style.height = `${bh}px`;
+            wrapper.style.transform = `scale(${scale})`;
             wrapper.style.transformOrigin = 'top left';
         };
+        this.updateScale = updateScale;
 
         if (window.ResizeObserver) {
             new ResizeObserver(() => updateScale()).observe(container);
@@ -319,18 +308,33 @@ export class Game {
         if (!svg) return;
 
         const radius = this.HEX_RADIUS;
-        const size = (radius === 3) ? 39.5 : 34.0;
+        const size = 34.0;
         this.HEX_SIZE = size;
-        const svgDim = 640;
-        // Grid centre calibrated to the board art (compact art sits further right/down)
-        this.GRID_CX = (radius === 3) ? 323 : 321;
-        this.GRID_CY = (radius === 3) ? 328 : 325;
+
+        // Bounding box of the cells that exist for this tree (radius 3 = 37 cells, 4 = 61 cells)
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        for (let q = -radius; q <= radius; q++) {
+            for (let r = -radius; r <= radius; r++) {
+                if (q + r < -radius || q + r > radius) continue;
+                const p = this.axialToPixel(q, r, 0, 0, size);
+                minX = Math.min(minX, p.x - size);
+                maxX = Math.max(maxX, p.x + size);
+                minY = Math.min(minY, p.y - size * Math.sqrt(3) / 2);
+                maxY = Math.max(maxY, p.y + size * Math.sqrt(3) / 2);
+            }
+        }
+        const padSide = 4, padTop = 18, padBottom = 8; // room for the lifted/leaping glider on the top row
+        this.GRID_CX = padSide - minX;
+        this.GRID_CY = padTop - minY;
+        this.boardW = Math.ceil(maxX - minX + padSide * 2);
+        this.boardH = Math.ceil(maxY - minY + padTop + padBottom);
         const cx = this.GRID_CX;
         const cy = this.GRID_CY;
 
-        svg.setAttribute('viewBox', `0 0 ${svgDim} ${svgDim}`);
-        svg.setAttribute('width', `${svgDim}`);
-        svg.setAttribute('height', `${svgDim}`);
+        svg.setAttribute('viewBox', `0 0 ${this.boardW} ${this.boardH}`);
+        svg.setAttribute('width', `${this.boardW}`);
+        svg.setAttribute('height', `${this.boardH}`);
+        if (this.updateScale) this.updateScale();
 
         let defs = `
             <defs>
@@ -399,7 +403,7 @@ export class Game {
     renderFoodTileSvg(x, y, value, tileId, cellKey) {
         const themeUrl = typeof g_gamethemeurl !== 'undefined' ? g_gamethemeurl : '';
         const tileImg = `${themeUrl}img/tile_${value}.png`;
-        const w = (this.HEX_RADIUS === 3) ? 54 : 48;
+        const w = 48;
         const h = Math.round(w * 0.92);
 
         return `
@@ -448,7 +452,7 @@ export class Game {
             <circle cx="-7" cy="-16" r="3.8" class="sg-glider-ear color-${colorName}" />
             <circle cx="7" cy="-16" r="3.8" class="sg-glider-ear color-${colorName}" />
             <ellipse cx="0" cy="-11" rx="7.5" ry="6" class="sg-glider-head sg-glider-dorsal color-${colorName}" stroke-width="1.2" />
-            ${this.symbolSvg(symbol, 0, 4, 4.2, symFill, symStroke)}
+            <g class="sg-cb-mark">${this.symbolSvg(symbol, 0, 4, 4.2, symFill, symStroke)}</g>
         `;
     }
 
@@ -860,7 +864,7 @@ export class Game {
             const colorName = this.playerColors[pId] || 'white';
             const symbol = this.symbolForColor(colorName);
             const dark = (colorName === 'white' || colorName === 'yellow');
-            const marker = `<svg class="sg_panel_symbol" viewBox="-8 -8 16 16" role="img" aria-label="${_('Player marker')}">${this.symbolSvg(symbol, 0, 0, 5, this.markerFill(colorName), dark ? '#263238' : '#ffffff')}</svg>`;
+            const marker = `<svg class="sg_panel_symbol" viewBox="-8 -8 16 16" role="img" aria-label="${_('Player marker')}"><g class="sg-cb-off-mark"><circle cx="0" cy="0" r="5" fill="${this.markerFill(colorName)}" stroke="${dark ? '#263238' : '#ffffff'}" stroke-width="1.2" /></g><g class="sg-cb-mark">${this.symbolSvg(symbol, 0, 0, 5, this.markerFill(colorName), dark ? '#263238' : '#ffffff')}</g></svg>`;
 
             const counts = {};
             activeValues.forEach(v => { counts[v] = 0; });
@@ -931,7 +935,6 @@ export class Game {
         const toPos = this.axialToPixel(toQ, toR, cx, cy, size);
         const restOffsetY = -6;
 
-        sounds.playJump();
         // The glider is awake again: drop the torpor tag so it does not travel with it
         gliderEl.classList.remove('in-torpor');
         gliderEl.querySelectorAll('.sg-torpor-zzz').forEach(z => z.remove());
@@ -986,7 +989,6 @@ export class Game {
         this.gliders[player_id] = { player_id, q: coord_q, r: coord_r, in_torpor: false };
         this.jumpingTiles[player_id] = { tile_id, value: 1 };
 
-        sounds.playHarvest();
         this.renderBoard();
         this.updatePlayerPanels();
     }
@@ -1025,10 +1027,6 @@ export class Game {
                     this.gliders[player_id].in_torpor = false;
                 }
 
-                if (collected_tile) {
-                    sounds.playHarvest();
-                }
-
                 this.renderBoard();
                 this.updatePlayerPanels();
 
@@ -1052,11 +1050,9 @@ export class Game {
             if (coord_q !== undefined && coord_r !== undefined) {
                 delete this.boardTiles[`${coord_q}_${coord_r}`];
             }
-            sounds.playHarvest();
         }
 
         this.scores[player_id] = current_score;
-        sounds.playTorpor();
         this.renderBoard();
         this.updatePlayerPanels();
 
@@ -1074,7 +1070,6 @@ export class Game {
             }
         }
         this.scores[player_id] = current_score;
-        sounds.playHarvest();
         this.renderBoard();
         this.updatePlayerPanels();
     }
@@ -1092,6 +1087,5 @@ export class Game {
     }
 
     notif_endGameScores(notif) {
-        sounds.playVictory();
     }
 }
