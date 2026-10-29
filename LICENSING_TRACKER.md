@@ -14,10 +14,10 @@ This document tracks publisher/designer permissions, communications, contact inf
 | **Gardens of Uranus** | Néstor Romeral Andrés | nestorgames | ✅ **BGA License Granted (2026-10-01)** | Active Dev (`gardensofuranus`) |
 | **Gardens of Mars** | Néstor Romeral Andrés | nestorgames | ⚠️ **Approved by Nestor (assets sent 7 Oct), not on BGA's licence list: Nestor must add it at gamepublishers** | Private Alpha requested 9 Oct (`gardensofmars`) |
 | **Gardens of Io** | Néstor Romeral Andrés | nestorgames | ⚠️ **Not on BGA's licence list: Nestor must add it at gamepublishers** | Private Alpha 14 Oct, Public Alpha requested 14 Oct (`gardensofio`) |
-| **Gardens of Enceladus** | Néstor Romeral Andrés | nestorgames | ⚠️ **NOT CONFIRMED: not on BGA's licence list; ask Nestor to add it at gamepublishers** | Implemented, on Studio (`gardensofenceladus`) |
-| **Microchip** | Néstor Romeral Andrés | nestorgames | ⚠️ **NOT CONFIRMED: not on BGA's licence list; ask Nestor to add it at gamepublishers** | Implemented, on Studio (`microchip`) |
-| **People** | Néstor Romeral Andrés | nestorgames | ⚠️ **NOT CONFIRMED: not on BGA's licence list; ask Nestor to add it at gamepublishers** | Implemented, on Studio (`people`) |
-| **Red** | Néstor Romeral Andrés | nestorgames | ⚠️ **NOT CONFIRMED: not on BGA's licence list; ask Nestor to add it at gamepublishers** | Implemented 19 Oct (`red`; verify bgg_id 112118) |
+| **Gardens of Enceladus** | Néstor Romeral Andrés | nestorgames | ✅ **Licensed on BGA by Nestor (~20 Oct 2026, per Nestor 29 Oct)** | Implemented, on Studio (`gardensofenceladus`) |
+| **Microchip** | Néstor Romeral Andrés | nestorgames | ✅ **Licensed on BGA by Nestor (~20 Oct 2026, per Nestor 29 Oct)** | Implemented, on Studio (`microchip`) |
+| **People** | Néstor Romeral Andrés | nestorgames | ✅ **Licensed on BGA by Nestor (~20 Oct 2026, per Nestor 29 Oct)** | Implemented, on Studio (`people`) |
+| **Red** | Néstor Romeral Andrés | nestorgames | ✅ **Licensed on BGA by Nestor (~20 Oct 2026, per Nestor 29 Oct)** | Implemented 19 Oct (`red`; verify bgg_id 112118) |
 | **Hippos and Crocodiles** | Néstor Romeral Andrés | nestorgames | ✅ **BGA License confirmed (2026-10-28, #6461371)** | Implemented, in nightly E2E (`hipposcrocodiles`) |
 | **Feed the Ducks** | Néstor Romeral Andrés | nestorgames | ✅ **BGA License confirmed (2026-10-28, #1701871)** | Private Alpha (`feedtheducks`) |
 | **Omega** | Néstor Romeral Andrés | Eclipse Editorial / nestorgames | ⚠️ **DISPUTED (2026-10-28): Eclipse registered it on BGA without Nestor's consent; Nestor asked us to tell BGA** | Beta (`omega`) |
@@ -151,3 +151,6 @@ This document tracks publisher/designer permissions, communications, contact inf
 | **Britta Fisher** | Content Marketing Specialist, Studio Big | Email intro from Z-Man |
 | **Sophie Gravel** | Former Head of Studio, Z-Man Games | LinkedIn / historical reference |
 | **Asmodee Licensing** | Interactive Licensing Team | Corporate Contact Form (`asmodee-entertainment.biz`) |
+
+
+**Note (Nestor, 29 Oct 2026):** Eclipse Editorial registered several of his games on BGA without his consent (Omega, Pent-Up and others; he can't find the full list). People is commercially available: https://www.nestorgames.com/#people
