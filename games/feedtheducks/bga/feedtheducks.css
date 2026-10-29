@@ -503,9 +503,9 @@ body.ftd_page_bg #game_play_area {
     align-items: center;
     flex-wrap: wrap;
     gap: 8px;
-    min-height: 56px;
+    min-height: 40px;
     margin-top: 4px;
-    font-size: 26px;
+    font-size: 20px;
     line-height: 1.3;
     cursor: pointer;
 }
@@ -516,8 +516,8 @@ body.ftd_page_bg #game_play_area {
 }
 
 .ftd_pnl_duck {
-    width: 72px;
-    height: 54px;
+    width: 43px;
+    height: 32px;
     flex: 0 0 auto;
 }
 

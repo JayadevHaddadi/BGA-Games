@@ -173,9 +173,9 @@ export class Game {
             const panel = document.createElement('div');
             panel.className = 'red_panel';
             panel.id = `red_panel_${pid}`;
-            panel.innerHTML = `<span class="red_term" id="red_panel_${pid}_border">${redBorderIcon(colour, 40)}<b class="red_num" data-part="border">0</b></span>`
+            panel.innerHTML = `<span class="red_term" id="red_panel_${pid}_border">${redBorderIcon(colour, 32)}<b class="red_num" data-part="border">0</b></span>`
                 + `<span class="red_op" aria-hidden="true">&times;</span>`
-                + `<span class="red_term" id="red_panel_${pid}_circle">${redCircleIcon(colour, 40)}<b class="red_num" data-part="circle">0</b></span>`
+                + `<span class="red_term" id="red_panel_${pid}_circle">${redCircleIcon(colour, 32)}<b class="red_num" data-part="circle">0</b></span>`
                 + `<span class="red_op" aria-hidden="true">=</span>`
                 + `<b class="red_num red_total" data-part="score">0</b>`;
             el.appendChild(panel);

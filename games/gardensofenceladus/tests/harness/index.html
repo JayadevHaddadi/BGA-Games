@@ -242,7 +242,7 @@ async function run() {
             const sbNums = Array.from(sbHost.querySelector('.enc_sb_row').querySelectorAll('b')).map((b) => Number(b.textContent));
             check('status_reserve_ascending', sbNums.length === 5 && sbNums.every((n, i) => i === 0 || sbNums[i - 1] <= n), sbNums);
             const img = q('#panel_1 .enc_panel_item .enc_spr');
-            check('panel_flowers_big', rect(img).width >= 30 && parseFloat(getComputedStyle(q('#panel_1 .enc_panel_item b')).fontSize) >= 24, rect(img).width);
+            check('panel_flowers_big', rect(img).width >= 30 && parseFloat(getComputedStyle(q("#panel_1 .enc_panel_item b")).fontSize) >= 22, rect(img).width);
         }
         check('tube_shows_counts', qa('#enc_tube .enc_tube_item b').map((b) => b.textContent).join(',') === '3,2' && /5/.test(q('#enc_tube .enc_tube_title').textContent), q('#enc_tube').textContent);
         game.notif_tubeChanged({ tube: { blue: 0, red: 1, yellow: 0, green: 0, magenta: 0 } });

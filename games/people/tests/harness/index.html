@@ -320,7 +320,7 @@ const report = {
         areaInsideBoard: { ok: boardInfo.areaOutside === 0 },
         noFenceDrawn: { ok: boardInfo.roadblocksDrawn === 1 }, // only the bought roadblock, never the fence
         humanIcons: { ok: boardInfo.humanIconMin >= 18 && boardInfo.countFont >= 16 },
-        panelIcons: { ok: boardInfo.panelIconMin >= 36 && boardInfo.panelFont >= 22 && boardInfo.panelIcons === players * 2 },
+        panelIcons: { ok: boardInfo.panelIconMin >= 30 && boardInfo.panelFont >= 22 && boardInfo.panelIcons === players * 2 },
         pieceIcons: { ok: boardInfo.factoryIcons >= 3 && boardInfo.bulldozerIcon > 0 && boardInfo.shieldIcon > 0 },
         popup: { ok: !!script.popupOffered && script.popupOffered.choices.join(',') === '1,2,3,4,5' && script.cancelLeavesMode === true },
         noInlineTakeRow: { ok: script.noInlineTakeRow === true && script.litWhileAsking === '' },

@@ -326,7 +326,7 @@ export class Game {
             const left = Math.max(0, limit - (m.specials_used || 0));
             line.innerHTML = alien + GIO_COLOURS.map((col) => `
                 <span class="gio_pcount" id="gio_pcount_${pid}_${col}">
-                    <img src="${gioImg(`flower_${col}.png`)}" alt="${this.colourLabel(col)}" width="40" height="44"><b>${res[col] || 0}</b>
+                    <img src="${gioImg(`flower_${col}.png`)}" alt="${this.colourLabel(col)}" width="29" height="32"><b>${res[col] || 0}</b>
                 </span>`).join('') + this.tokensHtml(pid, left);
             line.id = `gio_panel_${pid}`;
             this.panelTip(line, `${_('Score')}: ${Math.max(0, m.dist)}, ${_('laps')}: ${laps}`);

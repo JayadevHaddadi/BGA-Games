@@ -501,8 +501,8 @@
 .gou_panel_reserve {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px 16px;
-    margin-top: 12px;
+    gap: 8px;
+    margin-top: 8px;
     line-height: 1.3;
 }
 
@@ -511,16 +511,16 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 8px;
-    font-size: 26px;
+    font-size: 22px;
     line-height: 1.3;
     font-weight: 800;
 }
 
-.gou_panel_flower img { width: 52px; height: 52px; object-fit: contain; }
+.gou_panel_flower img { width: 32px; height: 32px; object-fit: contain; }
 
 .gou_panel_penalty {
     flex-basis: 100%;
-    font-size: 26px;
+    font-size: 20px;
     line-height: 1.3;
     font-weight: 700;
 }
@@ -530,13 +530,13 @@
     flex-wrap: wrap;
     align-items: center;
     flex-basis: 100%;
-    gap: 12px;
-    margin-top: 12px;
-    font-size: 26px;
+    gap: 8px;
+    margin-top: 8px;
+    font-size: 20px;
     line-height: 1.3;
 }
 
-.gou_panel_power img { width: 48px; height: 48px; object-fit: contain; }
+.gou_panel_power img { width: 32px; height: 32px; object-fit: contain; }
 .gou_panel_power.used { opacity: 0.55; }
 
 .gou_panel_scored {
@@ -544,15 +544,15 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 8px;
-    margin-top: 12px;
+    margin-top: 8px;
     line-height: 1.3;
 }
 
-.gou_panel_scored_label { font-size: 26px; font-weight: 700; line-height: 1.3; }
+.gou_panel_scored_label { font-size: 20px; font-weight: 700; line-height: 1.3; }
 
 .gou_scored_thumb {
-    width: 64px;
-    height: 96px;
+    width: 32px;
+    height: 48px;
     border-radius: 2px;
     object-fit: cover;
     cursor: help;
