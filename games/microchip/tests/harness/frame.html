@@ -17,7 +17,7 @@ const w = Number(params.get('w') || 375);
 const mode = params.get('mode') || 'turn';
 const f = document.getElementById('f');
 f.width = String(w);
-f.src = `index.html?mode=${mode}` + ['clean', 'shot', 'zoom'].filter((k) => params.get(k)).map((k) => `&${k}=${params.get(k)}`).join('');
+f.src = `index.html?mode=${mode}` + ['clean', 'shot', 'zoom', 'players'].filter((k) => params.get(k)).map((k) => `&${k}=${params.get(k)}`).join('');
 const started = Date.now();
 const poll = setInterval(() => {
     let doc = null;

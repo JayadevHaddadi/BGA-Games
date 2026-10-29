@@ -498,15 +498,26 @@ button.mc_space {
     gap: 10px;
 }
 
+/* Each opponent: own near-black container (flat, no shadow) */
 .mc_other {
     min-width: 0;
+    background: #1b1b1b;
+    color: #f2f0ea;
+    border-radius: 3px;
+    padding: 8px;
+    box-sizing: border-box;
 }
 
 .mc_other_name {
     font-weight: 600;
-    font-size: 0.9rem;
-    margin-bottom: 4px;
+    font-size: 0.95rem;
+    color: #f2f0ea;
+    margin-bottom: 6px;
     overflow-wrap: anywhere;
+}
+
+.mc_other .mc_panel_tray {
+    background: rgba(255, 255, 255, 0.14);
 }
 
 /* ---------- Player panel line (persistent, compact) ---------- */
@@ -580,6 +591,35 @@ button.mc_space {
 @media (min-width: 760px) {
     .mc_main.mc_two_col {
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+}
+
+/* Desktop: left column = Pool above Your board and tray; right column = Opponents stacked down.
+   The two columns are centred together as one group. */
+@media (min-width: 1000px) {
+    .mc_root {
+        max-width: 1100px;
+    }
+
+    .mc_main,
+    .mc_main.mc_two_col {
+        grid-template-columns: minmax(0, max-content) 250px;
+        grid-template-areas: "pool others" "mine others";
+        grid-template-rows: auto 1fr;
+        justify-content: center;
+        gap: 0 16px;
+    }
+
+    .mc_main > #mc_pool_section { grid-area: pool; }
+    .mc_main > .mc_mine { grid-area: mine; }
+    .mc_main > .mc_others { grid-area: others; align-self: start; }
+
+    .mc_main > .mc_mine {
+        width: 480px;
+    }
+
+    .mc_boards {
+        grid-template-columns: minmax(0, 1fr);
     }
 }
 

@@ -393,11 +393,11 @@ export class Game {
                     </div>
                 </div>
             </div>
-            <section class="mc_block" id="mc_pool_section" aria-labelledby="mc_h_pool">
-                <div class="mc_head"><h3 id="mc_h_pool">${_('Pool')}</h3></div>
-                <div class="mc_pool" id="mc_pool"></div>
-            </section>
             <div class="mc_main">
+                <section class="mc_block" id="mc_pool_section" aria-labelledby="mc_h_pool">
+                    <div class="mc_head"><h3 id="mc_h_pool">${_('Pool')}</h3></div>
+                    <div class="mc_pool" id="mc_pool"></div>
+                </section>
                 <section class="mc_block mc_mine" id="mc_mine" aria-labelledby="mc_h_mine">
                     <div class="mc_head"><h3 id="mc_h_mine">${_('Your board')}</h3></div>
                     <div id="mc_board_me"></div>
@@ -406,7 +406,7 @@ export class Game {
                     <div class="mc_tray" id="mc_tray"></div>
                 </section>
                 <section class="mc_block mc_others" aria-labelledby="mc_h_others">
-                    <div class="mc_head"><h3 id="mc_h_others">${_('Boards')}</h3></div>
+                    <div class="mc_head"><h3 id="mc_h_others">${_('Opponents')}</h3></div>
                     <div class="mc_boards" id="mc_boards"></div>
                 </section>
             </div>
@@ -859,8 +859,8 @@ export class Game {
             }
         }
         const chip = this.chipKeys[pid] || null;
-        const errs = this.errorKeys ? this.errorKeys[pid] : null;
-        const opens = this.openKeys ? this.openKeys[pid] : null;
+        const errs = mine && this.errorKeys ? this.errorKeys[pid] : null; // warnings only on my own board
+        const opens = mine && this.openKeys ? this.openKeys[pid] : null;
         this.boardTiles(pid).forEach((t) => {
             if (ghost && t.id === ghost.id) return; // drawn below, at its invalid position
             const key = mcKey(t.r, t.c);

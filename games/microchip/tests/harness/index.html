@@ -18,6 +18,7 @@
   <div id="panel_1" class="player-panel"></div>
   <div id="panel_2" class="player-panel"></div>
   <div id="panel_3" class="player-panel"></div>
+  <div id="panel_4" class="player-panel"></div>
 </div>
 <pre id="out">running</pre>
 
@@ -60,6 +61,7 @@ const mode = params.get('mode') || 'turn';
 if (params.get('clean')) { document.getElementById('out').style.display = 'none'; document.body.style.overflow = 'hidden'; }
 if (params.get('zoom')) document.body.style.zoom = params.get('zoom');
 
+const PIDS = params.get('players') === '4' ? [1, 2, 3, 4] : [1, 2, 3];
 // A fixed fixture: 3 players, pool 5 x 12, my tray and board filled in a little
 function fixture() {
   const tiles = [];
@@ -83,7 +85,7 @@ function fixture() {
   tiles[41].colour = 'red'; tiles[41].shape = 'tee';
   tiles[42].colour = 'green'; tiles[42].shape = 'straight';
   const spaces = {};
-  for (const pid of [1, 2, 3]) {
+  for (const pid of PIDS) {
     spaces[pid] = [];
     for (let r = 0; r < 5; r++) {
       spaces[pid][r] = [];
@@ -91,11 +93,11 @@ function fixture() {
     }
   }
   return {
-    players: { 1: { name: 'Ana' }, 2: { name: 'Ben' }, 3: { name: 'Cy' } },
-    player_order: [1, 2, 3],
+    players: { 1: { name: 'Ana' }, 2: { name: 'Ben' }, 3: { name: 'Cy' }, 4: { name: 'Di' } },
+    player_order: PIDS,
     tiles,
     spaces,
-    finished: { 1: false, 2: false, 3: false },
+    finished: Object.fromEntries(PIDS.map((p) => [p, false])),
     drawer: mode === 'build' ? 0 : 1,
     rotation: true,
     pool_size: [5, 12],
@@ -153,6 +155,25 @@ async function run() {
   check(o2 && o2.querySelector('.mc_grid'), 'opponent 2 board rendered in the main game zone');
   check(o3 && o3.querySelector('.mc_grid'), 'opponent 3 board rendered in the main game zone');
   check(o2 && o2.querySelectorAll('.mc_panel_tile').length > 0, 'opponent 2 tray tiles rendered under their board');
+  // Opponents: black containers, Opponents title, no warnings, desktop arrangement
+  const others = [...document.querySelectorAll('#mc_boards .mc_other')];
+  check(others.length === PIDS.length - 1, `opponent containers: ${others.length}`);
+  check(others.every((o) => getComputedStyle(o).backgroundColor === 'rgb(27, 27, 27)' && parseFloat(getComputedStyle(o).borderTopLeftRadius) <= 3 && getComputedStyle(o).boxShadow === 'none'), 'opponent containers are near-black, radius <= 3px, no shadow');
+  check(document.getElementById('mc_h_others').textContent === 'Opponents', 'section title is Opponents');
+  check(!document.querySelector('#mc_boards .mc_tile_err, #mc_boards .mc_tile_open, #mc_boards .mc_err, #mc_boards .mc_open'), 'no warning or ! marks inside opponents');
+  check(others.every((o) => getComputedStyle(o.querySelector('.mc_other_name')).color === 'rgb(242, 240, 234)'), 'opponent names are light text');
+  if (window.innerWidth >= 1000) {
+    const rr = (e) => e.getBoundingClientRect();
+    const pr = rr(document.getElementById('mc_pool_section')), mr = rr(document.getElementById('mc_mine')), or = rr(document.querySelector('.mc_others'));
+    check(or.left >= pr.right && or.left >= mr.right, `opponents column is right of the pool and own board (${or.left.toFixed(0)} >= ${pr.right.toFixed(0)}/${mr.right.toFixed(0)})`);
+    check(others.every((o, i) => i === 0 || rr(o).top >= rr(others[i - 1]).bottom - 1 && Math.abs(rr(o).left - rr(others[0]).left) < 1), 'opponents stacked vertically');
+    const left = Math.min(pr.left, mr.left), right = or.right, vw = document.documentElement.clientWidth;
+    check(Math.abs(left - (vw - right)) <= 2, `group centred (left gap ${left.toFixed(1)}, right gap ${(vw - right).toFixed(1)})`);
+    check(mr.width >= 470, `own board column keeps its size (${mr.width.toFixed(0)}px)`);
+  } else {
+    const tops = ['mc_pool_section', 'mc_mine'].map((id) => document.getElementById(id).getBoundingClientRect().top);
+    check(tops[0] < tops[1] && tops[1] < document.querySelector('.mc_others').getBoundingClientRect().top, 'mobile order: pool, own board, opponents');
+  }
   check(document.documentElement.scrollWidth <= window.innerWidth, `no horizontal scroll (${document.documentElement.scrollWidth} <= ${window.innerWidth})`);
   const poolEl = document.getElementById('mc_pool');
   check(poolEl.scrollWidth <= poolEl.clientWidth + 1, `pool needs no sideways scroll (${poolEl.scrollWidth} <= ${poolEl.clientWidth})`);
@@ -164,7 +185,8 @@ async function run() {
     const cs = getComputedStyle(sec);
     const sr = sec.getBoundingClientRect();
     const gr = sec.querySelector('.mc_pool_grid').getBoundingClientRect();
-    const ar = document.getElementById('game_play_area').getBoundingClientRect();
+    // on desktop the pool is centred over the left column (your board); on mobile in the game area
+    const ar = (window.innerWidth >= 1000 ? document.getElementById('mc_mine') : document.getElementById('game_play_area')).getBoundingClientRect();
     return { sec: sr, grid: gr, pad: [cs.paddingLeft, cs.paddingRight, cs.paddingTop, cs.paddingBottom], offset: Math.abs((sr.left + sr.right) / 2 - (ar.left + ar.right) / 2), minH: cs.minHeight, h: cs.height };
   };
   const pb = poolBox();
