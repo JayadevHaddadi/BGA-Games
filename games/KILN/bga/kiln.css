@@ -296,8 +296,9 @@ body.kiln_page_bg .bga-game-area {
     pointer-events: none;
 }
 .kiln_outer_tile_disc {
-    width: calc(var(--arrow) * 0.78);
-    height: calc(var(--arrow) * 0.78);
+    width: var(--cell);
+    height: var(--cell);
+    flex-shrink: 0;
     box-sizing: border-box;
     border-radius: 3px;
     border: 1.5px solid;
@@ -507,20 +508,31 @@ body.kiln_page_bg .bga-game-area {
     --cell: 46px;
     --arrow: 38px;
     --tcell: 30px;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: flex-start;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+        "top    top"
+        "center center"
+        "west   east"
+        "bottom bottom";
+    justify-items: center;
+    align-items: start;
     gap: 8px;
     width: 376px;
     padding: 0;
 }
-.kiln_narrow .kiln_arena_slot { display: contents; }
+/* Seating follows the table: opposite player above the mat, left/right neighbours below it on their own side, me last */
+.kiln_narrow .kiln_arena_slot { min-width: 0; width: 100%; }
+.kiln_narrow #kiln_slot_left { justify-content: flex-start; justify-self: stretch; }
+.kiln_narrow #kiln_slot_right { justify-content: flex-end; justify-self: stretch; }
 .kiln_narrow:not(.kiln_multiplayer) #kiln_slot_left,
 .kiln_narrow:not(.kiln_multiplayer) #kiln_slot_right { display: none; }
-.kiln_narrow #kiln_center_panel { order: 0; width: 100%; flex-direction: column; gap: 8px; padding: 8px 4px; }
-.kiln_narrow .kiln_opponent_card { order: 1; --wc: 20px; }
-.kiln_narrow .kiln_my_warehouse { order: 2; width: 100%; padding: 8px 6px; }
+.kiln_narrow.kiln_3player #kiln_slot_right { display: none; }
+.kiln_narrow #kiln_center_panel { width: 100%; flex-direction: column; gap: 8px; padding: 8px 4px; }
+.kiln_narrow .kiln_opponent_card { --wc: 20px; }
+.kiln_narrow #kiln_slot_left .kiln_opponent_card,
+.kiln_narrow #kiln_slot_right .kiln_opponent_card { --wc: 16px; padding: 4px 5px; max-width: 100%; }
+.kiln_narrow .kiln_my_warehouse { width: 100%; padding: 8px 6px; }
 .kiln_narrow .kiln_my_warehouse .kiln_wh_body { gap: 8px; }
 .kiln_narrow .kiln_mat_side {
     flex-direction: row;

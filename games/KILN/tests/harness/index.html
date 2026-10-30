@@ -174,6 +174,10 @@ try {
   const arrowBox = document.getElementById('kiln_arrow_14').getBoundingClientRect();
   const ghostCentred = !!ghost && Math.abs((gBox.left + gBox.width / 2) - (arrowBox.left + arrowBox.width / 2)) < 1.5 && Math.abs((gBox.top + gBox.height / 2) - (arrowBox.top + arrowBox.height / 2)) < 1.5;
   const ghostOk = !!ghost && ghost.classList.contains('kiln_tile_' + oldCol[5]) && ghostSameSize && ghostCentred;
+  const enterDiscs = [...document.querySelectorAll('.kiln_outer_tile_disc:not(.kiln_push_out_ghost)')];
+  const enteringSameSize = enterDiscs.length > 0 && enterDiscs.every((d) => { const b = d.getBoundingClientRect();
+    return Math.abs(b.width - tileBox.width) < 0.6 && Math.abs(b.height - tileBox.height) < 0.6
+      && getComputedStyle(d).borderRadius === getComputedStyle(document.getElementById('kiln_tile_2_5')).borderRadius; });
   const boardUntouched = JSON.stringify(game.boardData) === boardBefore;
   game.onArrowHover(2, false);
   const restored = snap() === before && !document.querySelector('.kiln_push_out_ghost');
@@ -182,8 +186,8 @@ try {
   game.onArrowHover(10, false);
   game.onArrowClicked(2);
   flows.mouse = { hoverLine, pushed: calls.length === 1 && calls[0].name === 'actPushTile' && calls[0].args.targetSlot === 2,
-    hoverLine, shifted, ghostOk, ghostSameSize, ghostCentred, boardUntouched, restored, noPreviewUnusable,
-    ok: hoverLine === 6 && shifted && ghostOk && boardUntouched && restored && noPreviewUnusable && calls.length === 1 && calls[0].args.targetSlot === 2 };
+    hoverLine, shifted, ghostOk, enteringSameSize, ghostSameSize, ghostCentred, boardUntouched, restored, noPreviewUnusable,
+    ok: hoverLine === 6 && shifted && ghostOk && enteringSameSize && boardUntouched && restored && noPreviewUnusable && calls.length === 1 && calls[0].args.targetSlot === 2 };
   calls.length = 0;
   turnState.onEnteringState({ valid_slots: [1, 2, 3, 4, 5, 7] }, true);
 
