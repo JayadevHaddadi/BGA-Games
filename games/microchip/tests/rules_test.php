@@ -315,5 +315,104 @@ require __DIR__ . '/../../../tools/php_stub/zombie_run.php';
     check($game->getTile($keepTile)['location'] === 'hand' && (int)$game->getTile($keepTile)['owner'] === $drawerBefore, 'keepTile went to the drawer');
 }
 
+// 9. Who is active: only the player who must decide (BGA lists every active player as "waiting for you")
+{
+    $ctx = \zr_context('microchip');
+    \mt_srand(11);
+    \srand(11);
+    \Bga\GameFramework\Stub::reset();
+    \Bga\GameFramework\Stub::$slug = $ctx['slug'];
+    \Bga\GameFramework\Stub::$gameinfos = $ctx['gameinfos'];
+    \Bga\GameFramework\Stub::$statDefs = $ctx['stats'];
+    \Bga\GameFramework\Stub::$prefDefaults = $ctx['prefs'];
+    \Bga\GameFramework\Stub::$options = \zr_defaults($ctx['options'], false);
+    \Bga\GameFramework\Stub::loadSchema($ctx['sql']);
+    $class = $ctx['gameClass'];
+    $g = new $class();
+    $ids = [];
+    $pl = [];
+    for ($k = 0; $k < 3; $k++) {
+        $id = 85000011 + $k * 37;
+        $pl[$id] = ['player_name' => 'Q' . ($k + 1), 'player_color' => 'ffffff', 'player_canal' => 'c' . $id, 'player_avatar' => ''];
+        $ids[] = $id;
+    }
+    \Bga\GameFramework\Stub::$playerOrder = $ids;
+    foreach ($ctx['stateClasses'] as $cls) {
+        $o = new $cls($g);
+        \Bga\GameFramework\Stub::$states[$o->id] = $o;
+        \Bga\GameFramework\Stub::$statesByClass[$cls] = $o;
+    }
+    (new \ReflectionMethod($g, 'setupNewGame'))->invoke($g, $pl, \Bga\GameFramework\Stub::$options);
+    \Bga\GameFramework\Stub::$playersCache = null;
+    \Bga\GameFramework\Stub::$state = \Bga\GameFramework\Stub::$states[10];
+    $st = \Bga\GameFramework\Stub::$states[10];
+    $act = function () use ($g) { $a = array_map('intval', $g->gamestate->getActivePlayerList()); sort($a); return $a; };
+    $as = function (int $pid) { \Bga\GameFramework\Stub::$current = $pid; };
+
+    check($act() === [$g->drawer()], 'active: at the start only the drawer is active');
+    $st->onEnteringState();
+    check($act() === [$g->drawer()], 'active: entering the state keeps only the drawer active');
+
+    // A table saved in the old all-active state: the next draw leaves only the next drawer active
+    \Bga\GameFramework\Stub::$activeList = $ids;
+    $d = $g->drawer();
+    $col = $g->drawColumn();
+    $tid = array_key_first(array_filter($g->poolCells(), fn($p) => $p['col'] === $col));
+    $as($d);
+    $st->actDraw($tid);
+    $d2 = $g->drawer();
+    check($d2 !== $d && $act() === [$d2], 'active: after a draw only the next drawer is active (old all-active table is corrected)');
+
+    // A player who is NOT active arranges their own tiles; nobody becomes active by doing so
+    $other = $d; // the previous drawer holds a tile and is not active
+    check(!in_array($other, $act(), true), 'active: the previous drawer is inactive');
+    $as($other);
+    $myTile = $tid;
+    $t = $g->getTile($myTile);
+    $sp = $g->spacesOf($other);
+    $spot = null;
+    for ($r = 0; $r < 5 && !$spot; $r++) for ($c = 0; $c < 5 && !$spot; $c++) for ($rot = 0; $rot < 4 && !$spot; $rot++) {
+        if (Rules::placementProblem($sp, [], $t['colour'], $t['shape'], $rot, $r, $c) === null) { $spot = [$r, $c, $rot]; }
+    }
+    check($spot !== null, 'arrange: a legal spot exists');
+    $st->actPlace($myTile, ...$spot);
+    check($g->getTile($myTile)['location'] === 'board', 'arrange: a non-active player can place their own tile');
+    $st->actReturn($myTile);
+    check($g->getTile($myTile)['location'] === 'hand', 'arrange: a non-active player can return their own tile');
+    check($act() === [$d2], 'active: arranging does not make anybody active');
+    // Validation: nobody can touch someone else's tile, and a non-drawer cannot draw
+    $as($d2);
+    $refused = false;
+    try { $st->actReturn($myTile); } catch (\Bga\GameFramework\UserException $e) { $refused = true; }
+    $g::DbQuery("UPDATE `tile` SET `location` = 'board', `owner` = $other, `r` = 0, `c` = 0 WHERE `tile_id` = $myTile");
+    try { $st->actPlace($myTile, 0, 0, 0); $refused2 = false; } catch (\Bga\GameFramework\UserException $e) { $refused2 = true; }
+    check($refused && $refused2, 'arrange: a player cannot move another player\'s tile');
+    $g::DbQuery("UPDATE `tile` SET `location` = 'hand', `r` = NULL, `c` = NULL WHERE `tile_id` = $myTile");
+    $as($other);
+    $col = $g->drawColumn();
+    $tid2 = array_key_first(array_filter($g->poolCells(), fn($p) => $p['col'] === $col));
+    try { $st->actDraw($tid2); $nd = false; } catch (\Bga\GameFramework\UserException $e) { $nd = true; }
+    check($nd, 'draw: only the drawer can take a tile');
+
+    // Pool empty: every unfinished player is active; Finish makes only that player inactive; resume re-activates
+    $g::DbQuery("UPDATE `tile` SET `location` = 'box', `pool_col` = NULL, `pool_row` = NULL WHERE `location` = 'pool'");
+    $st->syncActive();
+    check($act() === $ids || $act() === (function () use ($ids) { $a = $ids; sort($a); return $a; })(), 'active: pool empty, every unfinished player is active');
+    $as($ids[1]);
+    $st->actFinish();
+    $left = array_values(array_diff($ids, [$ids[1]]));
+    sort($left);
+    check($act() === $left, 'active: a player who pressed Finish is no longer active');
+    $st->actResume();
+    $all = $ids; sort($all);
+    check($act() === $all, 'active: resuming makes the player active again');
+    $st->actFinish();
+    // Zombie of the last tile holder: finished players stay out, game goes on
+    $st->zombie($ids[0]);
+    check(!in_array($ids[0], $act(), true) && !in_array($ids[1], $act(), true), 'active: zombie players are made inactive');
+    $st->zombie($ids[2]);
+    check(\Bga\GameFramework\Stub::$hasPending && \Bga\GameFramework\Stub::$pending === \Bga\Games\microchip\States\EndScore::class, 'active: when everybody has finished the game moves on to EndScore');
+}
+
 echo ($failures === 0 ? "OK" : "FAILED") . ": $checks checks, $failures failures\n";
 exit($failures === 0 ? 0 : 1);

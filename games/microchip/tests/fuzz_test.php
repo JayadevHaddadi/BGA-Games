@@ -66,11 +66,31 @@ $hook = function (object $state, int $pid, object $game) use (&$fuzzStats) {
         // tile conservation
         $n = count(fuzz_tiles($game, 'hand')) + count(fuzz_tiles($game, 'board')) + count(fuzz_tiles($game, 'pool')) + count(fuzz_tiles($game, 'box'));
         if ($n !== 60) { throw new RuntimeException("tile count is $n, expected 60"); }
+        // The harness only visits the player that was active before this hook ran (the drawer). The drawing phase has
+        // just made every unfinished player active, so the others build and finish here (or are zombied).
+        foreach ($order as $p) {
+            if ($p === $pid) { continue; }
+            Stub::$current = $p;
+            if (!in_array($p, array_map('intval', $game->gamestate->getActivePlayerList()), true)) {
+                throw new RuntimeException('pool empty but a player who has not finished is not active');
+            }
+            if (mt_rand(0, 4) === 0) {
+                $state->zombie($p);
+            } else {
+                fuzz_finish($state, $game, $p, $fuzzStats);
+            }
+        }
     }
     Stub::$current = $pid;
-    for ($k = 0; $k < 25; $k++) { fuzz_build($state, $game, $pid, $fuzzStats); }
     if (mt_rand(0, 4) === 0) { return false; } // let zombie() finish this one
-    // If random building created temporary mismatches, return those tiles to tray before finishing
+    return fuzz_finish($state, $game, $pid, $fuzzStats);
+};
+
+/** Random building, then Finish (tiles that do not fit go back to the tray first). */
+function fuzz_finish(object $state, object $game, int $pid, array &$stats)
+{
+    Stub::$current = $pid;
+    for ($k = 0; $k < 25; $k++) { fuzz_build($state, $game, $pid, $stats); }
     foreach (\Bga\Games\microchip\Rules::tileErrors($game->placedOf($pid)) as $errKey) {
         $placed = $game->placedOf($pid);
         if (isset($placed[$errKey])) {
@@ -78,7 +98,7 @@ $hook = function (object $state, int $pid, object $game) use (&$fuzzStats) {
         }
     }
     return $state->actFinish();
-};
+}
 
 /** One random build action for a player: place a tile from the tray, move/turn one on the board, or take one back. */
 function fuzz_build(object $state, object $game, int $pid, array &$stats): void

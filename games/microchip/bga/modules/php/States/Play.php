@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Bga\Games\microchip\States;
 
+use Bga\GameFramework\Actions\CheckAction;
 use Bga\GameFramework\StateType;
 use Bga\GameFramework\States\GameState;
 use Bga\GameFramework\States\PossibleAction;
@@ -12,9 +13,11 @@ use Bga\Games\microchip\Game;
 use Bga\Games\microchip\Rules;
 
 /**
- * The whole game. Every player is active all the time: anyone may arrange their own tiles, but only the drawer
- * may take a tile, and only from the draw column. When the pool is empty every player presses Finish; the last
- * Finish moves the game on to EndScore.
+ * The whole game. While the pool has tiles, ONLY the drawer is active (BGA lists a table as "waiting for you" for
+ * every active player, so nobody else may be active). The other players still arrange their own tiles: place,
+ * return and swap are #[CheckAction(enabled: false)] (no active-player check) and validate on the server that
+ * the caller owns the tiles, has not finished and that the state accepts the action. When the pool is empty every
+ * unfinished player is active and presses Finish; the last Finish moves the game on to EndScore.
  */
 class Play extends GameState
 {
@@ -25,17 +28,42 @@ class Play extends GameState
             $game,
             id: 10,
             type: StateType::MULTIPLE_ACTIVE_PLAYER,
+            description: clienttranslate('The next player must take a tile; the others can arrange their tiles'),
+            descriptionMyTurn: clienttranslate('${you} must take a tile'),
         );
     }
 
-    /** Everyone builds at the same time. Players who already finished (or left) stay inactive. */
+    /** Only the player who must decide is active (see syncActive). Tables saved in the old all-active state are fixed on the next draw. */
     public function onEnteringState(): void
     {
-        $open = array_values(array_filter($this->game->playerOrder(), fn($pid) => !$this->game->isFinished($pid)));
-        $this->gamestate->setPlayersMultiactive($open, EndScore::class, true);
+        $this->advance();
+    }
+
+    /** Auto-draws what has no choice, then makes active exactly the players who have something to do. */
+    private function advance(): void
+    {
         if (!$this->game->poolEmpty()) {
             $this->autoDrawIfSingle();
         }
+        $this->syncActive();
+    }
+
+    /**
+     * Pool not empty: the drawer only. Pool empty: every player who has not pressed Finish. Nobody left: EndScore.
+     * Idempotent, and also makes an old table (everybody active) correct at its next move.
+     */
+    public function syncActive(): bool
+    {
+        $open = array_values(array_filter($this->game->playerOrder(), fn($pid) => !$this->game->isFinished($pid)));
+        if ($open && !$this->game->poolEmpty()) {
+            $drawer = $this->game->drawer();
+            if (!in_array($drawer, $open, true)) {
+                $drawer = $this->game->nextDrawer($drawer);
+                $this->game->setDrawer($drawer);
+            }
+            $open = [$drawer];
+        }
+        return $this->gamestate->setPlayersMultiactive($open, EndScore::class, true);
     }
 
     public function getArgs(): array
@@ -43,8 +71,12 @@ class Play extends GameState
         return [];
     }
 
-    private function currentPlayer(): int
+    /** $action is checked against the state's possible actions even for a player who is not active (CheckAction disabled). */
+    private function currentPlayer(string $action = ''): int
     {
+        if ($action !== '') {
+            $this->gamestate->checkPossibleAction($action);
+        }
         $pid = $this->game->getCurrentPlayerId(true);
         if ($pid === null) {
             throw new UserException(clienttranslate('You must be logged in to take this action.'));
@@ -89,9 +121,8 @@ class Play extends GameState
         ]);
         if ($info['pool_left'] === 0) {
             $this->notify->all('poolEmpty', clienttranslate('The pool is empty. Build your microchips, then press Finish.'), []);
-        } else {
-            $this->autoDrawIfSingle();
         }
+        $this->advance();
         return null;
     }
 
@@ -166,9 +197,10 @@ class Play extends GameState
     }
 
     #[PossibleAction]
+    #[CheckAction(enabled: false)]
     public function actPlace(int $tileId, int $r, int $c, int $rot): ?string
     {
-        $pid = $this->currentPlayer();
+        $pid = $this->currentPlayer('actPlace');
         $info = $this->game->placeTile($pid, $tileId, $r, $c, $rot);
         $tile = $info['tile'];
         $coord = $this->game->coordLabel($r, $c);
@@ -198,9 +230,10 @@ class Play extends GameState
     }
 
     #[PossibleAction]
+    #[CheckAction(enabled: false)]
     public function actReturn(int $tileId): ?string
     {
-        $pid = $this->currentPlayer();
+        $pid = $this->currentPlayer('actReturn');
         $info = $this->game->returnTile($pid, $tileId);
         $tile = $info['tile'];
         $this->notify->all('tileReturned', clienttranslate('${player_name} takes a ${colour_name} ${shape_name} tile back from ${coord}.'), [
@@ -217,9 +250,10 @@ class Play extends GameState
     }
 
     #[PossibleAction]
+    #[CheckAction(enabled: false)]
     public function actSwap(int $tileId, int $targetTileId, int $rot, int $targetRot = 0): ?string
     {
-        $pid = $this->currentPlayer();
+        $pid = $this->currentPlayer('actSwap');
         $info = $this->game->swapTiles($pid, $tileId, $targetTileId, $rot, $targetRot);
         $tileA = $info['tile_a'];
         $tileB = $info['tile_b'];
@@ -287,8 +321,10 @@ class Play extends GameState
     }
 
     #[PossibleAction]
+    #[CheckAction(enabled: false)]
     public function actResume(): ?string
     {
+        $this->gamestate->checkPossibleAction('actResume');
         $pid = (int) $this->game->getCurrentPlayerId(true);
         if ($pid === 0) {
             throw new UserException(clienttranslate('You must be logged in to take this action.'));
@@ -296,12 +332,15 @@ class Play extends GameState
         if (!$this->game->poolEmpty()) {
             throw new UserException(clienttranslate('The pool is not empty yet.'));
         }
+        if (!$this->game->isFinished($pid)) {
+            throw new UserException(clienttranslate('You have not finished building.'));
+        }
         $this->game->setUnfinished($pid);
         $this->notify->all('playerResumed', clienttranslate('${player_name} resumed building.'), [
             'player_id' => $pid,
             'player_name' => $this->game->getPlayerNameById($pid),
         ]);
-        $this->gamestate->setPlayersMultiactive([$pid], EndScore::class, false);
+        $this->syncActive();
         return null;
     }
 
@@ -340,7 +379,8 @@ class Play extends GameState
             }
         }
         $this->game->setFinished($playerId);
-        $this->gamestate->setPlayerNonMultiactive($playerId, EndScore::class);
-        return null;
+        // Re-derive who is active: the next drawer (pool not empty), the players still building, or EndScore.
+        // When the game goes on, re-enter Play (onEnteringState is idempotent) so the new active player gets its own zombie turn.
+        return $this->syncActive() ? null : Play::class;
     }
 }

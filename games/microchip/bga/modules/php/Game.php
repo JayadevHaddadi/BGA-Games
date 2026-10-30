@@ -93,7 +93,8 @@ class Game extends \Bga\GameFramework\Table
         $start = $playerIds[array_rand($playerIds)];
         $this->globals->set('drawer', $start);
         $this->gamestate->changeActivePlayer($start);
-        $this->gamestate->setAllPlayersMultiactive();
+        // Only the drawer is active (Play::syncActive keeps it that way)
+        $this->gamestate->setPlayersMultiactive([$start], EndScore::class, true);
         return Play::class;
     }
 
@@ -119,6 +120,11 @@ class Game extends \Bga\GameFramework\Table
     public function drawer(): int
     {
         return (int) $this->globals->get('drawer', 0);
+    }
+
+    public function setDrawer(int $pid): void
+    {
+        $this->globals->set('drawer', $pid);
     }
 
     /** Next player in seat order who has not left the table, after $pid. */

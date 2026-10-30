@@ -266,6 +266,7 @@ export class Game {
         // The staged choice: { id, from: 'pool' | 'tray' | 'board', rot, r, c }. r and c are null until a space is tapped.
         this.sel = null;
         this.amActive = false;
+        this.inPlay = false;
         this.finishPending = false;
         this.chipKeys = {};
         this.errorKeys = {};
@@ -1017,7 +1018,7 @@ export class Game {
         } else if (this.drawer === this.me) {
             title = _('Your turn: take one tile from the draw column.');
         } else {
-            title = _('${player} takes the next tile. You can arrange your tiles meanwhile.');
+            title = _('${player} must take a tile. You can arrange your tiles meanwhile.');
             this.bga.statusBar.setTitle(title, { player: this.playerName(this.drawer) });
             return;
         }
@@ -1033,7 +1034,8 @@ export class Game {
     }
 
     canAct() {
-        return this.amActive && this.me !== null && !this.finished[this.me];
+        // Arranging is allowed for everyone still building, active or not (the server checks); only the draw needs the drawer
+        return this.inPlay && this.me !== null && !this.finished[this.me];
     }
 
     sendAction(action, args) {
@@ -1325,6 +1327,7 @@ export class Game {
     /* ------------------------------------------------------------------------------------------ */
 
     enterPlay(isActive) {
+        this.inPlay = true;
         this.amActive = !!isActive;
         this.renderAll();
     }
@@ -1335,6 +1338,7 @@ export class Game {
     }
 
     leaveState() {
+        this.inPlay = false;
         this.amActive = false;
         this.sel = null;
         this.finishPending = false;
@@ -1544,6 +1548,7 @@ export class Game {
     }
 
     async notif_finalScoring(args) {
+        this.inPlay = false;
         this.amActive = false;
         this.sel = null;
         this.chipKeys = {};
