@@ -388,7 +388,7 @@ function rt_active(): int { return (int) Stub::$active; }
 
 // ---- manual setup
 foreach ([2 => 12, 3 => 8, 4 => 6] as $n => $per) {
-    [$g, $pids, $first] = rt_new($ctx, $n);
+    [$g, $pids, $first] = rt_new($ctx, $n, [100 => 1]);
     ok("$n players: manual setup starts in SetupPlace", $first === SetupPlace::class && count(rt_ducks()) === 0);
     ok("$n players: colours are white, green, red, blue in seat order", array_values($g->playerColours()) === Rules::coloursFor($n));
     ok("$n players: first player is active", rt_active() === $pids[0]);
@@ -396,7 +396,7 @@ foreach ([2 => 12, 3 => 8, 4 => 6] as $n => $per) {
     $args = $st->getArgs();
     ok("$n players: 24 edge cells offered, $per ducks of each colour", count($args['cells']) === 24 && array_values((array) $args['remaining']) === array_fill(0, $n, $per));
 }
-[$g, $pids] = rt_new($ctx, 2);
+[$g, $pids] = rt_new($ctx, 2, [100 => 1]);
 $st = rt_state(SetupPlace::class);
 $ringCells = Rules::ring();
 ok('setup: inner cell refused', rt_refused(fn() => $st->actPlaceDuck(0, 0, 'white', $pids[0])));
@@ -418,7 +418,7 @@ ok('setup: White (seat 1) plays first after the setup', rt_active() === $pids[0]
 ok('setup: scores are the largest groups', rt_scores()[$pids[0]][0] === 12 && rt_scores()[$pids[1]][0] === 12);
 
 // ---- 4 player setup: players alternate, return to the first
-[$g, $pids] = rt_new($ctx, 4);
+[$g, $pids] = rt_new($ctx, 4, [100 => 1]);
 $st = rt_state(SetupPlace::class);
 $ringCells = Rules::ring();
 $order = [];
@@ -596,7 +596,7 @@ foreach ([2, 3, 4] as $n) {
     [$g, $pids] = rt_new($ctx, $n, [100 => 2]);
     $ret = rt_state(PlayerTurn::class)->zombie($pids[0]);
     ok("zombie ($n players) drops a legal crumb", $ret === NextPlayer::class && $g->crumb() !== null);
-    [$g, $pids] = rt_new($ctx, $n);
+    [$g, $pids] = rt_new($ctx, $n, [100 => 1]);
     $ret = rt_state(SetupPlace::class)->zombie($pids[0]);
     ok("zombie ($n players) places a duck in the setup", $ret === SetupPlace::class && count(rt_ducks()) === 1);
 }
