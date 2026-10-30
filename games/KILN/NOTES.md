@@ -15,6 +15,13 @@ Andrés) for Kiln only. The general rules they came with are in `AGENTS.md` and 
   `kiln_board_nestorgames3.png`). Shown on tiles, warehouse cells, the outer tile, player dots, score discs, and as a
   big glyph next to each name in the player panel (`setupPanelGlyphs()`, hidden by `.kiln_cb_off`).
 - **Push arrows**: hollow block arrows (thin outline, shaft half the width, head full width), inline SVG `.kiln_arrow_svg`.
+  Always visible as printed line art; in the push step usable ones are filled blue, the others dimmed, the picked one
+  takes the tile colour with a black outline.
+- **Physical look (30 Oct 2026)**: wooden table (`img/kiln_table.webp`), the main mat and every player card are white
+  paper with a 1px grey edge (corners 3px, no shadow). The mat holds the logo (`img/kiln_logo.webp`), the score track
+  as the printed snake (5 columns x 9 rows + start square; transposed to 11 x 5 on narrow screens) and the kiln with
+  its 24 arrows. Cards: 5x5 grid, small logo, price table. Narrow: mat full width, cards stacked below.
+  The player panel keeps only BGA's score (no "Mat n/25") plus the colour-blind glyph (32px).
 
 ## Seat-relative board (designer rule)
 - The shared kiln is rotated `-seat * 90deg` per viewer (seat 0 = south as stored, 1 = west, 2 = north, 3 = east), so

@@ -7,20 +7,36 @@
  *------
  */
 
+
 :root {
-    --kiln-red: #d32f2f;
-    --kiln-red-dark: #b71c1c;
-    --kiln-blue: #1976d2;
-    --kiln-blue-dark: #0d47a1;
-    --kiln-green: #2e7d32;
-    --kiln-green-dark: #1b5e20;
-    --kiln-yellow: #fbc02d;
-    --kiln-yellow-dark: #f57f17;
-    --kiln-black: #263238;
-    --kiln-black-dark: #10171a;
-    --kiln-bg-panel: #ffffff;
-    --kiln-border-color: #cfd8dc;
+    --kiln-paper: #ffffff;
+    --kiln-line: #9a9a9a;
+    --kiln-line-dark: #6b6b6b;
+    --kiln-edge: #b5b5b5;
+    --kiln-ink: #333333;
+    --kiln-select: #1565c0;
 }
+
+/* ========================================================
+   Table: a warm wooden table (design: generated wood grain), mats and cards lie on it as white paper
+   ======================================================== */
+html:has(body.kiln_page_bg),
+body.kiln_page_bg {
+    min-height: 100vh;
+    background-color: #7a5535;
+    background-image: url('img/kiln_table.webp');
+    background-size: 1024px 768px;
+    background-repeat: repeat;
+}
+body.kiln_page_bg #page-content,
+body.kiln_page_bg #ebd-body,
+body.kiln_page_bg #game_play_area_background,
+body.kiln_page_bg #game_play_area,
+body.kiln_page_bg .bga-game-area {
+    background: transparent !important;
+}
+
+.kiln_play_area { padding: 6px 0; }
 
 /* Scaler container pattern (AGENTS.md standard) */
 .kiln_scaler_container {
@@ -29,262 +45,146 @@
     overflow: visible;
 }
 
+/* ========================================================
+   Table layout: opponents' cards around the mat, my card at the bottom
+   ======================================================== */
 .kiln_main_layout {
+    --cell: 52px;
+    --gap: 2px;
+    --arrow: 44px;
+    --tcell: 32px;
+    --wc: 40px;
     display: grid;
-    grid-template-columns: 220px auto 220px;
-    grid-template-rows: auto auto auto;
+    grid-template-columns: 1fr auto 1fr;
     grid-template-areas:
-        ".     top    ."
-        ".     center ."
-        "track bottom .";
+        ".    top    ."
+        "west center east"
+        ".    bottom .";
     align-items: center;
     justify-items: center;
-    gap: 16px 20px;
-    padding: 16px 20px;
-    background: transparent;
+    gap: 16px 18px;
+    padding: 12px 16px;
     width: max-content;
     box-sizing: border-box;
 }
+#kiln_slot_top { grid-area: top; }
+#kiln_slot_left { grid-area: west; justify-self: end; }
+#kiln_center_panel { grid-area: center; }
+#kiln_slot_right { grid-area: east; justify-self: start; }
+#kiln_slot_bottom { grid-area: bottom; }
 
-#kiln_track_panel {
-    grid-area: track;
-    align-self: center;
-    justify-self: end;
-    width: 210px;
-}
-#kiln_slot_top {
-    grid-area: top;
-    justify-self: center;
-}
-#kiln_slot_left {
-    grid-area: west;
-}
-#kiln_center_panel {
-    grid-area: center;
-}
-#kiln_slot_right {
-    grid-area: east;
-}
-#kiln_slot_bottom {
-    grid-area: bottom;
-    justify-self: center;
-}
-
-/* In 2-player mode: hide unused west/east slots */
+.kiln_arena_slot { display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
 .kiln_main_layout:not(.kiln_multiplayer) #kiln_slot_left,
-.kiln_main_layout:not(.kiln_multiplayer) #kiln_slot_right {
-    display: none !important;
-}
-
-/* In 3-4 Player mode: 3x3 table with Score Track to the left of MY board */
-.kiln_main_layout.kiln_multiplayer {
-    grid-template-columns: 220px auto 220px;
-    grid-template-rows: auto auto auto;
-    grid-template-areas:
-        ".     top    ."
-        "west  center east"
-        "track bottom .";
-    gap: 14px 20px;
-}
-
-/* In 3-Player mode the east seat is empty: keep the same 220px side columns as 4-player so the kiln stays centred */
-
-.kiln_main_layout.kiln_3player #kiln_slot_right {
-    display: none;
-}
-
-.kiln_main_layout.kiln_multiplayer #kiln_track_panel {
-    align-self: center;
-    justify-self: end;
-    width: 210px;
-}
-
-.kiln_main_layout.kiln_multiplayer .kiln_score_track {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 3px;
-}
-
-.kiln_main_layout.kiln_multiplayer .kiln_track_cell {
-    height: 30px;
-}
-
-.kiln_main_layout.kiln_multiplayer .kiln_track_num {
-    font-size: 10px;
-}
-
-.kiln_main_layout.kiln_multiplayer .kiln_score_disc {
-    width: 15px;
-    height: 15px;
-}
-
-.kiln_main_layout.kiln_multiplayer #kiln_slot_left {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-}
-
-.kiln_main_layout.kiln_multiplayer #kiln_slot_right {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-}
-
-.kiln_main_layout.kiln_multiplayer #kiln_slot_left:empty {
-    visibility: hidden;
-}
-
-.kiln_seat_badge {
-    font-size: 12px;
-    color: #64748b;
-    font-weight: 600;
-    margin-left: 4px;
-}
-
-.kiln_panel_header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-weight: 700;
-    font-size: 13px;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    color: #475569;
-    margin-bottom: 10px;
-    padding-bottom: 6px;
-    border-bottom: 2px solid #e2e8f0;
-}
+.kiln_main_layout:not(.kiln_multiplayer) #kiln_slot_right,
+.kiln_main_layout.kiln_3player #kiln_slot_right { display: none; }
 
 /* ========================================================
-   1. Left Column: Score Track (0 to 29)
+   The main mat: white paper, thin grey line art like the nestorgames print
    ======================================================== */
-.kiln_track_panel {
-    width: 180px;
-    background: none;
-    padding: 0;
-    border: none;
-    box-sizing: border-box;
-    flex-shrink: 0;
-    align-self: center;
-}
-
-.kiln_goal_badge {
-    background: #ffb300;
-    color: #212121;
-    font-size: 12px;
-    padding: 2px 8px;
+.kiln_mat {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 20px;
+    background: var(--kiln-paper);
+    border: 1px solid var(--kiln-edge);
     border-radius: 3px;
-    font-weight: 600;
+    padding: 14px 18px;
+    box-sizing: border-box;
+}
+.kiln_mat_side {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    width: calc(5 * var(--tcell) + 4 * var(--gap));
+    flex-shrink: 0;
+}
+.kiln_logo {
+    width: 100%;
+    aspect-ratio: 380 / 138;
+    background: url('img/kiln_logo.webp') center / contain no-repeat;
 }
 
+/* Score track: the snake of the printed board (5 columns x 9 rows + the start square) */
 .kiln_score_track {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 4px;
-    max-height: none;
+    grid-template-columns: repeat(5, var(--tcell));
+    grid-template-rows: repeat(11, var(--tcell));
+    gap: var(--gap);
 }
-
 .kiln_track_cell {
-    background: #ffffff;
-    border: 1px solid #b0bec5;
-    border-radius: 3px;
-    height: 38px;
+    grid-column: var(--tc);
+    grid-row: var(--tr);
     position: relative;
+    box-sizing: border-box;
+    background: #fff;
+    border: 1px solid var(--kiln-line);
+    border-radius: 3px;
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: help;
-    transition: transform 0.15s ease;
 }
-
-.kiln_track_legend {
-    margin-top: 10px;
+.kiln_track_start { border-color: var(--kiln-line-dark); }
+.kiln_track_start .kiln_track_num { font-size: 14px; }
+.kiln_track_num {
+    position: absolute;
+    top: 1px;
+    left: 3px;
     font-size: 11px;
-    font-weight: 600;
-    color: #f3e9d6;
+    font-weight: 800;
+    line-height: 1.2;
+    color: var(--kiln-ink);
+    pointer-events: none;
+}
+.kiln_track_tokens {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    align-content: center;
+    justify-content: center;
+    gap: 2px;
+    width: 100%;
+    height: 100%;
+    padding: 2px;
+    box-sizing: border-box;
+}
+.kiln_score_disc {
+    width: 14px;
+    height: 14px;
+    box-sizing: border-box;
+    border-radius: 50%;
+    border: 1px solid;
+}
+.kiln_track_bonus {
+    background: repeating-linear-gradient(45deg, #f5f5f5, #f5f5f5 4px, #d9d9d9 4px, #d9d9d9 8px);
+    border-color: var(--kiln-line-dark);
+}
+.kiln_track_goal { border: 2px solid #f57f17; background: #fff8e1; }
+.kiln_track_beyond { border-color: #d6d6d6; }
+.kiln_track_beyond .kiln_track_num { color: #aaa; }
+.kiln_track_legend {
     display: flex;
     align-items: center;
     gap: 6px;
-    cursor: help;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--kiln-ink);
 }
-
 .kiln_legend_stripe {
     display: inline-block;
     width: 14px;
     height: 14px;
     border-radius: 3px;
-    background: repeating-linear-gradient(
-        45deg,
-        #f5f5f5,
-        #f5f5f5 3px,
-        #cfd8dc 3px,
-        #cfd8dc 6px
-    );
-    border: 1px solid #78909c;
+    background: repeating-linear-gradient(45deg, #f5f5f5, #f5f5f5 3px, #d9d9d9 3px, #d9d9d9 6px);
+    border: 1px solid var(--kiln-line-dark);
 }
 
-.kiln_track_bonus {
-    background: repeating-linear-gradient(
-        45deg,
-        #f5f5f5,
-        #f5f5f5 4px,
-        #cfd8dc 4px,
-        #cfd8dc 8px
-    );
-    border-color: #78909c;
-}
-
-.kiln_track_goal {
-    border: 2px solid #f57f17;
-    background: #fff8e1;
-}
-
-.kiln_track_num {
-    font-size: 11px;
-    font-weight: 700;
-    color: #546e7a;
-    position: absolute;
-    top: 2px;
-    left: 4px;
-}
-
-.kiln_track_tokens {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    gap: 3px;
-    width: 100%;
-    height: 100%;
-}
-
-.kiln_score_disc {
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    border: 1.5px solid #ffffff;
-}
-
-/* ========================================================
-   2. Center Column: The Kiln (6x6) with 24 Border Arrows
-   ======================================================== */
-.kiln_center_panel {
-    position: relative;
-    width: fit-content;
-    background: none;
-    padding: 10px;
-    border: none;
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    flex-shrink: 0;
-}
-
+/* Black tile rule (sits where the print has the publisher label) */
 .kiln_black_rule_badge {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    z-index: 10;
+    grid-column: 1 / span 3;
+    grid-row: 1 / span 2;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -293,190 +193,68 @@
     cursor: default;
     user-select: none;
 }
-
 .kiln_black_rule_tile {
-    width: 38px;
-    height: 38px;
+    width: 28px;
+    height: 28px;
+    box-sizing: border-box;
     background: linear-gradient(135deg, #455a64 0%, #263238 100%);
-    border: 2px solid #10171a;
+    border: 1px solid #10171a;
     border-radius: 3px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
+.kiln_black_push_arrow { color: #fff; font-size: 16px; font-weight: 900; line-height: 1; }
+.kiln_black_rule_bonus { font-size: 12px; font-weight: 700; color: var(--kiln-ink); line-height: 1.2; }
 
-.kiln_black_push_arrow {
-    color: #ffffff;
-    font-size: 18px;
-    font-weight: 900;
-    line-height: 1;
-}
-
-.kiln_black_rule_bonus {
-    font-size: 11px;
-    font-weight: 800;
-    color: #f3e9d6;
-    background: none;
-    border: none;
-    padding: 0;
-    line-height: 1.2;
-}
-
-.kiln_outer_badge {
-    font-size: 12px;
-    color: #455a64;
-}
-
-.kiln_color_tag {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 3px;
-    color: #ffffff;
-    font-size: 11px;
-    font-weight: 700;
-    margin-left: 4px;
-}
-
+/* ========================================================
+   The kiln: 6x6 tiles with the 24 printed arrows (always visible)
+   ======================================================== */
 .kiln_oven_wrapper {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
-    margin-top: 6px;
+    gap: 2px;
 }
-
-.kiln_oven_middle {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 4px;
-}
-
+.kiln_oven_middle { display: flex; flex-direction: row; align-items: center; gap: 2px; }
 .kiln_arrow_row {
-    display: flex;
-    flex-direction: row;
-    gap: 4px;
-    margin-left: 62px;
-    margin-right: 62px;
+    display: grid;
+    grid-template-columns: repeat(6, var(--cell));
+    gap: var(--gap);
+    justify-items: center;
 }
-
 .kiln_arrow_col {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding-top: 6px;
-    padding-bottom: 6px;
-    box-sizing: border-box;
-}
-
-.kiln_arrow_slot {
-    width: 52px;
-    height: 52px;
-    background: #f8fafc;
-    border: 1px solid #cbd5e1;
-    border-radius: 3px;
-    display: flex;
+    display: grid;
+    grid-template-rows: repeat(6, var(--cell));
+    gap: var(--gap);
     align-items: center;
-    justify-content: center;
-    position: relative;
-    transition: background-color 0.2s ease, border-color 0.2s ease;
-    box-sizing: border-box;
 }
-
-.kiln_arrow_icon {
-    font-size: 22px;
-    font-weight: 900;
-    color: #94a3b8;
-    user-select: none;
-    transition: color 0.15s ease, transform 0.15s ease;
-}
-
-.kiln_arrow_clickable {
-    cursor: pointer;
-    background: #e0f2fe;
-    border: 2px solid #0284c7;
-}
-
-.kiln_arrow_clickable .kiln_arrow_icon {
-    color: #0284c7;
-}
-
-@media (hover: hover) {
-.kiln_arrow_clickable:hover {
-    background: #0284c7;
-    }
-}
-
-@media (hover: hover) {
-.kiln_arrow_clickable:hover .kiln_arrow_icon {
-    color: #ffffff;
-}
-}
-
-.kiln_outer_tile_holder {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    top: 0;
-    left: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    pointer-events: none;
-}
-
-.kiln_outer_tile_disc {
-    width: 32px;
-    height: 32px;
-    border-radius: 3px;
-    border: 2.5px solid #ffffff;
-    outline: 3px solid #ffffff;
-    outline-offset: 1px;
-}
-
-/* 6x6 Kiln Grid */
 .kiln_board_grid {
     display: grid;
-    grid-template-columns: repeat(6, 52px);
-    grid-template-rows: repeat(6, 52px);
-    gap: 4px;
-    background: #cfd8dc;
-    padding: 6px;
-    border-radius: 3px;
+    grid-template-columns: repeat(6, var(--cell));
+    grid-template-rows: repeat(6, var(--cell));
+    gap: var(--gap);
+    background: none;
+    padding: 0;
 }
-
 .kiln_board_tile {
-    width: 52px;
-    height: 52px;
+    width: var(--cell);
+    height: var(--cell);
     border-radius: 3px;
+    border: 1px solid;
     position: relative;
     box-sizing: border-box;
-    transition: transform 0.25s ease;
 }
-
-.kiln_tile_inner {
-    width: 100%;
-    height: 100%;
-    border-radius: 3px;
-}
-
-.kiln_tile_candidate {
-    cursor: pointer;
-}
-
-@media (hover: hover) {
-.kiln_tile_candidate:hover {
-        z-index: 5;
-}
-}
-
+.kiln_tile_inner { width: 100%; height: 100%; border-radius: 3px; }
+.kiln_tile_candidate { outline: 3px solid var(--kiln-select); outline-offset: -3px; cursor: pointer; }
+.kiln_shape_highlighted { outline: 3px solid var(--kiln-select); outline-offset: -3px; }
 .kiln_tile_group_badge {
     display: none;
     position: absolute;
     top: 2px;
     right: 2px;
-    background: #000000;
-    color: #ffffff;
+    background: #000;
+    color: #fff;
     font-size: 10px;
     font-weight: 800;
     border-radius: 50%;
@@ -486,333 +264,303 @@
     text-align: center;
 }
 
-/* ========================================================
-   3. Center Arena: The Table with Warehouses around the Kiln
-   ======================================================== */
-.kiln_arena_container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    flex-grow: 1;
-}
-
-.kiln_arena_middle {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-}
-
-.kiln_arena_slot {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.kiln_arrow_slot {
+    width: var(--arrow);
+    height: var(--arrow);
+    position: relative;
     box-sizing: border-box;
-}
-
-.kiln_slot_top {
-    min-height: 150px;
-    width: 100%;
-}
-
-.kiln_slot_bottom {
-    min-height: 270px;
-    width: 100%;
-}
-
-.kiln_slot_left, .kiln_slot_right {
-    width: auto;
-    min-height: auto;
-}
-
-.kiln_warehouse_card {
+    background: transparent;
     border: none;
-    border-radius: 0;
-    padding: 4px 6px;
-    box-sizing: border-box;
+}
+.kiln_arrow_svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.kiln_arrow_svg polygon {
+    fill: #fff;
+    stroke: var(--kiln-line-dark);
+    stroke-width: 3;
+    stroke-linejoin: miter;
+}
+.kiln_arrow_up .kiln_arrow_svg { transform: rotate(180deg); }
+.kiln_arrow_left .kiln_arrow_svg { transform: rotate(90deg); }
+.kiln_arrow_right .kiln_arrow_svg { transform: rotate(-90deg); }
+
+/* Outer tile waiting on its entry arrow */
+.kiln_outer_tile_holder {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
     display: flex;
-    flex-direction: column;
     align-items: center;
+    justify-content: center;
+    pointer-events: none;
 }
-
-/* Color-tinted warehouse mat cards */
-.kiln_wh_red {
-    background: none !important;
-    border-color: transparent !important;
-}
-.kiln_wh_red .kiln_wh_grid {
-    background: #fecaca;
-}
-.kiln_wh_red .kiln_wh_title {
-    color: #f2c4bd;
-}
-
-.kiln_wh_blue {
-    background: none !important;
-    border-color: transparent !important;
-}
-.kiln_wh_blue .kiln_wh_grid {
-    background: #bae6fd;
-}
-.kiln_wh_blue .kiln_wh_title {
-    color: #bfdcf0;
-}
-
-.kiln_wh_green {
-    background: none !important;
-    border-color: transparent !important;
-}
-.kiln_wh_green .kiln_wh_grid {
-    background: #bbf7d0;
-}
-.kiln_wh_green .kiln_wh_title {
-    color: #c5e6c3;
-}
-
-.kiln_wh_yellow {
-    background: none !important;
-    border-color: transparent !important;
-}
-.kiln_wh_yellow .kiln_wh_grid {
-    background: #fde68a;
-}
-.kiln_wh_yellow .kiln_wh_title {
-    color: #f3e1a0;
-}
-
-/* Highlighted styling for player's own active warehouse */
-
-.kiln_opponent_card {
+.kiln_outer_tile_disc {
+    width: calc(var(--arrow) * 0.78);
+    height: calc(var(--arrow) * 0.78);
+    box-sizing: border-box;
     border-radius: 3px;
-    padding: 6px 10px;
+    border: 1.5px solid;
+}
+
+/* Tiles face the viewer: counter-rotate against the seat rotation of the kiln (cosmetic) */
+.kiln_oven_wrapper .kiln_board_tile,
+.kiln_oven_wrapper .kiln_outer_tile_disc { transform: rotate(var(--kiln-face, 0deg)); }
+
+/* Push step: usable entry arrows are filled blue, the others stay as the printed outline (dimmed, not clickable) */
+.kiln_arrow_unavailable { pointer-events: none; }
+.kiln_arrow_unavailable .kiln_arrow_svg { opacity: 0.4; }
+.kiln_arrow_clickable { cursor: pointer; }
+.kiln_arrow_clickable .kiln_arrow_svg polygon {
+    fill: #4a90e2;
+    stroke: #0d3b7a;
+    stroke-width: 6;
+}
+@media (hover: hover) {
+    .kiln_arrow_clickable:hover .kiln_arrow_svg polygon { fill: #1565c0; }
+}
+.kiln_has_pick .kiln_arrow_clickable:not(.kiln_arrow_picked) .kiln_arrow_svg { opacity: 0.55; }
+.kiln_arrow_picked .kiln_arrow_svg { opacity: 1; }
+.kiln_arrow_picked .kiln_arrow_svg polygon { stroke: #000; stroke-width: 10; fill: #1565c0; }
+.kiln_arrow_picked.kiln_pin_red .kiln_arrow_svg polygon { fill: #d32f2f; }
+.kiln_arrow_picked.kiln_pin_blue .kiln_arrow_svg polygon { fill: #1976d2; }
+.kiln_arrow_picked.kiln_pin_green .kiln_arrow_svg polygon { fill: #2e7d32; }
+.kiln_arrow_picked.kiln_pin_yellow .kiln_arrow_svg polygon { fill: #fbc02d; }
+.kiln_arrow_picked.kiln_pin_black .kiln_arrow_svg polygon { fill: #263238; }
+
+/* Push preview on the kiln: the line that moves, the tile that enters, the tile that leaves */
+.kiln_push_line { outline: 3px solid #111; outline-offset: -3px; }
+.kiln_push_in::after {
+    content: '';
+    position: absolute;
+    left: 28%; top: 28%; width: 44%; height: 44%;
+    border: 2px solid #111;
+    border-radius: 3px;
+    background: #455a64;
+}
+.kiln_push_in.kiln_pin_red::after { background: #d32f2f; }
+.kiln_push_in.kiln_pin_blue::after { background: #1976d2; }
+.kiln_push_in.kiln_pin_green::after { background: #2e7d32; }
+.kiln_push_in.kiln_pin_yellow::after { background: #fbc02d; }
+.kiln_push_in.kiln_pin_black::after { background: #263238; }
+.kiln_push_out { outline: 3px dashed #111; outline-offset: -3px; opacity: 0.45; }
+
+/* ========================================================
+   Player cards: white cards like the printed warehouse (5x5 grid, logo, price table)
+   ======================================================== */
+.kiln_warehouse_card {
+    background: var(--kiln-paper);
+    border: 1px solid var(--kiln-edge);
+    border-radius: 3px;
+    padding: 10px 12px;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
 }
-
-.kiln_opponent_card .kiln_wh_title {
-    font-size: 13px !important;
-    margin-bottom: 6px !important;
-    gap: 6px !important;
-}
-
-.kiln_opponent_card .kiln_player_color_dot {
-    width: 14px !important;
-    height: 14px !important;
-}
-
-.kiln_opponent_card .kiln_seat_badge {
-    font-size: 11px !important;
-}
-
-.kiln_opponent_card .kiln_wh_grid {
-    grid-template-columns: repeat(5, 28px) !important;
-    grid-template-rows: repeat(5, 28px) !important;
-    gap: 2px !important;
-    padding: 3px !important;
-    border-radius: 3px !important;
-}
-
-.kiln_opponent_card .kiln_wh_cell {
-    width: 28px !important;
-    height: 28px !important;
-    border-radius: 3px !important;
-}
-
-.kiln_opponent_card .kiln_price_table {
-    width: 95px !important;
-    padding: 4px 6px !important;
-}
-
-.kiln_opponent_card .kiln_price_row {
-    padding: 2px 4px !important;
-    font-size: 12px !important;
-}
-
-.kiln_opponent_card .kiln_pr_num {
-    font-size: 11px !important;
-}
-
-.kiln_opponent_card .kiln_pr_pts {
-    font-size: 13px !important;
-}
-
-.kiln_rot_0 {
-    transform: rotate(0deg);
-}
-
-.kiln_rot_90 {
-    transform: rotate(90deg);
-}
-
-.kiln_rot_180 {
-    transform: rotate(180deg);
-}
-
-.kiln_rot_270 {
-    transform: rotate(270deg);
-}
-
+.kiln_opponent_card { --wc: 26px; padding: 6px 8px; }
 .kiln_wh_title {
     display: flex;
     align-items: center;
     gap: 8px;
     font-size: 15px;
     font-weight: 700;
+    color: var(--kiln-ink);
     margin-bottom: 8px;
-    color: #f3e9d6;
 }
-
+.kiln_opponent_card .kiln_wh_title { font-size: 13px; gap: 6px; margin-bottom: 5px; }
+.kiln_card_logo {
+    margin-left: auto;
+    width: 56px;
+    aspect-ratio: 380 / 138;
+    background: url('img/kiln_logo.webp') center / contain no-repeat;
+    flex-shrink: 0;
+}
+.kiln_opponent_card .kiln_card_logo { width: 38px; }
 .kiln_player_color_dot {
     width: 18px;
     height: 18px;
+    box-sizing: border-box;
     border-radius: 50%;
     display: inline-block;
-    border: 2px solid #f3e9d6;
+    border: 1.5px solid;
     flex-shrink: 0;
 }
+.kiln_opponent_card .kiln_player_color_dot { width: 14px; height: 14px; }
+.kiln_seat_badge { font-size: 12px; color: #666; font-weight: 600; margin-left: 4px; }
 
-.kiln_wh_body {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 14px;
-}
+.kiln_wh_body { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 14px; }
+.kiln_opponent_card .kiln_wh_body { gap: 8px; align-items: flex-end; }
 
 .kiln_wh_grid {
     display: grid;
-    grid-template-columns: repeat(5, 40px);
-    grid-template-rows: repeat(5, 40px);
+    grid-template-columns: repeat(5, var(--wc));
+    grid-template-rows: repeat(5, var(--wc));
     gap: 3px;
-    background: #cbd5e1;
-    padding: 5px;
-    border-radius: 3px;
+    background: none;
+    padding: 0;
     width: fit-content;
 }
-
-.kiln_price_table {
-    display: flex;
-    flex-direction: column;
-    width: 116px;
-    background: none;
-    border: none;
-    padding: 0;
+.kiln_opponent_card .kiln_wh_grid { gap: 2px; }
+.kiln_wh_cell {
+    width: var(--wc);
+    height: var(--wc);
     box-sizing: border-box;
-    transition: opacity 0.2s ease;
+    background: #fff;
+    border: 1.5px solid var(--kiln-line-dark);
+    border-radius: 3px;
 }
-.kiln_sell_arrows_wrap:not(.kiln_sell_active) ~ .kiln_price_table { opacity: 0.5; }
+.kiln_wh_cell.kiln_wh_filled { border-width: 1px; }
+.kiln_opponent_card .kiln_wh_cell { border-width: 1px; }
 
+.kiln_rot_0 { transform: rotate(0deg); }
+.kiln_rot_90 { transform: rotate(90deg); }
+.kiln_rot_180 { transform: rotate(180deg); }
+.kiln_rot_270 { transform: rotate(270deg); }
+/* Opponent mats are turned toward their seat: counter-rotate every cell so letters face the viewer (cosmetic) */
+.kiln_rot_90 .kiln_wh_cell { transform: rotate(-90deg); }
+.kiln_rot_180 .kiln_wh_cell { transform: rotate(-180deg); }
+.kiln_rot_270 .kiln_wh_cell { transform: rotate(-270deg); }
+
+/* Price table: two columns of small rounded boxes, like the print (lines | points) */
+.kiln_price_table { display: flex; flex-direction: column; width: calc(2 * var(--wc) + 3px); flex-shrink: 0; }
 .kiln_price_table_header {
     display: flex;
-    justify-content: space-between;
+    justify-content: space-around;
     font-size: 11px;
     font-weight: 700;
-    color: #d9c9b0;
-    margin-bottom: 4px;
-}
-
-.kiln_price_row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 3px 6px;
+    color: var(--kiln-ink);
     margin-bottom: 3px;
-    background: rgba(243, 233, 214, 0.12);
-    border: 1px solid transparent;
-    border-radius: 3px;
-    font-size: 14px;
-    font-weight: 800;
-    color: #f3e9d6;
-    transition: background-color 0.2s ease, border-color 0.2s ease;
+    line-height: 1.2;
 }
-
-.kiln_price_row:last-child {
-    margin-bottom: 0;
-}
-
-.kiln_price_highlight {
-    background: #fde68a !important;
-    border-color: #d97706 !important;
-    }
-.kiln_price_highlight .kiln_pr_num, .kiln_price_highlight .kiln_pr_pts { color: #2b2018; }
-
-.kiln_pr_num {
-    color: #d9c9b0;
-    font-size: 13px;
-}
-
-.kiln_pr_pts {
-    color: #f3e9d6;
-    font-weight: 900;
-    font-size: 16px;
-}
-
-.kiln_wh_cell {
-    width: 40px;
-    height: 40px;
-    background: #ffffff;
-    border-radius: 3px;
+.kiln_opponent_card .kiln_price_table_header { font-size: 9px; margin-bottom: 2px; }
+.kiln_price_row { display: flex; gap: 3px; margin-bottom: 3px; }
+.kiln_opponent_card .kiln_price_row { gap: 2px; margin-bottom: 2px; }
+.kiln_price_row:last-child { margin-bottom: 0; }
+.kiln_pr_num, .kiln_pr_pts {
+    flex: 1;
+    height: var(--wc);
     box-sizing: border-box;
-    transition: background-color 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    border: 1.5px solid var(--kiln-line-dark);
+    border-radius: 3px;
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--kiln-ink);
 }
+.kiln_opponent_card .kiln_pr_num, .kiln_opponent_card .kiln_pr_pts { font-size: 11px; border-width: 1px; }
+.kiln_price_highlight .kiln_pr_num, .kiln_price_highlight .kiln_pr_pts { background: #fde68a; border-color: #d97706; }
 
-.kiln_wh_filled {
-}
-
-.kiln_anchor_valid {
-    cursor: pointer;
-    outline: 3px solid #1565c0;
-    outline-offset: -3px;
-    background: #dbe9f8;
-}
-.kiln_anchor_staged {
-    outline: 4px solid #1565c0;
-    outline-offset: -4px;
-    background: #ffffff;
-}
+/* Placement: valid cells ringed only while placing */
+.kiln_anchor_valid { cursor: pointer; outline: 3px solid var(--kiln-select); outline-offset: -3px; background: #dbe9f8; }
+.kiln_anchor_staged { outline: 4px solid var(--kiln-select); outline-offset: -4px; background: #fff; }
 .kiln_wh_placing .kiln_wh_cell:not(.kiln_anchor_valid):not(.kiln_wh_filled):not(.kiln_ghost_valid):not(.kiln_ghost_invalid) { opacity: 0.4; }
+.kiln_ghost_valid { background: rgba(34, 197, 94, 0.75) !important; }
+.kiln_ghost_invalid { background: rgba(239, 68, 68, 0.75) !important; }
 
-.kiln_ghost_valid {
-    background: rgba(34, 197, 94, 0.75) !important;
-}
-
-.kiln_ghost_invalid {
-    background: rgba(239, 68, 68, 0.75) !important;
-}
-
+/* Selling */
 .kiln_line_sellable_row,
 .kiln_line_sellable_col,
-.kiln_line_sellable_selected {
-    cursor: pointer !important;
-}
-
-.kiln_line_sellable_unselected {
-    opacity: 0.52;
-    border: 2px dashed #f59e0b !important;
-    cursor: pointer !important;
-    transition: opacity 0.15s ease;
-}
-
+.kiln_line_sellable_selected { cursor: pointer !important; outline: 3px solid #e65100; outline-offset: -3px; }
+.kiln_line_sellable_unselected { opacity: 0.55; outline: 2px dashed #e65100; outline-offset: -2px; cursor: pointer !important; }
 @media (hover: hover) {
-.kiln_line_sellable_unselected:hover {
-    opacity: 0.85;
+    .kiln_line_sellable_unselected:hover { opacity: 0.85; }
 }
-}
+.kiln_wh_erasable { cursor: crosshair !important; outline: 2px dashed #b71c1c; outline-offset: -2px; }
 
-.kiln_wh_erasable {
-    cursor: crosshair !important;
+.kiln_sell_arrows_wrap { display: flex; flex-direction: column; align-items: flex-start; }
+.kiln_wh_grid_with_rows { display: flex; flex-direction: row; align-items: center; gap: 4px; }
+.kiln_row_arrows { display: flex; flex-direction: column; gap: 3px; visibility: hidden; opacity: 0; }
+.kiln_col_arrows { display: flex; flex-direction: row; align-items: center; gap: 4px; margin-top: 4px; visibility: hidden; opacity: 0; }
+.kiln_sell_active .kiln_row_arrows,
+.kiln_sell_active .kiln_col_arrows { visibility: visible; opacity: 1; }
+.kiln_arrow_spacer { width: 36px; flex-shrink: 0; }
+.kiln_col_arrows_track { display: flex; flex-direction: row; gap: 3px; }
+.kiln_row_arrow_btn,
+.kiln_col_arrow_btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 900;
+    border-radius: 3px;
+    box-sizing: border-box;
+    user-select: none;
 }
-
+.kiln_row_arrow_btn { width: 36px; height: var(--wc); }
+.kiln_col_arrow_btn { width: var(--wc); height: 36px; }
+.kiln_arrow_disabled { opacity: 0; pointer-events: none; background: transparent; color: #94a3b8; }
+.kiln_arrow_available { opacity: 1; cursor: pointer; background: #fff; border: 2px solid #e65100; color: #e65100; }
 @media (hover: hover) {
-.kiln_wh_erasable:hover {
-        border: 2px dashed #dc2626 !important;
+    .kiln_arrow_available:hover { background: #fef3c7; }
 }
+.kiln_arrow_selected { opacity: 1; cursor: pointer; background: #e65100; border: 2px solid #7a2c00; color: #fff; }
+
+/* ========================================================
+   Narrow screens: the mat fills the width (track on its side above the kiln), cards stack below
+   ======================================================== */
+.kiln_main_layout.kiln_narrow {
+    --cell: 46px;
+    --arrow: 38px;
+    --tcell: 30px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 8px;
+    width: 376px;
+    padding: 0;
+}
+.kiln_narrow .kiln_arena_slot { display: contents; }
+.kiln_narrow:not(.kiln_multiplayer) #kiln_slot_left,
+.kiln_narrow:not(.kiln_multiplayer) #kiln_slot_right { display: none; }
+.kiln_narrow #kiln_center_panel { order: 0; width: 100%; flex-direction: column; gap: 8px; padding: 8px 4px; }
+.kiln_narrow .kiln_opponent_card { order: 1; --wc: 20px; }
+.kiln_narrow .kiln_my_warehouse { order: 2; width: 100%; padding: 8px 6px; }
+.kiln_narrow .kiln_my_warehouse .kiln_wh_body { gap: 8px; }
+.kiln_narrow .kiln_mat_side {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    width: auto;
+    gap: 6px 10px;
+}
+.kiln_narrow .kiln_logo { width: 96px; }
+.kiln_narrow .kiln_score_track {
+    grid-template-columns: repeat(11, var(--tcell));
+    grid-template-rows: repeat(5, var(--tcell));
+}
+.kiln_narrow .kiln_track_cell { grid-column: var(--tr); grid-row: var(--tc); }
+.kiln_narrow .kiln_black_rule_badge { grid-column: 1 / span 2; grid-row: 1 / span 3; }
+.kiln_narrow .kiln_black_rule_bonus { font-size: 11px; }
+.kiln_narrow .kiln_track_legend { align-self: center; }
+
+/* ========================================================
+   Player panel: only BGA's score, plus the colour-blind glyph (panel standard, rule 34)
+   ======================================================== */
+.kiln_cb_off .kiln_panel_glyph { display: none; }
+.kiln_panel_glyph {
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+    border-radius: 3px;
+    vertical-align: middle;
+    margin: 0 8px 0 0;
+    background-size: 62%, 100% 100%;
+}
+.kiln_cb_on .kiln_panel_glyph.kiln_tile_red,
+.kiln_cb_on .kiln_panel_glyph.kiln_tile_blue,
+.kiln_cb_on .kiln_panel_glyph.kiln_tile_green,
+.kiln_cb_on .kiln_panel_glyph.kiln_tile_yellow { background-size: 62%, 100% 100%; }
+
+@media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
 }
 
+/* ========================================================
+   Tile & Disc Color Palette (Ceramic Gloss Styling)
+   ======================================================== */
 /* ========================================================
    Tile & Disc Color Palette (Ceramic Gloss Styling)
    ======================================================== */
@@ -835,195 +583,6 @@
 .kiln_tile_black, .kiln_disc_black, .kiln_dot_black, .kiln_tag_black {
     background: linear-gradient(135deg, #455a64 0%, #263238 100%);
     border-color: #10171a;
-}
-
-/* ========================================================
-   Animations
-   ======================================================== */
-/* Shape preview highlight (when selected or cannot fit) */
-.kiln_shape_highlighted {
-    border: 2.5px solid #0284c7 !important;
-}
-
-/* Cannot fit banner above warehouse */
-@media (hover: hover) {
-}
-
-@media (hover: hover) {
-}
-
-/* Warehouse Sell Line Selector Arrows (Rule 2) */
-.kiln_sell_arrows_wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-}
-
-.kiln_wh_grid_with_rows {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 4px;
-}
-
-.kiln_row_arrows {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    padding-top: 5px;
-    padding-bottom: 5px;
-    box-sizing: border-box;
-    visibility: hidden;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-}
-
-.kiln_col_arrows {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 3px;
-    margin-top: 4px;
-    visibility: hidden;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-}
-
-.kiln_sell_active .kiln_row_arrows,
-.kiln_sell_active .kiln_col_arrows {
-    visibility: visible;
-    opacity: 1;
-}
-
-.kiln_arrow_spacer {
-    width: 32px;
-    flex-shrink: 0;
-}
-
-.kiln_col_arrows_track {
-    display: flex;
-    flex-direction: row;
-    gap: 3px;
-    padding-left: 5px;
-    padding-right: 5px;
-    box-sizing: border-box;
-}
-
-.kiln_row_arrow_btn {
-    width: 28px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 15px;
-    font-weight: 900;
-    border-radius: 3px;
-    box-sizing: border-box;
-    transition: background-color 0.2s ease, color 0.2s ease;
-    user-select: none;
-}
-
-.kiln_col_arrow_btn {
-    width: 40px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 15px;
-    font-weight: 900;
-    border-radius: 3px;
-    box-sizing: border-box;
-    transition: background-color 0.2s ease, color 0.2s ease;
-    user-select: none;
-}
-
-.kiln_arrow_disabled {
-    opacity: 0;
-    pointer-events: none;
-    background: transparent;
-    color: #94a3b8;
-}
-
-.kiln_arrow_available {
-    opacity: 1;
-    cursor: pointer;
-    background: #f3e9d6;
-    border: 2px solid #e65100;
-    color: #e65100;
-}
-
-@media (hover: hover) {
-.kiln_arrow_available:hover {
-    background: #fef3c7;
-    border-color: #d97706;
-    }
-}
-
-.kiln_arrow_selected {
-    opacity: 1;
-    cursor: pointer;
-    background: #e65100;
-    border: 2px solid #f3e9d6;
-    color: #ffffff;
-    }
-
-
-
-/* ========================================================
-   Theme: brick kiln wall play area, matte clay panels
-   ======================================================== */
-.kiln_play_area {
-    padding: 6px 0;
-}
-
-/* Table texture fills the whole browser screen, not only the game box (BGA guideline C.5: the
-   background is the table the game lives on). BGA wrappers are made transparent so it shows through. */
-html:has(body.kiln_page_bg),
-body.kiln_page_bg {
-    min-height: 100vh;
-    background-color: #5b3a2e;
-    background-image:
-        linear-gradient(rgba(30, 18, 12, 0.55), rgba(30, 18, 12, 0.55)),
-        repeating-linear-gradient(0deg, transparent 0, transparent 21px, rgba(20, 12, 8, 0.7) 21px, rgba(20, 12, 8, 0.7) 24px),
-        repeating-linear-gradient(90deg, transparent 0, transparent 45px, rgba(20, 12, 8, 0.7) 45px, rgba(20, 12, 8, 0.7) 48px);
-    background-size: auto, 96px 48px, 96px 48px;
-}
-body.kiln_page_bg #page-content,
-body.kiln_page_bg #ebd-body,
-body.kiln_page_bg #game_play_area_background,
-body.kiln_page_bg #game_play_area,
-body.kiln_page_bg .bga-game-area {
-    background: transparent !important;
-}
-.kiln_board_grid {
-    background: #3a2a22;
-}
-.kiln_arrow_slot {
-    background: #d9c9b0;
-    border-color: #8a6f55;
-}
-.kiln_arrow_icon { color: #6b5848; }
-.kiln_arrow_clickable {
-    background: #f3e9d6;
-    border: 2px solid #1565c0;
-}
-.kiln_arrow_clickable .kiln_arrow_icon { color: #1565c0; }
-.kiln_wh_title { color: #f3e9d6; }
-.kiln_tile_candidate { outline: 3px solid #1565c0; outline-offset: -3px; cursor: pointer; }
-.kiln_shape_highlighted { outline: 3px solid #1565c0; outline-offset: -3px; }
-.kiln_black_rule_bonus { color: #f3e9d6; }
-.kiln_line_sellable_row, .kiln_line_sellable_col, .kiln_line_sellable_selected { outline: 3px solid #e65100; outline-offset: -3px; }
-.kiln_wh_erasable { outline: 2px dashed #b71c1c; outline-offset: -2px; }
-
-/* Touch targets: >= 32px at phone scale, 44px where space allows */
-.kiln_row_arrow_btn { width: 44px; height: 44px; }
-.kiln_col_arrow_btn { width: 44px; height: 44px; }
-.kiln_row_arrows { gap: 4px; }
-.kiln_col_arrows_track { gap: 4px; padding-left: 5px; }
-.kiln_arrow_spacer { width: 44px; }
-
-@media (prefers-reduced-motion: reduce) {
-    * { transition: none !important; }
 }
 
 /* ========================================================
@@ -1070,150 +629,5 @@ body.kiln_page_bg .bga-game-area {
     background-position: center, center;
     background-size: 40%, 100% 100%;
 }
-.kiln_cb_on .kiln_main_layout .kiln_score_disc { width: 16px; height: 16px; background-size: 80%, 100% 100%; }
+.kiln_cb_on .kiln_main_layout .kiln_score_disc { background-size: 80%, 100% 100%; }
 .kiln_cb_on .kiln_player_color_dot { background-size: 70%, 100% 100%; }
-
-/* Narrow screens: same table arrangement, tighter gutters */
-.kiln_main_layout.kiln_narrow,
-.kiln_main_layout.kiln_narrow.kiln_multiplayer,
-.kiln_main_layout.kiln_narrow.kiln_3player {
-    grid-template-columns: auto auto auto;
-    gap: 6px 8px;
-    padding: 4px;
-}
-.kiln_main_layout.kiln_narrow.kiln_3player { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
-.kiln_main_layout.kiln_narrow:not(.kiln_multiplayer) { grid-template-columns: auto auto; }
-.kiln_narrow #kiln_track_panel,
-.kiln_narrow.kiln_multiplayer #kiln_track_panel { width: 132px; padding: 6px; }
-.kiln_narrow .kiln_score_track,
-.kiln_narrow.kiln_multiplayer .kiln_score_track { grid-template-columns: repeat(4, 1fr); }
-.kiln_narrow .kiln_center_panel { padding: 4px; }
-.kiln_narrow .kiln_warehouse_card { padding: 6px 8px; }
-.kiln_narrow .kiln_opponent_card .kiln_wh_grid {
-    grid-template-columns: repeat(5, 22px) !important;
-    grid-template-rows: repeat(5, 22px) !important;
-}
-.kiln_narrow .kiln_opponent_card .kiln_wh_cell { width: 22px !important; height: 22px !important; }
-.kiln_narrow .kiln_opponent_card { padding: 4px 6px; }
-
-/* 2 players, narrow: score track sits to the left of the opponent mat, kiln and own mat use the full width */
-.kiln_main_layout.kiln_narrow:not(.kiln_multiplayer) {
-    grid-template-columns: auto 1fr;
-    grid-template-areas:
-        "track top"
-        "center center"
-        "bottom bottom";
-}
-.kiln_narrow:not(.kiln_multiplayer) #kiln_track_panel { width: 190px; justify-self: start; align-self: start; padding: 5px; }
-.kiln_narrow:not(.kiln_multiplayer) .kiln_score_track { grid-template-columns: repeat(5, 1fr); gap: 2px; }
-.kiln_narrow:not(.kiln_multiplayer) .kiln_track_cell { height: 30px; }
-.kiln_narrow:not(.kiln_multiplayer) .kiln_track_num { font-size: 9px; left: 2px; top: 1px; }
-.kiln_narrow:not(.kiln_multiplayer) #kiln_slot_top { justify-self: center; }
-
-/* Narrow screens: slightly leaner kiln ring so the board fills more of the width */
-.kiln_narrow .kiln_arrow_slot { width: 44px; height: 44px; }
-.kiln_narrow .kiln_arrow_row { margin-left: 48px; margin-right: 48px; }
-.kiln_narrow .kiln_board_grid { grid-template-columns: repeat(6, 48px); grid-template-rows: repeat(6, 48px); gap: 3px; padding: 4px; }
-.kiln_narrow .kiln_board_tile { width: 48px; height: 48px; }
-.kiln_narrow .kiln_outer_tile_disc { width: 40px; height: 40px; }
-.kiln_narrow .kiln_black_rule_badge { left: 4px; top: 4px; }
-
-/* Player-panel glyph: tile letter next to the player name (colorblind) */
-.kiln_cb_off .kiln_panel_glyph { display: none; }
-.kiln_panel_glyph {
-    display: inline-block;
-    width: 44px;
-    height: 44px;
-    border-radius: 3px;
-    vertical-align: middle;
-    margin: 0 8px 0 0;
-    background-size: 62%, 100% 100%;
-}
-.kiln_cb_on .kiln_panel_glyph.kiln_tile_red,
-.kiln_cb_on .kiln_panel_glyph.kiln_tile_blue,
-.kiln_cb_on .kiln_panel_glyph.kiln_tile_green,
-.kiln_cb_on .kiln_panel_glyph.kiln_tile_yellow { background-size: 62%, 100% 100%; }
-
-/* Arrows: hollow block arrows like the printed nestorgames board (thin outline, paper fill) */
-.kiln_arrow_slot,
-.kiln_arrow_clickable {
-    background: transparent;
-    border: none;
-}
-.kiln_arrow_svg {
-    width: 100%;
-    height: 100%;
-    display: block;
-    overflow: visible;
-}
-.kiln_arrow_svg polygon {
-    fill: #f3e9d6;
-    stroke: #5a4a3c;
-    stroke-width: 2.5;
-    stroke-linejoin: miter;
-}
-.kiln_arrow_up .kiln_arrow_svg { transform: rotate(180deg); }
-.kiln_arrow_left .kiln_arrow_svg { transform: rotate(90deg); }
-.kiln_arrow_right .kiln_arrow_svg { transform: rotate(-90deg); }
-.kiln_arrow_clickable { cursor: pointer; }
-.kiln_arrow_clickable .kiln_arrow_svg polygon {
-    fill: #dbe9f8;
-    stroke: #1565c0;
-    stroke-width: 4;
-}
-@media (hover: hover) {
-.kiln_arrow_clickable:hover .kiln_arrow_svg polygon { fill: #1565c0; }
-}
-.kiln_outer_tile_holder { z-index: 2; }
-
-/* Tiles face the viewer: counter-rotate against the seat rotation of the kiln (cosmetic) */
-.kiln_oven_wrapper .kiln_board_tile,
-.kiln_oven_wrapper .kiln_outer_tile_disc {
-    transform: rotate(var(--kiln-face, 0deg));
-}
-
-/* Opponent mats are turned toward their seat: counter-rotate every cell so letters face the viewer (cosmetic) */
-.kiln_rot_90 .kiln_wh_cell { transform: rotate(-90deg); }
-.kiln_rot_180 .kiln_wh_cell { transform: rotate(-180deg); }
-.kiln_rot_270 .kiln_wh_cell { transform: rotate(-270deg); }
-
-/* ========================================================
-   Push step: the arrows exist only while the player chooses where to push
-   ======================================================== */
-.kiln_oven_wrapper:not(.kiln_pushing) .kiln_arrow_svg { visibility: hidden; }
-.kiln_arrow_unavailable { pointer-events: none; }
-.kiln_arrow_unavailable .kiln_arrow_svg { opacity: 0.22; }
-.kiln_arrow_clickable .kiln_arrow_svg polygon {
-    fill: #bcd8f5;
-    stroke: #1565c0;
-    stroke-width: 6;
-}
-.kiln_has_pick .kiln_arrow_clickable:not(.kiln_arrow_picked) .kiln_arrow_svg { opacity: 0.55; }
-.kiln_arrow_picked .kiln_arrow_svg polygon { stroke-width: 9; stroke: #f3e9d6; fill: #1565c0; }
-.kiln_arrow_picked.kiln_pin_red .kiln_arrow_svg polygon { fill: #d32f2f; }
-.kiln_arrow_picked.kiln_pin_blue .kiln_arrow_svg polygon { fill: #1976d2; }
-.kiln_arrow_picked.kiln_pin_green .kiln_arrow_svg polygon { fill: #2e7d32; }
-.kiln_arrow_picked.kiln_pin_yellow .kiln_arrow_svg polygon { fill: #fbc02d; }
-.kiln_arrow_picked.kiln_pin_black .kiln_arrow_svg polygon { fill: #263238; }
-.kiln_arrow_picked .kiln_arrow_svg { opacity: 1; }
-
-/* Push preview on the kiln: the line that moves, the tile that enters, the tile that leaves */
-.kiln_push_line { outline: 3px solid #f3e9d6; outline-offset: -3px; }
-.kiln_push_in::after {
-    content: '';
-    position: absolute;
-    left: 28%; top: 28%; width: 44%; height: 44%;
-    border: 3px solid #f3e9d6;
-    border-radius: 3px;
-    background: #455a64;
-}
-.kiln_push_in.kiln_pin_red::after { background: #d32f2f; }
-.kiln_push_in.kiln_pin_blue::after { background: #1976d2; }
-.kiln_push_in.kiln_pin_green::after { background: #2e7d32; }
-.kiln_push_in.kiln_pin_yellow::after { background: #fbc02d; }
-.kiln_push_in.kiln_pin_black::after { background: #263238; }
-.kiln_push_out { outline: 3px dashed #f3e9d6; outline-offset: -3px; opacity: 0.45; }
-
-/* Compact player panel: score + tiles on the mat */
-.kiln_panel_counts { display: flex; flex-wrap: wrap; gap: 8px; font-size: 20px; line-height: 1.3; margin-top: 4px; }
-.kiln_panel_counts b { font-size: 22px; font-weight: 700; }

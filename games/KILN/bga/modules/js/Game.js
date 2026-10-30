@@ -282,7 +282,7 @@ class StatePlayerTurnSell {
         this.completedRows = args.completed_rows || [];
         this.completedCols = args.completed_cols || [];
         this.game.isSellStateActive = isCurrentPlayerActive;
-        document.querySelectorAll('.kiln_price_row').forEach(r => {
+        document.querySelectorAll('.kiln_my_warehouse .kiln_price_row').forEach(r => {
             r.style.cursor = isCurrentPlayerActive ? 'pointer' : 'default';
         });
 
@@ -488,7 +488,7 @@ class StatePlayerTurnSell {
 
     onLeavingState(args, isCurrentPlayerActive) {
         this.game.isSellStateActive = false;
-        document.querySelectorAll('.kiln_price_row').forEach(r => {
+        document.querySelectorAll('.kiln_my_warehouse .kiln_price_row').forEach(r => {
             r.style.cursor = 'default';
         });
         this.game.clearSellHighlights();
@@ -759,21 +759,10 @@ export class Game {
         });
     }
 
-    /** Compact player panel: score (framework) plus tiles on the mat. The full mat stays in the game area. */
+    /** The panel keeps only BGA's score (and the colour-blind glyph): drop the old "Mat n/25" line if it exists. */
     updatePanelCounts() {
         Object.keys(this.gamedatas.players || {}).forEach(pId => {
-            const panel = this.bga?.playerPanels?.getElement?.(pId);
-            if (!panel) return;
-            let el = panel.querySelector('.kiln_panel_counts');
-            if (!el) {
-                el = document.createElement('div');
-                el.className = 'kiln_panel_counts';
-                panel.appendChild(el);
-            }
-            const wh = this.warehouses[pId] || [];
-            let n = 0;
-            for (let y = 0; y < 5; y++) for (let x = 0; x < 5; x++) if (wh[y] && wh[y][x]) n++;
-            el.textContent = `${_('Mat')} ${n}/25`;
+            this.bga?.playerPanels?.getElement?.(pId)?.querySelector('.kiln_panel_counts')?.remove();
         });
     }
 
@@ -796,49 +785,39 @@ export class Game {
 
         wrapper.innerHTML = `
             <div id="kiln_main_layout" class="kiln_main_layout ${isMultiplayer ? 'kiln_multiplayer' : ''} ${numPlayers === 3 ? 'kiln_3player' : ''}">
-                <!-- Score Track: Top-Left in 3-4p, Left beside kiln in 2p -->
-                <div class="kiln_track_panel" id="kiln_track_panel">
-                    <div id="kiln_score_track" class="kiln_score_track"></div>
-                    ${Number(this.variantBonusSpaces) === 1 ? `
-                        <div class="kiln_track_legend" id="kiln_track_legend" title="${_('Spaces 5, 8, 14, 17, 19, 23, 26 award an extra turn in the Heating up the Kiln variant')}">
-                            <span class="kiln_legend_stripe"></span>
-                            <span>${_('Extra Turn')}</span>
-                        </div>
-                    ` : ''}
-                </div>
-
-                <!-- Top Slot: Seat 2 (North player) -->
+                <!-- Top Slot: opposite player's card -->
                 <div class="kiln_arena_slot kiln_slot_top" id="kiln_slot_top"></div>
 
-                <!-- West Slot: Seat 3 (West player) -->
+                <!-- West Slot: player on my left -->
                 <div class="kiln_arena_slot kiln_slot_left" id="kiln_slot_left"></div>
 
-                <!-- Central Kiln (6x6) with 24 push arrows -->
-                <div class="kiln_center_panel" id="kiln_center_panel">
-                    <!-- Black Tile Push Rule Indicator (Top-Left Corner) -->
-                    <div class="kiln_black_rule_badge" id="kiln_black_rule_badge" role="img" aria-label="${_('Pushing the black tile out of the kiln gives 1 extra turn')}">
-                        <div class="kiln_black_rule_tile">
-                            <span class="kiln_black_push_arrow">&gt;</span>
+                <!-- The main mat (white paper like the printed board): logo, score track, kiln with its 24 arrows -->
+                <div class="kiln_center_panel kiln_mat" id="kiln_center_panel">
+                    <div class="kiln_mat_side" id="kiln_track_panel">
+                        <div class="kiln_logo" role="img" aria-label="KILN"></div>
+                        <div id="kiln_score_track" class="kiln_score_track">
+                            <div class="kiln_black_rule_badge" id="kiln_black_rule_badge" role="img" aria-label="${_('Pushing the black tile out of the kiln gives 1 extra turn')}">
+                                <div class="kiln_black_rule_tile">
+                                    <span class="kiln_black_push_arrow">&gt;</span>
+                                </div>
+                                <div class="kiln_black_rule_bonus">${_('+1 turn')}</div>
+                            </div>
                         </div>
-                        <div class="kiln_black_rule_bonus">${_('+1 turn')}</div>
+                        ${Number(this.variantBonusSpaces) === 1 ? `
+                            <div class="kiln_track_legend" id="kiln_track_legend">
+                                <span class="kiln_legend_stripe"></span>
+                                <span>${_('Extra Turn')}</span>
+                            </div>
+                        ` : ''}
                     </div>
 
                     <div id="kiln_oven_wrapper" class="kiln_oven_wrapper">
-                        <!-- North Arrows (0..5) -->
                         <div id="kiln_arrows_north" class="kiln_arrow_row kiln_arrows_n"></div>
-
                         <div class="kiln_oven_middle">
-                            <!-- West Arrows (18..23) -->
                             <div id="kiln_arrows_west" class="kiln_arrow_col kiln_arrows_w"></div>
-
-                            <!-- 6x6 Kiln Board -->
                             <div id="kiln_board_grid" class="kiln_board_grid"></div>
-
-                            <!-- East Arrows (6..11) -->
                             <div id="kiln_arrows_east" class="kiln_arrow_col kiln_arrows_e"></div>
                         </div>
-
-                        <!-- South Arrows (12..17) -->
                         <div id="kiln_arrows_south" class="kiln_arrow_row kiln_arrows_s"></div>
                     </div>
                 </div>
@@ -866,19 +845,43 @@ export class Game {
     renderScoreTrack() {
         const track = document.getElementById('kiln_score_track');
         if (!track) return;
-        track.innerHTML = '';
+        track.querySelectorAll('.kiln_track_cell').forEach(c => c.remove());
 
         const bonusSpaces = [5, 8, 14, 17, 19, 23, 26];
         const isBonusActive = Number(this.variantBonusSpaces) === 1;
+        const printed = [1, 5, 10, 15, 20, 25, 29];
+        const lastSpace = 29;
 
-        for (let i = 0; i <= this.targetScore; i++) {
+        // The snake of the printed board: 5 columns, 9 rows (+ the square start space above space 1).
+        // Space n -> [column, row]; the CSS turns it on its side on narrow screens.
+        const place = (n) => {
+            if (n <= 9) return [5, n];
+            if (n === 10) return [4, 9];
+            if (n <= 19) return [3, 20 - n];
+            if (n === 20) return [2, 1];
+            if (n === 21) return [1, 1];
+            return [1, n - 20];
+        };
+        const rowOffset = 2;
+        const maxSpace = Math.max(lastSpace, this.targetScore);
+
+        for (let i = 0; i <= maxSpace; i++) {
             const isBonus = isBonusActive && bonusSpaces.includes(i);
             const isGoal = i === this.targetScore;
+            const isBeyond = i > this.targetScore;
 
             const cell = document.createElement('div');
-            cell.className = `kiln_track_cell ${isBonus ? 'kiln_track_bonus' : ''} ${isGoal ? 'kiln_track_goal' : ''}`;
+            cell.className = `kiln_track_cell ${i === 0 ? 'kiln_track_start' : ''} ${isBonus ? 'kiln_track_bonus' : ''} ${isGoal ? 'kiln_track_goal' : ''} ${isBeyond ? 'kiln_track_beyond' : ''}`;
             cell.id = `kiln_track_cell_${i}`;
             cell.setAttribute('data-space', i);
+            if (i === 0) {
+                cell.style.setProperty('--tc', '4 / span 2');
+                cell.style.setProperty('--tr', '1 / span 2');
+            } else {
+                const [c, r] = place(i);
+                cell.style.setProperty('--tc', String(c));
+                cell.style.setProperty('--tr', String(r + rowOffset));
+            }
 
             let tooltip = `Space ${i}`;
             if (i === 0) tooltip = _('Starting Space (0 pts)');
@@ -887,9 +890,7 @@ export class Game {
                 tooltip += ` - ${_('Grey Striped Bonus Space: Landing here awards an EXTRA TURN (Heating up the Kiln variant).')}`;
             }
 
-            let label = `${i}`;
-            if (i === 0) label = 'START';
-
+            const label = (i === 0) ? '0' : ((printed.includes(i) || isGoal || isBonus) ? `${i}` : '');
             cell.innerHTML = `
                 <span class="kiln_track_num">${label}</span>
                 <div class="kiln_track_tokens" id="kiln_tokens_${i}"></div>
@@ -1069,12 +1070,11 @@ export class Game {
             card.className = `kiln_warehouse_card kiln_wh_${pColor} ${isMe ? 'kiln_my_warehouse' : 'kiln_opponent_card'}`;
             card.id = `kiln_warehouse_card_${pId}`;
 
-            const priceTableHtml = isMe ? `
-                <!-- Side Selling Table (Rule 2) -->
-                <div class="kiln_price_table" id="kiln_price_table_${pId}" title="${_('Selling Price Table: completed rows or columns sell for these points')}">
+            const priceTableHtml = `
+                <div class="kiln_price_table" id="kiln_price_table_${pId}">
                     <div class="kiln_price_table_header">
                         <span class="kiln_th_lines">${_('Lines')}</span>
-                        <span class="kiln_th_pts">${_('Points')}</span>
+                        <span class="kiln_th_pts">${_('Pts')}</span>
                     </div>
                     <div class="kiln_price_row" data-lines="1"><span class="kiln_pr_num">1</span><span class="kiln_pr_pts">1</span></div>
                     <div class="kiln_price_row" data-lines="2"><span class="kiln_pr_num">2</span><span class="kiln_pr_pts">3</span></div>
@@ -1082,7 +1082,7 @@ export class Game {
                     <div class="kiln_price_row" data-lines="4"><span class="kiln_pr_num">4</span><span class="kiln_pr_pts">10</span></div>
                     <div class="kiln_price_row" data-lines="5"><span class="kiln_pr_num">5</span><span class="kiln_pr_pts">15</span></div>
                 </div>
-            ` : '';
+            `;
 
             const bodyHtml = isMe ? `
                 <div class="kiln_sell_arrows_wrap" id="kiln_sell_arrows_wrap">
@@ -1110,12 +1110,14 @@ export class Game {
                 ${priceTableHtml}
             ` : `
                 <div class="kiln_wh_grid ${rotClass}" id="kiln_wh_grid_${pId}"></div>
+                ${priceTableHtml}
             `;
 
             card.innerHTML = `
                 <div class="kiln_wh_title">
                     <span class="kiln_player_color_dot kiln_dot_${pColor}"></span>
                     <strong>${pInfo.name}</strong> ${isMe ? `(${_('You')})` : ''}
+                    <span class="kiln_card_logo" aria-hidden="true"></span>
                 </div>
                 <div class="kiln_wh_body">
                     ${bodyHtml}

@@ -14,7 +14,8 @@ const params = new URLSearchParams(location.search);
 const w = Number(params.get('w') || 375);
 const f = document.getElementById('f');
 f.width = String(w);
-f.src = `index.html`;
+const fwd = new URLSearchParams(location.search); fwd.delete('w');
+f.src = `index.html` + (fwd.toString() ? '?' + fwd.toString() : '');
 const started = Date.now();
 const poll = setInterval(() => {
     let doc = null;
