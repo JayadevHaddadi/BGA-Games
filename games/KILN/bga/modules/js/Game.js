@@ -1193,7 +1193,7 @@ export class Game {
      * Update outer tile visual position
      */
     updateOuterTileVisual() {
-        document.querySelectorAll('.kiln_outer_tile_holder').forEach(el => el.innerHTML = '');
+        document.querySelectorAll('.kiln_outer_tile_holder').forEach(el => { el.innerHTML = ''; el.classList.remove('kiln_push_out_holder'); });
         const slotEl = document.getElementById(`kiln_outer_slot_${this.outerTile.border_slot}`);
         if (slotEl) {
             slotEl.innerHTML = `
@@ -1269,28 +1269,48 @@ export class Game {
         return cells;
     }
 
-    /** Show the result of pushing at a slot: the line, the entering tile and the tile that leaves. */
+    /**
+     * Show the board as it will be after pushing at a slot (purely visual, this.boardData is never touched):
+     * the line shifted one cell inward, the entering tile in its new place, the tile that leaves ghosted
+     * just outside the kiln on the opposite arrow. Same shift as the server's executePush.
+     */
     previewPush(slot) {
         this.clearPushPreview();
         const line = this.pushLine(slot);
         const colour = this.outerTile.color;
+        const COLOURS = ['red', 'blue', 'green', 'yellow', 'black'];
+        const at = (c) => (this.boardData[c.y] && this.boardData[c.y][c.x]) || 'red';
         line.forEach((c, i) => {
             const t = document.getElementById(`kiln_tile_${c.x}_${c.y}`);
             if (!t) return;
-            t.classList.add('kiln_push_line');
-            if (i === 0) t.classList.add('kiln_push_in', `kiln_pin_${colour}`);
-            if (i === line.length - 1) t.classList.add('kiln_push_out');
+            const next = i === 0 ? colour : at(line[i - 1]);
+            COLOURS.forEach(k => t.classList.remove(`kiln_tile_${k}`));
+            t.classList.add('kiln_push_line', `kiln_tile_${next}`);
+            if (i === 0) t.classList.add('kiln_push_in');
         });
+        const ejected = at(line[line.length - 1]);
+        const holder = document.getElementById(`kiln_outer_slot_${(slot + 12) % 24}`);
+        if (holder) {
+            holder.classList.add('kiln_push_out_holder');
+            const g = document.createElement('div');
+            g.className = `kiln_outer_tile_disc kiln_push_out_ghost kiln_tile_${ejected}`;
+            holder.appendChild(g);
+        }
         const arrow = document.getElementById(`kiln_arrow_${slot}`);
         if (arrow) arrow.classList.add('kiln_arrow_picked', `kiln_pin_${colour}`);
         document.getElementById('kiln_oven_wrapper')?.classList.add('kiln_has_pick');
     }
 
     clearPushPreview() {
+        const COLOURS = ['red', 'blue', 'green', 'yellow', 'black'];
         document.querySelectorAll('.kiln_push_line').forEach(t => {
-            t.classList.remove('kiln_push_line', 'kiln_push_in', 'kiln_push_out');
-            [...t.classList].filter(c => c.startsWith('kiln_pin_')).forEach(c => t.classList.remove(c));
+            t.classList.remove('kiln_push_line', 'kiln_push_in');
+            const real = (this.boardData[t.getAttribute('data-y')] || [])[t.getAttribute('data-x')] || 'red';
+            COLOURS.forEach(k => t.classList.remove(`kiln_tile_${k}`));
+            t.classList.add(`kiln_tile_${real}`);
         });
+        document.querySelectorAll('.kiln_push_out_ghost').forEach(g => g.remove());
+        document.querySelectorAll('.kiln_push_out_holder').forEach(h => h.classList.remove('kiln_push_out_holder'));
         document.querySelectorAll('.kiln_arrow_picked').forEach(a => {
             a.classList.remove('kiln_arrow_picked');
             [...a.classList].filter(c => c.startsWith('kiln_pin_')).forEach(c => a.classList.remove(c));

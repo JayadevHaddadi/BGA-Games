@@ -156,32 +156,49 @@ try {
 
   // Mouse: hover previews, click pushes straight away
   game.hasHover = () => true;
+  const colOf = (x, y) => (document.getElementById('kiln_tile_' + x + '_' + y).className.match(/kiln_tile_(\w+)/) || [])[1];
+  const snap = () => { const a = []; for (let y = 0; y < 6; y++) for (let x = 0; x < 6; x++) a.push(colOf(x, y)); return a.join(','); };
+  const before = snap();
+  const boardBefore = JSON.stringify(game.boardData);
+  const outerCol = game.outerTile.color;
+  const oldCol = [0, 1, 2, 3, 4, 5].map((y) => game.boardData[y][2]);
   game.onArrowHover(2, true);
   const hoverLine = document.querySelectorAll('.kiln_push_line').length;
+  // slot 2 pushes column 2 downward: (2,0) gets the outer colour, (2,y) gets old (2,y-1), old (2,5) is ghosted at slot 14
+  const shifted = colOf(2, 0) === outerCol && [1, 2, 3, 4, 5].every((y) => colOf(2, y) === oldCol[y - 1]) && colOf(3, 0) === game.boardData[0][3];
+  const ghost = document.querySelector('#kiln_outer_slot_14 .kiln_push_out_ghost');
+  const ghostOk = !!ghost && ghost.classList.contains('kiln_tile_' + oldCol[5]);
+  const boardUntouched = JSON.stringify(game.boardData) === boardBefore;
   game.onArrowHover(2, false);
+  const restored = snap() === before && !document.querySelector('.kiln_push_out_ghost');
+  game.onArrowHover(10, true);
+  const noPreviewUnusable = snap() === before && !document.querySelector('.kiln_push_line');
+  game.onArrowHover(10, false);
   game.onArrowClicked(2);
   flows.mouse = { hoverLine, pushed: calls.length === 1 && calls[0].name === 'actPushTile' && calls[0].args.targetSlot === 2,
-    ok: hoverLine === 6 && calls.length === 1 && calls[0].args.targetSlot === 2 };
+    hoverLine, shifted, ghostOk, boardUntouched, restored, noPreviewUnusable,
+    ok: hoverLine === 6 && shifted && ghostOk && boardUntouched && restored && noPreviewUnusable && calls.length === 1 && calls[0].args.targetSlot === 2 };
   calls.length = 0;
   turnState.onEnteringState({ valid_slots: [1, 2, 3, 4, 5, 7] }, true);
 
   // Touch: tap selects + previews, Push confirms, Cancel returns
   game.hasHover = () => false;
   game.onArrowClicked(3);
+  const stagedChanged = snap() !== before;
   const staged = {
     picked: !!document.querySelector('.kiln_arrow_picked'),
     line: document.querySelectorAll('.kiln_push_line').length,
     entering: document.querySelectorAll('.kiln_push_in').length,
-    leaving: document.querySelectorAll('.kiln_push_out').length,
+    leaving: document.querySelectorAll('.kiln_push_out_ghost').length,
     buttons: buttons.map((b) => b.text).join('|'),
     sent: calls.length,
   };
   game.cancelPush();
-  const afterCancel = { picked: !!document.querySelector('.kiln_arrow_picked'), buttons: buttons.length };
+  const afterCancel = { restored: snap() === before && !document.querySelector('.kiln_push_out_ghost'), picked: !!document.querySelector('.kiln_arrow_picked'), buttons: buttons.length };
   game.onArrowClicked(3);
   buttons.find((b) => b.text === 'Push').callback();
   flows.touch = { staged, afterCancel, sent: calls.map((c) => c.args.targetSlot),
-    ok: staged.picked && staged.line === 6 && staged.entering === 1 && staged.leaving === 1 && staged.buttons === 'Push|Cancel'
+    ok: stagedChanged && afterCancel.restored && staged.picked && staged.line === 6 && staged.entering === 1 && staged.leaving === 1 && staged.buttons === 'Push|Cancel'
         && staged.sent === 0 && !afterCancel.picked && afterCancel.buttons === 0 && calls.length === 1 && calls[0].args.targetSlot === 3 };
   calls.length = 0;
   turnState.onLeavingState({}, true);
@@ -262,6 +279,7 @@ try {
       turnState.onLeavingState({}, true);
       if (shot === 'push' || shot === 'staged') { turnState.onEnteringState({ valid_slots: [1, 2, 3, 4, 5, 7, 9, 13] }, true); }
       if (shot === 'staged') game.onArrowClicked(3);
+      if (shot === 'hover') { turnState.onEnteringState({ valid_slots: [1, 2, 3, 4, 5, 7, 9, 13] }, true); game.previewPush(3); }
       if (shot === 'place') game.setupWarehousePlacement([{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }], [{ ox: 0, oy: 0 }, { ox: 2, oy: 2 }, { ox: 3, oy: 1 }]);
       if (shot === 'sell') game.playerTurnSell.onEnteringState({ completed_rows: [4], completed_cols: [] }, true);
     }

@@ -328,20 +328,13 @@ body.kiln_page_bg .bga-game-area {
 
 /* Push preview on the kiln: the line that moves, the tile that enters, the tile that leaves */
 .kiln_push_line { outline: 3px solid #111; outline-offset: -3px; }
-.kiln_push_in::after {
-    content: '';
+.kiln_push_out_holder .kiln_outer_tile_disc:not(.kiln_push_out_ghost) { visibility: hidden; }
+.kiln_push_out_ghost {
     position: absolute;
-    left: 28%; top: 28%; width: 44%; height: 44%;
-    border: 2px solid #111;
-    border-radius: 3px;
-    background: #455a64;
+    outline: 2px dashed #111;
+    outline-offset: -2px;
+    opacity: 0.5;
 }
-.kiln_push_in.kiln_pin_red::after { background: #d32f2f; }
-.kiln_push_in.kiln_pin_blue::after { background: #1976d2; }
-.kiln_push_in.kiln_pin_green::after { background: #2e7d32; }
-.kiln_push_in.kiln_pin_yellow::after { background: #fbc02d; }
-.kiln_push_in.kiln_pin_black::after { background: #263238; }
-.kiln_push_out { outline: 3px dashed #111; outline-offset: -3px; opacity: 0.45; }
 
 /* ========================================================
    Player cards: white cards like the printed warehouse (5x5 grid, logo, price table)
