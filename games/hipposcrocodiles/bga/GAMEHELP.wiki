@@ -11,7 +11,7 @@
 ** '''Rectangle''': 20×10 grid (200 squares).
 ** '''Lagoon''': a meandering lagoon, 19 rows of 11 squares each, drifting right, centre, left, centre and right again from top to bottom (209 squares).
 ** '''Pool''': the round pool board, 16×16 grid with the corners cut off (208 squares).
-* Animals can only cover squares of the map: nothing may stick out over the green frame.
+* Animals can only cover squares of the map: nothing may stick out over its edge.
 
 ==Animal distribution==
 
@@ -22,7 +22,7 @@ Table option '''Animal distribution''':
 ==Difficulty==
 
 Table option '''Difficulty''':
-* '''Easy''' (default): the cells where the centre of the animal can go are highlighted, and the status bar tells how many spots are possible in each direction (where the animal's head points) for all four rotations.
+* '''Easy''' (default): the cells where the centre of the animal can go are highlighted on the board for its current direction.
 * '''Hard''': no highlights and no counts. Place the animal where you think it fits; a spot that does not fit is shown in red and cannot be confirmed. If you cannot find a place for your animal, press '''Surrender''' (red button, with a confirmation): you lose the game immediately. In Easy mode there is no Surrender button: the game ends by itself when you have no legal move.
 
 ==Trunks (optional)==
