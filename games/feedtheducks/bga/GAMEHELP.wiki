@@ -6,8 +6,8 @@ Gather all the ducks of your colour into '''one connected group''' before the ot
 
 The pond has 61 hexagonal spaces. Each player has ducks of their colour: '''12''' with 2 players, '''8''' with 3 players, '''6''' with 4 players. In every game 24 ducks fill the outer edge of the pond, one duck per space.
 
-* '''Players place the ducks''' (default): starting with White, players take turns placing '''any duck''' (of any colour still available) on a free edge space until the edge is full.
-* '''Random setup''' (option): the ducks are placed at random around the edge, never more than 2 ducks of the same colour side by side.
+* '''Random setup''' (default): the ducks are placed at random around the edge, never more than 2 ducks of the same colour side by side.
+* '''Players place the ducks''' (advanced option): starting with White, players take turns placing '''any duck''' (of any colour still available) on a free edge space until the edge is full.
 
 White then drops the first breadcrumb.
 

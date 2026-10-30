@@ -1,7 +1,7 @@
 """Generates every Hippos & Crocodiles image from the cell masks in Rules.php (single source of truth).
 
-Boards (bga/img/board_<map>.png): one uniform water colour, thin white grid lines on the mask cells, and a green
-rounded frame that follows the mask outline. No title, logo or publisher name. The grid starts at (PAD, PAD) and
+Boards (bga/img/board_<map>.png): one uniform water colour, thin white grid lines on the mask cells, and no frame
+(transparent margin of PAD px around the grid). No title, logo or publisher name. The grid starts at (PAD, PAD) and
 every cell is PITCH px, so Game.js needs only PITCH / PAD (no per-map table).
 Tiles: piece_hippo.png / piece_crocodile.png (cropped and recoloured from the print) and piece_trunk.png (drawn).
 Also writes tests/harness/masks.json for the browser harness.
@@ -46,10 +46,7 @@ def build(rows):
     big = Image.new('RGBA', (w * SS, h * SS), (0, 0, 0, 0))
     d = ImageDraw.Draw(big)
     cells = [(r, c) for r in range(nr) for c in range(nc) if rows[r][c] == '#']
-    # frame: every cell grown by PAD with rounded corners (union follows the outline)
-    for r, c in cells:
-        x0, y0 = A + c * P, A + r * P
-        d.rounded_rectangle((x0 - A, y0 - A, x0 + P + A, y0 + P + A), radius=A, fill=FRAME)
+    # no frame (owner, 30 Oct 2026): the PAD margin stays transparent so Game.js geometry is unchanged
     # water
     for r, c in cells:
         x0, y0 = A + c * P, A + r * P

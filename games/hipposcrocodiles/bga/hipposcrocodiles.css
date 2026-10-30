@@ -1,12 +1,22 @@
 /* Hippos & Crocodiles styles */
 
-/* Game area: a calm, muted African riverbank (design/make_scene.py), low contrast so the board stays clear */
-body.hippos_page_bg #game_play_area {
+/* Whole page: a calm, muted African riverbank (design/make_scene.py), low contrast so the board stays clear.
+   Fixed to the viewport so it covers everything behind the game area and the player panels. */
+body.hippos_page_bg {
     background-color: #6f8a76;
     background-image: url('img/scene.webp');
     background-size: cover;
-    background-position: center top;
+    background-position: center center;
     background-repeat: no-repeat;
+    background-attachment: fixed;
+}
+
+body.hippos_page_bg #page-content,
+body.hippos_page_bg #ebd-body,
+body.hippos_page_bg #game_play_area,
+body.hippos_page_bg #game_play_area_wrap,
+body.hippos_page_bg .bga-game-area {
+    background: transparent !important;
 }
 
 #hippos_root {

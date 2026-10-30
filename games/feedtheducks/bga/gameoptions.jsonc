@@ -3,16 +3,16 @@
   "100": {
     "name": "Setup",
     "values": {
-      "1": {
-        "name": "Players place the ducks",
-        "description": "Starting with White, players take turns placing any duck on a free space of the pond's edge."
-      },
       "2": {
         "name": "Random setup",
         "description": "The ducks are placed at random around the edge, never more than 2 ducks of the same colour side by side."
+      },
+      "1": {
+        "name": "Players place the ducks (advanced)",
+        "description": "Starting with White, players take turns placing any duck on a free space of the pond's edge."
       }
     },
-    "default": 1
+    "default": 2
   },
   "101": {
     "name": "Goal (3 players)",
