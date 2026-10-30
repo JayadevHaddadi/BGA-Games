@@ -167,7 +167,13 @@ try {
   // slot 2 pushes column 2 downward: (2,0) gets the outer colour, (2,y) gets old (2,y-1), old (2,5) is ghosted at slot 14
   const shifted = colOf(2, 0) === outerCol && [1, 2, 3, 4, 5].every((y) => colOf(2, y) === oldCol[y - 1]) && colOf(3, 0) === game.boardData[0][3];
   const ghost = document.querySelector('#kiln_outer_slot_14 .kiln_push_out_ghost');
-  const ghostOk = !!ghost && ghost.classList.contains('kiln_tile_' + oldCol[5]);
+  const tileBox = document.getElementById('kiln_tile_2_5').getBoundingClientRect();
+  const gBox = ghost && ghost.getBoundingClientRect();
+  const ghostSameSize = !!ghost && Math.abs(gBox.width - tileBox.width) < 0.6 && Math.abs(gBox.height - tileBox.height) < 0.6
+    && getComputedStyle(ghost).borderRadius === getComputedStyle(document.getElementById('kiln_tile_2_5')).borderRadius;
+  const arrowBox = document.getElementById('kiln_arrow_14').getBoundingClientRect();
+  const ghostCentred = !!ghost && Math.abs((gBox.left + gBox.width / 2) - (arrowBox.left + arrowBox.width / 2)) < 1.5 && Math.abs((gBox.top + gBox.height / 2) - (arrowBox.top + arrowBox.height / 2)) < 1.5;
+  const ghostOk = !!ghost && ghost.classList.contains('kiln_tile_' + oldCol[5]) && ghostSameSize && ghostCentred;
   const boardUntouched = JSON.stringify(game.boardData) === boardBefore;
   game.onArrowHover(2, false);
   const restored = snap() === before && !document.querySelector('.kiln_push_out_ghost');
@@ -176,7 +182,7 @@ try {
   game.onArrowHover(10, false);
   game.onArrowClicked(2);
   flows.mouse = { hoverLine, pushed: calls.length === 1 && calls[0].name === 'actPushTile' && calls[0].args.targetSlot === 2,
-    hoverLine, shifted, ghostOk, boardUntouched, restored, noPreviewUnusable,
+    hoverLine, shifted, ghostOk, ghostSameSize, ghostCentred, boardUntouched, restored, noPreviewUnusable,
     ok: hoverLine === 6 && shifted && ghostOk && boardUntouched && restored && noPreviewUnusable && calls.length === 1 && calls[0].args.targetSlot === 2 };
   calls.length = 0;
   turnState.onEnteringState({ valid_slots: [1, 2, 3, 4, 5, 7] }, true);
@@ -283,6 +289,8 @@ try {
       if (shot === 'place') game.setupWarehousePlacement([{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }], [{ ox: 0, oy: 0 }, { ox: 2, oy: 2 }, { ox: 3, oy: 1 }]);
       if (shot === 'sell') game.playerTurnSell.onEnteringState({ completed_rows: [4], completed_cols: [] }, true);
     }
+    // ?bg=../../design/bg_A.webp previews a candidate page background (screenshots only)
+    if (qp.get('bg')) { document.documentElement.style.cssText = document.body.style.cssText = "background-image:url('" + qp.get('bg') + "') !important;background-size:cover !important;background-repeat:no-repeat !important"; }
     document.body.dataset.done = '1';
   }, 350);
 

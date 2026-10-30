@@ -23,10 +23,12 @@
 html:has(body.kiln_page_bg),
 body.kiln_page_bg {
     min-height: 100vh;
-    background-color: #7a5535;
+    background-color: #f7e6da;
     background-image: url('img/kiln_table.webp');
-    background-size: 1024px 768px;
-    background-repeat: repeat;
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
 }
 body.kiln_page_bg #page-content,
 body.kiln_page_bg #ebd-body,
@@ -329,8 +331,16 @@ body.kiln_page_bg .bga-game-area {
 /* Push preview on the kiln: the line that moves, the tile that enters, the tile that leaves */
 .kiln_push_line { outline: 3px solid #111; outline-offset: -3px; }
 .kiln_push_out_holder .kiln_outer_tile_disc:not(.kiln_push_out_ghost) { visibility: hidden; }
+.kiln_oven_wrapper .kiln_push_out_ghost,
 .kiln_push_out_ghost {
     position: absolute;
+    left: 50%;
+    top: 50%;
+    width: var(--cell);
+    height: var(--cell);
+    border: 1px solid;
+    border-radius: 3px;
+    transform: translate(-50%, -50%) rotate(var(--kiln-face, 0deg));
     outline: 2px dashed #111;
     outline-offset: -2px;
     opacity: 0.5;
