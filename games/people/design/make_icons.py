@@ -2,7 +2,7 @@
 
 The shapes copy the physical pieces (see people_small.jpg): factories with a sawtooth roof and a chimney in the four
 player colours, the orange bulldozer, the black riot shield, the grey person (the designer's PNG in design/src), the orange bitcoin disc and a striped
-road barrier. Flat fills, dark outline, no shadows.
+road barrier. Flat fills only, no gradients; thin outline only on the light pieces.
 
 Sheet layout: 9 columns x 2 rows of 128 px cells.
   columns: 0 factory red, 1 blue, 2 yellow, 3 green, 4 bulldozer, 5 police shield, 6 human, 7 bitcoin, 8 roadblock
@@ -71,111 +71,75 @@ def mark(d, shape, cx, cy, k):
         d.ellipse([u(cx - k * 0.9), u(cy - k * 0.9), u(cx + k * 0.9), u(cy + k * 0.9)], fill=white)
 
 
+GREY = (132, 136, 142)
+BLACK = (28, 28, 30)
+WHITE = (246, 246, 242)
+LINE = (70, 72, 78, 255)  # thin outline, only where the piece is light or grey (person, roadblock)
+
+
 def factory(colour, with_mark):
+    """Flat side view of the physical factory: stepped sawtooth roof and a cone chimney, one colour."""
     im, d = blank()
-    m, md = new_mask()
-    md.rectangle([u(12), u(68), u(116), u(116)], fill=255)  # hall
-    for x0 in (36, 62, 88):  # sawtooth roof
-        md.polygon(pts([(x0, 68), (x0, 44), (x0 + 28, 68)]), fill=255)
-    md.polygon(pts([(12, 68), (12, 16), (26, 12), (26, 68)]), fill=255)  # chimney
-    piece(im, m, COLOURS[colour])
-    d = ImageDraw.Draw(im)
-    d.rectangle([u(40), u(100), u(54), u(116)], fill=INK)  # door
-    d.rectangle([u(90), u(100), u(104), u(116)], fill=INK)
+    col = COLOURS[colour] + (255,)
+    d.rectangle([u(10), u(76), u(118), u(112)], fill=col)
+    for x0 in (36, 62, 88):  # sawtooth teeth: vertical edge on the left, slope to the right
+        d.polygon(pts([(x0, 76), (x0, 44), (x0 + 26, 76)]), fill=col)
+    d.polygon(pts([(10, 80), (18, 12), (26, 80)]), fill=col)  # chimney cone
     if with_mark:
-        mark(d, colour, 64, 90, 13)
+        mark(d, colour, 72, 96, 11)
     return im
 
 
 def bulldozer():
+    """Flat orange block with the sloped cab and the blade, as the physical orange piece."""
     im, d = blank()
-    m, md = new_mask()
-    md.rectangle([u(26), u(56), u(92), u(84)], fill=255)  # engine
-    md.polygon(pts([(32, 56), (38, 28), (72, 28), (80, 56)]), fill=255)  # cab
-    md.rectangle([u(40), u(16), u(47), u(30)], fill=255)  # exhaust
-    piece(im, m, ORANGE)
-    d = ImageDraw.Draw(im)
-    d.polygon(pts([(43, 54), (46, 34), (68, 34), (73, 54)]), fill=(200, 222, 238, 255), outline=INK, width=round(u(2)))
-    tracks, td = new_mask()
-    td.rounded_rectangle([u(16), u(82), u(100), u(110)], radius=u(14), fill=255)
-    piece(im, tracks, (52, 52, 56))
-    d = ImageDraw.Draw(im)
-    for cx in (32, 58, 84):
-        d.ellipse([u(cx - 6), u(90), u(cx + 6), u(102)], fill=(150, 150, 154, 255), outline=INK, width=round(u(1.5)))
-    arm, ad = new_mask()
-    ad.rectangle([u(88), u(62), u(106), u(70)], fill=255)
-    ad.polygon(pts([(104, 40), (120, 40), (116, 104), (104, 104)]), fill=255)  # blade
-    piece(im, arm, (96, 96, 100))
+    o = ORANGE + (255,)
+    d.polygon(pts([(28, 104), (28, 36), (86, 36), (86, 56), (106, 56), (106, 104)]), fill=o)  # body and cab
+    d.polygon(pts([(8, 108), (8, 52), (26, 44), (26, 108)]), fill=o)  # blade
+    d.rectangle([u(30), u(100), u(104), u(108)], fill=(190, 96, 12, 255))  # tracks
     return im
 
 
 def police():
+    """The black half-cylinder shield with its slot, seen from the front: flat black."""
     im, d = blank()
-    m, md = new_mask()
-    md.polygon(pts([(22, 14), (106, 14), (106, 62), (96, 88), (64, 118), (32, 88), (22, 62)]), fill=255)
-    piece(im, m, (44, 46, 52))
-    d = ImageDraw.Draw(im)
-    d.polygon(pts([(30, 22), (98, 22), (98, 60), (90, 82), (64, 108), (38, 82), (30, 60)]), outline=(206, 210, 216, 255), width=round(u(3)))
-    d.rounded_rectangle([u(40), u(32), u(88), u(52)], radius=u(5), fill=(150, 176, 198, 255), outline=INK, width=round(u(2)))
-    # a star on the lower field
-    cx, cy, ro, ri = 64, 76, 13, 5.5
-    star = []
-    for i in range(10):
-        a = -math.pi / 2 + i * math.pi / 5
-        r = ro if i % 2 == 0 else ri
-        star.append((cx + r * math.cos(a), cy + r * math.sin(a)))
-    d.polygon(pts(star), fill=(238, 238, 232, 255))
+    k = BLACK + (255,)
+    top = [(24 + i * 2, 18 + 14 * math.sin(math.pi * i / 40)) for i in range(41)]  # concave top edge
+    d.polygon(pts([(24, 108), (24, 22)] + top + [(104, 22), (104, 108)]), fill=k)
+    d.rounded_rectangle([u(44), u(48), u(84), u(58)], radius=u(4), fill=(222, 222, 218, 255))
     return im
 
 
 def human():
-    """The designer's grey person (design/src/person_grey.png), fitted to the cell height, centred, alpha kept."""
+    """The designer's grey person (design/src/person_grey.png) as one flat grey, thin outline."""
     im, _ = blank()
     src = Image.open(SRC_PERSON).convert('RGBA')
     h = u(106)
     w = round(src.width * h / src.height)
     src = src.resize((w, h), Image.LANCZOS)
-    # thin black outline around the silhouette (3 px of the 128 px cell)
     alpha = Image.new('L', (W, W), 0)
     alpha.paste(src.getchannel('A'), ((W - w) // 2, u(11)))
-    grown = alpha.filter(ImageFilter.MaxFilter(int(u(3)) * 2 + 1))
-    im.paste(Image.new('RGBA', (W, W), INK), (0, 0), grown)
-    im.alpha_composite(src, ((W - w) // 2, u(11)))
+    grown = alpha.filter(ImageFilter.MaxFilter(int(u(2)) * 2 + 1))
+    im.paste(Image.new('RGBA', (W, W), LINE), (0, 0), grown)
+    im.paste(Image.new('RGBA', (W, W), GREY + (255,)), (0, 0), alpha)
     return im
 
 
 def bitcoin():
+    """Flat orange disc, as the wooden bitcoin tokens, with a plain cream B."""
     im, d = blank()
-    m, md = new_mask()
-    md.ellipse([u(10), u(10), u(118), u(118)], fill=255)
-    piece(im, m, ORANGE)
-    d = ImageDraw.Draw(im)
-    d.ellipse([u(22), u(22), u(106), u(106)], outline=(196, 96, 10, 255), width=round(u(4)))
-    font = ImageFont.truetype(FONT, u(78))
-    cream = (255, 246, 228, 255)
-    d.text((u(66), u(66)), 'B', font=font, fill=cream, anchor='mm')  # the font has no bitcoin sign: a B with two ticks
-    for x in (58, 72):
-        d.rectangle([u(x - 1.5), u(26), u(x + 1.5), u(36)], fill=cream)
-        d.rectangle([u(x - 1.5), u(92), u(x + 1.5), u(102)], fill=cream)
+    d.ellipse([u(10), u(10), u(118), u(118)], fill=ORANGE + (255,))
+    font = ImageFont.truetype(FONT, u(72))
+    d.text((u(64), u(66)), 'B', font=font, fill=(255, 246, 228, 255), anchor='mm')
     return im
 
 
 def roadblock():
+    """The white wedge-shaped roadblock piece: a flat white trapezoid, thin grey outline."""
     im, d = blank()
     m, md = new_mask()
-    md.rectangle([u(20), u(70), u(32), u(112)], fill=255)  # legs
-    md.rectangle([u(96), u(70), u(108), u(112)], fill=255)
-    piece(im, m, (250, 248, 240))
-    board, bd = new_mask()
-    bd.rounded_rectangle([u(6), u(34), u(122), u(76)], radius=u(4), fill=255)
-    piece(im, board, (250, 248, 240))
-    stripes, sd = new_mask()
-    for x in range(-60, 140, 28):
-        sd.polygon(pts([(x, 76), (x + 14, 76), (x + 14 + 42, 34), (x + 42, 34)]), fill=255)
-    stripes = ImageChops.multiply(stripes, board)
-    im.paste(Image.new('RGBA', (W, W), COLOURS['red'] + (255,)), (0, 0), stripes)
-    d = ImageDraw.Draw(im)
-    d.rounded_rectangle([u(6), u(34), u(122), u(76)], radius=u(4), outline=INK, width=round(u(4.5)))
+    md.polygon(pts([(8, 98), (30, 44), (98, 44), (120, 98)]), fill=255)
+    piece(im, m, WHITE, outline=LINE, width=2.5)
     return im
 
 

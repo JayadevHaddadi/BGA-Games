@@ -88,10 +88,10 @@ export class Game {
         root.id = 'pp_root';
         root.innerHTML = `
             <div id="pp_sweep" role="group" aria-label="${_('Bulldozer')}" hidden></div>
+            <p id="pp_info" aria-live="polite"></p>
             <div id="pp_board_wrap">
                 <div id="pp_board" role="grid" aria-label="${_('Game board: districts in columns and rows, A1 is the top-left district.')}"><div id="pp_grid"></div></div>
             </div>
-            <p id="pp_info" aria-live="polite"></p>
             <div id="pp_final" hidden></div>`;
         this.bga.gameArea.getElement().appendChild(root);
         document.body.classList.add('people_page_bg');

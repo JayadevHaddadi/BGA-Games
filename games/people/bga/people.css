@@ -298,11 +298,11 @@ body.people_page_bg #page-title #pagemaintitle {
     font-size: 5.775cqw;
 }
 
-/* Roadblock: a red and white striped barrier laid across the street */
+/* Roadblock: the white wedge piece laid across the street, flat white with a thin grey outline */
 .pp_glyph.pp_roadblock {
     box-sizing: border-box;
-    background: repeating-linear-gradient(45deg, #faf8f0 0 5px, var(--pp-red) 5px 10px);
-    border: 2px solid var(--pp-line);
+    background: #f6f6f2;
+    border: 1px solid #46484e;
     border-radius: 2px;
 }
 
