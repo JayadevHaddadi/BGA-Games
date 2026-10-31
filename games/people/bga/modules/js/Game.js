@@ -88,7 +88,7 @@ export class Game {
         root.id = 'pp_root';
         root.innerHTML = `
             <div id="pp_sweep" role="group" aria-label="${_('Bulldozer')}" hidden></div>
-            <p id="pp_info" aria-live="polite"></p>
+            <p id="pp_info" aria-live="polite" hidden></p>
             <div id="pp_board_wrap">
                 <div id="pp_board" role="grid" aria-label="${_('Game board: districts in columns and rows, A1 is the top-left district.')}"><div id="pp_grid"></div></div>
             </div>
@@ -623,14 +623,22 @@ export class Game {
      * buttons (dashed outline); the chosen one is outlined solid.
      */
     renderInfo() {
-        const pick = this.isActive && this.stateName === 'Bribe' && !!this.args;
+        const infoEl = document.getElementById('pp_info');
+        if (!infoEl) return;
+        if (this.stateName !== 'Bribe') {
+            infoEl.hidden = true;
+            infoEl.innerHTML = '';
+            return;
+        }
+        infoEl.hidden = false;
+        const pick = this.isActive && !!this.args;
         const tiles = [
             ['police', _('Police'), ppIco('police'), ''],
             ['sweep', _('Bulldozer'), ppIco('sweep'), ''],
             ['roadblock', _('Roadblocks'), ppIco('roadblock'), `<b>${this.roadblocks}</b>`],
             ['more', _('Outside'), ppIco('human'), `<b>${this.pool}</b>`],
         ];
-        document.getElementById('pp_info').innerHTML = tiles.map(([mode, label, ico, n]) => {
+        infoEl.innerHTML = tiles.map(([mode, label, ico, n]) => {
             const why = pick ? this.bribeWhy(mode, this.args) : 'x';
             const on = pick && why === '';
             const cls = `pp_tile${on ? ' pp_pick' : ''}${this.mode === mode ? ' pp_chosen' : ''}`;
@@ -757,6 +765,13 @@ export class Game {
         this.updateScores(args.scores);
         this.refresh();
         this.sfx('people_factory');
+    }
+
+    notif_factoryUndone(args) {
+        delete this.edges[args.edge];
+        this.players = args.players;
+        this.updateScores(args.scores);
+        this.refresh();
     }
 
     notif_bribeUsed(args) {

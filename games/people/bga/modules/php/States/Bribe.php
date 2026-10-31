@@ -133,7 +133,7 @@ class Bribe extends GameState
             $detail[] = $this->game->coordLabel($pr, $pc) . ': ' . $list[$i];
         }
         $this->spend($pid);
-        $this->notifyBribe($pid, 'sweep', $changes, clienttranslate('${player_name} ${icon} bulldozes ${taken} humans from ${from} to ${to} (${detail}).'), [
+        $this->notifyBribe($pid, 'sweep', $changes, clienttranslate('${player_name} ${icon} bulldozes ${taken} humans from ${from} to ${to} [${detail}].'), [
             'from' => $this->game->coordLabel($r, $c),
             'to' => $this->game->coordLabel($tr, $tc),
             'taken' => $count,
@@ -194,11 +194,31 @@ class Bribe extends GameState
         return $this->game->endTurn();
     }
 
-    /** Takes back the factory just built: restores the savepoint made right before the build. */
+    /** Takes back the factory just built: removes the edge and restores the factory count. */
     #[PossibleAction]
     public function actUndo(): string
     {
-        $this->game->undoRestorePoint();
+        $pid = (int) $this->game->getActivePlayerId();
+        $edge = (string) $this->game->globals->get('last_factory_edge', '');
+        if ($edge === '') {
+            throw new UserException(clienttranslate('No factory to take back.'));
+        }
+
+        $this->game->deleteEdge($edge);
+        $this->game->changeFactories($pid, 1);
+        $this->tableStats->inc('factories_placed', -1);
+        $this->playerStats->inc('factories_placed', -1, $pid);
+        $this->game->globals->set('last_factory_edge', '');
+        $this->game->refreshScores();
+
+        $this->game->notifyAllPlayers('factoryUndone', clienttranslate('${player_name} cancels factory placement.'), [
+            'player_id' => $pid,
+            'player_name' => $this->game->getPlayerNameById($pid),
+            'edge' => $edge,
+            'players' => $this->game->getPlayers(),
+            'scores' => $this->game->scores(),
+        ]);
+
         return PlaceFactory::class;
     }
 

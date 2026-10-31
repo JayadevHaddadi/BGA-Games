@@ -45,19 +45,39 @@ FACTORY = {
 def board():
     """The 6 x 6 grid from the scan, cut at the outer gutter centres so the image is exactly 6 pitches wide."""
     im = Image.open(GAME / 'PEOPLE.jpg').convert('RGB').crop(BOARD_BOX)
+    # Give the board a calm, softer slate contrast (less harsh white blowouts)
+    lut = [min(255, max(0, int(15 + 0.88 * i))) for i in range(256)] * 3
+    im = im.point(lut)
     im.thumbnail((1100, 1100), Image.LANCZOS)
     im.save(IMG / 'board.jpg', quality=85, optimize=True)
 
 
 def table_background():
-    """Aerial city, darkened: a playmat behind the board, low contrast so the pieces stay the focus."""
-    src = Image.open(GAME / 'city.jpg').convert('L')
-    src = src.resize((1400, round(src.height * 1400 / src.width)), Image.LANCZOS)
-    top = (src.height - 1000) // 2
-    src = src.crop((0, max(0, top), 1400, max(0, top) + 1000))
-    dark = Image.eval(src, lambda v: int(v * 0.30))
-    tinted = Image.merge('RGB', [dark.point(lambda v, k=k: min(255, v * TABLE[k] // 30)) for k in range(3)])
-    tinted.filter(ImageFilter.GaussianBlur(2.2)).save(IMG / 'table.jpg', quality=78, optimize=True)
+    """Warm mahogany and cherry wood table: a natural dining table tabletop behind the board."""
+    wood_src = DESIGN / 'src' / 'warm_wood_table.jpg'
+    if wood_src.exists():
+        src = Image.open(wood_src).convert('RGB')
+        target_w, target_h = 1400, 1000
+        src_ratio = src.width / src.height
+        target_ratio = target_w / target_h
+        if src_ratio > target_ratio:
+            new_w = int(src.height * target_ratio)
+            left = (src.width - new_w) // 2
+            src = src.crop((left, 0, left + new_w, src.height))
+        else:
+            new_h = int(src.width / target_ratio)
+            top = (src.height - new_h) // 2
+            src = src.crop((0, top, src.width, top + new_h))
+        resized = src.resize((target_w, target_h), Image.LANCZOS)
+        resized.save(IMG / 'table.jpg', 'JPEG', quality=84, optimize=True)
+    else:
+        src = Image.open(GAME / 'city.jpg').convert('L')
+        src = src.resize((1400, round(src.height * 1400 / src.width)), Image.LANCZOS)
+        top = (src.height - 1000) // 2
+        src = src.crop((0, max(0, top), 1400, max(0, top) + 1000))
+        dark = Image.eval(src, lambda v: int(v * 0.30))
+        tinted = Image.merge('RGB', [dark.point(lambda v, k=k: min(255, v * TABLE[k] // 30)) for k in range(3)])
+        tinted.filter(ImageFilter.GaussianBlur(2.2)).save(IMG / 'table.jpg', quality=78, optimize=True)
 
 
 def wordmark():

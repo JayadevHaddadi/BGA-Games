@@ -63,8 +63,7 @@ class PlaceFactory extends GameState
 
     private function place(int $pid, string $edge): string
     {
-        // Undo point right before the build: the Bribe step can take the factory back (actUndo)
-        $this->game->undoSavepoint();
+        $this->game->globals->set('last_factory_edge', $edge);
         $colour = $this->game->getPlayers()[$pid]['colour'];
         $this->game->addEdge($edge, Rules::FACTORY, $pid);
         $this->game->changeFactories($pid, -1);

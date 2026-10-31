@@ -172,7 +172,9 @@ body.people_page_bg #page-title #pagemaintitle {
     width: 100%;
     aspect-ratio: 1 / 1;
     overflow: hidden;
-    background: #bbb;
+    background: #1e1c1a;
+    border-radius: 3px;
+    border: 2px solid #141210;
 }
 
 #pp_grid {
@@ -221,13 +223,13 @@ body.people_page_bg #page-title #pagemaintitle {
     outline-offset: -6px;
 }
 
-/* Humans: the designer's person icon (55% of a district, black outline built into the sprite) with the number big in the middle, a thin light halo keeps it readable on the grey */
+/* Humans: the star-meeple icon with the number big in the middle, a thin light halo keeps it readable on the grey */
 .pp_hum {
     position: absolute;
     left: 50%;
     top: 50%;
-    width: 55%;
-    height: 55%;
+    width: 48%;
+    height: 48%;
     transform: translate(-50%, -50%);
 }
 
@@ -237,12 +239,12 @@ body.people_page_bg #page-title #pagemaintitle {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding-top: 6%;
+    padding-top: 4%;
     font-size: 16px;
     font-size: max(16px, 3.75cqw);
     font-weight: 800;
     color: var(--pp-ink);
-    text-shadow: 0 0 2px rgba(255, 255, 255, 0.85), 0 0 1px rgba(255, 255, 255, 0.85);
+    text-shadow: 0 0 2px rgba(255, 255, 255, 0.95), 0 0 1px rgba(255, 255, 255, 0.95);
     line-height: 1;
     pointer-events: none;
 }
@@ -250,14 +252,12 @@ body.people_page_bg #page-title #pagemaintitle {
 .pp_bull,
 .pp_shield {
     position: absolute;
-    bottom: 1%;
-    width: 42%;
-    height: 42%;
+    bottom: 2%;
     pointer-events: none;
 }
 
-.pp_bull { left: -2%; }
-.pp_shield { right: -2%; width: 36%; height: 36%; }
+.pp_bull { left: 2%; width: 38%; height: 38%; }
+.pp_shield { right: 2%; width: 34%; height: 34%; }
 
 /* Edges: the whole street between two districts is the tap target (at least 32 px across) */
 .pp_edge {
@@ -291,36 +291,41 @@ body.people_page_bg #page-title #pagemaintitle {
     height: 12px;
 }
 
-/* Factory: the sprite, sitting on the street between its two districts (sized from the board width) */
+/* Factory: the 3D sprite, sitting on the street between its two districts */
 .pp_edge .pp_glyph.pp_factory {
-    width: 5.775cqw;
-    height: 5.775cqw;
-    font-size: 5.775cqw;
+    width: 6.2cqw;
+    height: 6.2cqw;
+    font-size: 6.2cqw;
 }
 
-/* Roadblock: the white wedge piece laid across the street, flat white with a thin grey outline */
+.pp_edge[data-kind="v"] .pp_glyph.pp_factory {
+    transform: translate(-50%, -50%) rotate(90deg);
+}
+
+/* Roadblock: the white concrete barrier laid across the street */
 .pp_glyph.pp_roadblock {
     box-sizing: border-box;
-    background: #f6f6f2;
-    border: 1px solid #46484e;
+    background: #fbfbf8;
+    border: 1px solid #3c3e44;
     border-radius: 2px;
 }
 
 .pp_edge[data-kind="v"] .pp_glyph.pp_roadblock {
-    width: 16px;
+    width: 14px;
     height: 78%;
 }
 
 .pp_edge[data-kind="h"] .pp_glyph.pp_roadblock {
     width: 78%;
-    height: 16px;
+    height: 14px;
 }
 
-/* Buildable edge: a plain yellow rectangle, outline only */
+/* Buildable edge: a calm, clean highlight in the street */
 .pp_glyph.pp_buildable {
     box-sizing: border-box;
-    border: 3px solid #ffd400;
-    background: none;
+    border: 2px solid rgba(255, 235, 175, 0.6);
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 2px;
 }
 
 .pp_edge[data-kind="v"] .pp_glyph.pp_buildable {
@@ -423,10 +428,19 @@ body.people_page_bg #page-title #pagemaintitle {
     font-weight: 800;
 }
 
+#pp_info[hidden] {
+    display: none !important;
+}
+
 #pp_info {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 6px;
+    gap: 8px;
+    padding: 8px;
+    background: var(--pp-paper);
+    border-radius: 3px;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    margin: 0 0 8px 0;
 }
 
 .pp_tile {
@@ -435,25 +449,48 @@ body.people_page_bg #page-title #pagemaintitle {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 2px;
-    min-height: 64px;
-    padding: 4px;
-    border: 2px solid transparent;
-    border-radius: 2px;
-    background: transparent;
+    gap: 3px;
+    min-height: 60px;
+    padding: 6px 4px;
+    border: 1px solid rgba(0, 0, 0, 0.14);
+    border-radius: 3px;
+    background: #fff;
     color: var(--pp-ink);
     font: inherit;
-    font-size: 12px;
+    font-size: 13px;
     line-height: 1.1;
     cursor: default;
 }
 
-.pp_tile:disabled { opacity: 1; color: var(--pp-ink); }
-.pp_tile.pp_pick { border: 2px dashed var(--pp-line); background: #fbfaf6; cursor: pointer; }
-.pp_tile.pp_chosen { border: 3px solid var(--pp-line); background: #fff; }
-.pp_tile .pp_ico { width: 28px; height: 28px; }
-.pp_tile b { font-size: 18px; }
-.pp_tile_label { font-weight: 700; }
+.pp_tile:disabled {
+    opacity: 0.45;
+    background: rgba(0, 0, 0, 0.04);
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+.pp_tile.pp_pick {
+    border: 2px dashed var(--pp-line);
+    background: #fff;
+    cursor: pointer;
+}
+
+.pp_tile.pp_chosen {
+    border: 2px solid var(--pp-line);
+    background: #fff;
+}
+
+.pp_tile .pp_ico {
+    width: 30px;
+    height: 30px;
+}
+
+.pp_tile b {
+    font-size: 18px;
+}
+
+.pp_tile_label {
+    font-weight: 700;
+}
 
 .pp_dist.pp_token::before {
     outline: 3px dashed var(--pp-line);
@@ -530,7 +567,8 @@ body.people_page_bg #page-title #pagemaintitle {
     }
 
     .pp_edge.pp_target:hover .pp_glyph.pp_buildable {
-        background: rgba(255, 212, 0, 0.25);
+        border-color: #ffd400;
+        background: rgba(255, 212, 0, 0.35);
     }
 
     .pp_cross.pp_target:hover {

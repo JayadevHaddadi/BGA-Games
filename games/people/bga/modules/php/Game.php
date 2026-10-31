@@ -144,6 +144,11 @@ class Game extends \Bga\GameFramework\Table
         static::DbQuery("INSERT INTO `edge` (`edge_key`, `type`, `player_id`) VALUES ('$key', '$type', $pid)");
     }
 
+    public function deleteEdge(string $key): void
+    {
+        static::DbQuery("DELETE FROM `edge` WHERE `edge_key` = '$key'");
+    }
+
     public function coordLabel(int $r, int $c): string
     {
         return chr(ord('A') + $c) . ($r + 1);
@@ -280,6 +285,7 @@ class Game extends \Bga\GameFramework\Table
     /** Ends the active player's turn and hands the table to the next player. */
     public function endTurn(): string
     {
+        $this->globals->set('last_factory_edge', '');
         $pid = (int) $this->getActivePlayerId();
         $this->tableStats->inc('turns_number', 1);
         $this->playerStats->inc('turns_number', 1, $pid);
